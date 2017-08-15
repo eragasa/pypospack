@@ -36,13 +36,18 @@ class VaspPotcarError(Exception):
 # ****    SOME CONVENIENCE FUNCTIONS                                       ****
 # *****************************************************************************
 
-def read_poscar_file(self,filename):
+def read_poscar_file(filename):
     poscar = Poscar()
     poscar.read(filename=filename)
     return poscar
 
 def write_poscar_file(self,obj_poscar,filename='POSCAR'):
     obj_poscar.write(filename)
+
+def read_incar_file(filename):
+    incar = Incar()
+    incar.read(filename=filename)
+    return incar
 
 def make_super_cell(obj, scp):
     sc = base.make_super_cell(copy.deepcopy(obj), list(scp))
@@ -230,6 +235,10 @@ class Incar(object):
                 else:
                     err_msg = "pypospack does not support tag {}".format(args[0])
                     raise VaspIncarError(err_msg)
+
+    def set_no_ionic_relaxation(self):
+        self.ibrion = None
+        self.isif = None
 
     def to_string(self):
         str_out = ''

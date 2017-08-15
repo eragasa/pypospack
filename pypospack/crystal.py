@@ -121,7 +121,7 @@ class SimulationCell(object):
             self._noncopy_init()
         elif isinstance(obj,ase.atoms.Atoms):
             self._copy_init_ase(obj)
-        elif isinstance(obj,pypospack.crystallography.SimulationCell):
+        elif isinstance(obj,SimulationCell):
             self._copy_init_pypospack(obj)
             
     def _noncopy_init(self):
@@ -133,14 +133,14 @@ class SimulationCell(object):
                            [0,0,1]])
         self.atomic_basis = []
         self.vacancies = []
-        self.interstitial = []
+        self.interstitials = []
 
     def _copy_init_pypospack(self,obj):
         self.comment = obj.comment
         self.a0 = obj.a0
         self.H = np.array(obj.h_matrix)
         
-        self.atomic_basis = copy.deepcopy(obj.atoms)
+        self.atomic_basis = copy.deepcopy(obj.atomic_basis)
         self.vacancies = copy.deepcopy(obj.vacancies)
         self.interstitials = copy.deepcopy(obj.interstitials)
 
@@ -257,12 +257,14 @@ class SimulationCell(object):
             (tuple): tuple containing:
                          (bool): True if a atom exists.  False if atom doesn't exist.
                          (int): index of the atom at that position
+
+        This code does not look for atoms in the list of interstitials.
         """
 
         # check to see if atom exists
-        for i,a in enumerate(self._atoms):
+        for i,a in enumerate(self.atomic_basis):
             diff = [abs(position[i]-a.position[i]) for i in range(3)]
-            if max(diff) < self._ptol:
+            if max(diff) < self.ptol:
                 return (True,i)
         return (False,None)
 
@@ -286,7 +288,7 @@ class SimulationCell(object):
             err_msg = err_msg.format(symbol,position)
             raise ValueError(err_msg)
         else:
-            self._atoms.append(Atom(symbol,position))
+            self.atomic_basis.append(Atom(symbol,position))
 
     def remove_atom(self,symbol, position):
         """ remove an atom from the structure
