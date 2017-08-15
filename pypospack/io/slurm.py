@@ -5,15 +5,14 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
         error='job.err'):
     s = '#!/bin/bash\n'
     s += '#SBATCH --job-name={}\n'.format(job_name)
+    s += '#SBATCH --qos={}\n'.format(qos)
     s += '#SBATCH --mail-type=END\n'
-    s += '#SBATCH --job-name={}\n'.format(job_name)
     s += '#SBATCH --mail-user={}\n'.format(email)
     s += '#SBATCH --ntasks={}\n'.format(ntasks)
     s += '#SBATCH --distribution=cyclic:cyclic\n'
     s += '#SBATCH --time={}\n'.format(time)
     s += '#SBATCH --output={}\n'.format(output)
     s += '#SBATCH --error={}\n'.format(error)
-    s += '#SBATCH --qos={}\n'.format(qos)
 
 
     s += 'echo slurm_job_id:$SLURM_JOB_ID\n'

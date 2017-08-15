@@ -23,7 +23,7 @@ if __name__ == "__main__":
     sg = 'fcc'
     a = 3.508
     task_name = 'minimize_init'
-    job_name = "{}_{}_min1"
+    job_name = "{}_{}_min1".format(symbol,sg)
     email= "eragasa@ufl.edu"
     qos="phillpot"
     ntasks=16
