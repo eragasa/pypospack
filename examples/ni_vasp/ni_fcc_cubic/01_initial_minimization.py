@@ -2,6 +2,7 @@ import os, shutil
 import ase.build
 import pypospack.io.vasp as vasp
 import pypospack.crystal as crystal
+import pypospack.io.slurm as slurm
 
 def vasp_structural_minimization(structure,task_name):
     assert isinstance(structure,pypospack.crystal.SimulationCell)
@@ -22,6 +23,11 @@ if __name__ == "__main__":
     sg = 'fcc'
     a = 3.508
     task_name = 'minimize_init'
+    job_name = "{}_{}_min1"
+    email= "eragasa@ufl.edu"
+    qos="phillpot"
+    ntasks=16
+    time="1:00:00"
 
     init_directory = os.getcwd()
     task_dir = os.path.join(os.getcwd(),task_name)
@@ -89,3 +95,13 @@ if __name__ == "__main__":
             os.path.join(vasp_simulation.simulation_directory,"INCAR"))
     vasp_simulation.kpoints.write(
             os.path.join(vasp_simulation.simulation_directory,"KPOINTS"))
+
+    slurm.write_vasp_batch_script(
+            filename=os.path.join(
+                vasp_simulation.simulation_directory,"runjob_hpg.slurm"),
+            job_name=job_name,
+            email=email,
+            qos=qos,
+            ntasks=ntasks,
+            time=time)
+    
