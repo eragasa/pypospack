@@ -1,34 +1,31 @@
-import os, shutil
+import os, shutil, subprocess
 import ase.build
 import pypospack.io.vasp as vasp
 import pypospack.crystal as crystal
+import pypospack.io.slurm as slurm
 
-def vasp_structural_minimization(structure,task_name):
-    assert isinstance(structure,pypospack.crystal.SimulationCell)
-    assert isinstance(task_name,str)
-
-    vasp_simulation = vasp.VaspSimulation()
-    vasp_simulation.simulation_directory = task_dir
-    vasp_simulation.poscar = vasp.Poscar(structure)
-    vasp_simulation.incar = vasp.Incar()
-    vasp_simulation.potcar = vasp.Potcar()
-    vasp_simulation.kpoints = vasp.Kpoints()
-
-    if os.path.exists(vasp_simulation.simulation_directory):
-        shutil.rmtree(vasp_simulation.simulation_directory)
-    os.mkdir(vasp_simulation.simulation_directory)
-
-def stuff():
-    print('create_structure')
-
+def minimize_init():
 
 if __name__ == "__main__":
-    symbol = 'Ni'
-    sg = 'bcc'
-    a = 3.508
-    task_name = 'minimize_init'
+    ase_symbol = 'Ni'
+    ase_sg = 'bcc'
+    ase_a = 3.508
+    ase_shape = 'cubic'
+    system_name = '{}_{}_{}'.format(ase_symbol,ase_sg,ase_a,ase_shape)
 
-    init_directory = os.getcwd()
+    init_dir = os.path.join(os.getcwd(),system_name)
+    if os.path.exists(init_dir):
+        # simulation has already been started
+    else:
+          os.mkdir(init_dir)
+
+    minimize_init_task_name = 'minimize_init'
+    minimize_init_slurm_job_name = "{}_{}_min_0".format(symbol,sg)
+    minimize_init_slurm_email = "eragasa@ufl.edu"
+    minimize_init_slurm_qos="phillpot"
+    minimize_init_slurm_ntasks=16
+    minimize_init_slurm_time="1:00:00"
+
     task_dir = os.path.join(os.getcwd(),task_name)
 
     vasp_simulation = vasp.VaspSimulation()
@@ -94,3 +91,19 @@ if __name__ == "__main__":
             os.path.join(vasp_simulation.simulation_directory,"INCAR"))
     vasp_simulation.kpoints.write(
             os.path.join(vasp_simulation.simulation_directory,"KPOINTS"))
+
+    slurm.write_vasp_batch_script(
+            filename=os.path.join(
+                vasp_simulation.simulation_directory,"runjob_hpg.slurm"),
+            job_name=job_name,
+            email=email,
+            qos=qos,
+            ntasks=ntasks,
+            time=time)
+    
+    # submit job 	
+    init_dir = os.getcwd()
+    os.chdir(vasp_simulation.simulation_directory)
+    print('running in {}'.format(os.getcwd()))
+    os.system('sbatch runjob_hpg.slurm')
+    os.chdir(init_dir)

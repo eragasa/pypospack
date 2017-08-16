@@ -1,27 +1,19 @@
-import os, shutil
+import os, shutil, subprocess
 import ase.build
 import pypospack.io.vasp as vasp
 import pypospack.crystal as crystal
-
-def vasp_structural_minimization(structure,task_name):
-    assert isinstance(structure,pypospack.crystal.SimulationCell)
-    assert isinstance(task_name,str)
-
-    vasp_simulation = vasp.VaspSimulation()
-    vasp_simulation.simulation_directory = task_dir
-    vasp_simulation.poscar = vasp.Poscar(structure)
-    vasp_simulation.incar = vasp.Incar()
-    vasp_simulation.potcar = vasp.Potcar()
-    vasp_simulation.kpoints = vasp.Kpoints()
-def stuff():
-    print('create_structure')
-
+import pypospack.io.slurm as slurm
 
 if __name__ == "__main__":
     symbol = 'Ni'
     sg = 'hcp'
     a = 3.508
     task_name = 'minimize_init'
+    job_name = "{}_{}_min1".format(symbol,sg)
+    email= "eragasa@ufl.edu"
+    qos="phillpot"
+    ntasks=16
+    time="1:00:00"
 
     init_directory = os.getcwd()
     task_dir = os.path.join(os.getcwd(),task_name)
@@ -89,3 +81,19 @@ if __name__ == "__main__":
             os.path.join(vasp_simulation.simulation_directory,"INCAR"))
     vasp_simulation.kpoints.write(
             os.path.join(vasp_simulation.simulation_directory,"KPOINTS"))
+
+    slurm.write_vasp_batch_script(
+            filename=os.path.join(
+                vasp_simulation.simulation_directory,"runjob_hpg.slurm"),
+            job_name=job_name,
+            email=email,
+            qos=qos,
+            ntasks=ntasks,
+            time=time)
+    
+    # submit job 	
+    init_dir = os.getcwd()
+    os.chdir(vasp_simulation.simulation_directory)
+    print('running in {}'.format(os.getcwd()))
+    os.system('sbatch runjob_hpg.slurm')
+    os.chdir(init_dir)

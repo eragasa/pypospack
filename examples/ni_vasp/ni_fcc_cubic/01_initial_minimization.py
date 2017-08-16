@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, subprocess
 import ase.build
 import pypospack.io.vasp as vasp
 import pypospack.crystal as crystal
@@ -105,3 +105,9 @@ if __name__ == "__main__":
             ntasks=ntasks,
             time=time)
     
+    init_dir = os.getcwd()
+    os.chdir(vasp_simulation.simulation_directory)
+    result = subprocess(sbatch runjob_hpg.slurm)
+    with open(job.info,'w') as fout:
+        fout.write(result.stdout)
+    fout.close()
