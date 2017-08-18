@@ -1,0 +1,179 @@
+LAMMPS (10 Feb 2015)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style charge
+atom_modify map array
+# ---- create atoms
+read_data lammps.structure
+  triclinic box = (0 0 0) to (12.6321 12.6321 12.6321) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  216 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 24.305
+mass 2 15.999
+
+group magnesium type 1
+108 atoms in group magnesium
+group oxygen type 2
+108 atoms in group oxygen
+
+set group magnesium charge 2.0
+  108 settings made for charge
+set group oxygen charge -2.0
+  108 settings made for charge
+
+variable R_cut equal 10.0
+
+pair_style buck/coul/long ${R_cut}
+pair_style buck/coul/long 10
+pair_coeff 1 1 0.0 0.5 0.0 ${R_cut}
+pair_coeff 1 1 0.0 0.5 0.0 10
+pair_coeff 1 2 821.6 0.3242 0.0 ${R_cut}
+pair_coeff 1 2 821.6 0.3242 0.0 10
+pair_coeff 2 2 2274.0 0.149 27.88 ${R_cut}
+pair_coeff 2 2 2274.0 0.149 27.88 10
+
+kspace_style pppm 1.0e-5
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+
+# ---- run minimization
+reset_timestep 0
+thermo 1
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-20 1e-20 1000 100000
+PPPM initialization ...
+  G vector (1/distance) = 0.345834
+  grid = 20 20 20
+  stencil order = 5
+  estimated absolute RMS force accuracy = 0.000107862
+  estimated relative force accuracy = 7.49059e-06
+  using double precision FFTs
+  3d grid and FFT values/proc = 19683 8000
+Neighbor list info ...
+  1 neighbor list requests
+  update every 1 steps, delay 0 steps, check yes
+  master list distance cutoff = 11
+Memory usage per processor = 6.46179 Mbytes
+Step PotEng Lx Ly Lz Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz eatoms 
+       0   -4341.1979      12.6321      12.6321      12.6321            0            0            0     10439.56     10439.56     10439.56     10439.56   -1743.3452   -1743.3452   -1743.3452   -4341.1979 
+       1     -4363.09      12.6321      12.6321      12.6321            0            0            0    14307.911    14307.911    14307.911    14307.911    424.71703    424.71703    424.71703     -4363.09 
+       2    -4366.956      12.6321      12.6321      12.6321            0            0            0    20266.506    20266.506    20266.506    20266.506    486.93672    486.93672    486.93672    -4366.956 
+       3    -4368.279      12.6321      12.6321      12.6321            0            0            0    18890.694    18890.694    18890.694    18890.694   -258.48776   -258.48776   -258.48776    -4368.279 
+       4   -4368.8397      12.6321      12.6321      12.6321            0            0            0    19998.673    19998.673    19998.673    19998.673   -365.12937   -365.12937   -365.12937   -4368.8397 
+       5   -4369.0231      12.6321      12.6321      12.6321            0            0            0    20453.269    20453.269    20453.269    20453.269   -309.19115   -309.19115   -309.19115   -4369.0231 
+       6   -4369.1084      12.6321      12.6321      12.6321            0            0            0     20429.06     20429.06     20429.06     20429.06   -272.31001   -272.31001   -272.31001   -4369.1084 
+       7   -4369.1375      12.6321      12.6321      12.6321            0            0            0    20550.266    20550.266    20550.266    20550.266   -290.90235   -290.90235   -290.90235   -4369.1375 
+       8    -4369.154      12.6321      12.6321      12.6321            0            0            0    20503.191    20503.191    20503.191    20503.191    -347.6847    -347.6847    -347.6847    -4369.154 
+       9   -4369.1607      12.6321      12.6321      12.6321            0            0            0    20646.795    20646.795    20646.795    20646.795   -345.10055   -345.10055   -345.10055   -4369.1607 
+      10   -4369.1642      12.6321      12.6321      12.6321            0            0            0    20659.271    20659.271    20659.271    20659.271   -343.11982   -343.11982   -343.11982   -4369.1642 
+      11   -4369.1665      12.6321      12.6321      12.6321            0            0            0    20693.169    20693.169    20693.169    20693.169   -345.39324   -345.39324   -345.39324   -4369.1665 
+      12   -4369.1672      12.6321      12.6321      12.6321            0            0            0    20696.068    20696.068    20696.068    20696.068   -342.85198   -342.85198   -342.85198   -4369.1672 
+      13   -4369.1674      12.6321      12.6321      12.6321            0            0            0    20694.228    20694.228    20694.228    20694.228   -339.38925   -339.38925   -339.38925   -4369.1674 
+      14   -4369.1675      12.6321      12.6321      12.6321            0            0            0    20706.813    20706.813    20706.813    20706.813   -338.19708   -338.19708   -338.19708   -4369.1675 
+      15   -4369.1675      12.6321      12.6321      12.6321            0            0            0    20697.753    20697.753    20697.753    20697.753   -339.20276   -339.20276   -339.20276   -4369.1675 
+      16   -4369.1675      12.6321      12.6321      12.6321            0            0            0    20699.821    20699.821    20699.821    20699.821   -340.56754   -340.56754   -340.56754   -4369.1675 
+      17   -4369.1676      12.6321      12.6321      12.6321            0            0            0    20699.162    20699.162    20699.162    20699.162    -341.1258    -341.1258    -341.1258   -4369.1676 
+      18   -4369.1676      12.6321      12.6321      12.6321            0            0            0    20700.759    20700.759    20700.759    20700.759   -342.57488   -342.57488   -342.57488   -4369.1676 
+      19   -4369.1676      12.6321      12.6321      12.6321            0            0            0    20704.256    20704.256    20704.256    20704.256   -346.14677   -346.14677   -346.14677   -4369.1676 
+      20   -4369.1676      12.6321      12.6321      12.6321            0            0            0    20704.688    20704.688    20704.688    20704.688    -350.5548    -350.5548    -350.5548   -4369.1676 
+      21   -4369.1677      12.6321      12.6321      12.6321            0            0            0    20705.139    20705.139    20705.139    20705.139   -351.80465   -351.80465   -351.80465   -4369.1677 
+      22   -4369.1677      12.6321      12.6321      12.6321            0            0            0    20704.545    20704.545    20704.545    20704.545   -351.78799   -351.78798   -351.78798   -4369.1677 
+      23   -4369.1677      12.6321      12.6321      12.6321            0            0            0    20704.545    20704.545    20704.545    20704.545   -351.78799   -351.78798   -351.78798   -4369.1677 
+Loop time of 0.897495 on 1 procs for 23 steps with 216 atoms
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+        -4341.19788613      -4369.1676797      -4369.1676797
+  Force two-norm initial, final = 55.9982 0.00940471
+  Force max component initial, final = 9.44783 0.0012086
+  Final line search alpha, max atom move = 0.00012207 1.47534e-07
+  Iterations, force evaluations = 23 118
+
+Pair  time (%) = 0.627651 (69.9336)
+Kspce time (%) = 0.254687 (28.3775)
+Neigh time (%) = 0.00401807 (0.447698)
+Comm  time (%) = 0.00769472 (0.857355)
+Outpt time (%) = 0.00138617 (0.154448)
+Other time (%) = 0.00205827 (0.229335)
+
+Nlocal:    216 ave 216 max 216 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    4697 ave 4697 max 4697 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    66358 ave 66358 max 66358 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 66358
+Ave neighs/atom = 307.213
+Neighbor list builds = 1
+Dangerous builds = 0
+
+
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable length_x equal "lx"
+variable length_y equal "ly"
+variable length_z equal "lz"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable ecoh equal "pe/atoms"
+variable press_t equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+#variable ecoh equal "v_etotal/v_atoms"
+# --- output
+print "pyPosMat output section"
+pyPosMat output section
+print "tot_energy = ${tot_energy}"
+tot_energy = -4369.16767970097
+print "num_atoms = ${natoms}"
+num_atoms = 216
+print "xx = ${length_x}"
+xx = 12.6321
+print "yy = ${length_y}"
+yy = 12.6321
+print "zz = ${length_z}"
+zz = 12.6321
+print "xy = ${tilt_xy}"
+xy = 0
+print "xz = ${tilt_xz}"
+xz = 0
+print "yz = ${tilt_yz}"
+yz = 0
+print "pressure_total = ${press_t}"
+pressure_total = 20704.5452545913
+print "press_xx = ${press_xx}"
+press_xx = 20704.5452515137
+print "press_yy = ${press_yy}"
+press_yy = 20704.5452448139
+print "press_zz = ${press_zz}"
+press_zz = 20704.5452674462
+print "press_xy = ${press_xy}"
+press_xy = -351.787985007106
+print "press_xz = ${press_xz}"
+press_xz = -351.787979477776
+print "press_yz = ${press_yz}"
+press_yz = -351.787981287602
+
+print "ecoh = ${ecoh}"
+ecoh = -20.2276281467636
+print "lammps_sim_done"
+lammps_sim_done
