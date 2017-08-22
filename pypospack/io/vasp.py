@@ -58,15 +58,43 @@ def make_super_cell(obj, scp):
 # *****************************************************************************
 
 class VaspSimulation(object):
-    """ class for managing vasp simulations """
-    def __init__(self):
-        self.simulation_directory = os.path.dirname(os.path.realpath(__file__)) 
+    """ class for managing vasp simulations
+    
+    Attribute;
+        poscar (pypospack.io.poscar): class for mananging IO of structures for 
+            vasp.
+        incar (pypospack.io.incar): class for managing IO of DFT configuration
+             for vasp
+        kpoints (pypospack.io.kpoints): defines the the grid for BZ zone 
+             integration.
+        potcar (pypospack.io.potcar)"""
+    def __init__(self,sim_dir,xc='GGA'):
+        self.sim_dir = None
+
+        self.is_req_met = False
+        self.is_job_pending = True
+        self.is_job_initalized = False
+        self.is_job_submitted = False
+        self.is_job_complete = False
+        self.is_job_finished = False
+
+        # vasp input/output filehandlers
         self.poscar = Poscar()
         self.incar = Incar()
         self.kpoints = Kpoints()
         self.potcar = Potcar()
-
         self.symbols = None
+
+        # set simulation directory
+        self.__check_restart_info(sim_dir)
+        self.__set_simulation_directory(sim_dir)
+
+    def __check_restart_info(sim_dir):
+        if os.path.exists(self.sim_dir):
+            pass
+
+    def __set_simulation_directory(self,sim_dir):
+        pass
 
     def read_incar(self,filename='INCAR'):
         self.incar.read(filename=filename)
@@ -91,6 +119,17 @@ class VaspSimulation(object):
 
     def __get_symbols_poscar(self):
         self.symbols = list(self.poscar.symbols)
+
+class VaspMinimizeStructure(object):
+    """ class for managing vasp structural minimizations """
+    def __init__(self,sim_dir,structure, xc = 'GGA'):
+        VaspSimulation.__init__(self)
+
+        if instance(structure,str):
+            self.__process_poscar_file(structure)
+
+    def __process_poscar_file():
+        pass
 
 class Incar(object):
     def __init__(self, filename="INCAR"):
@@ -695,7 +734,7 @@ class Poscar(crystal.SimulationCell):
         self.comment = f.readline().strip()
 
         # read lattice parameter
-        self.lattice_parameter = float(f.readline())
+        self.a0 = float(f.readline())
 
         # read h_matrix
         h_matrix = np.zeros(shape=[3,3])

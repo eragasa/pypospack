@@ -1,0 +1,51 @@
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+print "create box"
+lattice fcc 3.5
+region box block 0 1 0 1 0 1 units lattice
+create_box 1 box
+print "create atoms"
+lattice fcc 3.5 orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+create_atoms 1 box
+replicate 1 1 1
+print "end create atoms"
+# ---- define interatomic potential
+pair_style eam/alloy
+pair_coeff * * Ni99.eam.alloy Ni
+neighbor 2.0 bin
+neigh_modify delay 10 check yes
+
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax iso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe lx ly lz press pxx pyy pzz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable length_x equal "lx"
+variable length_y equal "ly"
+variable length_z equal "lz"
+variable ecoh equal "pe/atoms"
+#variable ecoh equal "v_etotal/v_atoms"
+# --- output
+print "pyPosMat output section"
+print "tot_energy = ${tot_energy}"
+print "num_atoms = ${natoms}"
+print "latt_const_a = ${length_x}"
+print "latt_const_b = ${length_y}"
+print "latt_const_c = ${length_z}"
+print "ecoh = ${ecoh}"
+print "lammps_sim_done"
