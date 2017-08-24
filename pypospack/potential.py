@@ -21,9 +21,14 @@ class Potential(object):
     def write_lammps_potential_file(self):
         raise NotImplementedError
 
+    def lammps_potential_section_to_string(self):
+        raise NotImplementedError
+
     def write_gulp_potential_section(self):
         raise NotImplementedError
 
+    def gulp_potential_section_to_string(self):
+        raise NotImplementedError
     def _get_mass(self,element):
         if element == 'Mg':
             return 24.305
@@ -67,6 +72,25 @@ class Buckingham(Potential):
         str_out = self.to_string(param_dict,r_cut)
         with open(fname_out,'w') as f:
             f.write(self.to_string(param_dict,r_cut=10.0))
+
+    def gulp_potential_section_to_string(self,param_dict,r_cut=10.0):
+        str_out = 'species\n'
+        for s in self.symbols:
+            str_out += "{} core {}\n".format(\
+                    s,
+                    param_dict['chrg_{}'.format(s)])
+        str_out += 'buck\n'
+        for i,si in enumerate(self.symbols):
+            for j,sj in enumerate(self.symbols):
+                if i<=j:
+                    str_out += "{} core {} core {} {} {} {} {}\n".format(\
+                            si,sj,
+                            param_dict['{}{}_A'.format(si,sj)],
+                            param_dict['{}{}_rho'.format(si,sj)],
+                            param_dict['{}{}_C'.format(si,sj)],
+                            0,
+                            r_cut)
+        return str_out
 
     def to_string(self,param_dict,r_cut=10):
         if param_dict is None:
