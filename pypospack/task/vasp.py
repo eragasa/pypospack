@@ -9,6 +9,7 @@ class VaspSimulationError():
 class VaspSimulation(Task):
     def __init__(self,task_name,task_directory,restart=True):
         Task.__init__(self,task_name,task_directory,restart)
+
         self.poscar = vasp.Poscar()
         self.incar = vasp.Incar()
         self.potcar = vasp.Potcar()
@@ -34,8 +35,29 @@ class VaspSimulation(Task):
 
     def restart(self):
         """ overwrite original method """
-        print("checking information for restart of task")
-        shutil.rmtree(self.task_directory)
+        poscar_exists = os.path.exists(os.path.join(\
+                self.task_directory,'POSCAR'))
+        incar_exists = os.path.exists(os.path.join(\
+                self.task_directory,'INCAR'))
+        kpoints_exists = os.path.exists(os.path.join(\
+                self.task_directory,'KPOINTS'))
+        potcar_exists = os.path.exists(os.path.join(\
+                self.task_directory,'POTCAR'))
+        if poscar_exists and incar_exists and kpoints_exists and potcar_exists:
+            self.config = 'CONFIG'
+        else:
+            shutil.rmtree(self.task_directory)
+            os.mkdir(self.task_directory)
+            self.config = 'INIT'
+
+        if os.path.exists(os.path.join(\
+                self.task_directory,'jobSubmitted')):
+            self.config = 'RUN'
+
+        if os.path.exists(os.path.join(\
+                self.task_directory,'jobComplete')):
+            self.config = 'POST'
+
 
     def config(self,poscar=None,incar=None,kpoints=None,xc='GGA'):
         # read the poscar file, then write it

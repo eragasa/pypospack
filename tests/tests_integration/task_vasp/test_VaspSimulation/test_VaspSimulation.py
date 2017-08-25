@@ -33,18 +33,26 @@ if __name__ == "__main__":
     task = tsk_vasp.VaspSimulation(\
             task_name='MgO_calc',
             task_directory='MgO_calc',
-            restart=False)
+            restart=True)
 
-    task.config(\
-            poscar=structure_filename,
-            incar=incar_config,
-            xc='GGA')
+    if task.status == 'INIT':
+        task.config(\
+                poscar=structure_filename,
+                incar=incar_config,
+                xc='GGA')
 
-    task.run(\
-            job_type='slurm',
-            exec_dict=slurm_dict)
+    if task.status == 'CONFIG':
+        task.run(\
+                job_type='slurm',
+                exec_dict=slurm_dict)
 
-    task.postprocess()
+    if task.status == 'RUN':
+        # job is not complete yet
+        print('job is not complete')
+
+    if task.status == 'POST'
+        task.postprocess()
+
 
     # commented out code
     if False:
