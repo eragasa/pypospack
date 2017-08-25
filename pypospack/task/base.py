@@ -1,3 +1,4 @@
+import os,shutil
 class Task(object):
     """
     Attributes:
@@ -14,11 +15,12 @@ class Task(object):
     def __init__(self,task_name,task_directory,restart=False):
         self.task_name = task_name
         self.task_directory = None
-
+        self.is_restart = restart
         self.config_dict = {}
         self.ready_dict = {}
         self.run_dict = {}
         self.post_dict = {}
+
         if os.path.isabs(task_directory):
             # absolute path, set directly.
             self.task_directory = task_directory
@@ -31,17 +33,23 @@ class Task(object):
 
         # check to see if path exists
         if os.path.exists(self.task_directory):
-            if restart:
+            if self.is_restart:
                 self.restart()
             else:
                 # if no restart, start
                 shutil.rmtree(self.task_directory)
         os.mkdir(self.task_directory)
+        self.status = 'INIT'
+
     def restart(self):
         raise NotImplementedError
 
+class TestTask(Task):
+    """ Testing implementation of Task Abstract class.
 
-        self.task_directory = os.path.join(os.getcwdtask_directory
-        self.status = 'INIT'
+    This class has stub implementations for unit testing purposes.  It 
+    overrides class methods of Task which would normally throw 
+    NotImplementedErrors.
 
-class TestTask(object):
+    """
+    pass

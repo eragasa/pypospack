@@ -29,7 +29,7 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
     s += 'module load intel openmpi vasp\n'
     
     s += 'srun --mpi=pmi2 vasp_std > vasp.log\n'
-    
+    s += 'touch jobCompleted\n'    
     s += 'echo end_time:$(date)\n'
 
     with open(filename,'w') as f:
