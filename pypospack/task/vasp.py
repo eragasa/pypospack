@@ -199,7 +199,6 @@ class VaspSimulation(Task):
 
         pass
 
-
     def set_xc(self,xc):
         self.xc = xc
 
