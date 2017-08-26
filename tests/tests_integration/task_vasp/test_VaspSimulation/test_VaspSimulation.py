@@ -11,7 +11,6 @@ if __name__ == "__main__":
     task_directory = 'MgO_calc'
     # structure info
     structure_filename = "rsrc/MgO_NaCl_prim.vasp"
-    print(os.path.exists(structure_filename))
 
     # changes to the standard run
     incar_config = {\
@@ -19,6 +18,8 @@ if __name__ == "__main__":
             'ismear':0,
             'sigma':0.05}
     
+
+    xc = 'GGA'
     # slurm info
     slurm_dict = {\
             'email':'eragasa@ufl.edu',
@@ -26,20 +27,14 @@ if __name__ == "__main__":
             'ntasks':16,
             'time':"1:00:00"}
 
-    # initialize without path existing
-    if os.path.exists(task_directory):
-        shutil.rmtree(task_directory)
-
     task = tsk_vasp.VaspSimulation(\
             task_name='MgO_calc',
             task_directory='MgO_calc',
             restart=True)
 
+    print('task.status:{}'.format(task.status))
     if task.status == 'INIT':
-        task.config(\
-                poscar=structure_filename,
-                incar=incar_config,
-                xc='GGA')
+        task.config(poscar=structure_filename,incar=incar_config,xc=xc)
 
     if task.status == 'CONFIG':
         task.run(\
@@ -47,10 +42,9 @@ if __name__ == "__main__":
                 exec_dict=slurm_dict)
 
     if task.status == 'RUN':
-        # job is not complete yet
-        print('job is not complete')
+        pass
 
-    if task.status == 'POST'
+    if task.status == 'POST':
         task.postprocess()
 
 

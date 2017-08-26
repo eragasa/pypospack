@@ -15,7 +15,7 @@ class Task(object):
     def __init__(self,task_name,task_directory,restart=False):
         self.task_name = task_name
         self.task_directory = None
-        self.restart = restart
+        self.is_restart = restart
         self.config_dict = {}
         self.ready_dict = {}
         self.run_dict = {}
@@ -33,7 +33,8 @@ class Task(object):
 
         # check to see if path exists
         if os.path.exists(self.task_directory):
-            if self.restart:
+            if self.is_restart:
+                print('checking for restart')
                 self.restart()
             else:
                 # if no restart, start

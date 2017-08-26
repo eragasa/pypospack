@@ -10,28 +10,29 @@ class VaspSimulation(Task):
     def __init__(self,task_name,task_directory,restart=True):
         Task.__init__(self,task_name,task_directory,restart)
 
-        self.poscar = vasp.Poscar()
-        self.incar = vasp.Incar()
-        self.potcar = vasp.Potcar()
-        self.kpoints = vasp.Kpoints()
+        if self.status == 'INIT':
+            self.poscar = vasp.Poscar()
+            self.incar = vasp.Incar()
+            self.potcar = vasp.Potcar()
+            self.kpoints = vasp.Kpoints()
 
-        # additional items to add
-        additional_config_dict = {\
+            # additional items to add
+            additional_config_dict = {\
                 'incar':self.set_incar,
                 'poscar':self.set_poscar,
                 'xc':self.set_xc,
                 'encut':self.set_encut}
-        additional_ready_dict = {}
-        additional_run_dict = {}
-        additional_post_dict = {}
-
-        # update configuration dictionaries
-        self.config_dict.update(additional_config_dict)
-        self.ready_dict.update(additional_config_dict)
-        self.run_dict.update(additional_ready_dict)
-        self.post_dict.update(additional_post_dict)
-
-        self.status = 'INIT'
+            additional_ready_dict = {}
+            additional_run_dict = {}
+            additional_post_dict = {}
+            
+            # update configuration dictionaries
+            self.config_dict.update(additional_config_dict)
+            self.ready_dict.update(additional_config_dict)
+            self.run_dict.update(additional_ready_dict)
+            self.post_dict.update(additional_post_dict)
+            
+            self.status = 'INIT'
 
     def restart(self):
         """ overwrite original method """
@@ -43,21 +44,30 @@ class VaspSimulation(Task):
                 self.task_directory,'KPOINTS'))
         potcar_exists = os.path.exists(os.path.join(\
                 self.task_directory,'POTCAR'))
+
+        print('restarting simulation {}'.format(self.task_name))
         if poscar_exists and incar_exists and kpoints_exists and potcar_exists:
-            self.config = 'CONFIG'
+            print('\tsimulation already configured...')
+            self.status = 'CONFIG'
         else:
+            print('\tsimulation not configured, initializing')
             shutil.rmtree(self.task_directory)
             os.mkdir(self.task_directory)
-            self.config = 'INIT'
+            self.status = 'INIT'
 
         if os.path.exists(os.path.join(\
                 self.task_directory,'jobSubmitted')):
-            self.config = 'RUN'
+            print('\tjob has been submitted')
+            self.status = 'RUN'
+        else:
+            print('\tjob has not been submitted')
 
         if os.path.exists(os.path.join(\
-                self.task_directory,'jobComplete')):
-            self.config = 'POST'
-
+                self.task_directory,'jobCompleted')):
+            print('\tjob is done')
+            self.status = 'POST'
+        else:
+            print('job has not finished')
 
     def config(self,poscar=None,incar=None,kpoints=None,xc='GGA'):
         # read the poscar file, then write it
@@ -66,7 +76,7 @@ class VaspSimulation(Task):
                 self.poscar_filename = poscar
                 self.poscar.read(poscar)
             elif isinstance(poscar,pypospack.crystal.SimulationCell):
-                self.poscar = Poscar(poscar)
+                self.poscar = vasp.Poscar(poscar)
             else:
                 msg = (\
                         "argument 'poscar' must be a filename or an instance "
