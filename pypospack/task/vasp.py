@@ -141,7 +141,7 @@ class VaspSimulation(Task):
         self.status = 'RUN'
 
     def postprocess(self):
-        pass
+        os.remove(os.path.join(self.task_directory,'POTCAR'))
 
     def read_poscar(self,poscar=None):
         if poscar is not None:
