@@ -176,6 +176,7 @@ class Incar(object):
     def __init_ionic_relaxation(self):
         self.ibrion = None
         self.isif = None
+        self.ediffg = None
         self.nsw = None
         self.potim = None
 
@@ -347,18 +348,29 @@ class Incar(object):
 
         str_out = self._fmt_section.format('SPIN POLARIZATION CONFIGURATION')
         str_out += self._fmt_arg.format(fmt.format('ISPIN',self.ispin),self._cmt_dict['ISPIN'][self.ispin])
-        str_out += fmt.format('MAGMOM',self.magmom) + '\n'
+        if self.ispin == 2:
+            str_out += fmt.format('MAGMOM',self.magmom) + '\n'
         str_out += '\n'
 
         return str_out
 
     def __ionic_relaxation_to_string(self):
         fmt = "{} = {}"
-        if self.ibrion is None:
-            return ''
-        if self.isif is None:
+
+        if (self.ibrion is None) and (self.isif is None):
             return ''
 
+        # some default configuration for ibrion
+        if self.ibrion is None:
+            self.ibrion = 2
+
+        # some default configuration for isif
+        if self.isif is None:
+            self.isif = 3
+
+        # some default configuration for EDIFFG
+        if self.ediffg is None:
+            self.ediffg = -0.01 
         # some default configuration for POTIM
         if self.potim is None:
             if self.ibrion in [1,2,3]:
@@ -564,8 +576,11 @@ class Potcar(object):
         Raises:
             pypospack.io.vasp.VaspPotcarError
         """
-        if filename != None:
+        if filename is not None:
             self.filename = filename
+        else:
+            if self.filename is None:
+                raise TypeError('cannot find suitable filename')
 
         #  if a source potcar is given just copy the file
         if src is not None:

@@ -7,6 +7,27 @@ class VaspSimulationError():
     pass
 
 class VaspSimulation(Task):
+    """
+
+    The default configuration will do calculate the Energy of the structure
+    using the GGA functional.  The energy cutoff for the plane waves will be
+    set at the highest ENMAX contained in the potcar files.  The Kpoints will
+    be set at 6x6x6 kpoint mesh in the Brillioun zone.
+
+    Args:
+        task_name(str):
+        task_directory(str): where to create a directory
+        restart(bool): if this flag is set to True, then it will
+            attempt to restart the simulation from information 
+            contained in task_directory.  Default is True.
+
+    Attributes:
+        poscar(pypospack.io.vasp.Poscar): A class to manage poscar files
+        incar(pypospack.io.vasp.Incar): A class to manage incar files
+        potcar(pypospack.io.Potcar): A class to manage potcar files
+        kpoints(pypospak.io.Kpoints): A class to manage kpoints
+
+    """
     def __init__(self,task_name,task_directory,restart=True):
         Task.__init__(self,task_name,task_directory,restart)
 
@@ -71,70 +92,20 @@ class VaspSimulation(Task):
 
     def config(self,poscar=None,incar=None,kpoints=None,xc='GGA'):
         # read the poscar file, then write it
-        if poscar is not None:
-            if isinstance(poscar,str):
-                self.poscar_filename = poscar
-                self.poscar.read(poscar)
-            elif isinstance(poscar,pypospack.crystal.SimulationCell):
-                self.poscar = vasp.Poscar(poscar)
-            else:
-                msg = (\
-                        "argument 'poscar' must be a filename or an instance "
-                        "of pypospack.crystal.SimulationCell, passed in {}"
-                      ).format(poscar)
-                raise KeyError
-        self.poscar.write(\
-                os.path.join(\
-                    self.task_directory,'POSCAR'))
+        self.read_poscar(poscar=poscar)
+        self.write_poscar()
 
         # write the potcar file, the read in information
-        self.potcar.symbols = self.poscar.symbols
-        self.potcar.xc = xc
-        self.potcar.write(\
-                os.path.join(\
-                    self.task_directory,"POTCAR"))
-        self.potcar.read(\
-                os.path.join(\
-                    self.task_directory,"POTCAR"))
+        self.write_potcar(xc=xc)
+        self.read_potcar()
 
         # process incar file
-        if isinstance(incar,str):
-            self.incar.read(incar)
-        elif isinstance(incar,dict):
-            for k,v in incar.items():
-                setattr(self,'incar.{}'.format(k),v)
-        elif isinstance(incar,pypospack.io.vasp.Incar):
-            self.incar = vasp.Incar(incar)
-        elif incar is None:
-            pass
-        else:
-            raise VaspSimulationError
-
-        if self.incar.encut == 'Auto':
-            self.incar.encut = self.get_encut_from_potcar(xc)
-
-        try:
-            self.incar.write(\
-                os.path.join(\
-                    self.task_directory,'INCAR'))
-        except:
-            raise
-
+        self.read_incar(incar=incar)
+        self.config_incar()
+        self.write_incar()
         # process KPOINTS file
-        if kpoints is None:
-            pass
-        elif isinstance(kpoints,str):
-            self.kpoints.read(kpoints)
-        elif isinstance(kpoints,dict):
-            setattr(self,'kpoints.{}'.format(k),v)
-        elif isinstance(kpoints,pypospack.io.vasp.Kpoints):
-            self.kpoints = vasp.Kpoints(kpoints)
-        else:
-            raise VaspSimulationError
-
-        self.kpoints.write(\
-                os.path.join(\
-                    self.task_directory,'KPOINTS'))
+        self.read_kpoints(kpoints)
+        self.write_kpoints()
 
         self.status = 'CONFIG'
 
@@ -172,6 +143,93 @@ class VaspSimulation(Task):
     def postprocess(self):
         pass
 
+    def read_poscar(self,poscar=None):
+        if poscar is not None:
+            if isinstance(poscar,str):
+                self.poscar_filename = poscar
+                self.poscar.read(poscar)
+            elif isinstance(poscar,pypospack.crystal.SimulationCell):
+                self.poscar = vasp.Poscar(poscar)
+            else:
+                msg = (\
+                        "argument 'poscar' must be a filename or an instance "
+                        "of pypospack.crystal.SimulationCell, passed in {}"
+                      ).format(poscar)
+                raise KeyError
+
+    def write_poscar(self):
+        self.poscar.write(\
+                os.path.join(\
+                    self.task_directory,'POSCAR'))
+
+    def read_potcar(self):
+        self.potcar.read(\
+                os.path.join(\
+                    self.task_directory,"POTCAR"))
+
+    def write_potcar(self,xc='GGA'):
+        self.potcar.symbols = self.poscar.symbols
+        self.potcar.xc = xc
+        self.potcar.write(\
+                os.path.join(\
+                    self.task_directory,"POTCAR"))
+
+    def read_incar(self,incar='None'):
+        if isinstance(incar,str):
+            self.incar.read(incar)
+        elif isinstance(incar,dict):
+            for k,v in incar.items():
+                setattr(self,'incar.{}'.format(k),v)
+        elif isinstance(incar,pypospack.io.vasp.Incar):
+            self.incar = vasp.Incar(incar)
+        elif incar is None:
+            pass
+        else:
+            raise VaspSimulationError
+
+    def config_incar(self):
+        potcar_encut_min = max(self.potcar.encut_min)
+        potcar_encut_max = 2*max(self.potcar.encut_max)
+        if self.incar.encut == 'Auto':
+            self.incar.encut = max(self.potcar.encut_max)
+        if self.incar.encut >= potcar_encut_min:
+            self.incar.encut = potcar_encut_min
+        if self.incar.encut <= potcar_encut_max:
+            self.incar.encut = potcar_encut_max
+
+    def write_incar(self):
+        try:
+            self.incar.write(\
+                os.path.join(\
+                    self.task_directory,'INCAR'))
+        except:
+            raise
+
+    def read_kpoints(self,kpoints=None):
+        if kpoints is None:
+            pass
+        elif isinstance(kpoints,str):
+            self.kpoints.read(kpoints)
+        elif isinstance(kpoints,dict):
+            setattr(self,'kpoints.{}'.format(k),v)
+        elif isinstance(kpoints,pypospack.io.vasp.Kpoints):
+            self.kpoints = vasp.Kpoints(kpoints)
+        else:
+            raise VaspSimulationError
+
+    def config_kpoints(self):
+
+        # check for tetrahedron method and switch to
+        # gamma
+        if self.incar.ismear in [-4,-5]:
+            self.kpoints.mesh_type = 'Gamma'
+
+        # check to see if we have a hexagonal cell
+        
+    def write_kpoints(self):
+        self.kpoints.write(\
+                os.path.join(\
+                    self.task_directory,'KPOINTS'))
     def slurm_is_done(self):
         if os.path.exists(os.path.join(self.task_dir,'jobComplete')):
             self.status = 'POST'
@@ -206,7 +264,6 @@ class VaspSimulation(Task):
     def snd_config(self,config_dict):
         """ sends configuration information and configures
         """
-
         pass
 
     def set_xc(self,xc):
@@ -227,5 +284,23 @@ class VaspSimulation(Task):
     def get_encut_tfrom_potcar(self):
         return max(self.potcar.encut_max)
 
+
+class VaspStructuralMinimization(VaspSimulation):
+    def __init__(self,task_name,task_directory,restart=True):
+        VaspSimulation.__init__(self,task_name,task_directory,task)
+
+    def config_incar(self):
+        VaspSimulation.config_incar(self)
+
+        # check to see if encut isn't set to something stupid
+        potcar_encut_min = max(self.potcar.encut_min)
+        potcar_encut_max = 2*max(self.potcar.encut_max)
+        if self.incar.encut >= potcar_encut_min:
+            self.incar.encut = potcar_encut_min
+        if self.incar.encut <= potcar_encut_max:
+            self.incar.encut = potcar_encut_max
+
+        if self.incar.ibrion not in [1,2]:
+            self.ibrion = 2 # set to conjugate gradient method
 
 
