@@ -287,20 +287,13 @@ class VaspSimulation(Task):
 
 class VaspStructuralMinimization(VaspSimulation):
     def __init__(self,task_name,task_directory,restart=True):
-        VaspSimulation.__init__(self,task_name,task_directory,task)
+        VaspSimulation.__init__(self,task_name,task_directory,restart)
 
     def config_incar(self):
         VaspSimulation.config_incar(self)
 
-        # check to see if encut isn't set to something stupid
-        potcar_encut_min = max(self.potcar.encut_min)
-        potcar_encut_max = 2*max(self.potcar.encut_max)
-        if self.incar.encut >= potcar_encut_min:
-            self.incar.encut = potcar_encut_min
-        if self.incar.encut <= potcar_encut_max:
-            self.incar.encut = potcar_encut_max
-
         if self.incar.ibrion not in [1,2]:
             self.ibrion = 2 # set to conjugate gradient method
 
+        self.isif = 3 # relax everything
 
