@@ -142,7 +142,8 @@ class VaspSimulation(Task):
 
     def postprocess(self):
         os.remove(os.path.join(self.task_directory,'POTCAR'))
-
+        self.outcar = vasp.Outcar()
+        self.outcar.read(os.path.join(self.task_directory,'OUTCAR'))
     def read_poscar(self,poscar=None):
         if poscar is not None:
             if isinstance(poscar,str):
