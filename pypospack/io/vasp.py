@@ -432,25 +432,12 @@ class Incar(object):
 
 class Outcar(object):
     def __init__(self, fname="OUTCAR"):
-        self._filename = fname
-        self._total_energy = None
-        self._elastic_tensor = None
-        self._phonon_eig_val = None # phonon eigenvalues
-        self._phonon_eig_vec = None # phonon eigenvectors
+        self.filename = fname
+        self.total_energy = None
+        self.elastic_tensor = None
+        self.phonon_eig_val = None # phonon eigenvalues
+        self.phonon_eig_vec = None # phonon eigenvectors
                 
-    @property
-    def total_energy(self): return self._total_energy
-
-    @property
-    def elastic_tensor(self): return self._elastic_tensor
-
-    @property
-    def energy_cutoff(self): return self._encut
-
-    @property
-    def phonons(self):
-        return self._phonon_eig_val, self._phonon_eig_vec
-        
     def read(self,filename=None):
         """ read a VASP outcar file and parse for information
 
@@ -458,18 +445,18 @@ class Outcar(object):
         filename (str): filename"""
         
         if filename is not None:
-            self._filename = filename
+            self.filename = filename
         with open(self._filename) as f:
             while line in f:
                 # check if free energy line
                 if "free  energy   TOTEN" in line:
                     E = line.strip().split('=')[1].strip().split(' ')[0]
                     E = float(E)
-                    self._total_energy = E
+                    self.total_energy = E
                 elif "ENCUT" in line:
                     E = line.strip().split('=')[1].strip().split(' ')[0]
                     E = float(E)
-                    self._encut = E
+                    self.encut = E
                 else:
                     pass
 
