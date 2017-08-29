@@ -40,6 +40,7 @@ class Task(object):
                 # if no restart, start
                 shutil.rmtree(self.task_directory)
                 os.mkdir(self.task_directory)
+                self.status = 'INIT'
         else:
             os.mkdir(self.task_directory)
             self.status = 'INIT'

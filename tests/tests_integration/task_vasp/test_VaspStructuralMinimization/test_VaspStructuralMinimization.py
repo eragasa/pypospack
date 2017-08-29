@@ -5,6 +5,29 @@ import pypospack.crystal as crystal
 import pypospack.io.slurm as slurm
 import pypospack.task.vasp as tsk_vasp
 
+class TestVaspStructuralMinimization(object):
+
+    def test_init(self):
+        task_name = 'MgO_min'
+        task_directory = 'MgO_min'
+        structure_filename = 'rsrc/MgO_NaCl.prim.vasp'
+        incar_config = {\
+                'encut':800,
+                'ismear':0,
+                'sigma':0.05,
+                'ispin':1}
+        xc = 'GGA'
+
+        task = tsk_vasp.VaspStructuralMinimization(\
+                task_name=task_name,
+                task_directory=task_directory,
+                restart=False)
+
+        assert os.path.exists(task_directory)
+        assert task.task_name == task_name
+        assert task.task_directory == os.path.join(os.getcwd(),task_directory)
+   
+
 if __name__ == "__main__":
     # task information
     task_name = 'MgO_min'
@@ -18,8 +41,7 @@ if __name__ == "__main__":
             'ismear':0,
             'sigma':0.05,
             'ispin':1}
-    
-
+   # form of the exchange correlation functional 
     xc = 'GGA'
     # slurm info
     slurm_dict = {\
