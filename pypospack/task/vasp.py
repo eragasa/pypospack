@@ -295,6 +295,6 @@ class VaspStructuralMinimization(VaspSimulation):
 
         if self.incar.ibrion not in [1,2]:
             self.ibrion = 2 # set to conjugate gradient method
-
         self.isif = 3 # relax everything
+        self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
