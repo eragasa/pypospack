@@ -730,6 +730,10 @@ class Kpoints(object):
         f.write(self.to_string())
         f.close()
 
+    def read(self,filename = None):
+        if filename is not None:
+            self.filename = filename
+        
 class Poscar(crystal.SimulationCell):
     """ POSCAR structure file for VASP
 
