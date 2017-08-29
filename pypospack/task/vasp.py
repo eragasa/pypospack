@@ -75,29 +75,19 @@ class VaspSimulation(Task):
         potcar_exists = os.path.exists(os.path.join(\
                 self.task_directory,'POTCAR'))
 
-        print('restarting simulation {}'.format(self.task_name))
-        if poscar_exists and incar_exists and kpoints_exists and potcar_exists:
-            print('\tsimulation already configured...')
+        if os.path.exists(os.path.join(self.task_directory,'jobPost')):
+            self.status = 'DONE'
+        elif os.path.exists(os.path.join(self.task_directory,'jobCompleted')):
+            self.status = 'POST'
+        elif os.path.exists(os.path.join(self.task_directory,'jobSubmitted')):
+            self.status = 'RUN'
+        elif poscar_exists and incar_exists and kpoints_exists and potcar_exists:
             self.status = 'CONFIG'
         else:
-            print('\tsimulation not configured, initializing')
             shutil.rmtree(self.task_directory)
             os.mkdir(self.task_directory)
             self.status = 'INIT'
-
-        if os.path.exists(os.path.join(\
-                self.task_directory,'jobSubmitted')):
-            print('\tjob has been submitted')
-            self.status = 'RUN'
-        else:
-            print('\tjob has not been submitted')
-
-        if os.path.exists(os.path.join(\
-                self.task_directory,'jobCompleted')):
-            print('\tjob is done')
-            self.status = 'POST'
-        else:
-            print('job has not finished')
+        print('TASK: {}, STATUS: {}'.format(self.task_name,self.status))
 
     def config(self,poscar=None,incar=None,kpoints=None,xc='GGA'):
         # read the poscar file, then write it
@@ -150,7 +140,18 @@ class VaspSimulation(Task):
         self.status = 'RUN'
 
     def postprocess(self):
-        os.remove(os.path.join(self.task_directory,'POTCAR'))
+        """Some postprocess steps
+
+        - removes the POTCAR file, for copyright reasons
+        - reads in the OUTCAR file
+        - reads in the OSZICAR file
+        - reads in the CONTCAR file
+
+        """
+        try:
+            os.remove(os.path.join(self.task_directory,'POTCAR'))
+        except FileNotFoundError:
+            pass
         self.outcar = vasp.Outcar()
         self.outcar.read(os.path.join(self.task_directory,'OUTCAR'))
         self.contcar = vasp.Poscar()
@@ -193,12 +194,13 @@ class VaspSimulation(Task):
         if isinstance(incar,str):
             self.incar.read(incar)
         elif isinstance(incar,dict):
+            self.incar.read(os.path.join(self.task_directory,'INCAR'))
             for k,v in incar.items():
                 setattr(self,'incar.{}'.format(k),v)
-        elif isinstance(incar,pypospack.io.vasp.Incar):
+        elif isinstance(incar,vasp.Incar):
             self.incar = vasp.Incar(incar)
         elif incar is None:
-            pass
+            self.incar.read(os.path.join(self.task_directory,'INCAR'))
         else:
             raise VaspSimulationError
 

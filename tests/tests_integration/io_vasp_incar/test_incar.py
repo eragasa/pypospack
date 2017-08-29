@@ -19,6 +19,14 @@ class TestIncar(object):
         incar.isif = 3
         incar.write('INCAR.ibrion2')
 
+    def test_change_encut(self):
+        incar1 = vasp.Incar()
+        incar1.encut = 123
+        incar1.write('INCAR.encuttest')
+
+        incar2 = vasp.Incar(2)
+        incar2.read('INCAR.encuttest')
+        assert incar2.encut == incar1.encut
 if __name__ == "__main__":
     filename = 'INCAR.std'
 

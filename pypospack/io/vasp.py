@@ -216,8 +216,8 @@ class Incar(object):
 
     def read(self,fname=None):
         if fname is not None:
-            self._filename = fname
-        f = open(self._filename)
+            self.filename = fname
+        f = open(self.filename)
         for line in f:
             if line.startswith('#'): 
                 # ignore comments
