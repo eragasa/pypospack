@@ -461,12 +461,14 @@ class Outcar(object):
 
         Args:
             filename (str): filename
+            encut (float): energy cutoff for this simulation
+            total_energy (float): total energy for this simulation
         """
         
         if filename is not None:
             self.filename = filename
-        with open(self._filename) as f:
-            while line in f:
+        with open(self.filename) as f:
+            for line in f:
                 # check if free energy line
                 if "free  energy   TOTEN" in line:
                     E = line.strip().split('=')[1].strip().split(' ')[0]
