@@ -6,6 +6,7 @@ class Task(object):
             job submission scripts
         task_directory(str): the directory the task,
             will be done
+        status (str):
     Notes: 
     If the __init__ is overridden, the attributes
     task_name, task_directory, and status must be 
@@ -40,6 +41,7 @@ class Task(object):
                 # if no restart, start
                 shutil.rmtree(self.task_directory)
                 os.mkdir(self.task_directory)
+                self.status = 'INIT'
         else:
             os.mkdir(self.task_directory)
             self.status = 'INIT'
