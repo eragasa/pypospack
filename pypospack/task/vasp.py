@@ -1,10 +1,19 @@
+# -*- coding: utf-8 -*-
+"""Input and output functions and classes for VASP """
+__author__ = "Eugene J. Ragasa"
+__copyright__ = "Copyright (C) 2016,2017"
+__license__ = "Simplified BSD License"
+__version__ = "1.0"
+
 import os,shutil,subprocess
 import pypospack.io.vasp as vasp
 import pypospack.io.slurm as slurm
 from pypospack.task import Task
 
-class VaspSimulationError():
-    pass
+class VaspSimulationError(Exception):
+    """Error class for dealing with VASP simulation issues"""
+    def __init_(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
 
 class VaspSimulation(Task):
     """
@@ -294,7 +303,7 @@ class VaspStructuralMinimization(VaspSimulation):
         VaspSimulation.config_incar(self)
 
         if self.incar.ibrion not in [1,2]:
-            self.ibrion = 2 # set to conjugate gradient method
-        self.isif = 3 # relax everything
+            self.incar.ibrion = 2 # set to conjugate gradient method
+        self.incar.isif = 3 # relax everything
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
