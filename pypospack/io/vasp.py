@@ -370,7 +370,7 @@ class Incar(object):
 
         # some default configuration for EDIFFG
         if self.ediffg is None:
-            self.ediffg = -0.01 
+            self.ediffg = -0.01 # ev/A - typical
         # some default configuration for POTIM
         if self.potim is None:
             if self.ibrion in [1,2,3]:

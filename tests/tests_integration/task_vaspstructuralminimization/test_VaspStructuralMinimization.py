@@ -90,7 +90,6 @@ if __name__ == "__main__":
             task_directory='MgO_calc',
             restart=True)
 
-    print('task.status:{}'.format(task.status))
     if task.status == 'INIT':
         task.config(poscar=structure_filename,incar=incar_config,xc=xc)
 
@@ -104,16 +103,5 @@ if __name__ == "__main__":
 
     if task.status == 'POST':
         task.postprocess()
-
-
-    # commented out code
-    if False:
-        # initialize with path existing
-        if os.path.exists(task_directory):
-            shutil.rmtree(task_directory)
-        os.mkdir(task_directory)
-        task = task_vasp.VaspSimulation(\
-                task_name='MgO_calc',
-                task_directory='MgO_calc')
 
 
