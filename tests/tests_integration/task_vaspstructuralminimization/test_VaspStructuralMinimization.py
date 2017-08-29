@@ -49,8 +49,8 @@ class TestVaspStructuralMinimization(object):
                 restart=False)
         task.config(poscar=structure_filename,incar=incar_config,xc=xc)
 
-        assert task.ibrion == 2
-        assert task.isif == 3
+        assert task.incar.ibrion == 2
+        assert task.incar.isif == 3
 
         assert os.path.exists(os.path.join(task.task_directory,'POSCAR'))
         assert os.path.exists(os.path.join(task.task_directory,'INCAR'))
