@@ -42,8 +42,12 @@ def cartesian2direct(x,H):
     u = np.dot(linalg.inv(H.T),x)
     u.shape = (3,)
     return u
+
 class Atom(object):
-    """description of an ato
+    """description of an atom
+
+    This position is a data structure which contains information about an
+    individual atom
     
     Args:
         symbol (str): the standard ISO symbol for an element
@@ -53,39 +57,21 @@ class Atom(object):
     
     Attributes:
         symbol (str): the standard ISO symbol for an element
+        position (numpy.ndarray): the position of the atom, usually in direct
+            coordinates
+        magentic_moment (float): the magnetic moment of the atom
     """
     def __init__(self, symbol, position, magmom = 0):
 
-        self._symbol = symbol
-        self._position = position
-        self._magnetic_moment = magmom
+        self.symbol = symbol
+        if isinstance(position,list):
+            self.position = np.array(position)
+        elif isinstance(position,np.ndarray):
+            self.position = position.copy()
+        else:
+            raise TypeError('position must either be a list of numeric values or a numpy array')
+        self.magnetic_moment = magmom
        
-    @property
-    def symbol(self):
-        """str: the standard ISO symbol for an element"""
-        return self._symbol
-       
-    @symbol.setter
-    def symbol(self,s): 
-        self._symbol = s
-       
-    @property
-    def position(self):
-        """:obj:`list` of :obj:`float`: the position of the atom."""
-        return np.array(self._position)
-       
-    @position.setter
-    def position(self,p):
-        self._position = np.aray(p)
-           
-    @property
-    def magnetic_moment(self): 
-        """float: the magnetic moment of the atom."""
-        return self._magnetic_moment
-       
-    @magnetic_moment.setter
-    def magnetic_moment(self,m): 
-        self._magnetic_moment = m
 
 class SimulationCell(object):
     """A structural representation of a material system
@@ -98,10 +84,9 @@ class SimulationCell(object):
         obj (optional): if this argument is set then the this constructor acts 
             as a copy constructor.  Will takse :obj:`ase.atoms.Atoms` and
 
-
     Attributes:
         comment (str): a descriptive description of the crystal structure
-        atoms (:obj:`list` of :obj:` pypospack.crystallography.Atoms`): a list 
+        atomic_basis (:obj:`list` of :obj:`pypospack.crystallography.Atoms`): a list 
             of atoms contained within the crystal structure.
         a0 (float): a scaling factor which scales the lattice vectors by a0.
             Default is 1.
@@ -109,9 +94,9 @@ class SimulationCell(object):
             row vectors.  Default is [[1,0,0],[0,1,0],[0,0,1]]
         ptol (:obj:`float`,optional): tolerance in which to find an atom/layer.
             Defaults to None.
-        vacancies (:obj:`list` of :obj:`pypospack.crystallography.Atoms'): a
+        vacancies (:obj:`list` of :obj:`pypospack.crystal.Atoms`): a
             list of vacancy sites contained within the crystal structure.
-        interstitials (:obj:`list` of :obj:`pypospack.crystallgraphy.Atoms'): a
+        interstitials (:obj:`list` of :obj:`pypospack.crystal.Atoms`): a
             list of interstitial sites contained within the crystal structure.
 
     """ 
@@ -138,7 +123,7 @@ class SimulationCell(object):
     def _copy_init_pypospack(self,obj):
         self.comment = obj.comment
         self.a0 = obj.a0
-        self.H = np.array(obj.h_matrix)
+        self.H = np.array(obj.H)
         
         self.atomic_basis = copy.deepcopy(obj.atomic_basis)
         self.vacancies = copy.deepcopy(obj.vacancies)
@@ -150,34 +135,12 @@ class SimulationCell(object):
         self.H = np.copy(obj.cell)
         self.atomic_basis = []
         for a in obj:
+            symbol = a.symbol
+            position = cartesian2direct(a.position,self.H)
             self.atomic_basis.append(
-                    Atom(a.symbol,
-                         cartesian2direct(a.position,self.H)))
+                    Atom(symbol=symbol,position=position))
         self.vacancies = []
         self.interstitials = []
-    @property
-    def a1(self):
-        """float: the length of h1 lattice vector"""
-        a0 = self.a0
-        h1 = self.h1
-        a1 = a0 * h1.dot(h1)**0.5
-        return a1
-
-    @property
-    def a2(self):
-        """float: the length of the h2 lattice vector"""
-        a0 = self.a0
-        h2 = self.h2
-        a2 = a0 * h2.dot(h2)**0.5
-        return a2
-
-    @property
-    def a3(self):
-        """float: the length of the h3 lattice vector"""
-        a0 = self.a0
-        h3 = self.h3
-        a3 = a0*h3.dot(h3)**0.5
-        return a3
 
     @property
     def h1(self):
@@ -205,6 +168,30 @@ class SimulationCell(object):
     @h3.setter
     def h3(self,h3):
         self._h_matrix[2,:] = np.array(h3)
+
+    @property
+    def a1(self):
+        """float: the length of h1 lattice vector"""
+        a0 = self.a0
+        h1 = self.h1
+        a1 = a0 * h1.dot(h1)**0.5
+        return a1
+
+    @property
+    def a2(self):
+        """float: the length of the h2 lattice vector"""
+        a0 = self.a0
+        h2 = self.h2
+        a2 = a0 * h2.dot(h2)**0.5
+        return a2
+
+    @property
+    def a3(self):
+        """float: the length of the h3 lattice vector"""
+        a0 = self.a0
+        h3 = self.h3
+        a3 = a0*h3.dot(h3)**0.5
+        return a3
 
     @property
     def b1(self):
@@ -253,20 +240,23 @@ class SimulationCell(object):
     def check_if_atom_exists_at_position(self,symbol,position):
         """determines if there is an atom at a position
 
+        This code looks for atoms in the list of atoms in the atomic_basis.
         Returns:
             (tuple): tuple containing:
                          (bool): True if a atom exists.  False if atom doesn't exist.
-                         (int): index of the atom at that position
+                         (int): index of the atom at that position.  the index
+                             the index is negative if it is the list of interstitals.
 
-        This code does not look for atoms in the list of interstitials.
         """
 
-        # check to see if atom exists
+        return_value = (False,None)
+        # check to see if atom exists in the atomic basis
         for i,a in enumerate(self.atomic_basis):
             diff = [abs(position[i]-a.position[i]) for i in range(3)]
             if max(diff) < self.ptol:
-                return (True,i)
-        return (False,None)
+                return_value = (True,i)
+
+        return return_value
 
     def add_atom(self, symbol, position):
         """add an atom to the structure
@@ -282,10 +272,13 @@ class SimulationCell(object):
         Raises:
             ValueError: If an atom already exists in the position.
         """
-        is_atom_exists = self.check_if_atom_exists_at_position(symbol,position)
-        if is_atom_exists is True:
-            err_msg = "Tried to add {} @ {} an atom already there"
+        (is_atom_exists, __) = self.check_if_atom_exists_at_position(symbol,position)
+        if is_atom_exists:
+            err_msg = "Tried to add {} @ {} an atom already there\n"
             err_msg = err_msg.format(symbol,position)
+            err_msg += 'atomic basis:\n'
+            for i,a in enumerate(self.atomic_basis):
+                err_msg += ",".join([i,a,a.symbol,a.position])
             raise ValueError(err_msg)
         else:
             self.atomic_basis.append(Atom(symbol,position))
@@ -298,19 +291,18 @@ class SimulationCell(object):
 
         Args:
             symbol (str): the symbol of the atom
-            position (list of float): the position of the atom
+            position (:obj:`list` of :obj:`float`): the position of the atom
 
         """
         for i,a in enumerate(self._atoms):
             if (a.symbol == symbol):
                 diff = [abs(position[j]-a.position[j]) for j in range(3)]
-                print(diff)
                 is_atom = True
                 for j in range(3):
-                    if diff[j] >= self._ptol:
+                    if diff[j] >= self.ptol:
                         is_atom = False
                 if is_atom:
-                    self._atoms.remove(self._atoms[i])
+                    self.atomic_basis.remove(self.atomic_basis[i])
                     return
 
         # no atom found
@@ -319,13 +311,26 @@ class SimulationCell(object):
         raise ValueError(err_msg)
 
     def add_interstitial(self,symbol,position):
+        """ add an interstitial to the atomic basis
+
+        Args:
+            symbol (str): the symbol of the atom
+            position (:obj:`list` of :obj:`float`): the position of the atom
+        """
         self.add_atom(symbol,position)
-        self._interstitiials.append([symbol,position])
+        self.interstitials.append([symbol,position])
 
     def add_vacancy(self,symbol,position):
-        self.remove_atom(symbol,position)
-        self._vacancy.append([symbol,position])
+        """ create a vacancy
+        
+        Creates a vacancy by removing an atom from the atomic basis
 
+        Args:
+            symbol (str): the symbol of the atom
+            position (:obj:`list` of :obj:`float`): the position of the atom
+        """
+        self.remove_atom(symbol,position)
+        self.vacancies.append([symbol,position])
 
     def get_number_of_atoms(self, symbol=None):
         if symbol is None:
@@ -340,38 +345,37 @@ class SimulationCell(object):
     def normalize_h_matrix(self):
         # change the h_matrix where the lattice parameter is 1.0
         for i in range(3):
-            self._h_matrix[i,:] = self._h_matrix[i,:] * self._lattice_parameter
-        self._lattice_parameter = 1.0
+            self.H[i,:] = self.H[i,:] * self.a0
+        self.a0 = 1.0
 
         # calculate the norm of the h1 vector
-        norm_h1 = np.sqrt(self._h_matrix[i,:].dot(self._h_matrix[i,:]))
+        norm_h1 = self.a1
         # the norm of the h1 vector is the lattice parameter
-        self._lattice_parameter = norm_h1
+        self.a0= norm_h1
 
         # normalize the h-matrix by the norm of h1
         for i in range(3):
-            self._h_matrix[i,:] = self._h_matrix[i,:] / norm_h1
+            self.H[i,:] = self.H[i,:] / norm_h1
 
-    def set_lattice_parameter(self, a1):
+    def set_lattice_parameter(self, a0):
         # change the h_matrix where the lattice parameter is 1.0
         for i in range(3):
-            self._h_matrix[i,:] = self._h_matrix[i,:] * self._lattice_parameter
+            self.H[i,:] = self.H[i,:] * self.a0
 
-
-        self._lattice_parameter = a1
+        self.a0 = a0
         for i in range(3):
-            self._h_matrix[i,:] = self._h_matrix[i,:] / self._lattice_parameter
+            self.H[i,:] = self.H[i,:] / self.a0
 
     def __str__(self):
-        str_out = "a = {}\n".format(self._lattice_parameter)
+        str_out = "a = {}\n".format(self.a0)
         str_out += "atom list:\n"
-        for a in self._atoms:
-            str_t = "{} {:10.6f} {:10.6f} {:10.6f} {:10.6f}"
-            str_out += str_t.format(a.symbol,
-                                    a.position[0],
-                                    a.position[1],
-                                    a.position[2],
-                                    a.magnetic_moment)
+        for a in self.atomic_basis:
+            str_out = "{} {:10.6f} {:10.6f} {:10.6f} {:10.6f}"
+            str_out += str_out.format(a.symbol,
+                                      a.position[0],
+                                      a.position[1],
+                                      a.position[2],
+                                      a.magnetic_moment)
  
 def make_super_cell(structure, sc):
     """makes a supercell from a given cell
@@ -379,7 +383,7 @@ def make_super_cell(structure, sc):
     Args:
         structure (pyflamestk.base.Structure): the base structure from which
             the supercell will be made from.
-        sc (list of int): the number of repeat units in the h1, h2, and h3 
+        sc (:obj:`list` of :obj:`int`): the number of repeat units in the h1, h2, and h3 
             directions
     """
 
@@ -387,19 +391,19 @@ def make_super_cell(structure, sc):
     supercell.structure_comment = "{}x{}x{}".format(sc[0],sc[1],sc[2])
 
     # set lattice parameter
-    supercell.lattice_parameter = structure.lattice_parameter   
+    supercell.a0 = structure.a0 
 
     # set h_matrix
     h = np.zeros(shape=[3,3])
     for i in range(3):
         h[i,:] = structure.h_matrix[i,:] * sc[i]
-    supercell.h_matrix = h
+    supercell.H = H.copy()
 
     # add supercell atoms
     for i in range(sc[0]):
         for j in range(sc[1]):
             for k in range(sc[2]):
-                for atom in structure.atoms:
+                for atom in structure.atomic_basis:
                     symbol = atom.symbol
                     position = atom.position
                     position = [(i+position[0])/sc[0],\
@@ -409,13 +413,3 @@ def make_super_cell(structure, sc):
 
     # return a copy of the supercell
     return copy.deepcopy(supercell)
-
-class Simulation(object):
-    """ an abstract class for simulations
-
-    not currently using this yet
-    """
-    def __init__(self):
-        raise NotImplementedError
-    def run(self):
-        raise NotImplementedError
