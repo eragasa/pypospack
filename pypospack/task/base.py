@@ -6,6 +6,7 @@ class Task(object):
             job submission scripts
         task_directory(str): the directory the task,
             will be done
+        status (str):
     Notes: 
     If the __init__ is overridden, the attributes
     task_name, task_directory, and status must be 
