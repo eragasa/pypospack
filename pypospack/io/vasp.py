@@ -632,7 +632,8 @@ class Potcar(object):
             elif pathlib.Path(os.path.join(self.potcar_dir,s + "_h",'POTCAR')).is_file():
                 self.potcars[s] = os.path.join(self.potcar_dir,s+"_h",'POTCAR')
             else:
-                msg = 'cannot find a POTCAR file for {}.{}'.format(self.xc,s)
+                msg = 'cannot find a POTCAR file for {}.{}\n'.format(self.xc,s)
+                msg += 'potcar_dir:{}'.format(self.potcar_dir)
                 raise VaspPotcarError(msg)
 
     def __set_xc_directory(self):
