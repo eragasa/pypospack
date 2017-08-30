@@ -6,6 +6,7 @@ __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
 import os,shutil,subprocess
+import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 import pypospack.io.slurm as slurm
 from pypospack.task import Task
@@ -160,18 +161,33 @@ class VaspSimulation(Task):
         # self.oszicar.read(os.path.join(self.task_directory,'OSZICAR'))
 
     def read_poscar(self,poscar=None):
-        if poscar is not None:
-            if isinstance(poscar,str):
-                self.poscar_filename = poscar
-                self.poscar.read(poscar)
-            elif isinstance(poscar,pypospack.crystal.SimulationCell):
-                self.poscar = vasp.Poscar(poscar)
-            else:
-                msg = (\
-                        "argument 'poscar' must be a filename or an instance "
-                        "of pypospack.crystal.SimulationCell, passed in {}"
-                      ).format(poscar)
-                raise KeyError
+        """ read in a poscar file or object
+
+        This method reads in new structural information into the class.  It does 
+        not write the POSCAR file which may already exist in the the simulation
+        directory.
+
+        Args:
+            poscar (:obj:`str` or :obj:`pypospack.crystal.SimulationCell`): 
+                structure information file either provided as the location of a 
+                POSCAR file, or from an instance of 
+                :obj:`pypospack.crystal.SimulationCell`
+
+        """
+        if poscar is None:
+            poscar = os.path.join(self.task_directory,'POSCAR')
+        
+        if isinstance(poscar,crystal.SimulationCell):
+            self.poscar = vasp.Poscar(poscar)
+        elif isinstance(poscar,str):
+            self.poscar = vasp.Poscar()
+            self.poscar.read(poscar)
+        else:
+            msg = (\
+                   "argument 'poscar' must be a filename or an instance "
+                   "of pypospack.crystal.SimulationCell, passed in {}"
+                   ).format(poscar)
+            raise KeyError
 
     def write_poscar(self):
         self.poscar.write(\
@@ -191,31 +207,40 @@ class VaspSimulation(Task):
                     self.task_directory,"POTCAR"))
 
     def read_incar(self,incar='None'):
-        if isinstance(incar,str):
+        if incar is None:
+            if os.path.exists(os.path.join(self.task_directory,'INCAR')):
+                self.incar = vasp.Incar()
+                self.incar.read(os.path.join(self.task_directory,'INCAR'))
+            else:
+                self.incar = vasp.Incar()
+        elif isinstance(incar,str):
+            self.incar = vasp.Incar()
             self.incar.read(incar)
         elif isinstance(incar,dict):
-            # first, check to see if the file exists and read it
+            # check to see if the incar already exists, and read it in
             if os.path.exists(os.path.join(self.task_directory,'INCAR')):
+                self.incar = vasp.Incar()
                 self.incar.read(os.path.join(self.task_directory,'INCAR'))
-            # second, check the incar configuartion dictionary
+            # otherwise, we're just going to use the default configuarion
+            else:
+                self.incar = vasp.Incar()
+            # now update based upon what is dictionary
             for k,v in incar.items():
-                setattr(self,'incar.{}'.format(k),v)
-        elif isinstance(incar,vasp.Incar):
-            self.incar = vasp.Incar(incar)
-        elif incar is None:
-            self.incar.read(os.path.join(self.task_directory,'INCAR'))
+                print(k,v)
+                setattr(self.incar,k,v)
         else:
             raise VaspSimulationError
 
     def config_incar(self):
-        potcar_encut_min = max(self.potcar.encut_min)
-        potcar_encut_max = 2*max(self.potcar.encut_max)
-        if self.incar.encut == 'Auto':
-            self.incar.encut = max(self.potcar.encut_max)
-        if self.incar.encut >= potcar_encut_min:
-            self.incar.encut = potcar_encut_min
-        if self.incar.encut <= potcar_encut_max:
-            self.incar.encut = potcar_encut_max
+        pass
+        #potcar_encut_min = max(self.potcar.encut_min)
+        #potcar_encut_max = 2*max(self.potcar.encut_max)
+        #if self.incar.encut == 'Auto':
+        #    self.incar.encut = max(self.potcar.encut_max)
+        #if self.incar.encut >= potcar_encut_min:
+        #    self.incar.encut = potcar_encut_min
+        #if self.incar.encut <= potcar_encut_max:
+        #    self.incar.encut = potcar_encut_max
 
     def write_incar(self):
         try:
