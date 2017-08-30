@@ -226,7 +226,6 @@ class VaspSimulation(Task):
                 self.incar = vasp.Incar()
             # now update based upon what is dictionary
             for k,v in incar.items():
-                print(k,v)
                 setattr(self.incar,k,v)
         else:
             raise VaspSimulationError
@@ -252,13 +251,22 @@ class VaspSimulation(Task):
 
     def read_kpoints(self,kpoints=None):
         if kpoints is None:
-            pass
+            if os.path.exists(os.path.join(self.task_directory,'KPOINTS')):
+                self.kpoints = vasp.Kpoints()
+                self.kpoints.read(os.path.join(self.task_directory,'KPOINTS'))
+            else:
+                self.kpoints = vasp.Kpoints()
         elif isinstance(kpoints,str):
+            self.kpoints = vasp.Kpoints()
             self.kpoints.read(kpoints)
         elif isinstance(kpoints,dict):
-            setattr(self,'kpoints.{}'.format(k),v)
-        elif isinstance(kpoints,pypospack.io.vasp.Kpoints):
-            self.kpoints = vasp.Kpoints(kpoints)
+            if os.path.exists(os.path.join(self.task_directory,'KPOINTS')):
+                self.kpoints = vasp.Kpoints()
+                self.kpoints.read(os.path.join(self.task_directory,'KPOINTS'))
+            else:
+                self.kpoints = vasp.Kpoints()
+            for k,v in kpoints.items():
+                setattr(self.kpoints,k,v)
         else:
             raise VaspSimulationError
 
