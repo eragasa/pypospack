@@ -350,3 +350,15 @@ class VaspStructuralMinimization(VaspSimulation):
         self.incar.isif = 3 # relax everything
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
+class VaspCalculatePhonons(VaspSimulation):
+    def __init__(self,task_name,task_directory,restart=True):
+        VaspSimulation.__init__(self,task_name,task_directory,restart=restart)
+
+    def config_incar(self):
+        VaspSimulation.config_incar(self)
+
+        if self.incar.ibrion not in [5,6,7,8]:
+            self.incar.ibrion = 6 # frozen phonon mode
+            self.incar.potim = 0.015 # displacements
+        self.incar.isif = 3
+        self.incar.write(os.path.join(self.task_directory,'INCAR'))
