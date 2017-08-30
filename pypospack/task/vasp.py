@@ -337,7 +337,6 @@ class VaspSimulation(Task):
     def get_encut_tfrom_potcar(self):
         return max(self.potcar.encut_max)
 
-
 class VaspStructuralMinimization(VaspSimulation):
     def __init__(self,task_name,task_directory,restart=True):
         VaspSimulation.__init__(self,task_name,task_directory,restart)
@@ -350,7 +349,20 @@ class VaspStructuralMinimization(VaspSimulation):
         self.incar.isif = 3 # relax everything
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
+class VaspPositionMinimization(VaspSimulation):
+    def __init__(self,task_name,task_directory,restart=True):
+        VaspSimulation.__init__(self,task_name,task_directory,restart)
+
+    def config_incar(self):
+        VaspSimulation.config_incar(self)
+
+        if self.incar.ibrion not in [1,2]:
+            self.incar.ibrion = 2 # set to conjugate gradient method
+        self.incar.isif = 2 # relax positions only
+        self.incar.write(os.path.join(self.task_directory,'INCAR'))
+
 class VaspCalculatePhonons(VaspSimulation):
+    """ calculate the phonons """
     def __init__(self,task_name,task_directory,restart=True):
         VaspSimulation.__init__(self,task_name,task_directory,restart=restart)
 
