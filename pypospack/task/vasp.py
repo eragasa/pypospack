@@ -194,7 +194,10 @@ class VaspSimulation(Task):
         if isinstance(incar,str):
             self.incar.read(incar)
         elif isinstance(incar,dict):
-            self.incar.read(os.path.join(self.task_directory,'INCAR'))
+            # first, check to see if the file exists and read it
+            if os.path.exists(os.path.join(self.task_directory,'INCAR')):
+                self.incar.read(os.path.join(self.task_directory,'INCAR'))
+            # second, check the incar configuartion dictionary
             for k,v in incar.items():
                 setattr(self,'incar.{}'.format(k),v)
         elif isinstance(incar,vasp.Incar):
