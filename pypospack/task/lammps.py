@@ -27,8 +27,13 @@ potential_map = {\
         'eam':['pypospack.potential','EmbeddedAtomModel'],
         'tersoff':['pypospack.potential','Tersoff']}
 
+class LammpsSimulationError(Exception):
+    """Error class for dealing with LAMMPS simulation issues"""
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
+
 class LammpsSimulation(Task):
-    """  Abstract data class for LAMMPS simulation objects 
+    """ Calculates cohesive energy
 
     This is an abstract data class which defines the attributes and methods 
     necessary to interact with the Workflow manager.  A default implementation
@@ -40,40 +45,76 @@ class LammpsSimulation(Task):
             input and output files for LAMMPS.
 
     Attributes:
+        potential(pypospack.potential.Potential): the potential class
+        structure(pypospack.io.vasp.Poscar): the structure
         config(:obj:'list' of :obj:'str'): a list of attributes required to 
             configure this LAMMPS task.
         config_map(dict):
         potential_map(dict):
     """
     def __init__(self,task_name,task_directory):
-        self.status = None
-        self.task_directory = ''
-        self.structure_filename = ''
-        self.config_dict = {\
-                'potential_type':self.set_potential_type,
-                'chemical_symbols':self.set_chemical_symbols,
-                'structure_name':self.set_structure_name,
-                'structure_filename':self.set_structure_filename}
-        self.ready_dict = {\
-                'param_dict':self.set_param_dict
-                }
-        self.run_dict = {}
-        self.post_dict = {}
-        self.done_dict = {}
         Task.__init__(self,task_name,task_directory)
-        self.potential_map = potential_map
-        if os.path.exists(self.task_directory):
-            pass
-        else:
-            os.mkdir(self.task_directory)
-        self.status='INIT'
+        if self.status == 'INIT':
+            self.potential = None
+            self.structure = None
+            additional_config_dict = {\
+                'structure':self.set_structure,
+                'potential':self.set_potential
+                }
+            additional_ready_dict = {}
+            additional_run_dict = {}
+            additional_post_dict = {}
+            
+            self.config_dict.update(additional_config_dict)
+            self.ready_dict.update(additional_config_dict)
+            self.run_dict.update(additional_config_dict)
+            self.post_dict.update(additional_post_dict)
+
+    def restart(self):
+        raise NotImplementedError
+
+    def send_config_info(self,config_dict):
+        for k,v in config_dict.items():
+            self.config_dict[k](v)
+
+    def config(self, structure=None,potential=None):
+        """ configure this class
+
+        Args:
+            structure (dict): a dictionary of structural information
+            potential (dict): a dictionary of potential information
+        """
+        if structure is not None:
+            self.structure_dict = structure
+        if potential is not None:
+            self.potential_dict = potential
+
+        self.structure_name = self.structure_dict['name']
+        self.structure = vasp.Poscar()
+        self.structure.read(self.structure_dict['filename'])
+        self.symbols = self.structure.symbols
+
+        pot_type = self.potential_dict['potential_type']
+        pot_syms = self.potential_dict['symbols']
+        pot_param = self.potential_dict['params']
+        self.configure_potential(\
+                pot_type = pot_type,
+                symbols = pot_syms)
+        self.param_dict = copy.deepcopy(pot_param)
+        #self.potential.param_dict = copy.deepcopy(pot_param)
+        self.status = 'CONFIG'
+
+    def ready(self):
+        self.status = 'READY'
 
     def run(self, is_mpi=False):
+        self.status = 'RUN'
         self.write_lammps_input_file()
-        if self.write_potential_files is None:
-            self.write_potential_files(potential_files=self.potential_files)
-        else:
-            self.write_potential_files(param_dict=self.param_dict)
+        self.write_potential_files(param_dict=self.param_dict)
+        #if self.write_potential_files is None:
+        #    self.write_potential_files(potential_files=self.potential_files)
+        #else:
+        #    self.write_potential_files(param_dict=self.param_dict)
         self.write_structure_file()
 
         # choose lammps binary and get it from environment variable
@@ -91,6 +132,8 @@ class LammpsSimulation(Task):
             subprocess.call(cmd_str,shell=True)
         finally:
             os.chdir(orig_dir)
+
+        self.status = 'POST'
 
     def lammps_input_file_to_string(self):
         str_out = "".join([\
@@ -140,18 +183,9 @@ class LammpsSimulation(Task):
             atom_style = 'atomic'
         symbol_list = self.symbols
     
-        # read in poscar file
-        vasp_structure = vasp.Poscar()
-        try:
-            vasp_structure.read(self.structure_filename)
-        except filenotfounderror as e:
-            print('error:',str(e))
-            print('\tcurrent_working_directory',os.getcwd())
-            print('\tself.structure_filename:',self.structure_filename)
-            raise
         # instatiate using lammpsstructure file
         lammps_structure = lammps.LammpsStructure(\
-                obj=vasp_structure)
+                obj=self.structure)
         lammps_structure.write(\
                 filename=filename,
                 symbol_list=symbol_list,
@@ -231,32 +265,23 @@ class LammpsSimulation(Task):
         self.status = "DONE"
 
     # below here are effectively helper functions
-    def set_structure_name(self,name):
-        self.structure_name =name
+    def set_structure(self,structure_dict):
+        self.structure_name = structure_dict['name']
+        self.structure_filename = structure_dict['filename']
 
-    def set_structure_filename(self,name):
-        self.structure_filename = name
+    def set_potential(self,potential_dict):
+        self.potential_type = potential_dict['potential_type']
+        self.potential_symbols = potential_dict['symbols']
+        self.param_dict = copy.deepcopy(potential_dict['params'])
 
-    def set_potential_type(self,name):
-        self.potential_type = name
-
-    def set_chemical_symbols(self,symbols):
-        self.symbols = symbols
-
-    def set_param_dict(self,param_dict):
-        self.param_dict = copy.deepcopy(param_dict)
-
-    def configure(self):
-        self.configure_potential(self.potential_type)
-
-    def configure_potential(self,pot_name):
-        module_name = self.potential_map[pot_name][0]
-        class_name = self.potential_map[pot_name][1]
+    def configure_potential(self,pot_type,symbols):
+        module_name = potential_map[pot_type][0]
+        class_name = potential_map[pot_type][1]
 
         try:
             module = importlib.import_module(module_name)
             klass = getattr(module,class_name)
-            self.potential = klass(self.symbols)
+            self.potential = klass(symbols)
         except:
             raise
 

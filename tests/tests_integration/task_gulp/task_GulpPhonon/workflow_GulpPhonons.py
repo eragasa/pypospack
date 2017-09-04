@@ -23,10 +23,20 @@ class GulpPhononCalculation(object):
 
     def run(self):
         # write gulp input file
-        self.write_gulp_input_file(\
-                filename=os.path.join(self.task_directory,'gulp.in'),
-                poscar=os.path.join(self.structure_filename))
-        
+        try:
+            self.write_gulp_input_file(\
+                    filename=os.path.join(self.task_directory,'gulp.in'),
+                    poscar=os.path.join(\
+                            self.task_directory,
+                            self.structure_filename))
+        except:
+            print("filename:{}".format(
+                os.path.join(self.task_directory,'gulp.in')))
+            print("\t",os.path.exists(os.path.join(self.task_directory,'gulp.in')))
+            print("poscar:{}".format(
+                os.path.join(self.task_directory,self.structure_filename)))
+            print("\t",os.path.exists(os.path.join(self.task_directory,self.structure_filename)))
+            raise
         gulp_bin = os.environ.get('GULP_BIN')
 
         cmd_str = '{} < gulp.in > gulp.out 2>/dev/null'.format(gulp_bin)
@@ -47,7 +57,7 @@ class GulpPhononCalculation(object):
             poscar (str): location of poscar file for structure to read.  
                 Default is 'POSCAR'
         """
-
+        self.structure_filename = poscar
         str_out = "opti conp prop phon eigen\n"
         str_out += self.gulp_positions_to_string(poscar)
         str_out += self.potential.gulp_potential_section_to_string(param_dict)
@@ -122,7 +132,7 @@ class GulpPhononCalculation(object):
         return str_out
 
 if __name__ == '__main__':
-    vasp_filename = 'MgO_NaCl_prim.vasp'
+    vasp_filename = 'MgO_NaCl_unit.vasp'
     vasp_input_filename = os.path.join(os.getcwd(),'rsrc',vasp_filename)
 
     param_dict = {}
@@ -143,30 +153,34 @@ if __name__ == '__main__':
     task_directory = os.path.join(\
             os.getcwd(),
             task_name)
-    task = GulpPhononCalculation(task_name,task_directory)
+    gulp_input_filename = 'gulp.in'
+    #task = GulpPhononCalculation(task_name,task_directory)
 
     #### TEST POTENTIAL POTENTIAL ####
-    print('----- test that buckingham potential provides the right format -----')
-    task.potential = potential.Buckingham(['Mg','O'])
-    task.param_dict = copy.deepcopy(param_dict)
-    print(task.potential.gulp_potential_section_to_string(param_dict))
+    #print('----- test that buckingham potential provides the right format -----')
+    #task.potential = potential.Buckingham(['Mg','O'])
+    #task.param_dict = copy.deepcopy(param_dict)
+    #print(task.potential.gulp_potential_section_to_string(param_dict))
 
     #### TEST IF WE CAN CAN WRITE THE INPUT FILE ####
-    gulp_input_filename = os.path.join(task.task_directory,'gulp.in')
-    poscar_input_filename = os.path.join('rsrc','MgO_NaCl_prim.vasp')
-    task.write_gulp_input_file(\
-            filename=gulp_input_filename,
-            poscar=vasp_input_filename)
+    #gulp_input_filename = os.path.join(task.task_directory,'gulp.in')
+    #poscar_input_filename = os.path.join('rsrc','MgO_NaCl_prim.vasp')
+    #task.write_gulp_input_file(\
+    #        filename=gulp_input_filename,
+    #        poscar=vasp_input_filename)
 
     #### TEST IF WE CAN RUN THE BUCKINGHAM POTENTIAL ####
-    task.structure_filename = os.path.join('rsrc','MgO_NaCl_prim.vasp')
-    task.run()
+    #task.structure_filename = os.path.join('rsrc','MgO_NaCl_prim.vasp')
+    #task.run()
 
 
     task = GulpPhononCalculation(task_name,task_directory)
     task.potential = potential.Buckingham(['Mg','O'])
     task.param_dict = copy.deepcopy(param_dict)
+    task.structure_file = os.path.join(\
+            task.task_directory,
+            vasp_input_filename)
     task.write_gulp_input_file(\
-            filename=gulp_input_filename,
+            filename=os.path.join(task.task_directory,gulp_input_filename),
             poscar=vasp_input_filename)
     task.run()
