@@ -73,9 +73,17 @@ class EipFittingEngine(object):
         self._configure_log_file(fname_log)
 
         # read configuration files
-        self.structures = StructureDatabase(self.fname_config_structures)
-        self.potential = PotentialInformation(self.fname_config_potential)
-        self.qois = QoiDatabase(self.fname_config_qoi)
+        self.structures = StructureDatabase()
+        self.structures.read(self.fname_config_structures)
+
+        # read in the potential yaml file
+        self.potential = PotentialInformation()
+        self.potential.read(self.fname_config_potential)
+        
+        # read in the qoi yaml file
+        self.qois = QoiDatabase()
+        self.qois.read(self.fname_config_qoi)
+
     def _set_random_seed(self,seed):
         # set the random seed
         np.random.seed(seed)
