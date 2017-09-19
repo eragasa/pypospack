@@ -1,5 +1,6 @@
 import pypospack.potfit as potfit
 import os
+import numpy as np
 
 if __name__ == "__main__":
     data_dir = 'data'
@@ -36,6 +37,20 @@ if __name__ == "__main__":
             data.append(data)
 
     assert len(names) == len(name_types)
+
+    # recast list of lists into numpy array
+    data = np.array(data)
+
+    param_names = []
+    param_key_index = []
+    for i,v in enumerate(names):
+        if name_types == 'param':
+            param_names.append(v)
+            param_key_index.append(i)
+
+    param_data = data[:,param_key_index]
+    # this is broken for seaton to fix, and talk about later
+    param_df = pd.DataFrame(param_data,param_names)
 
     print('names:',names)
     print('name_types:',name_types)
