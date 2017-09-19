@@ -1,0 +1,60 @@
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style charge
+atom_modify map array
+# ---- create atoms
+read_data lammps.structure
+# ---- define interatomic potential
+include potential.mod
+
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+
+# ---- run minimization
+reset_timestep 0
+thermo 10
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+
+run 0
+
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable length_x equal "lx"
+variable length_y equal "ly"
+variable length_z equal "lz"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable ecoh equal "pe/atoms"
+variable press_t equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+#variable ecoh equal "v_etotal/v_atoms"
+# --- output
+print "pyPosMat output section"
+print "tot_energy = ${tot_energy}"
+print "num_atoms = ${natoms}"
+print "xx = ${length_x}"
+print "yy = ${length_y}"
+print "zz = ${length_z}"
+print "xy = ${tilt_xy}"
+print "xz = ${tilt_xz}"
+print "yz = ${tilt_yz}"
+print "pressure_total = ${press_t}"
+print "press_xx = ${press_xx}"
+print "press_yy = ${press_yy}"
+print "press_zz = ${press_zz}"
+print "press_xy = ${press_xy}"
+print "press_xz = ${press_xz}"
+print "press_yz = ${press_yz}"
+
+print "ecoh = ${ecoh}"
+print "lammps_sim_done"
