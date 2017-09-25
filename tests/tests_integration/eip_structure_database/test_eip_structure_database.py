@@ -1,3 +1,4 @@
+import os
 import pypospack.potfit as potfit
 
 if __name__ == '__main__':
@@ -16,3 +17,6 @@ if __name__ == '__main__':
     print(copy_structure_db.directory)
     for k,v in copy_structure_db.structures.items():
         print(k,v)
+
+    # check to see if structure db directory exists
+    structure_db.check()
