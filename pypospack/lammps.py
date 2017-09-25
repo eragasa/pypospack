@@ -73,23 +73,6 @@ class SimulationManager():
             raise
 
         self.obj_lammps_tasks[sim_name] = klass(task_name,task_directory)
-        
-
-    #def add_lammps_simulation(self,sim_name,sim_type,structure_name):
-    #    sim_dir = sim_name
-    #
-    #    if sim_type in ['sp','single_point']:
-    #        self._lmps_sim_obj[sim_name] = SinglePointSimulation(sim_name,sim_dir,structure_name)
-    #    elif sim_type in ['elas', 'elastic']:
-    #        self._lmps_sim_obj[sim_name] = ElasticTensorSimulation(sim_name,sim_dir,structure_name)
-    #    elif sim_type in ['E_min_all']:
-    #        self._lmps_sim_obj[sim_name] = EnergyMinimizationSimulation(sim_name, sim_dir, structure_name)
-    #     elif sim_type in ['structure_info']:
-    #         self._lmps_sim_obj[sim_name] = StructureInfo(sim_name,sim_dir,structure_name)
-    #    elif sim_type in ['E_min_pos']:
-    #        self._lmps_sim_obj[sim_name] = PositionMinimizationSimulation(sim_name, sim_dir, structure_name)
-    #    else:
-    #        raise ValueError('sim_type[{}] is not a supported sim_type')
 
     def evaluate_parameter_set(self,param_dict):
         assert type(param_dict),dict

@@ -34,5 +34,8 @@ if __name__ == "__main__":
 
     qoi_manager = qoi.QoiManager(qoi_info)
     required_simulations = qoi_manager.get_required_simulations()
-  
+    for k,v in qoi_manager.required_simulations.items():
+        print(k,'\n\t',v)
+    sim_manager = lammps.SimulationManager()
+
     

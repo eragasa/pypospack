@@ -7,7 +7,7 @@ from bokeh.io import output_file, show
 from bokeh.layouts import gridplot
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure
-sys.path.append(os.path.abspath(r"C:\Users\Seaton\repos\pypospack\\"))
+# sys.path.append(os.path.abspath(r"C:\Users\Seaton\repos\pypospack\\"))
 import pypospack.potfit as potfit
 
 def generate_frame():   # use later to optimize data frame creation
@@ -18,10 +18,10 @@ if __name__ == "__main__":
     filename = 'culled_009.out'
     starttime = time.time()
     # configure the fitting engine
-    eip_config = potfit.EipFittingEngine(\
-            fname_config_potential = 'pypospack.buckingham.yaml',
-            fname_config_qoi = 'pypospack.qoi.yaml',
-            fname_config_structures = 'pypospack.structure.yaml')
+    #eip_config = potfit.AbstractFittingEngine(\
+    #        fname_config_potential = 'pypospack.buckingham.yaml',
+    #        fname_config_qoi = 'pypospack.qoi.yaml',
+    #        fname_config_structures = 'pypospack.structure.yaml')
    
     fname = os.path.join(data_dir, filename)
 
