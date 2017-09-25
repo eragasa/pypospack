@@ -17,6 +17,25 @@ import pyflamestk.base as base
 import pyflamestk.qoi as qoi
 import pyflamestk.pareto as pareto
 
+def get_supported_qois():
+    supported_qois = ['a0','a1','a2','a3',
+                     'alpha','beta','gamma',
+                     'c11','c12','c44',
+                     'bulk_modulus',
+                     'shear_modulus',
+                     'defect_energy',
+                     'surface_energy',
+                     'stacking_fault_energy',
+                     'total_energy']
+    return supported_qois
+
+def get_supported_potentials():
+    supported_potentials = [\
+            'buckingham',
+            'eam',
+            'tersoff']
+    return supported_potentials
+
 class PyPosmatError(Exception):
   """Exception handling class for pyposmat"""
   def __init__(self, value):
@@ -86,17 +105,9 @@ class PyPosmatEngine(object):
         self._log('\tlog_file -> {}'.format(self._fname_log))
 
 
-        self._supported_qois = ['a0','a1','a2','a3',
-                                'alpha','beta','gamma',
-                                'c11','c12','c44',
-                                'bulk_modulus',
-                                'shear_modulus',
-                                'defect_energy',
-                                'surface_energy',
-                                'total_energy']
+        self._supported_qois = list(get_supported_qois())
 
-        self._supported_potentials = ['buckingham',
-                                      'eam']
+        self._supported_potentials = list(get_supported_potentials())
 
         self._structure_db = None
         self._dir_structure_db = None
@@ -543,6 +554,8 @@ class PyPosmatEngine(object):
                 raise PyPosmatError(err_msg)
 
     def _validate_external_software(self): pass
+        self.lammps_bin = None
+        self.lammps_bin = os.environ('LAMMPS_BIN')
 
     def _validate_quantities_of_interest(self):
         self._log('validating quantities of interest.')

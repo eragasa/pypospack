@@ -1,7 +1,42 @@
 import copy
 import numpy as np
 
-class QoiManager:
+import copy, importlib
+import pypospack.potfit as potfit
+
+def get_qoi_map():
+    qoi_map = {
+            'crystal':{
+                'qoi':['a0','a1','a2','a3','alpha','beta','gamma'],
+                'module':'pypospack.qoi',
+                'class':'CrystalStructureGeometry'},
+            'elastic':{
+                'qoi':['c11','c12','c13','c22','c23',
+                       'c33','c44','c55','c66'],
+                'module':'pypospack.qoi',
+                'class':'ElasticTensor'},
+            'defect_energy':{
+                'qoi':['defect_energy'],
+                'module':'pypospack.qoi',
+                'class':'DefectFormationEnergy'},
+            'bulk_modulus':{
+                'qoi':['bulk_modulus'],
+                'module':'pypospack.qoi',
+                'class':'ShearModulus'},
+            'surface_energy':{
+                'qoi':['surface_energy'],
+                'module':'pypospack.qoi',
+                'class':'SurfaceEnergy'},
+            'stacking_fault_energy':{
+                'qoi':['StackingFaultEnergy'],
+                'module':'pypospack.qoi',
+                'class':'StackingFaultEnergy'}}
+    return copy.deepcopy(qoi_map)
+
+def get_supported_qois():
+    return list(get_qoi_map().keys())
+
+class QoiManager(object):
     """ Manager of Quantities of Interest 
     
     This class manages quantities of interest the simulation of multiple 
@@ -18,153 +53,112 @@ class QoiManager:
         qoi_errors (dict): key is the qoi_name, value is the error
         qoi_dict (dict): 
     """ 
-    def __init__(self):
+    def __init__(self,qoi_info = None):
+        self.qoi_map = get_qoi_map()
+        self.supported_qois = get_supported_qois()
 
-        self._qoi_names = []
-        self._qoi_targets = {}
-        self._qoi_values = {}
-        self._qoi_errors = {}
-        self._qoi_dict = {}
+        self.qoi_names = []
+        self.obj_qois = {}
 
-        #TODO: this should be switched to a sorted list
-        self._req_structure_names = None
-        self._req_structures = {}
+        if qoi_info is not None:
+            assert isinstance(qoi_info,potfit.QoiDatabase)
+            self.qoi_info = qoi_info
+            self._config_from_qoi_info()
 
-        #TODO: this should be switched to a sorted list
-        self._req_variable_names = None
-        self._req_variables = {}
+    def _config_from_qoi_info(self,qoi_info = None):
+        """ configure qoi from QoiInformation object
 
-    @property
-    def qoi_names(self):
-        return self._qoi_names
+        """
 
-    @qoi_names.setter
-    def qoi_names(self, qoi_names):
-        assert type(qoi_names), list
-        self._qoi_names = qoi_names 
+        if qoi_info is not None:
+            assert isinstance(potfit.QoiDatabase,qoi_info)
+            self.qoi_info = copy.deepcopy(qoi_info)
 
-    @property
-    def qoi_values(self):
-        return self._qoi_values
+        self.obj_qois = {}
+        self.qoi_names = self.qoi_info.qoi_names
 
-    @property
-    def qoi_errors(self):
-        return self._qoi_errors
-    @property
-    def qoi_definitions(self):
-        return self._qoi_definitions
+        for qoi, qoi_info in self.qoi_info.qois.items():
+            # iterate over items in the qoi configuration dictionary
+            for map_qoi, map_info in self.qoi_map.items():
+                 # iterate over items in the qoi map dictionary
+                 if qoi_info['qoi'] in map_info['qoi']:
+                     try:
+                         qoi_name = '{}.{}'.format(
+                                 qoi_info['structures'][0],
+                                 map_qoi)
+                     except KeyError as e:
+                         print('qoi_info:',qoi_info)
+                         raise
+                     module_name = map_info['module']
+                     class_name = map_info['class']
+                     structures = list(qoi_info['structures'])
+                     self._add_qoi_to_obj_dict(
+                             qoi_name = qoi_name,
+                             module_name = module_name,
+                             class_name = class_name,
+                             structures = structures)
 
-    @qoi_definitions.setter
-    def qoi_definitions(self, qoi_defs):
-        self._qoi_definitions = qoi_defs
+    def _add_qoi_to_obj_dict(self,qoi_name,module_name,class_name,structures):
+        """
 
-    @property
-    def qoi_targets(self):
-        return self._qoi_targets
+        Args:
+            qoi_name(str):
+            module_name(str):
+            class_name(str):
+            structures(:obj:`list` of :obj:`str):
 
-    @qoi_targets.setter
-    def qoi_targets(self,qoi_targets):
-        self._qoi_targets = qoi_targets
+        """
+        if qoi_name not in self.obj_qois.keys():
+            try:
+                module = importlib.import_module(module_name)
+                klass = getattr(module,class_name)
 
-    @property
-    def required_structure_names(self):
-        if self._req_structure_names is None:
-            self._set_required_structure_names()
- 
-    @property
-    def required_variable_names(self):
-        if self._req_variable_names is None:
-            self._set_required_variable_names()
-        return self._req_variable_names
+                self.obj_qois[qoi_name] = klass(
+                        qoi_name = qoi_name,
+                        structures = structures)
+            except:
+                print('qoi_name(',type(qoi_name),'):',qoi_name)
+                print('module_name(',type(module_name),'):',module_name)
+                print('class_name(',type(class_name),'):',class_name)
+                print('structures(',type(structures),'):',structures)
+                raise
 
-        return self._req_structure_names
+    def get_required_simulations(self):
+        self.required_simulations = {}
+        for k,v in self.obj_qois.items():
+            for sim_name,sim_info in v.get_required_simulations().items():
+                if sim_name not in self.required_simulations.keys():
+                    self.required_simulations[sim_name] = copy.deepcopy(sim_info)
+        return copy.deepcopy(self.required_simulations)
 
-    @property
-    def required_variables(self):
-        return self._req_variables
-
-    @required_variables.setter
-    def required_variables(self, req_var_dict):
-        self._req_variables = req_var_dict
- 
-    def process_qoi_definitions(self):
-        for k in self._qoi_definitions:
-            qoi = self._qoi_definitions[k]['variable']
-            s   = self._qoi_definitions[k]['structure']
-            if qoi in ['a0','a1','a2','a3','alpha','beta','gamma']:
-                self.add_qoi(k, CrystalStructureGeometry(k,qoi,s))
-            elif qoi in ['c11','c12','c44']:
-                self.add_qoi(k, ElasticTensorComponent(k,qoi,s))
-            elif qoi == 'bulk_modulus':
-                self.add_qoi(k, BulkModulus(k,s))
-            elif qoi == 'shear_modulus':
-                self.add_qoi(k, ShearModulus(k,s))
-            elif qoi == 'defect_energy':
-                self.add_qoi(k, DefectFormationEnergy(k,s))
-            elif qoi == 'surface_energy':
-                self.add_qoi(k, SurfaceEnergy(k,s))
-            elif qoi == 'stacking_fault':
-                self.add_qoi(k, StackingFaultEnergy(k,s))
-            else:
-                err_msg = "can't add qoi [{}] unknown qoi_type [{}]"
-                err_msg = err_msg.format(k,qoi)
-                raise ValueError(err_msg)
-            self._qoi_dict[k].reference_value = self._qoi_definitions[k]['target']
-
-    def add_qoi(self,qoi_name, qoi_obj):
-        self._qoi_names.append(qoi_name)
-        self._qoi_dict[qoi_name] = copy.deepcopy(qoi_obj)
-
-    def calculate_qois(self,var_dict):
-        self._req_variables = var_dict
-        self._qoi_values = {}
-        self._qoi_errors = {}
-        for k in self._qoi_dict.keys():
-            for v_name in self._qoi_dict[k].required_variable_names:
-                v_value = self._req_variables[v_name]
-                self._qoi_dict[k].set_variable(v_name,v_value)
-            self._qoi_dict[k].calculate_qoi()
-            self._qoi_values[k] = self._qoi_dict[k].predicted_value
-            self._qoi_errors[k] = self._qoi_dict[k].error
-
-    def _set_required_structure_names(self):
-        self._req_structure_names = []
-        for k,v in self._qoi_dict.items():
-            for s in v.required_structure_names:
-                if s not in self._req_structure_names:
-                    self._req_structure_names.append(s)
-        self._req_structure_names.sort()
-        return self._req_structure_names 
-
-    def _set_required_variable_names(self):
-        self._req_variable_names = []
-        for k,v in self._qoi_dict.items():
-            for var in v.required_variable_names:
-                if var not in self._req_variable_names:
-                    self._req_variable_names.append(var)
-        self._req_variable_names.sort()
-        return self._req_variable_names
 
 class Qoi:
-    def __init__(self, qoi_name, qoi_type, req_structures_names):
+    """ Abstract Quantity of Interest
+
+    Args:
+        qoi_name(str)
+        qoi_type(str)
+        structure_names(list of str)
+
+    Attributes:
+        qoi_name(str)
+        qoi_type(str)
+        ref_value(float)
+        required_simulations(dict)
+    """
+    def __init__(self, qoi_name, qoi_type, structures):
         self.qoi_name = qoi_name
         self.qoi_type = qoi_type
 
+        self.required_simulations = None
+        self.predecessor_task = {}
+        self.required_variables = {}
         self.ref_value = None
         self.predicted_value = None
         self.error = None
 
         # set required structure names and set up the dictionary
-        self.req_structure_names = list(req_structures_names)
-        self.req_structures = {}
-        for sn  in self._req_structure_names:
-            self._req_structures[sn] = None
-
-        # set required variable names and set up the dictionary
-        self.req_var_names = [qoi_name]
-        self.req_vars = {}
-        for var in self._req_var_names:
-            self.req_vars[var] = None
+        self.structures = list(structures)
 
     def calculate_qoi(self):
         raise NotImplementedError
@@ -188,101 +182,164 @@ class Qoi:
     def set_variable(self, v_name, v_value):
         self._req_vars[v_name] = v_value
 
+    def add_required_simulation(self,structure,simulation_type):
+        simulation_name = '{}.{}'.format(structure,simulation_type)
+        self.required_simulations[simulation_name] = {}
+        self.required_simulations[simulation_name]['structure'] = structure
+        self.required_simulations[simulation_name]['simulation_type'] = simulation_type
+        self.required_simulations[simulation_name]['precedent_tasks'] = None
+        return simulation_name
+    
+    def add_precedent_task(self,
+            task_name,precedent_task_name,precedent_variables):
+        """add a precedent task
+
+        Args:
+            task_name(str):
+            precedent_task_name(str):
+            precedent_variables(str):
+
+        Raises:
+            ValueError
+
+        """
+
+        if task_name not in self.required_simulations.keys():
+            s = ( 'Tried to add precedent_task_name to task_name.  task_name '
+                  'does not exist in required_simulations.\n'
+                  '\ttask_name: {}\n'
+                  '\tpredecessor_task_name: {}\n' ).format(
+                          task_name,
+                          precedent_task_name)
+            raise ValueError(s)
+       
+        if precedent_task_name not in self.required_simulations.keys():
+            s = ( 'Tried to add predecessor_task_name to task_name.  '
+                  'predecessor_task_name task_name does not exist in ' 
+                  'required_simulations.\n'
+                  '\ttask_name: {}\n'
+                  '\tpredecessor_task_name: {}\n' ).format(
+                          task_name,
+                          precedent_task_name)
+            raise ValueError(s)
+
+        if self.required_simulations[task_name]['precedent_tasks'] is None:
+            self.required_simulations[task_name]['precedent_tasks'] = {}
+
+        self.required_simulations[task_name]['precedent_tasks'][precedent_task_name] ={}
+        for v in required_variables:
+            self.required_simulations[task_name]['precedent_tasks'][precedent_task_name] = {
+                    'variable_name':v,
+                    'variable_value':None}
+
+    def determine_required_simulations(self):
+        raise NotImplementedError
+
+    def calculate_qoi(self):
+        raise NotImplementedError
+
+    def get_required_simulations(self):
+        if self.required_simulations is None:
+            self.determine_required_simulations()
+        return copy.deepcopy(self.required_simulations)
+
 class CrystalStructureGeometry(Qoi):
-    def __init__(self,qoi_name,qoi_type,structures):
+    def __init__(self,qoi_name,structures):
+        qoi_type = 'crystal_structure'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
+        self.determine_required_simulations()
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
 
-    def calculate_qoi(self):
-        self._predicted_value = self._req_vars[self._qoi_name]
-        return self._predicted_value
+        self.required_simulations = {}
+        structure = self.structures[0]
+        self.add_required_simulation(structure,'E_min_all')
 
-class ElasticTensorComponent(Qoi):
-    def __init__(self,qoi_name,qoi_type,structures):
+
+class ElasticTensor(Qoi):
+    def __init__(self,qoi_name,structures):
+        qoi_type = 'elastic_tensor'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
+        self.determine_required_simulations()
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
-
-    def calculate_qoi(self):
-        self._predicted_value = self._req_vars[self._qoi_name]
-        return self._predicted_value
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
+        self.required_simulations = {}
+        structure = self.structures[0]
+        self.add_required_simulation(structure,'elastic')
 
 class CohesiveEnergy(Qoi):
     def __init__(self,qoi_name,structures):
         qoi_type = 'E_coh'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
-
-    def calculate_qoi(self):
-        raise NotImplementedError
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
+        self.required_simulations = {}
+        structure = self.structures[0]
+        self.add_required_simulation(structure,'E_min_all')
 
 class BulkModulus(Qoi):
     def __init__(self,qoi_name, structures):
         qoi_type = 'bulk_modulus'
-        assert len(structures), 1
         Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self._req_var_names = []
-        self._req_var_names.append("{}.{}".format(structures[0],'c11'))
-        self._req_var_names.append("{}.{}".format(structures[0],'c12'))
-        self._req_var_names.append("{}.{}".format(structures[0],'c44'))
+        self.determine_required_simulations()
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
-
-    def calculate_qoi(self):
-        s_name = self._req_structure_names[0]
-        c11 = self._req_vars["{}.c11".format(s_name)]
-        c12 = self._req_vars["{}.c12".format(s_name)]
-        c44 = self._req_vars["{}.c44".format(s_name)]
-        self._predicted_value = (c11+2*c12)/3.
-        return self._predicted_value
-
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
+        self.required_simulations = {}
+        structure = self.structures[0]
+        self.add_required_simulation(structure,'elastic')
 
 class ShearModulus(Qoi):
     def __init__(self,qoi_name, structures):
         qoi_type = 'shear_modulus'
-        assert len(structures), 1
         Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self._req_var_names = []
-        self._req_var_names.append("{}.{}".format(structures[0],'c11'))
-        self._req_var_names.append("{}.{}".format(structures[0],'c12'))
-        self._req_var_names.append("{}.{}".format(structures[0],'c44'))
+        self.determine_required_simulations()
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
-
-    def calculate_qoi(self):
-        s_name = self._req_structure_names[0]
-        c11 = self._req_vars["{}.c11".format(s_name)]
-        c12 = self._req_vars["{}.c12".format(s_name)]
-        c44 = self._req_vars["{}.c44".format(s_name)]
-        self.predicted_value = (c11-c12)/2.
-        return self.predicted_value
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
+        self.required_simulations = {}
+        structure = self.structures[0]
+        self.add_required_simulation(structure,'elastic')
 
 class DefectFormationEnergy(Qoi):
     def __init__(self,qoi_name, structures):
         qoi_type = 'defect_energy'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self._req_var_names = []
-        self._req_var_names.append("{}.{}".format(structures[0],'E_min_pos'))
-        self._req_var_names.append("{}.{}".format(structures[0],'n_atoms'))
-        self._req_var_names.append("{}.{}".format(structures[1],'E_min'))
-        self._req_var_names.append("{}.{}".format(structures[1],'n_atoms'))
+        self.defect_structure = self.structures[0]
+        self.ideal_structure = self.structures[1]
+        self.determine_required_simulations()
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
+        self.required_simulations = {}
+        self.add_required_simulation(self.ideal_structure,'E_min_all')
+        self.add_required_simulation(self.defect_structure,'E_min_pos')
 
+        # simulation names
+        ideal = "{}.{}".format(self.ideal_structure, 'E_min_all')
+        defect = "{}.{}".format(self.defect_structure,'E_min_pos')
+
+        precedent_tasks = {}
+        precedent_tasks[ideal] = {}
+        precedent_tasks[ideal]['variables'] = {
+                'a1': None,
+                'a2': None,
+                'a3': None,
+                'E_coh': None,
+                'n_atoms': []}
+
+        self.required_simulations[defect]['precedent_tasks'] = \
+                copy.deepcopy(precedent_tasks)
+        
     def calculate_qoi(self):
         s_name_defect = self._req_structure_names[0]
         s_name_bulk   = self._req_structure_names[1]
@@ -298,17 +355,40 @@ class SurfaceEnergy(Qoi):
     def __init__(self, qoi_name, structures):
         qoi_type = 'surface_energy'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self._req_var_names = []
-        self._req_var_names.append("{}.{}".format(structures[0],'E_min_pos'))
-        self._req_var_names.append("{}.{}".format(structures[0],'a1_min_pos'))
-        self._req_var_names.append("{}.{}".format(structures[0],'a2_min_pos'))
-        self._req_var_names.append("{}.{}".format(structures[0],'n_atoms'))
-        self._req_var_names.append("{}.{}".format(structures[1],'E_min'))
-        self._req_var_names.append("{}.{}".format(structures[1],'n_atoms'))
+        self.surface_structure = self.structures[0]
+        self.ideal_structure = self.structures[1]
+        self.determine_required_simulations()
 
-        self._req_vars = {}
-        for var in self._req_var_names:
-            self._req_vars[var] = None
+    def determine_required_simulations(self):
+        if self.required_simulations is not None:
+            return
+
+        # adding the simulations
+        self.required_simulations = {}
+        ideal = self.add_required_simulation(self.ideal_structure,'E_min_all')
+        slab = self.add_required_simulation(self.surface_structure,'E_min_pos')
+
+        # define the required simulations
+        try:
+            self.required_simulations[slab]['precedent_tasks'] = {}
+        except KeyError as e:
+            s = str(e)
+            print(s)
+            print('\tslab:{}'.format(slab))
+            print('\trequired_simulations:')
+            for k,v in self.required_simulations.items():
+                print('\t\t',k,v)
+        precedent_tasks = {}
+        precedent_tasks[ideal] = {}
+        precedent_tasks[ideal]['variables'] = {
+                'a1': None,
+                'a2': None,
+                'a3': None,
+                'E_coh': None,
+                'n_atoms': []}
+
+        self.required_simulations[slab]['precedent_tasks'] = \
+                copy.deepcopy(precedent_tasks)
 
     def calculate_qoi(self):
         s_name_slab = self._req_structure_names[0]
@@ -324,4 +404,10 @@ class SurfaceEnergy(Qoi):
         return self._predicted_value
 
 class StackingFaultEnergy(Qoi):
-
+    def __init__(self, qoi_name, structures):
+        qoi_type = "stacking_fault_energy"
+        Qoi.__init__(self.qoi_name,qoi_type,structures)
+        self._req_var_names = []
+        self._req_var_names.append("{}.{}".format(structures[0],'E_min'))
+        self._req_var_names.append("{}.{}".format(structures[0],'n_atoms'))
+        self._req_var_names.append("{}.{}".format(structures[1],'a1'))

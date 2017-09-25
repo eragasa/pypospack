@@ -60,8 +60,11 @@ class Buckingham(Potential):
         self.potential_type = 'buckingham'
         self.param_dict = None
         self.is_charge = True
-        self.__init_param_names()
-        self.__init_param_dict()
+        self._init_param_names()
+        self._init_param_dict()
+
+    @property
+    def parameter_names(self): return list(self.param_names)
 
     def copy(self):
         clone = Buckingham(self.symbols)
@@ -150,7 +153,7 @@ class Buckingham(Potential):
 
         return str_out
 
-    def __init_param_names(self):
+    def _init_param_names(self):
         """ initializes the parameter names """
 
         pairs = []
@@ -169,7 +172,7 @@ class Buckingham(Potential):
             self.param_names.append('{}_rho'.format(p))
             self.param_names.append('{}_C'.format(p))
 
-    def __init_param_dict(self):
+    def _init_param_dict(self):
         self.param = {}
         for pn in self.param_names:
             self.param[pn] = None

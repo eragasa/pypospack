@@ -1,15 +1,47 @@
-# -*- coding: utf-8 -*-
-"""This module contains the pyposmat engine for parameterization"""
+# -s*- coding: utf-8 -*-
 __author__ = "Eugene J. Ragasa"
 __copyright__ = "Copyright (C) 2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
+"""This module contains the pyposmat engine for parameterization
+
+The fitting engine is build in multiple class for managability of code 
+and to divide the code into functionality.  In general, there are classes
+which deal with reading/writing configuration files, classes to deal with
+determination of simulations to be run from the quantities of interest.
+
+Classes for Configuration Files
+===============================
+:obj:`pypospack.potfit.StructureDatabase`
+:obj:`pypospack.potfit.QoiDatabase`
+:obj:`pypospack.potfit.PotentialInformation`
+
+Classes for QOI Management
+==========================
+The definition of quantities of interest (QOI) are contained in a separate 
+module where the definition of and calculation of specific quantities of 
+interest are inherited from the :obj:`pypospack.qoi.QuantityOfInterest` 
+prototype class.
+:obj:`pypospack.qoi.QoiManager`
+
+Classes for LAMMPS Simulation Management
+========================================
+The LAMMPS simulation manager are defined as series of defined simulations,
+which are run sequentially in the order required.  The simulations are defined
+as tasks, which are combined togetheer to create a workflow.
+:obj:`pypospack.lammps.SimulationManager`
+
+Classes for post-processing of data
+===================================
+"""
 
 import time, yaml, copy
 import os, shutil, subprocess
-
+import importlib
 import numpy as np
 import scipy.stats
+
+import pypospack.potential as potential
 
 def get_supported_qois():
     supported_qois = ['a0','a1','a2','a3',
@@ -23,14 +55,44 @@ def get_supported_qois():
                      'total_energy']
     return supported_qois
 
-class EipFittingError(Exception):
-    pass
+def get_potential_map():
+    """ get the potential map
 
-class EipFittingEngine(object):
+    Support for interatomic potentials requires a mapping from the 
+    potential formalism to the class supporting the function.  Additional
+    potentials to be supported can either be added here, or provided
+    using any module available on the PYTHONPATH.
+
+    Returns:
+        (dict):
+            (str): name of the potential formalism
+            (list): first element contains the module. second element contains
+                the class supporting the function
+
+    """
+    potential_map = {\
+            'buckingham':['pypospack.potential','Buckingham'],
+            'eam':['pypospack.potential','EmbeddedAtomModel'],
+            'tersoff':['pypospack.potential','Tersoff']}
+    return copy.deepcopy(potential_map)
+
+def get_supported_potentials():
+    supported_potentials = list(get_potential_map().keys())
+    return supported_potentials
+
+
+class PypospackFittingError(Exception):
+    """Exceptional handling class for potential fitting"""
+    def __init__(self,value):
+        self.value = value
+
+    def __self__(self):
+        return repr(self.value)
+
+class AbstractFittingEngine(object):
     """ Generic Fitting Engine
 
-    This fitting engine does not have an algorithm.
-
+    This fitting engine does not have an algorithm.  
     Args:
         fname_config_pyposmat(string): filename of the configuration file.
            default is pyposmat.config
@@ -47,7 +109,11 @@ class EipFittingEngine(object):
         fname_config_qoi(str)
         random_seed(int)
         restart(bool)
+        structure_info(pypospack.potfit.StructureDatabase)
+        potential_info(pypospack.potfit.PotentialInformation)
+        qois_info(pypospack.potfit.QoiDatabase)
     """
+
     def __init__(self,
             fname_config_structures = "pypospack.structure.yaml",
             fname_config_potential = "pypospack.potential.yaml",
@@ -57,47 +123,251 @@ class EipFittingEngine(object):
             random_seed = None,restart = False):
 
         self.supported_qoi = list(get_supported_qois())
+        self.supported_potentials = list(get_supported_potentials())
 
         self.fname_config_structures = fname_config_structures
         self.fname_config_potential = fname_config_potential
         self.fname_config_qoi = fname_config_qoi
-        
+        self.fname_out_results = fname_results
+        self.fname_out_log = fname_log
+
+        self.obj_potential = None
+        self.obj_lammps_sim_manager = None
+        self.obj_qoi_manager = None
+
         self.restart = restart
         if self.restart is True:
-            raise NotImplementedError("Restart method not implemented")
+            self.run_from_restart()
 
-        self._set_random_seed(random_seed)    
+        # initialize output file
+        self._initialize_log_file(fname_log)
+        self._initialize_results_file(fname_results)
 
-        # determine output
-        self._configure_results_file(fname_results)
-        self._configure_log_file(fname_log)
+        # read in the configuration files
+        self._process_input_file_structures(self.fname_config_structures)
+        self._process_input_file_potential(self.fname_config_potential)
+        self._process_input_file_qoi(self.fname_config_qoi)
 
-        # read configuration files
-        self.structures = StructureDatabase()
-        self.structures.read(self.fname_config_structures)
+        # check to see if structures required for qois exist
+        self._check_qoi_structures_in_structure_db()
 
-        # read in the potential yaml file
-        self.potential = PotentialInformation()
-        self.potential.read(self.fname_config_potential)
+        # check external software
+        self._get_lammps_binary()
+
+        # determine random seed
+        self._set_random_seed(random_seed)
+
+        # configure obj_potential
+        self._configure_potential()
+        self._check_potential()
+
+        self._config_qoi_manager()
+
+    @property
+    def qoi_names(self):
+        """(:obj:`list` of :obj:`str`): a list of the qoi names"""
+        return list(self.qoi_info.qois.keys())
+
+    @property
+    def parameter_names(self):
+        """(:obj:`list` of :obj:`str`): a list of the parameter names"""
+        return list(self.potential_info.parameter_names)
+
+    @property
+    def free_parameters(self):
+        """(:obj:`list` of :obj:`str`): a list of free parameters"""
+        return list(self.potential_info.free_parameters)
+
+    def run_from_restart():
+        raise NotImplementedError("Restart method not implemented")
+
+    def _set_random_seed(self,seed = None):
+        """Set the random seed in numpy.
         
-        # read in the qoi yaml file
-        self.qois = QoiDatabase()
-        self.qois.read(self.fname_config_qoi)
+        Since the seed might be randomly generated, we get the random_seed 
+        value not from the parameter passed, but from numpy itself.
 
-    def _set_random_seed(self,seed):
-        # set the random seed
+        Args:
+            seed(int): the value of the seed.  The value must be an integer. 
+               If the seed is set to None, the seed is generated automatically.
+
+        Returns:
+            int: returns the value of the seed.
+        """
+        if seed is None:
+            self._log("auto_generate_seed:True")
+       
         np.random.seed(seed)
-        # get the random seed from numpy
         self.random_seed = np.random.get_state()[1][0]
 
-    def _configure_results_file(self,fname):
-        self._f_results = open(fname,'w')
+        self._log("random_seed:{}".format(self.random_seed))
 
-    def _configure_log_file(self,fname):
-        self._f_log = open(fname,'w')
+        return self.random_seed
+    
+    def _get_lammps_binary(self):
+        try:
+            self.lammps_bin = os.environ['LAMMPS_BIN']
+        except KeyError as e:
+            err_msg = "environment variable LAMMPS_BIN not set"
+            self._log(err_msg)
+            raise PypospackFittingError(err_msg)
+        except:
+            raise
+
+        return self.lammps_bin
+
+    def _initialize_results_file(self,fname_results = None):
+        if fname_results is not None:
+            self.fname_out_results = fname_results
+        self._log("file_results -> {}".format(self.fname_out_results))
+        self._f_results = open(self.fname_out_results,'w')
+
+    def _initialize_log_file(self,fname_log = None):
+        if fname_log is not None:
+            self.fname_out_log = fname_log
+        self._f_log = open(self.fname_out_log,'w')
+        self._log("POTENTIAL OPTIMIZATION SOFTWARE")
+        self._log("file_log -> {}".format(fname_log))
+
+    def _log(self,msg):
+        print(msg)
+        self._f_log.write("{}\n".format(msg))
+
+    def _process_input_file_structures(
+            self,
+            fname_config_structures = None):
+        """ process structure file
+
+        The structure database file is a yaml formatted file.  The creation of 
+        this file can be done manually or using the class object
+        :obj:`pypospack.potfit.StructureDatabase`
+
+        Args:
+            fname_config_structures(str): the filename of the structure 
+                configuration file.  If no argument is passed, the class
+                will use the attribute fname_config_structures.
+
+        Raises:
+            PypospackFittingError
+        """
+
+        if fname_config_structures is not None:
+            self.fname_config_structures = fname_config_structures
+        self._log("file_config_structure <- {}".format(self.fname_config_structures))
+        self.structure_info = StructureDatabase()
+        self.structure_info.read(self.fname_config_structures)
+        structure_db_passed = self.structure_info.check()
+        if structure_db_passed is not True:
+            self._log(structure_db_passed)
+            raise PypospackFittingError(structure_db_passed)
+
+    def _process_input_file_potential(self,fname):
+        """Process the potential definition
+        
+        The definition of the interatomic potential is defined a by a 
+        formalism.  This class provides the information required to marshal
+        and unmarshal information from a yaml file.  The creation of this
+        file can be done manually or using the class object
+        :obj:`pypospack.potfit.PotentialInformation`
+
+        Args:
+            fname_config_structures(str): the filename of the structure 
+                configuration file.  If no argument is passed, the class
+                will use the attribute fname_config_structures.
+
+        """
+        if fname is not None:
+            self.fname_config_potential = fname
+        self._log("file_config_potential <- {}".format(self.fname_config_potential))
+        self.potential_info = PotentialInformation()
+        self.potential_info.read(self.fname_config_potential)
+        self.potential_info.check() # sanity check
+
+    def _process_input_file_qoi(self,fname):
+        """Process the input file for quantities of interest (QOI)
+        
+        Quantities of interest are calculated from a variety of different
+        simaultions.  This class provides the information required to marshall
+        and unmaarshal information from a yaml file.  The creation of this
+        file can be done manually or using the class object
+        :obj:`pypospack.potfit.QoiDatabase`
+
+        Args:
+            fname_config_structures(str): the filename of the structure 
+                configuration file.  If no argument is passed, the class
+                will use the attribute fname_config_structures.
+
+        """
+        if fname is not None:
+            self.fname_config_qoi = fname
+        self._log("file_config_qoi <- {}".format(self.fname_config_qoi))
+        self.qoi_info = QoiDatabase()
+        self.qoi_info.read(self.fname_config_qoi)
+        self.qoi_info.check() # sanity check
+
+    def _check_qoi_structures_in_structure_db(self):
+        """check qoi structures in the structure database
+
+        The Quantities of Interest are dependent upon the calculation of 
+        various structures.  These structure protypes need to exist in the
+        fitting database.
+
+        Returns:
+            - **has_required_structures**(*bool*): True if the structure
+              has all the structures in the fitting database.  False, otherwise.
+            - **err_msg**(*str*): error message
+        
+        Raises:
+            ValueError
+        """
+
+        has_required_structures = True # initialize
+        
+        required_structures = self.qoi_info.get_required_structures()
+        missing_structures = [] # initialize
+        for s in required_structures:
+            if not self.structure_info.contains(structure = s):
+                has_required_structures = False
+                missing_structures.append(s)
+
+        if not has_required_structures:
+            # log and raise if there was a problem
+            err_msg = "For the calcualtion of QOI's the following structures"
+            err_msg += "are not contained in the structure database:\n"
+            err_msg += "\n".join(missing_structures)
+            self._log(err_msg)
+            raise PypospackFittingError(err_msg)
+        else:
+            # there were no problem, returning true
+            return True
 
     def _configure_potential(self):
-        self._log('configure the potential')
+        potential_type = self.potential_info.potential_type
+        symbols = self.potential_info.symbols
+
+        potential_map = get_potential_map()
+        module_name = potential_map[potential_type][0]
+        class_name  = potential_map[potential_type][1]
+
+        try:
+            module = importlib.import_module(module_name)
+            klass = getattr(module,class_name)
+            self.obj_potential = klass(symbols)
+        except:
+            raise
+
+    def _check_potential(self):
+        if not set(self.obj_potential.parameter_names) == set(self.parameter_names):
+            err_msg = "the potential parameter file does not have the parameter names as the formal definition\n"
+            err_fmt = "{:^10}{:^10}\n"
+            err_msg += err_fmt.format('config','definition')
+            all_parameters = list(set(self.obj_potential.parameter_names + self.parameter_names))
+            for p in all_parameters:
+                cond1 = p in self.parameter_names
+                cond2 = p in self.self.obj_potential.parameter_names
+                err_msg += err_fmt.format(cond1,cond2)
+            self._log(err_msg)
+            raise PypospackFittingError(err_msg)
 
 class StructureDatabase(object):
     """ structure database 
@@ -116,6 +386,19 @@ class StructureDatabase(object):
 
     def add_structure(self,name,filename,filetype):
         self.structures[name] = {'filename':filename,'filetype':filetype}
+
+    def contains(self,structure):
+        """ check to see that the structure in the structure database
+
+        Args:
+            structure(str):
+
+        Returns:
+            bool: True if structure is in structure database. False if the 
+                structure is not in the structure database
+        """
+
+        return structure in self.structures.keys()
 
     def read(self,fname = None):
         """ read qoi configuration from yaml file
@@ -152,17 +435,78 @@ class StructureDatabase(object):
         with open(fname,'w') as f:
             yaml.dump(self.structure_db, f, default_flow_style=False)
 
+    def check(self):
+        """sanity checks for the fitting database
+        
+        This method checks the fitting database for the following errors: (1)
+        the structure database exists, (2) files for the structure database
+        exist
+
+        Returns:
+            str: returns a string if there is a problem
+        Raises:
+            ValueError: if there is a problem with the configuration
+        """
+
+        src_dir = self.directory
+       
+        # check to see if the source directory exists
+        if not os.path.exists(src_dir):
+            err_msg = "cannot find simulation directory\n"
+            err_msg += "\tcurrent_working_directory:{}\n".format(os.getcwd())
+            err_msg += "\tstructure_db_directory:{}\n".format(src_dir)
+            return err_msg
+        
+        # check to see if the source directory is a directory
+        if not os.path.isdir(src_dir):
+            err_msg = "path exists, is not a directory\n"
+            err_msg += "\tcurrent_working_directory:{}".format(os.getcwd())
+            err_msg += "\tstructure_db_directory:{}\n".format(src_dir)
+            return err_msg
+
+        # check to see if files exist in the source directory
+        files_exist = True
+        msg = "structure files are missing:\n"
+        for name, v in self.structures.items():
+            filename = os.path.join(src_dir,v['filename'])
+            if not os.path.isfile(filename):
+                files_exist = False
+                msg += "\t{}:{}\n".format(name,filename)
+
+        if not files_exist:
+            return msg
+        else:
+            return True
+
 class QoiDatabase(object):
     """ Qoi Database 
-    
+   
+        Contains methods for managing quantities of interests for a variety 
+        of tasks such as marshalling/unmarshalling objects to and from a
+        yaml file.  Also includes sanity tests.
+
+        Args:
+            filename(str): If this variable is set, this class will attempt to
+                unmarhsall the contents of the file into the class.  If this 
+                variable is set to None, then the class wil be initialized.
+                Default is None.
         Attributes:
-            filename(str): file to read/write to yaml file
+            filename(str): file to read/write to yaml file.  By default this
+                attribute is set to 'pypospack.qoi.yaml'.
             qois(dict): key is qoi name, value contains a variety of values
     """
         
-    def __init__(self):
+    def __init__(self, filename = None):
+        # initialize attributes
         self.filename = 'pypospack.qoi.yaml'
         self.qois = {}
+
+        if filename is not None:
+            self.read(filename)
+
+    @property
+    def qoi_names(self):
+        return list(self.qois.keys())
 
     def add_qoi(self,name,qoi,structures,target):
         """ add a qoi
@@ -223,6 +567,39 @@ class QoiDatabase(object):
         with open(self.filename,'w') as f:
             yaml.dump(self.qoi_db,f, default_flow_style=False)
 
+    def check(self):
+        """ perform sanity check on potential configuration
+        
+        does the following checks:
+        1.    check to see if the potential type is supported.
+
+        Raises:
+            ValueError: if the potential type is unsupported
+        # initialize variable, if a check fails the variable will be set to 
+        # false
+        """
+
+        passed_all_checks = True
+
+        for k,v in self.qois.items():
+            qoi_type = v['qoi']
+            if qoi_type not in get_supported_qois():
+                raise ValueError(\
+                    "unsupported qoi: {}:{}".format(
+                        k,qoi_type))
+
+    def get_required_structures(self):
+        """ get required structures """
+
+        required_structures = []
+        for qoi_name, qoi_info in self.qois.items():
+            structures = qoi_info['structures']
+            for s in structures:
+                if s not in required_structures:
+                    required_structures.append(s)
+
+        return required_structures
+
 class PotentialInformation(object):
     """ Read/Write Empirical Interatomic Potential Information
 
@@ -233,6 +610,7 @@ class PotentialInformation(object):
         filename(str): filename of the yaml file to read/write configuration
             file.  Default is pypospack.potential.yaml'
         elements(list): list of string of chemical symbols
+        parameter_names(list): list of parameter names
         potential_type(str): type of potential
         param_info(dict): param info
         eam_pair_potential(str): name of the functional form for the eam
@@ -252,6 +630,20 @@ class PotentialInformation(object):
         self.eam_pair_potential = None
         self.eam_embedding_function = None
         self.eam_density_function = None
+
+    @property
+    def symbols(self):
+        return list(self.elements)
+
+    @property
+    def free_parameters(self):
+        free_params = []
+        for p in self.parameter_names:
+            if 'equals' not in self.param_info[p]:
+                free_params.append(p)
+
+        return list(free_params)
+
     def read(self,fname=None):
         """ read potential information from yaml file 
 
@@ -307,3 +699,24 @@ class PotentialInformation(object):
         # dump dict to yaml
         with open(fname,'w') as f:
             yaml.dump(pot_info,f,default_flow_style=False)
+
+    def check(self):
+        """ performs sanity checks to potential configuration
+
+        does the following checks:
+        1.    check to see if the potential type is supported.
+
+        Raises:
+            ValueError: if the potential type is unsupported
+        """
+        # initialize, set to false if a test fails
+        passed_all_checks = True 
+
+        # check1: check to see if the potential type is supporte
+        if self.potential_type not in  get_supported_potentials():
+            passed_all_checks = False
+            raise ValueError(\
+                "unsupported potential type: {}".format(self.potential_type))
+
+            return passed_all_checks
+
