@@ -5,6 +5,7 @@ import numpy as np
 import pypospack.io.vasp as vasp
 import pypospack.crystal as crystal
 import pypospack.potential as potential
+import pypospack.potfit as potfit
 
 def make_lammps_structure_file(structure, fname_out, sym_order):
     structure_file = StructureFile()
@@ -26,38 +27,153 @@ def get_lammps_map():
 
 class SimulationManager():
     """
+    Args:
+        qoi_info(:obj:`str` or :obj:`pypospack.potfit.QoiDatabase`):
+            contains the configuration information either by passing the
+            class or the filename of the QOI configuration file.
+        structure_info(:obj:`str` or :obj:`pypospack.potfit.StructureDatabase`):
+            contains the configuration information by either class or filename
+            for the structure database.
+        potential_info(:obj:`str` or :obj:`pypospack.potfit.PotentialInformaiton`):
+            contains the configuration information by either class or filename
+            for the potential formalism.
 
     Attributes:
         structure_db (dict)
         variable_names (:obj:list of :obj:str): a list of variable names
         potential (pypospack.potential): an instance of the potential
     """
-    def __init__(self):
-        self.lmps_sim_obj = {}
+    def __init__(self, 
+            qoi_info = None, 
+            structure_info = None, 
+            potential_info = None):
         self.structure_db = {}
+        self.obj_lammps_tasks = {}
         self.dir_structure_db = None
         self.dir_lammps_sim_db = None
         self.variable_names = None
         self.variable_dict = None
         self.potential = None
 
-    def add_required_simulations(self,required_simulations):
-        assert isinstance(required_simulations,dict)
-        self.obj_lammps_tasks = {}
-        for k,v in required_simulations.items():
-            sim_name = k
-            
-            self.add_lammps_simulation(k,v)
+        if isinstance(qoi_info, potfit.QoiDatabase):
+            self.qoi_info = qoi_info
+        elif isinstance(qoi_info, str):
+            self.qoi_info = potfit.QoiDatabase()
+            self.qoi_info.read(qoi_info)
+        else:
+            self.qoi_info = None
 
+        if isinstance(structure_info, potfit.StructureDatabase):
+            self.structure_info = structure_info
+        elif isinstance(structure_info, str):
+            self.structure_info = potfit.StructureDatabase()
+            self.structure_info.read(structure_info)
+        else:
+            self.structure_info = None
+
+        if isinstance(potential_info, potfit.PotentialInformation):
+            self.potential_info = potential_info
+        elif isinstance(potential_info, str):
+            self.potential_info = potfit.PotentialInformation()
+            self.potential_info.read(potential_info)
+        else:
+            self.potential_info = None
+
+    def add_required_simulations(self,required_simulations):
+        """
+
+        Args:
+            required_simulation(dict): dictionary object from
+                pypospack.QoiManager.get_required_simulations()
+
+        """
+        assert isinstance(required_simulations,dict)
+
+       # add all required simulations
+        for k,v in required_simulations.items():
+            if k not in self.obj_lammps_tasks.keys():
+                self.add_lammps_simulation(k,v)
+
+                # unpack the dict
+                simulation_structure = v['structure']
+                precedent_tasks = v['precedent_tasks']
+                self.obj_lammps_tasks[k]['structure'] = simulation_structure
+                self.obj_lammps_tasks[k]['precedent_tasks'] = precedent_tasks
+
+        # add precedent simulations to be done if not yet required
+        for k,v in self.obj_lammps_tasks.items():
+            if v['precedent_tasks'] is not None:
+                for pt_k, pt_v in v['precedent_tasks'].items():
+                    if pt_k not in self.obj_lammps_tasks.keys():
+                        err_msg = (
+                            "Simulation {} requires the following simulation "
+                            "{} to be done first.  {} cannot be found").format(
+                                    k,pt_k)
+                        raise ValueError(err_msg)
+
+       
     def get_task_status(self):
         for k,v in self.obj_lammps_tasks.items():
             print(k,v.status)
 
     def evaluate(self):
         pass
-    def evaluate_parameters(self,param_dict):
-        pass 
 
+    def evaluate_parameters(self,param_dict):
+        assert isinstance(param_dict,dict)
+
+        while not self.all_simulations_complete():
+            print(80*'*')
+            for task_name,task_dict in self.obj_lammps_tasks.items():
+                task = task_dict['obj']
+                structure = task_dict['structure']
+
+                if task.status == 'INIT':
+                    # the configuration step configures the potential,
+                    # and the structure
+                    structure = self.structure_info.get_structure_dict(structure)
+                    potential = self.potential_info.get_potential_dict()
+                    task.config(structure = structure, potential = potential)
+                elif task.status == 'CONFIG':
+                    # when the status is config -> move to ready
+                    all_precedents_done = True
+                    
+                    if isinstance(task_dict['precedent_tasks'],dict):
+                        for pre_name in task_dict['precedent_tasks'].keys():
+                            pre_task = self.obj_lammps_tasks[pre_name]['obj']
+                            var_dict = task_dict['precedent_tasks'][pre_name]['variables']
+                            if pre_task.status != 'DONE':
+                                all_precedents_done = False
+                            else:
+                                var_dict = task_dict['precedent_tasks']['variables']
+                                for var_name in var_dict.keys:
+                                    var_value = pre_dict.get_variable_value(var_name)
+                                    var_dict[var_name] = var_value
+
+                    if all_precedents_done:
+                        task.ready(task_dict['precedent_tasks'])
+
+
+                elif task.status == 'READY':
+                    task.run()
+                elif task.status == 'RUN':
+                    task.postprocess()
+                elif task.status == 'POST':
+                    task.done()
+                elif task.status == 'DONE':
+                    pass
+                else:
+                    raise ValueError('unknown status: {}'.format(task.status))
+        print('all_simulations_complete')
+
+    def all_simulations_complete(self):
+        all_sims_complete = True
+        for s_name,s_dict in self.obj_lammps_tasks.items():
+            print(s_name,':',s_dict['obj'].status)
+            if s_dict['obj'].status != 'DONE':
+                all_sims_complete = False
+        print('all_sims_complete:',all_sims_complete)
+        return all_sims_complete
     def add_lammps_simulation(self,sim_name,sim_info):
         lammps_map = get_lammps_map()
         task_name = sim_name
@@ -72,7 +188,8 @@ class SimulationManager():
         except:
             raise
 
-        self.obj_lammps_tasks[sim_name] = klass(task_name,task_directory)
+        self.obj_lammps_tasks[sim_name] = {
+                'obj':klass(task_name,task_directory)}
 
     def evaluate_parameter_set(self,param_dict):
         assert type(param_dict),dict

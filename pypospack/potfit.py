@@ -478,6 +478,23 @@ class StructureDatabase(object):
         else:
             return True
 
+    def get_structure_dict(self,name):
+        """
+
+        Args:
+            name(str): name of the structure
+        """
+
+        structure_db_dir = self.directory
+        structure_filename = self.structures[name]['filename']
+        structure_dict = {}
+        structure_dict['name'] = name
+        structure_dict['filename'] = os.path.join(
+                structure_db_dir,
+                structure_filename)
+
+        return copy.deepcopy(structure_dict)
+
 class QoiDatabase(object):
     """ Qoi Database 
    
@@ -720,3 +737,9 @@ class PotentialInformation(object):
 
             return passed_all_checks
 
+    def get_potential_dict(self):
+        potential_dict = {}
+        potential_dict['potential_type'] = self.potential_type
+        potential_dict['elements'] = self.elements
+        potential_dict['params'] = None
+        return copy.deepcopy(potential_dict)
