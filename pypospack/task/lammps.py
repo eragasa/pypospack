@@ -77,10 +77,6 @@ class LammpsSimulation(Task):
     def restart(self):
         raise NotImplementedError
 
-    def send_config_info(self,config_dict):
-        for k,v in config_dict.items():
-            self.config_dict[k](v)
-
     def config(self, structure=None,potential=None):
         """ configure this class
 
@@ -99,7 +95,7 @@ class LammpsSimulation(Task):
         self.symbols = self.structure.symbols
 
         pot_type = self.potential_dict['potential_type']
-        pot_syms = self.potential_dict['symbols']
+        pot_syms = self.potential_dict['elements']
         pot_param = self.potential_dict['params']
         self.configure_potential(\
                 pot_type = pot_type,
@@ -107,20 +103,30 @@ class LammpsSimulation(Task):
         self.param_dict = copy.deepcopy(pot_param)
         self.status = 'CONFIG'
 
-    def ready(self):
+    def ready(self,task_dict):
+        """
+
+        To get to the READY status, precedent simulations should be complete
+        and changes to the simulations need to be made.
+
+        Args:
+            task_dict(str):
+        """
+        self.task_dict = task_dict
         self.status = 'READY'
 
-    def run(self, is_mpi=False):
+    def run(self, param_dict,is_mpi=False):
         self.status = 'RUN'
         self.write_lammps_input_file()
-        self.write_potential_files(param_dict=self.param_dict)
+        self.write_potential_files(param_dict=param_dict)
         self.write_structure_file()
 
         # choose lammps binary and get it from environment variable
+        lmps_bin = None
         if is_mpi:
-            lmps_bin = os.environ.get('LAMMPS_MPI_BIN')
+            lmps_bin = os.environ['LAMMPS_MPI_BIN']
         elif not is_mpi:
-            lmps_bin = os.environ.get('LAMMPS_SERIAL_BIN')
+            lmps_bin = os.environ['LAMMPS_SERIAL_BIN']
 
         cmd_str = '{} -i lammps.in > lammps.out'.format(lmps_bin)
 
@@ -128,11 +134,52 @@ class LammpsSimulation(Task):
         orig_dir = os.getcwd()
         os.chdir(self.task_directory)
         try:
+            print('cmd_str:{}'.format(cmd_str))
             subprocess.call(cmd_str,shell=True)
         finally:
             os.chdir(orig_dir)
 
         self.status = 'POST'
+
+    def post(self):
+        lammps_result_names = ['tot_energy','num_atoms',
+                        'xx','yy','zz','xy','xz','yz',
+                        'tot_press','pxx','pyy','pzz','pxy','pxz','pyz']
+
+        self.get_variables_from_lammps_output(
+                variables = lammps_result_names)
+        
+        try:
+            # calculate cohesive energy
+            tot_energy = self.results['tot_energy']
+            n_atoms = self.results['num_atoms']
+            self.results['ecoh'] = total_energy/n_atoms
+        except KeyError as e:
+            print(e)
+
+    def get_variables_from_lammps_output(self,variables):
+        filename = os.path.join(self.task_directory,'lammps.out')
+        with open(filename,'r') as f:
+            lines = f.readlines()
+
+        self.results = {}
+        for i,line in enumerate(lines):
+            for name in variables:
+                if '{} = '.format(name) in line:
+                    try:
+                        self.results[name] = \
+                                float(line.split('=')[1].strip())
+                    except ValueError as e:
+                        if line.split('=')[1].strip().endswith('GPa'):
+                            self.results[name] = \
+                                float(line.split('=')[1].strip().split(' ')[0])
+                        else:
+                            raise
+                    except:
+                        print('name:{}'.format(name))
+                        print('line:{}'.format(line.strip()))
+                        raise
+
 
     def write_lammps_input_file(self,filename='lammps.in'):
         """ writes LAMMPS input file 
@@ -198,31 +245,6 @@ class LammpsSimulation(Task):
                 symbol_list=symbol_list,
                 atom_style=atom_style)
 
-    def postprocess(self):
-        filename = os.path.join(self.task_directory,'lammps.out')
-        with open(filename,'r') as f:
-            lines = f.readlines()
-
-        lammps_result_names = ['tot_energy','num_atoms',
-                        'xx','yy','zz','xy','xz','yz',
-                        'tot_press','pxx','pyy','pzz','pxy','pxz','pyz']
-
-        self.results = {}
-        for i,line in enumerate(lines):
-            for name in lammps_result_names:
-                if '{} = '.format(name) in line:
-                    try:
-                        self.results[name] = \
-                                float(line.split('=')[1].strip())
-                    except:
-                        print('name:{}'.format(name))
-                        print('line:{}'.format(line.strip()))
-                        raise
-
-        try:
-            self.results['ecoh'] = self.results['tot_energy'] / self.results['num_atoms']
-        except KeyError as e:
-            print(e)
     def req_config(self):
         """ this should method should be overridden, not inherited """
         return list(self.config_dict.keys())
@@ -479,6 +501,29 @@ class LammpsElasticCalculation(LammpsSimulation):
     """
     def __init__(self,task_name,task_directory):
         LammpsSimulation.__init__(self,task_name,task_directory)
+
+    def config(self,structure,potential):
+        """
+
+        Args:
+            structure(str or dict): If a str is passed, then the variables is 
+                treated as a filename used to configure pypospack.potfit.structure.
+
+        """
+        LammpsSimulation.config(self,structure,potential)
+
+    def ready(self,precedent_variable_dict):
+        LammpsSimulation.ready(self,precedent_variable_dict)
+
+    def run(self,parameter_dict):
+        LammpsSimulation.run(self, parameter_dict)
+
+    def post(self):
+        lammps_results_names = ['c11','c22','c33','c12','c13','c23',
+                'c44','c55','c66','c24','c25','c26','c34','c35','c36',
+                'c45','c46','c56']
+        self.get_variables_from_lammps_output(
+                variables = lammps_results_names)
 
     def write_potential_files(self,param_dict=None,filename='potential.mod'):
         LammpsSimulation.write_potential_files(\
