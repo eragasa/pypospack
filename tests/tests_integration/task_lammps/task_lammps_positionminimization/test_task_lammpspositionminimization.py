@@ -3,6 +3,22 @@ import pypospack.task.lammps as tsk_lammps
 import pypospack.potential
 import pytest
 
+def get_lewis_catlow_param_dict():
+    param_dict = {}
+    param_dict['chrg_Mg'] = +2.0
+    param_dict['chrg_O']  = -2.0
+    param_dict['MgMg_A']   = 0.0 
+    param_dict['MgMg_rho'] = 0.5
+    param_dict['MgMg_C']   = 0.0
+    param_dict['MgO_A']    = 821.6
+    param_dict['MgO_rho']  = 0.3242
+    param_dict['MgO_C']    = 0.0
+    param_dict['OO_A']     = 2274.00 
+    param_dict['OO_rho']   = 0.1490
+    param_dict['OO_C']     = 27.88
+
+    return copy.deepcopy(param_dict)
+
 class TestTaskLammpsPositionMinimization(object):
 
     @classmethod 
@@ -120,7 +136,7 @@ if __name__ == "__main__":
     config_dict['filename'] = structure_filename
     config_dict['potential'] = {}
     config_dict['potential']['potential_type'] = 'buckingham'
-    config_dict['potential']['symbols'] = ['Mg','O']
+    config_dict['potential']['elements'] = ['Mg','O']
     config_dict['potential']['params'] = param_dict
 
 
@@ -129,20 +145,38 @@ if __name__ == "__main__":
             task_directory = task_directory)
     # if the task is initialized, then we are ready for configuration
 
+    print(80*'-')
+    print('task.status: null - > INIT')
+    task = tsk_lammps.LammpsPositionMinimization(
+            task_name = task_name,
+            task_directory = task_directory)
+
+    print(80*'-')
+    print('task.status: INIT -> CONFIG')
     if task.status == 'INIT':
-        task.config(\
+        task.config(
                 structure=config_dict['structure'],
                 potential=config_dict['potential'])
 
-        
+    print(80*'-')
+    print('task.status: CONFIG -> READY')
     if task.status == 'CONFIG':
-        pass
+        task.ready(pre_var_dict)
 
+    print(80*'-')
+    print('task.status: READY -> RUN')
     if task.status == 'READY':
-        task.run()
+        param_dict = get_lewis_catlow_param_dict()
+        task.run(param_dict)
 
+    print(80*'-')
+    print('task.status: READY -> POST')
     if task.status == 'RUN':
         pass
 
+    print(80*'-')
+    print('task.status: POST -> DONE')
     if task.status == 'POST':
-        task.postprocess()
+        task.post()
+        print('task.results')
+        print(task.results)

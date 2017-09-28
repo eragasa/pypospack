@@ -174,6 +174,7 @@ class AbstractFittingEngine(object):
 
     def evaluate_parameter_set(self,param_dict):
         self.simulation_manager.evaluate_parameters(param_dict)
+        self.qoi_manager.calculate_qois()
 
     def _set_random_seed(self,seed = None):
         """Set the random seed in numpy.

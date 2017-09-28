@@ -57,6 +57,7 @@ class QoiManager(object):
             QoiDatabase is passed, the reference is set to the qoi_info attribute.
             Default value is None, where the attribute is left as None.
     Attributes:
+        qoi_info(pypospack.qoi.QoiDatabase)
         qoi_names (list): list of qoi_names
         qoi_targets (dict): key is the qoi_name, value is the reference value
         qoi_errors (dict): key is the qoi_name, value is the error
@@ -66,6 +67,7 @@ class QoiManager(object):
         self.qoi_map = get_qoi_map()
         self.supported_qois = get_supported_qois()
 
+        self.qoi_info = None
         self.qoi_names = []
         self.obj_qois = {}
 
@@ -147,6 +149,28 @@ class QoiManager(object):
                     self.required_simulations[sim_name] = copy.deepcopy(sim_info)
         return copy.deepcopy(self.required_simulations)
 
+    def calculate_qois(self,results):
+        """
+
+        Args:
+            results(dict)
+        """
+        # calculate the material properties from the Qoi objects
+        for qoi, obj_qoi in self.obj_qois.items():
+            for sim_name, sim_info in obj_qoi.get_required_variables().items():
+                print(qoi,sim_name,sim_info)
+        for qoi_name in self.qoi_names:
+            print(qoi_name)
+            print(self.qoi_info.qois[qoi_name])
+        print(80*'-')
+        print('required simulations')
+        for k,v, in self.required_simulations.items():
+            print(k,v)
+        for k,v in self.qoi_info.qois.items():
+            print(k,v)
+        for k,v in self.obj_qois.items():
+
+            print(k,v)
 class QoiDatabase(object):
     """ Qoi Database 
    
@@ -388,6 +412,13 @@ class CrystalStructureGeometry(Qoi):
         qoi_type = 'crystal_structure'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
         self.determine_required_simulations()
+        self.variables = {}
+        self.variables['xx'] = None
+        self.variables['yy'] = None
+        self.variables['zz'] = None
+        self.variables['xy'] = None
+        self.variables['xz'] = None
+        self.variables['yz'] = None
 
     def determine_required_simulations(self):
         if self.required_simulations is not None:
@@ -397,13 +428,18 @@ class CrystalStructureGeometry(Qoi):
         structure = self.structures[0]
         self.add_required_simulation(structure,'E_min_all')
 
+    def get_required_variables(self):
+        return list(self.variables.keys())
 
 class ElasticTensor(Qoi):
     def __init__(self,qoi_name,structures):
         qoi_type = 'elastic_tensor'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
         self.determine_required_simulations()
-
+        
+        required_variables = ['c11','sc12','c13','c22','c23','c33',
+                              'c44']
+        for v in required_variables:
     def determine_required_simulations(self):
         if self.required_simulations is not None:
             return
