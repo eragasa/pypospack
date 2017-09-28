@@ -5,7 +5,7 @@ import numpy as np
 import pypospack.io.vasp as vasp
 import pypospack.crystal as crystal
 import pypospack.potential as potential
-import pypospack.potfit as potfit
+import pypospack.qoi as qoi
 
 def make_lammps_structure_file(structure, fname_out, sym_order):
     structure_file = StructureFile()
@@ -55,15 +55,16 @@ class SimulationManager():
         self.variable_dict = None
         self.potential = None
 
-        if isinstance(qoi_info, potfit.QoiDatabase):
+        
+        if isinstance(qoi_info, qoi.QoiDatabase):
             self.qoi_info = qoi_info
         elif isinstance(qoi_info, str):
-            self.qoi_info = potfit.QoiDatabase()
+            self.qoi_info = qoi.QoiDatabase()
             self.qoi_info.read(qoi_info)
         else:
             self.qoi_info = None
 
-        if isinstance(structure_info, potfit.StructureDatabase):
+        if isinstance(structure_info, crystal.StructureDatabase):
             self.structure_info = structure_info
         elif isinstance(structure_info, str):
             self.structure_info = potfit.StructureDatabase()
@@ -71,7 +72,7 @@ class SimulationManager():
         else:
             self.structure_info = None
 
-        if isinstance(potential_info, potfit.PotentialInformation):
+        if isinstance(potential_info, potential.PotentialInformation):
             self.potential_info = potential_info
         elif isinstance(potential_info, str):
             self.potential_info = potfit.PotentialInformation()
@@ -123,10 +124,21 @@ class SimulationManager():
         assert isinstance(param_dict,dict)
 
         while not self.all_simulations_complete():
-            print(80*'*')
+            #print(80*'*')
             for task_name,task_dict in self.obj_lammps_tasks.items():
                 task = task_dict['obj']
                 structure = task_dict['structure']
+
+                pre_task_names = None
+                if task_dict['precedent_tasks'] is not None:
+                    try:
+                        pre_task_names = list(task_dict['precedent_tasks'].keys())
+                    except AttributeError as e:
+                        s = str(e)
+                        print("task_name:{}".format(task_name))
+                        print("precedent_task:{}".format(task_dict['precedent_tasks']))
+                        print("error\"{}\"".format(s))
+                        raise
 
                 if task.status == 'INIT':
                     # the configuration step configures the potential,
@@ -138,41 +150,43 @@ class SimulationManager():
                     # when the status is config -> move to ready
                     all_precedents_done = True
                     
-                    if isinstance(task_dict['precedent_tasks'],dict):
-                        for pre_name in task_dict['precedent_tasks'].keys():
-                            pre_task = self.obj_lammps_tasks[pre_name]['obj']
-                            var_dict = task_dict['precedent_tasks'][pre_name]['variables']
+                    if pre_task_names is not None:
+                        for pre_task_name in pre_task_names:
+                            pre_task = self.obj_lammps_tasks[pre_task_name]['obj']
                             if pre_task.status != 'DONE':
                                 all_precedents_done = False
-                            else:
-                                var_dict = task_dict['precedent_tasks']['variables']
-                                for var_name in var_dict.keys:
-                                    var_value = pre_dict.get_variable_value(var_name)
-                                    var_dict[var_name] = var_value
+                    
+                    var_dict = {}
+                    if all_precedents_done and pre_task_names is not None:
+                        for pre_task_name in pre_task_names:
+                            pre_task = self.obj_lammps_tasks[pre_task_name]['obj']
+                            results = pre_task.results
+                            for var_name in results.keys():
+                                key_name = "{}.{}".format(
+                                        pre_task_name,var_name)
+                                var_dict[key_name] = results[var_name]
 
                     if all_precedents_done:
-                        task.ready(task_dict['precedent_tasks'])
-
+                        task.ready(var_dict)
 
                 elif task.status == 'READY':
-                    task.run()
+                    task.run(param_dict)
                 elif task.status == 'RUN':
-                    task.postprocess()
+                    pass
                 elif task.status == 'POST':
-                    task.done()
+                    task.post()
                 elif task.status == 'DONE':
                     pass
                 else:
                     raise ValueError('unknown status: {}'.format(task.status))
-        print('all_simulations_complete')
 
     def all_simulations_complete(self):
         all_sims_complete = True
         for s_name,s_dict in self.obj_lammps_tasks.items():
-            print(s_name,':',s_dict['obj'].status)
+            #print(s_name,':',s_dict['obj'].status)
             if s_dict['obj'].status != 'DONE':
                 all_sims_complete = False
-        print('all_sims_complete:',all_sims_complete)
+        #print('all_sims_complete:',all_sims_complete)
         return all_sims_complete
     def add_lammps_simulation(self,sim_name,sim_info):
         lammps_map = get_lammps_map()
@@ -191,166 +205,167 @@ class SimulationManager():
         self.obj_lammps_tasks[sim_name] = {
                 'obj':klass(task_name,task_directory)}
 
-    def evaluate_parameter_set(self,param_dict):
-        assert type(param_dict),dict
-        # write potential file
-        if type(self._potential) == BuckinghamPotential:
-            self._fname_potential = 'potential.mod'
-            self._potential.write_potential_file(self._fname_potential,param_dict)
-        elif type(self._potential) == EamPotential:
-            self._fname_potential = 'potential.mod'
-            self._fname_eam = 'eam.alloy'
-            self._potential.write_potential_file(self._fname_potential,param_dict)
-            self._potential.write_setfl_file()
-        else:
-            msg_err = "unknown potential[{}]"
-            msg_err = msg_err.format(type(self._potential))
-            raise ValueError(msg_err)
+    #def evaluate_parameter_set(self,param_dict):
+    #    assert type(param_dict),dict
+    #    # write potential file
+    #    if type(self.potential) == potential.Buckingham:
+    #        self._fname_potential = 'potential.mod'
+    #        self.potential.write_potential_file(self._fname_potential,param_dict)
+    #    elif type(self.potential) == potential.EmbeddedAtomModel:
+    #        self._fname_potential = 'potential.mod'
+    #        self._fname_eam = 'eam.alloy'
+    #        self.potential.write_potential_file(self._fname_potential,param_dict)
+    #        self.potential.write_setfl_file()
+    #    elif type(self.potential) == potential.Tersoff:
+    #    else:
+    #        msg_err = "unknown potential[{}]"
+    #        msg_err = msg_err.format(type(self._potential))
+    #        raise ValueError(msg_err)
 
-        # evaluate minimizations first
-        for k in self._lmps_sim_obj.keys():
-            if k.endswith('E_min_all'):
-                s_name      = self._lmps_sim_obj[k].structure_name
-                s_fname     = os.path.join(self._dir_structure_db,
-                                           self._structure_db[s_name][0])
-                ls_template = os.path.join(self._dir_lmps_sim_db,
-                                           'E_min_all')
-                self._lmps_sim_obj[k].dir_sim_template = ls_template
-                self._lmps_sim_obj[k].fname_structure_vasp = s_fname
-                self._lmps_sim_obj[k].create()
+    #    # evaluate minimizations first
+    #    for k in self._lmps_sim_obj.keys():
+    #        if k.endswith('E_min_all'):
+    #            s_name      = self._lmps_sim_obj[k].structure_name
+    #            s_fname     = os.path.join(self._dir_structure_db,
+    #                                       self._structure_db[s_name][0])
+    #            ls_template = os.path.join(self._dir_lmps_sim_db,
+    #                                       'E_min_all')
+    #            self._lmps_sim_obj[k].dir_sim_template = ls_template
+    #            self._lmps_sim_obj[k].fname_structure_vasp = s_fname
+    #            self._lmps_sim_obj[k].create()
 
-        # run simulation
-        for k in self._lmps_sim_obj.keys():
-            if k.endswith('E_min_all'):
-                self._lmps_sim_obj[k].run()
+    #    # run simulation
+    #    for k in self._lmps_sim_obj.keys():
+    #        if k.endswith('E_min_all'):
+    #            self._lmps_sim_obj[k].run()
 
-        # monitor simulation
-        all_sims_done = False
-        sims_has_error = False
-        while (not all_sims_done) or sims_has_error:
-            time.sleep(.05)
-            list_is_done    = [self._lmps_sim_obj[k].is_done() 
-                                   for k in self._lmps_sim_obj.keys() 
-                                   if k.endswith('E_min_all')]
-            list_has_errors = [self._lmps_sim_obj[k].has_error() 
-                                   for k in self._lmps_sim_obj.keys() 
-                                   if k.endswith('E_min_all')]
+    #    # monitor simulation
+    #    all_sims_done = False
+    #    sims_has_error = False
+    #    while (not all_sims_done) or sims_has_error:
+    #        time.sleep(.05)
+    #        list_is_done    = [self._lmps_sim_obj[k].is_done() 
+    #                               for k in self._lmps_sim_obj.keys() 
+    #                               if k.endswith('E_min_all')]
+    #        list_has_errors = [self._lmps_sim_obj[k].has_error() 
+    #                               for k in self._lmps_sim_obj.keys() 
+    #                               if k.endswith('E_min_all')]
+    #
+    #        if False not in list_is_done:
+    #            all_sims_done = True
 
-            if False not in list_is_done:
-                all_sims_done = True
-
-            if True in list_has_errors:
-                sims_has_error = True
+    #        if True in list_has_errors:
+    #            sims_has_error = True
 
         # post-process
-        for k in self._lmps_sim_obj.keys():
-            if k.endswith('E_min_all'):
-                self._lmps_sim_obj[k].postprocess()
+    #    for k in self._lmps_sim_obj.keys():
+    #        if k.endswith('E_min_all'):
+    #            self._lmps_sim_obj[k].postprocess()
 
-        lattice_parameters = {}
-        for k in self._lmps_sim_obj.keys(): 
-            if k.endswith('E_min_all'):
-                s_name = k.split('.')[0]
-                lattice_parameters[s_name]=self._lmps_sim_obj[k].a1
+    #    lattice_parameters = {}
+    #    for k in self._lmps_sim_obj.keys(): 
+    #        if k.endswith('E_min_all'):
+    #            s_name = k.split('.')[0]
+    #            lattice_parameters[s_name]=self._lmps_sim_obj[k].a1
 
         # evaluate everything else
-        for k in self._lmps_sim_obj.keys():
-            if not k.endswith('E_min_all'):
-                sim_type = k.split('.')[1]
-                s_name      = self._lmps_sim_obj[k].structure_name
-                s_fname     = os.path.join(self._dir_structure_db,
-                                           self._structure_db[s_name][0])
-                ls_template = os.path.join(self._dir_lmps_sim_db,
-                                           sim_type)
-                self._lmps_sim_obj[k].dir_sim_template = ls_template
+    #    for k in self._lmps_sim_obj.keys():
+    #        if not k.endswith('E_min_all'):
+    #            sim_type = k.split('.')[1]
+    #            s_name      = self._lmps_sim_obj[k].structure_name
+    #            s_fname     = os.path.join(self._dir_structure_db,
+    #                                       self._structure_db[s_name][0])
+    #            ls_template = os.path.join(self._dir_lmps_sim_db,
+    #                                       sim_type)
+    #            self._lmps_sim_obj[k].dir_sim_template = ls_template
 
                 # information from structure, this only works because there
                 # is only one structure prototype
                 # TODO: generalize this code
-                self._lmps_sim_obj[k].fname_structure_vasp = s_fname
-                self._lmps_sim_obj[k].new_a1 = lattice_parameters['MgO_NaCl']
+    #            self._lmps_sim_obj[k].fname_structure_vasp = s_fname
+    #            self._lmps_sim_obj[k].new_a1 = lattice_parameters['MgO_NaCl']
 
                 # create lammps simulation
-                self._lmps_sim_obj[k].create()
+    #            self._lmps_sim_obj[k].create()
 
         # run simulation
-        for k in self._lmps_sim_obj.keys():
-            if not k.endswith('E_min_all'):
-                self._lmps_sim_obj[k].run()
+    #    for k in self._lmps_sim_obj.keys():
+    #        if not k.endswith('E_min_all'):
+    #            self._lmps_sim_obj[k].run()
  
         # monitor simulation
-        all_sims_done = False
-        sims_has_error = False
-        while (not all_sims_done) or sims_has_error:
-            time.sleep(.05)
-            list_is_done    = [self._lmps_sim_obj[k].is_done() 
-                                   for k in self._lmps_sim_obj.keys() 
-                                   if not k.endswith('E_min_all')]
-            list_has_errors = [self._lmps_sim_obj[k].has_error() 
-                                   for k in self._lmps_sim_obj.keys() 
-                                   if not k.endswith('E_min_all')]
+    #    all_sims_done = False
+    #    sims_has_error = False
+    #    while (not all_sims_done) or sims_has_error:
+    #        time.sleep(.05)
+    #        list_is_done    = [self._lmps_sim_obj[k].is_done() 
+    #                               for k in self._lmps_sim_obj.keys() 
+    #                               if not k.endswith('E_min_all')]
+    #        list_has_errors = [self._lmps_sim_obj[k].has_error() 
+    #                               for k in self._lmps_sim_obj.keys() 
+    #                               if not k.endswith('E_min_all')]
 
-            if False not in list_is_done:
-                all_sims_done = True
+    #        if False not in list_is_done:
+    #            all_sims_done = True
 
-            if True in list_has_errors:
-                sims_has_error = True
+    #        if True in list_has_errors:
+    #            sims_has_error = True
 
         # post-process
-        for k in self._lmps_sim_obj.keys():
-            if not k.endswith('E_min_all'):
-                self._lmps_sim_obj[k].postprocess()
+    #    for k in self._lmps_sim_obj.keys():
+    #        if not k.endswith('E_min_all'):
+    #            self._lmps_sim_obj[k].postprocess()
 
-        self._variable_dict = {}
-        for var in self._variable_names:
-            v = None
-            s_name = var.split('.')[0]
-            v_name = var.split('.')[1]
-            if v_name in ['E_min','a0','a1','a2','a3']:
-                k = "{}.E_min_all".format(s_name)
-                if v_name == 'E_min':
-                    v = self._lmps_sim_obj[k].total_energy
-                elif v_name == 'a0':
-                    v = self._lmps_sim_obj[k].a1
-                elif v_name == 'a1':
-                    v = self._lmps_sim_obj[k].a1
-                elif v_name == 'a2':
-                    v = self._lmps_sim_obj[k].a2
-                elif v_name == 'a3':
-                    v = self._lmps_sim_obj[k].a3
-            elif v_name in ['c11','c12','c44']:
-                k = "{}.elastic".format(s_name)
-                if v_name == 'c11':
-                    v = self._lmps_sim_obj[k].c11
-                elif v_name == 'c12':
-                    v = self._lmps_sim_obj[k].c12
-                elif v_name == 'c44':
-                    v = self._lmps_sim_obj[k].c44
-            elif v_name in ['E_sp','a1_sp','a2_sp','a3_sp']:
-                k = "{}.single_point".format(s_name)
-                if v_name == 'E_sp':
-                    v = self._lmps_sim_obj[k].total_energy
-                elif v_name == 'a1_sp':
-                    v = self._lmps_sim_obj[k].a1
-                elif v_name == 'a2_sp':
-                    v = self._lmps_sim_obj[k].a2
-                elif v_name == 'a3_sp':
-                    v = self._lmps_sim_obj[k].a3
-            elif v_name in ['E_min_pos','a1_min_pos','a2_min_pos','a3_minPos']:
-                k = "{}.E_min_pos".format(s_name)
-                if v_name == 'E_min_pos':
-                    v = self._lmps_sim_obj[k].total_energy
-                elif v_name == 'a1_min_pos':
-                    v = self._lmps_sim_obj[k].a1
-                elif v_name == 'a2_min_pos':
-                    v = self._lmps_sim_obj[k].a2
-                elif v_name == 'a3_min_pos':
-                    v = self._lmps_sim_obj[k].a3
-            elif v_name == 'n_atoms':
-                k = "{}.structure_info".format(s_name)
-                if v_name == 'n_atoms':
-                    v = self._lmps_sim_obj[k].n_atoms
-            self._variable_dict[var] = v
+    #    self._variable_dict = {}
+    #    for var in self._variable_names:
+    #        v = None
+    #        s_name = var.split('.')[0]
+    #        v_name = var.split('.')[1]
+    #        if v_name in ['E_min','a0','a1','a2','a3']:
+    #            k = "{}.E_min_all".format(s_name)
+    #            if v_name == 'E_min':
+    #                v = self._lmps_sim_obj[k].total_energy
+    #            elif v_name == 'a0':
+    #                v = self._lmps_sim_obj[k].a1
+    #            elif v_name == 'a1':
+    #                v = self._lmps_sim_obj[k].a1
+    #            elif v_name == 'a2':
+    #                v = self._lmps_sim_obj[k].a2
+    #            elif v_name == 'a3':
+    #                v = self._lmps_sim_obj[k].a3
+    #        elif v_name in ['c11','c12','c44']:
+    #            k = "{}.elastic".format(s_name)
+    #            if v_name == 'c11':
+    #                v = self._lmps_sim_obj[k].c11
+    #            elif v_name == 'c12':
+    #                v = self._lmps_sim_obj[k].c12
+    #            elif v_name == 'c44':
+    #                v = self._lmps_sim_obj[k].c44
+    #        elif v_name in ['E_sp','a1_sp','a2_sp','a3_sp']:
+    #            k = "{}.single_point".format(s_name)
+    #            if v_name == 'E_sp':
+    #                v = self._lmps_sim_obj[k].total_energy
+    #            elif v_name == 'a1_sp':
+    #                v = self._lmps_sim_obj[k].a1
+    #            elif v_name == 'a2_sp':
+    #                v = self._lmps_sim_obj[k].a2
+    #            elif v_name == 'a3_sp':
+    #                v = self._lmps_sim_obj[k].a3
+    #        elif v_name in ['E_min_pos','a1_min_pos','a2_min_pos','a3_minPos']:
+    #            k = "{}.E_min_pos".format(s_name)
+    #            if v_name == 'E_min_pos':
+    #                v = self._lmps_sim_obj[k].total_energy
+    #            elif v_name == 'a1_min_pos':
+    #                v = self._lmps_sim_obj[k].a1
+    #            elif v_name == 'a2_min_pos':
+    #                v = self._lmps_sim_obj[k].a2
+    #            elif v_name == 'a3_min_pos':
+    #                v = self._lmps_sim_obj[k].a3
+    #        elif v_name == 'n_atoms':
+    #            k = "{}.structure_info".format(s_name)
+    #            if v_name == 'n_atoms':
+    #                v = self._lmps_sim_obj[k].n_atoms
+    #        self._variable_dict[var] = v
 
 if False:
     class Simulation(base.Simulation):

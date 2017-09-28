@@ -5,8 +5,160 @@ __copyright__ = "Copyright (C) 2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
-import copy
+import copy, yaml
 import numpy as np
+
+def get_potential_map():
+    """ get the potential map
+
+    Support for interatomic potentials requires a mapping from the 
+    potential formalism to the class supporting the function.  Additional
+    potentials to be supported can either be added here, or provided
+    using any module available on the PYTHONPATH.
+
+    Returns:
+        (dict):
+            (str): name of the potential formalism
+            (list): first element contains the module. second element contains
+                the class supporting the function
+
+    """
+    potential_map = {\
+            'buckingham':['pypospack.potential','Buckingham'],
+            'eam':['pypospack.potential','EmbeddedAtomModel'],
+            'tersoff':['pypospack.potential','Tersoff']}
+    return copy.deepcopy(potential_map)
+
+def get_supported_potentials():
+    supported_potentials = list(get_potential_map().keys())
+    return supported_potentials
+
+class PotentialInformation(object):
+    """ Read/Write Empirical Interatomic Potential Information
+
+    pypospack uses yaml files to store configuration information for required
+    for optimization routines.
+    
+    Attributes:
+        filename(str): filename of the yaml file to read/write configuration
+            file.  Default is pypospack.potential.yaml'
+        elements(list): list of string of chemical symbols
+        parameter_names(list): list of parameter names
+        potential_type(str): type of potential
+        param_info(dict): param info
+        eam_pair_potential(str): name of the functional form for the eam
+            pair potential.  Set by default to None.
+        eam_embedding_function(str): name of the functional form the eam 
+            embedding function.  Set by default to None.
+        eam_density_function(str): name of the functional form of the eam
+            electron desnsity function.  Set by default to None.
+    """
+    def __init__(self):
+        self.filename = 'pypospack.potential.yaml'
+        self.elements = []
+        self.potential_type = None
+        self.param_info = {}
+
+        # for eam functions
+        self.eam_pair_potential = None
+        self.eam_embedding_function = None
+        self.eam_density_function = None
+
+    @property
+    def symbols(self):
+        return list(self.elements)
+
+    @property
+    def free_parameters(self):
+        free_params = []
+        for p in self.parameter_names:
+            if 'equals' not in self.param_info[p]:
+                free_params.append(p)
+
+        return list(free_params)
+
+    def read(self,fname=None):
+        """ read potential information from yaml file 
+
+        Args:
+            fname(str): file to yaml file from.  If no argument is passed then
+                use the filename attribute.  If the filename is set, then the
+                filename attribute is also set
+        """
+
+        # set the attribute if not none
+        if fname is not None:
+            self.filename = fname
+
+        try:
+            pot_info = yaml.load(open(self.filename))
+        except:
+            raise
+
+        # process elements of the yaml file
+        self.elements = list(pot_info['elements'])
+        self.parameter_names = list(pot_info['parameter_names'])
+        self.potential_type = pot_info['potential_type']
+        if self.potential_type == 'eam':
+            self.eam_pair_potential = pot_info['eam_pair_potential']
+            self.eam_embedding_function = pot_info['eam_embedding_function']
+            self.eam_density_function = pot_info['eam_density_function']
+        self.param_info = copy.deepcopy(pot_info['param_info'])
+
+    def write(self,fname=None):
+        """ write potential information from yaml file
+
+        Args:
+            fname(str): file to potential to.  If no argument is passed then
+                use the filename attribute.  If the filename is set, then the
+                filename atribute is also set.
+        """
+
+        # set the filename attribute
+        if fname is not None:
+            self.filename = fname
+
+        # marshall attributes into a dict
+        pot_info = {}
+        pot_info['elements'] = list(self.elements)
+        pot_info['parameter_names'] = list(self.parameter_names)
+        pot_info['potential_type'] = self.potential_type
+        if self.potential_type == 'eam':
+            pot_info['eam_pair_potential'] = self.eam_pair_potential
+            pot_info['eam_embedding_function'] = self.eam_embedding_function
+            pot_info['eam_density_function'] = self.eam_density_function
+        pot_info['param_info'] = copy.deepcopy(self.param_info)
+
+        # dump dict to yaml
+        with open(fname,'w') as f:
+            yaml.dump(pot_info,f,default_flow_style=False)
+
+    def check(self):
+        """ performs sanity checks to potential configuration
+
+        does the following checks:
+        1.    check to see if the potential type is supported.
+
+        Raises:
+            ValueError: if the potential type is unsupported
+        """
+        # initialize, set to false if a test fails
+        passed_all_checks = True 
+
+        # check1: check to see if the potential type is supporte
+        if self.potential_type not in  get_supported_potentials():
+            passed_all_checks = False
+            raise ValueError(\
+                "unsupported potential type: {}".format(self.potential_type))
+
+            return passed_all_checks
+
+    def get_potential_dict(self):
+        potential_dict = {}
+        potential_dict['potential_type'] = self.potential_type
+        potential_dict['elements'] = self.elements
+        potential_dict['params'] = None
+        return copy.deepcopy(potential_dict)
 
 class Potential(object):
     def __init__(self,symbols):

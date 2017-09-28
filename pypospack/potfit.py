@@ -12,9 +12,9 @@ determination of simulations to be run from the quantities of interest.
 
 Classes for Configuration Files
 ===============================
-:obj:`pypospack.potfit.StructureDatabase`
-:obj:`pypospack.potfit.QoiDatabase`
-:obj:`pypospack.potfit.PotentialInformation`
+:obj:`pypospack.crystal.StructureDatabase`
+:obj:`pypospack.qoi.QoiDatabase`
+:obj:`pypospack.potential.PotentialInformation`
 
 Classes for QOI Management
 ==========================
@@ -23,6 +23,7 @@ module where the definition of and calculation of specific quantities of
 interest are inherited from the :obj:`pypospack.qoi.QuantityOfInterest` 
 prototype class.
 :obj:`pypospack.qoi.QoiManager`
+:obj:`pypospack.qoi.QoiDatabase`
 
 Classes for LAMMPS Simulation Management
 ========================================
@@ -30,7 +31,11 @@ The LAMMPS simulation manager are defined as series of defined simulations,
 which are run sequentially in the order required.  The simulations are defined
 as tasks, which are combined togetheer to create a workflow.
 :obj:`pypospack.lammps.SimulationManager`
+:obj:`pypospack.tasks.lammps'
 
+Classes for Structure Management
+================================
+:obj:`pypospack.crystal.StructureDatabase`
 Classes for post-processing of data
 ===================================
 """
@@ -42,6 +47,9 @@ import numpy as np
 import scipy.stats
 
 import pypospack.potential as potential
+import pypospack.qoi as qoi
+import pypospack.lammps as lammps
+import pypospack.crystal as crystal
 
 def get_supported_qois():
     supported_qois = ['a0','a1','a2','a3',
@@ -54,31 +62,6 @@ def get_supported_qois():
                      'stacking_fault_energy',
                      'total_energy']
     return supported_qois
-
-def get_potential_map():
-    """ get the potential map
-
-    Support for interatomic potentials requires a mapping from the 
-    potential formalism to the class supporting the function.  Additional
-    potentials to be supported can either be added here, or provided
-    using any module available on the PYTHONPATH.
-
-    Returns:
-        (dict):
-            (str): name of the potential formalism
-            (list): first element contains the module. second element contains
-                the class supporting the function
-
-    """
-    potential_map = {\
-            'buckingham':['pypospack.potential','Buckingham'],
-            'eam':['pypospack.potential','EmbeddedAtomModel'],
-            'tersoff':['pypospack.potential','Tersoff']}
-    return copy.deepcopy(potential_map)
-
-def get_supported_potentials():
-    supported_potentials = list(get_potential_map().keys())
-    return supported_potentials
 
 
 class PypospackFittingError(Exception):
@@ -112,6 +95,8 @@ class AbstractFittingEngine(object):
         structure_info(pypospack.potfit.StructureDatabase)
         potential_info(pypospack.potfit.PotentialInformation)
         qois_info(pypospack.potfit.QoiDatabase)
+        qoi_manager(pypospack.qoi.QoiManager)
+        simulation_manager(pypospack.lammps.SimulationManager)
     """
 
     def __init__(self,
@@ -123,7 +108,7 @@ class AbstractFittingEngine(object):
             random_seed = None,restart = False):
 
         self.supported_qoi = list(get_supported_qois())
-        self.supported_potentials = list(get_supported_potentials())
+        self.supported_potentials = list(potential.get_supported_potentials())
 
         self.fname_config_structures = fname_config_structures
         self.fname_config_potential = fname_config_potential
@@ -161,7 +146,13 @@ class AbstractFittingEngine(object):
         self._configure_potential()
         self._check_potential()
 
-        self._config_qoi_manager()
+        #self._config_qoi_manager()
+        self.qoi_manager = qoi.QoiManager(self.qoi_info)
+        self.simulation_manager = lammps.SimulationManager()
+        self.simulation_manager.add_required_simulations(
+                required_simulations = self.qoi_manager.get_required_simulations())
+        self.simulation_manager.structure_info = self.structure_info
+        self.simulation_manager.potential_info = self.potential_info
 
     @property
     def qoi_names(self):
@@ -180,6 +171,9 @@ class AbstractFittingEngine(object):
 
     def run_from_restart():
         raise NotImplementedError("Restart method not implemented")
+
+    def evaluate_parameter_set(self,param_dict):
+        self.simulation_manager.evaluate_parameters(param_dict)
 
     def _set_random_seed(self,seed = None):
         """Set the random seed in numpy.
@@ -254,7 +248,7 @@ class AbstractFittingEngine(object):
         if fname_config_structures is not None:
             self.fname_config_structures = fname_config_structures
         self._log("file_config_structure <- {}".format(self.fname_config_structures))
-        self.structure_info = StructureDatabase()
+        self.structure_info = crystal.StructureDatabase()
         self.structure_info.read(self.fname_config_structures)
         structure_db_passed = self.structure_info.check()
         if structure_db_passed is not True:
@@ -279,7 +273,7 @@ class AbstractFittingEngine(object):
         if fname is not None:
             self.fname_config_potential = fname
         self._log("file_config_potential <- {}".format(self.fname_config_potential))
-        self.potential_info = PotentialInformation()
+        self.potential_info = potential.PotentialInformation()
         self.potential_info.read(self.fname_config_potential)
         self.potential_info.check() # sanity check
 
@@ -301,7 +295,7 @@ class AbstractFittingEngine(object):
         if fname is not None:
             self.fname_config_qoi = fname
         self._log("file_config_qoi <- {}".format(self.fname_config_qoi))
-        self.qoi_info = QoiDatabase()
+        self.qoi_info = qoi.QoiDatabase()
         self.qoi_info.read(self.fname_config_qoi)
         self.qoi_info.check() # sanity check
 
@@ -345,7 +339,7 @@ class AbstractFittingEngine(object):
         potential_type = self.potential_info.potential_type
         symbols = self.potential_info.symbols
 
-        potential_map = get_potential_map()
+        potential_map = potential.get_potential_map()
         module_name = potential_map[potential_type][0]
         class_name  = potential_map[potential_type][1]
 
@@ -369,377 +363,378 @@ class AbstractFittingEngine(object):
             self._log(err_msg)
             raise PypospackFittingError(err_msg)
 
-class StructureDatabase(object):
-    """ structure database 
+if False:
+    class StructureDatabase(object):
+        """ structure database 
 
-    Attributes:
-        filename(str): file to read/write the yaml file
-        directory(str): the directory of the structure database
-        structures(dict): key is structure name, value is another dict with 
-            key/value pairs for 'filename' and 'filetype'
-    """
-
-    def __init__(self):
-        self.filename = 'pypospack.structure.yaml'
-        self.directory = None
-        self.structures = {}
-
-    def add_structure(self,name,filename,filetype):
-        self.structures[name] = {'filename':filename,'filetype':filetype}
-
-    def contains(self,structure):
-        """ check to see that the structure in the structure database
-
-        Args:
-            structure(str):
-
-        Returns:
-            bool: True if structure is in structure database. False if the 
-                structure is not in the structure database
-        """
-
-        return structure in self.structures.keys()
-
-    def read(self,fname = None):
-        """ read qoi configuration from yaml file
-
-        Args:
-            fname(str): file to read yaml file from.  If no argument is passed 
-                then use the filename attribute.  If the filename is set, then 
-                the filename attribute is also set.
-        """
-
-        # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
-
-        try:
-            self.structure_db = yaml.load(open(self.filename))
-        except:
-            raise
-
-        self.directory = self.structure_db['directory']
-        self.structures = copy.deepcopy(self.structure_db['structures'])
-
-    def write(self,fname = None):
-        if fname is not None:
-            self.filename = fname
-
-        # marshall attributes into a dictionary
-        self.structure_db = {}
-        self.structure_db['directory'] = self.directory
-        self.structure_db['structures'] = {}
-        self.structure_db['structures'] = copy.deepcopy(self.structures)
-
-        # dump to as yaml file
-        with open(fname,'w') as f:
-            yaml.dump(self.structure_db, f, default_flow_style=False)
-
-    def check(self):
-        """sanity checks for the fitting database
-        
-        This method checks the fitting database for the following errors: (1)
-        the structure database exists, (2) files for the structure database
-        exist
-
-        Returns:
-            str: returns a string if there is a problem
-        Raises:
-            ValueError: if there is a problem with the configuration
-        """
-
-        src_dir = self.directory
-       
-        # check to see if the source directory exists
-        if not os.path.exists(src_dir):
-            err_msg = "cannot find simulation directory\n"
-            err_msg += "\tcurrent_working_directory:{}\n".format(os.getcwd())
-            err_msg += "\tstructure_db_directory:{}\n".format(src_dir)
-            return err_msg
-        
-        # check to see if the source directory is a directory
-        if not os.path.isdir(src_dir):
-            err_msg = "path exists, is not a directory\n"
-            err_msg += "\tcurrent_working_directory:{}".format(os.getcwd())
-            err_msg += "\tstructure_db_directory:{}\n".format(src_dir)
-            return err_msg
-
-        # check to see if files exist in the source directory
-        files_exist = True
-        msg = "structure files are missing:\n"
-        for name, v in self.structures.items():
-            filename = os.path.join(src_dir,v['filename'])
-            if not os.path.isfile(filename):
-                files_exist = False
-                msg += "\t{}:{}\n".format(name,filename)
-
-        if not files_exist:
-            return msg
-        else:
-            return True
-
-    def get_structure_dict(self,name):
-        """
-
-        Args:
-            name(str): name of the structure
-        """
-
-        structure_db_dir = self.directory
-        structure_filename = self.structures[name]['filename']
-        structure_dict = {}
-        structure_dict['name'] = name
-        structure_dict['filename'] = os.path.join(
-                structure_db_dir,
-                structure_filename)
-
-        return copy.deepcopy(structure_dict)
-
-class QoiDatabase(object):
-    """ Qoi Database 
-   
-        Contains methods for managing quantities of interests for a variety 
-        of tasks such as marshalling/unmarshalling objects to and from a
-        yaml file.  Also includes sanity tests.
-
-        Args:
-            filename(str): If this variable is set, this class will attempt to
-                unmarhsall the contents of the file into the class.  If this 
-                variable is set to None, then the class wil be initialized.
-                Default is None.
         Attributes:
-            filename(str): file to read/write to yaml file.  By default this
-                attribute is set to 'pypospack.qoi.yaml'.
-            qois(dict): key is qoi name, value contains a variety of values
-    """
+            filename(str): file to read/write the yaml file
+            directory(str): the directory of the structure database
+            structures(dict): key is structure name, value is another dict with 
+                key/value pairs for 'filename' and 'filetype'
+        """
+
+        def __init__(self):
+            self.filename = 'pypospack.structure.yaml'
+            self.directory = None
+            self.structures = {}
+
+        def add_structure(self,name,filename,filetype):
+            self.structures[name] = {'filename':filename,'filetype':filetype}
+
+        def contains(self,structure):
+            """ check to see that the structure in the structure database
+
+            Args:
+                structure(str):
+
+            Returns:
+                bool: True if structure is in structure database. False if the 
+                    structure is not in the structure database
+            """
+
+            return structure in self.structures.keys()
+
+        def read(self,fname = None):
+            """ read qoi configuration from yaml file
+
+            Args:
+                fname(str): file to read yaml file from.  If no argument is passed 
+                    then use the filename attribute.  If the filename is set, then 
+                    the filename attribute is also set.
+            """
+
+            # set the attribute if not none
+            if fname is not None:
+                self.filename = fname
+
+            try:
+                self.structure_db = yaml.load(open(self.filename))
+            except:
+                raise
+
+            self.directory = self.structure_db['directory']
+            self.structures = copy.deepcopy(self.structure_db['structures'])
+
+        def write(self,fname = None):
+            if fname is not None:
+                self.filename = fname
+
+            # marshall attributes into a dictionary
+            self.structure_db = {}
+            self.structure_db['directory'] = self.directory
+            self.structure_db['structures'] = {}
+            self.structure_db['structures'] = copy.deepcopy(self.structures)
+
+            # dump to as yaml file
+            with open(fname,'w') as f:
+                yaml.dump(self.structure_db, f, default_flow_style=False)
+
+        def check(self):
+            """sanity checks for the fitting database
+            
+            This method checks the fitting database for the following errors: (1)
+            the structure database exists, (2) files for the structure database
+            exist
+
+            Returns:
+                str: returns a string if there is a problem
+            Raises:
+                ValueError: if there is a problem with the configuration
+            """
+
+            src_dir = self.directory
+           
+            # check to see if the source directory exists
+            if not os.path.exists(src_dir):
+                err_msg = "cannot find simulation directory\n"
+                err_msg += "\tcurrent_working_directory:{}\n".format(os.getcwd())
+                err_msg += "\tstructure_db_directory:{}\n".format(src_dir)
+                return err_msg
+            
+            # check to see if the source directory is a directory
+            if not os.path.isdir(src_dir):
+                err_msg = "path exists, is not a directory\n"
+                err_msg += "\tcurrent_working_directory:{}".format(os.getcwd())
+                err_msg += "\tstructure_db_directory:{}\n".format(src_dir)
+                return err_msg
+
+            # check to see if files exist in the source directory
+            files_exist = True
+            msg = "structure files are missing:\n"
+            for name, v in self.structures.items():
+                filename = os.path.join(src_dir,v['filename'])
+                if not os.path.isfile(filename):
+                    files_exist = False
+                    msg += "\t{}:{}\n".format(name,filename)
+
+            if not files_exist:
+                return msg
+            else:
+                return True
+
+        def get_structure_dict(self,name):
+            """
+
+            Args:
+                name(str): name of the structure
+            """
+
+            structure_db_dir = self.directory
+            structure_filename = self.structures[name]['filename']
+            structure_dict = {}
+            structure_dict['name'] = name
+            structure_dict['filename'] = os.path.join(
+                    structure_db_dir,
+                    structure_filename)
+
+            return copy.deepcopy(structure_dict)
+
+    class QoiDatabase(object):
+        """ Qoi Database 
+       
+            Contains methods for managing quantities of interests for a variety 
+            of tasks such as marshalling/unmarshalling objects to and from a
+            yaml file.  Also includes sanity tests.
+
+            Args:
+                filename(str): If this variable is set, this class will attempt to
+                    unmarhsall the contents of the file into the class.  If this 
+                    variable is set to None, then the class wil be initialized.
+                    Default is None.
+            Attributes:
+                filename(str): file to read/write to yaml file.  By default this
+                    attribute is set to 'pypospack.qoi.yaml'.
+                qois(dict): key is qoi name, value contains a variety of values
+        """
+            
+        def __init__(self, filename = None):
+            # initialize attributes
+            self.filename = 'pypospack.qoi.yaml'
+            self.qois = {}
+
+            if filename is not None:
+                self.read(filename)
+
+        @property
+        def qoi_names(self):
+            return list(self.qois.keys())
+
+        def add_qoi(self,name,qoi,structures,target):
+            """ add a qoi
+
+            Args:
+                name(str): name of the qoi.  Usually <structure>.<qoi>.
+                qoi(str): name of the qoi.
+                structures(list): list of structures
+            """
+
+            # make a copy of structures
+            _structures = None
+            if isinstance(structures,str):
+                _structures = [structures]
+            else:
+                _structures = list(structures)
+
+            self.qois[name] = {\
+                    'qoi':qoi,
+                    'structures':copy.deepcopy(structures),
+                    'target':target}
+
+        def read(self,fname=None): 
+            """ read qoi configuration from yaml file
+
+            Args:
+                fname(str): file to read yaml file from.  If no argument is passed
+                    then use the filename attribute.  If the filename is set, then
+                    the filename attribute is also set.
+            """
+
+            # set the attribute if not none
+            if fname is not None:
+                self.filename = fname
+
+            try:
+                self.qois = yaml.load(open(self.filename))
+            except:
+                raise
+
+        def write(self,fname=None):
+            """ write qoi configuration to yaml file
+
+            Args:
+                fname(str): file to write yaml from from.  If no argument is passed
+                   then use the filename attribute.  If the filename is set, then 
+                   the filename attribute is also set.
+            """
+
+            # set the attribute if not none
+            if fname is not None:
+                self.filename = fname
+
+            # marshall attributes into a dictionary
+            self.qoi_db = copy.deepcopy(self.qois)
+
+            # dump to yaml file
+            with open(self.filename,'w') as f:
+                yaml.dump(self.qoi_db,f, default_flow_style=False)
+
+        def check(self):
+            """ perform sanity check on potential configuration
+            
+            does the following checks:
+            1.    check to see if the potential type is supported.
+
+            Raises:
+                ValueError: if the potential type is unsupported
+            # initialize variable, if a check fails the variable will be set to 
+            # false
+            """
+
+            passed_all_checks = True
+
+            for k,v in self.qois.items():
+                qoi_type = v['qoi']
+                if qoi_type not in get_supported_qois():
+                    raise ValueError(\
+                        "unsupported qoi: {}:{}".format(
+                            k,qoi_type))
+
+        def get_required_structures(self):
+            """ get required structures """
+
+            required_structures = []
+            for qoi_name, qoi_info in self.qois.items():
+                structures = qoi_info['structures']
+                for s in structures:
+                    if s not in required_structures:
+                        required_structures.append(s)
+
+            return required_structures
+
+    class PotentialInformation(object):
+        """ Read/Write Empirical Interatomic Potential Information
+
+        pypospack uses yaml files to store configuration information for required
+        for optimization routines.
         
-    def __init__(self, filename = None):
-        # initialize attributes
-        self.filename = 'pypospack.qoi.yaml'
-        self.qois = {}
-
-        if filename is not None:
-            self.read(filename)
-
-    @property
-    def qoi_names(self):
-        return list(self.qois.keys())
-
-    def add_qoi(self,name,qoi,structures,target):
-        """ add a qoi
-
-        Args:
-            name(str): name of the qoi.  Usually <structure>.<qoi>.
-            qoi(str): name of the qoi.
-            structures(list): list of structures
+        Attributes:
+            filename(str): filename of the yaml file to read/write configuration
+                file.  Default is pypospack.potential.yaml'
+            elements(list): list of string of chemical symbols
+            parameter_names(list): list of parameter names
+            potential_type(str): type of potential
+            param_info(dict): param info
+            eam_pair_potential(str): name of the functional form for the eam
+                pair potential.  Set by default to None.
+            eam_embedding_function(str): name of the functional form the eam 
+                embedding function.  Set by default to None.
+            eam_density_function(str): name of the functional form of the eam
+                electron desnsity function.  Set by default to None.
         """
+        def __init__(self):
+            self.filename = 'pypospack.potential.yaml'
+            self.elements = []
+            self.potential_type = None
+            self.param_info = {}
 
-        # make a copy of structures
-        _structures = None
-        if isinstance(structures,str):
-            _structures = [structures]
-        else:
-            _structures = list(structures)
+            # for eam functions
+            self.eam_pair_potential = None
+            self.eam_embedding_function = None
+            self.eam_density_function = None
 
-        self.qois[name] = {\
-                'qoi':qoi,
-                'structures':copy.deepcopy(structures),
-                'target':target}
+        @property
+        def symbols(self):
+            return list(self.elements)
 
-    def read(self,fname=None): 
-        """ read qoi configuration from yaml file
+        @property
+        def free_parameters(self):
+            free_params = []
+            for p in self.parameter_names:
+                if 'equals' not in self.param_info[p]:
+                    free_params.append(p)
 
-        Args:
-            fname(str): file to read yaml file from.  If no argument is passed
-                then use the filename attribute.  If the filename is set, then
-                the filename attribute is also set.
-        """
+            return list(free_params)
 
-        # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
+        def read(self,fname=None):
+            """ read potential information from yaml file 
 
-        try:
-            self.qois = yaml.load(open(self.filename))
-        except:
-            raise
+            Args:
+                fname(str): file to yaml file from.  If no argument is passed then
+                    use the filename attribute.  If the filename is set, then the
+                    filename attribute is also set
+            """
 
-    def write(self,fname=None):
-        """ write qoi configuration to yaml file
+            # set the attribute if not none
+            if fname is not None:
+                self.filename = fname
 
-        Args:
-            fname(str): file to write yaml from from.  If no argument is passed
-               then use the filename attribute.  If the filename is set, then 
-               the filename attribute is also set.
-        """
+            try:
+                pot_info = yaml.load(open(self.filename))
+            except:
+                raise
 
-        # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
+            # process elements of the yaml file
+            self.elements = list(pot_info['elements'])
+            self.parameter_names = list(pot_info['parameter_names'])
+            self.potential_type = pot_info['potential_type']
+            if self.potential_type == 'eam':
+                self.eam_pair_potential = pot_info['eam_pair_potential']
+                self.eam_embedding_function = pot_info['eam_embedding_function']
+                self.eam_density_function = pot_info['eam_density_function']
+            self.param_info = copy.deepcopy(pot_info['param_info'])
 
-        # marshall attributes into a dictionary
-        self.qoi_db = copy.deepcopy(self.qois)
+        def write(self,fname=None):
+            """ write potential information from yaml file
 
-        # dump to yaml file
-        with open(self.filename,'w') as f:
-            yaml.dump(self.qoi_db,f, default_flow_style=False)
+            Args:
+                fname(str): file to potential to.  If no argument is passed then
+                    use the filename attribute.  If the filename is set, then the
+                    filename atribute is also set.
+            """
 
-    def check(self):
-        """ perform sanity check on potential configuration
-        
-        does the following checks:
-        1.    check to see if the potential type is supported.
+            # set the filename attribute
+            if fname is not None:
+                self.filename = fname
 
-        Raises:
-            ValueError: if the potential type is unsupported
-        # initialize variable, if a check fails the variable will be set to 
-        # false
-        """
+            # marshall attributes into a dict
+            pot_info = {}
+            pot_info['elements'] = list(self.elements)
+            pot_info['parameter_names'] = list(self.parameter_names)
+            pot_info['potential_type'] = self.potential_type
+            if self.potential_type == 'eam':
+                pot_info['eam_pair_potential'] = self.eam_pair_potential
+                pot_info['eam_embedding_function'] = self.eam_embedding_function
+                pot_info['eam_density_function'] = self.eam_density_function
+            pot_info['param_info'] = copy.deepcopy(self.param_info)
 
-        passed_all_checks = True
+            # dump dict to yaml
+            with open(fname,'w') as f:
+                yaml.dump(pot_info,f,default_flow_style=False)
 
-        for k,v in self.qois.items():
-            qoi_type = v['qoi']
-            if qoi_type not in get_supported_qois():
+        def check(self):
+            """ performs sanity checks to potential configuration
+
+            does the following checks:
+            1.    check to see if the potential type is supported.
+
+            Raises:
+                ValueError: if the potential type is unsupported
+            """
+            # initialize, set to false if a test fails
+            passed_all_checks = True 
+
+            # check1: check to see if the potential type is supporte
+            if self.potential_type not in  get_supported_potentials():
+                passed_all_checks = False
                 raise ValueError(\
-                    "unsupported qoi: {}:{}".format(
-                        k,qoi_type))
+                    "unsupported potential type: {}".format(self.potential_type))
 
-    def get_required_structures(self):
-        """ get required structures """
+                return passed_all_checks
 
-        required_structures = []
-        for qoi_name, qoi_info in self.qois.items():
-            structures = qoi_info['structures']
-            for s in structures:
-                if s not in required_structures:
-                    required_structures.append(s)
-
-        return required_structures
-
-class PotentialInformation(object):
-    """ Read/Write Empirical Interatomic Potential Information
-
-    pypospack uses yaml files to store configuration information for required
-    for optimization routines.
-    
-    Attributes:
-        filename(str): filename of the yaml file to read/write configuration
-            file.  Default is pypospack.potential.yaml'
-        elements(list): list of string of chemical symbols
-        parameter_names(list): list of parameter names
-        potential_type(str): type of potential
-        param_info(dict): param info
-        eam_pair_potential(str): name of the functional form for the eam
-            pair potential.  Set by default to None.
-        eam_embedding_function(str): name of the functional form the eam 
-            embedding function.  Set by default to None.
-        eam_density_function(str): name of the functional form of the eam
-            electron desnsity function.  Set by default to None.
-    """
-    def __init__(self):
-        self.filename = 'pypospack.potential.yaml'
-        self.elements = []
-        self.potential_type = None
-        self.param_info = {}
-
-        # for eam functions
-        self.eam_pair_potential = None
-        self.eam_embedding_function = None
-        self.eam_density_function = None
-
-    @property
-    def symbols(self):
-        return list(self.elements)
-
-    @property
-    def free_parameters(self):
-        free_params = []
-        for p in self.parameter_names:
-            if 'equals' not in self.param_info[p]:
-                free_params.append(p)
-
-        return list(free_params)
-
-    def read(self,fname=None):
-        """ read potential information from yaml file 
-
-        Args:
-            fname(str): file to yaml file from.  If no argument is passed then
-                use the filename attribute.  If the filename is set, then the
-                filename attribute is also set
-        """
-
-        # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
-
-        try:
-            pot_info = yaml.load(open(self.filename))
-        except:
-            raise
-
-        # process elements of the yaml file
-        self.elements = list(pot_info['elements'])
-        self.parameter_names = list(pot_info['parameter_names'])
-        self.potential_type = pot_info['potential_type']
-        if self.potential_type == 'eam':
-            self.eam_pair_potential = pot_info['eam_pair_potential']
-            self.eam_embedding_function = pot_info['eam_embedding_function']
-            self.eam_density_function = pot_info['eam_density_function']
-        self.param_info = copy.deepcopy(pot_info['param_info'])
-
-    def write(self,fname=None):
-        """ write potential information from yaml file
-
-        Args:
-            fname(str): file to potential to.  If no argument is passed then
-                use the filename attribute.  If the filename is set, then the
-                filename atribute is also set.
-        """
-
-        # set the filename attribute
-        if fname is not None:
-            self.filename = fname
-
-        # marshall attributes into a dict
-        pot_info = {}
-        pot_info['elements'] = list(self.elements)
-        pot_info['parameter_names'] = list(self.parameter_names)
-        pot_info['potential_type'] = self.potential_type
-        if self.potential_type == 'eam':
-            pot_info['eam_pair_potential'] = self.eam_pair_potential
-            pot_info['eam_embedding_function'] = self.eam_embedding_function
-            pot_info['eam_density_function'] = self.eam_density_function
-        pot_info['param_info'] = copy.deepcopy(self.param_info)
-
-        # dump dict to yaml
-        with open(fname,'w') as f:
-            yaml.dump(pot_info,f,default_flow_style=False)
-
-    def check(self):
-        """ performs sanity checks to potential configuration
-
-        does the following checks:
-        1.    check to see if the potential type is supported.
-
-        Raises:
-            ValueError: if the potential type is unsupported
-        """
-        # initialize, set to false if a test fails
-        passed_all_checks = True 
-
-        # check1: check to see if the potential type is supporte
-        if self.potential_type not in  get_supported_potentials():
-            passed_all_checks = False
-            raise ValueError(\
-                "unsupported potential type: {}".format(self.potential_type))
-
-            return passed_all_checks
-
-    def get_potential_dict(self):
-        potential_dict = {}
-        potential_dict['potential_type'] = self.potential_type
-        potential_dict['elements'] = self.elements
-        potential_dict['params'] = None
-        return copy.deepcopy(potential_dict)
+        def get_potential_dict(self):
+            potential_dict = {}
+            potential_dict['potential_type'] = self.potential_type
+            potential_dict['elements'] = self.elements
+            potential_dict['params'] = None
+            return copy.deepcopy(potential_dict)

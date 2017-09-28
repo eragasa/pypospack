@@ -134,7 +134,7 @@ class LammpsSimulation(Task):
         orig_dir = os.getcwd()
         os.chdir(self.task_directory)
         try:
-            print('cmd_str:{}'.format(cmd_str))
+            # print('cmd_str:{}'.format(cmd_str))
             subprocess.call(cmd_str,shell=True)
         finally:
             os.chdir(orig_dir)
@@ -151,11 +151,13 @@ class LammpsSimulation(Task):
         
         try:
             # calculate cohesive energy
-            tot_energy = self.results['tot_energy']
+            total_energy = self.results['tot_energy']
             n_atoms = self.results['num_atoms']
             self.results['ecoh'] = total_energy/n_atoms
         except KeyError as e:
             print(e)
+
+        self.status = 'DONE'
 
     def get_variables_from_lammps_output(self,variables):
         filename = os.path.join(self.task_directory,'lammps.out')
@@ -165,7 +167,7 @@ class LammpsSimulation(Task):
         self.results = {}
         for i,line in enumerate(lines):
             for name in variables:
-                if '{} = '.format(name) in line:
+                if line.startswith('{} = '.format(name)):
                     try:
                         self.results[name] = \
                                 float(line.split('=')[1].strip())
@@ -179,7 +181,6 @@ class LammpsSimulation(Task):
                         print('name:{}'.format(name))
                         print('line:{}'.format(line.strip()))
                         raise
-
 
     def write_lammps_input_file(self,filename='lammps.in'):
         """ writes LAMMPS input file 
@@ -238,62 +239,15 @@ class LammpsSimulation(Task):
         symbol_list = self.symbols
     
         # instatiate using lammpsstructure file
-        lammps_structure = lammps.LammpsStructure(\
+        self.lammps_structure = lammps.LammpsStructure(\
                 obj=self.structure)
-        lammps_structure.write(\
+        self.modify_structure()
+        self.lammps_structure.write(\
                 filename=filename,
                 symbol_list=symbol_list,
                 atom_style=atom_style)
 
-    def req_config(self):
-        """ this should method should be overridden, not inherited """
-        return list(self.config_dict.keys())
-
-    def send_config(self,config_dict):
-        """ this should method should be overridden, not inherited """
-        for k,v in config_dict.items():
-            self.config_dict[k](v)
-        self.configure()
-        self.status = 'CONFIG'
-
-    def req_ready(self):
-        """ this should method should be overridden, not inherited """
-        return list(self.ready_dict.keys())
-
-    def send_ready(self,ready_dict):
-        """ this should method should be overridden, not inherited """
-        for k,v in ready_dict:
-            try:
-                self.ready_dict[k](v)
-            except:
-                raise
-
-        if None not in [v for k,v in self.ready_dict]:
-            self.status = 'READY'
-
-    def req_run(self):
-        """ this should method should be overridden, not inherited """
-        return list(self.run_dict.keys())
-
-    def send_run(self,run_dict):
-        """ this should method should be overridden, not inherited """
-        self.status = "RUN"
-
-    def req_post(self):
-        """ this should method should be overridden, not inherited """
-        return list(self.post_dict.keys())
-
-    def send_post(self,post_dict):
-        """ this should method should be overridden, not inherited """
-        self.status = "POST"
-
-    def req_done(self):
-        """ this should method should be overridden, not inherited """
-        return list(self.done_dict.keys())
-
-    def send_done(self,done_dict):
-        """ this should method should be overridden, not inherited """
-        self.status = "DONE"
+    def modify_structure(self):pass
 
     # below here are effectively helper functions
     def set_structure(self,structure_dict):
@@ -463,6 +417,37 @@ class LammpsPositionMinimization(LammpsSimulation):
     def __init__(self,task_name,task_directory):
         LammpsSimulation.__init__(self,task_name,task_directory)
 
+    def ready(self,task_dict):
+        LammpsSimulation.ready(self,task_dict)
+    
+    def run(self, param_dict):
+        LammpsSimulation.run(self,param_dict)
+
+    def modify_structure(self):
+        # i need to figure out how to modify this structure pre-simulation
+        a1 = None
+        a2 = None
+        a3 = None
+        for k,v in self.task_dict.items():
+            structure_name = k.strip().split('.')[0]
+            simulation_type = k.strip().split('.')[1]
+            simulation_name = "{}.{}".format(structure_name,simulation_type)
+            variable_name = k.strip().split('.')[2]
+            if variable_name == 'xx':
+                a1 = v
+            elif variable_name == 'yy':
+                a2 = v
+            elif variable_name == 'zz':
+                a3 = v
+            else:
+                pass
+
+        cond1 = a1 == a2
+        cond2 = a2 == a3
+        cond3 = a1 == a3
+        if cond1 and cond2 and cond3:
+            self.lammps_structure.a0 == a1
+
     def lammps_input_file_to_string(self):
         str_out = "".join([\
                 self._lammps_input_initialization_section(),
@@ -524,6 +509,8 @@ class LammpsElasticCalculation(LammpsSimulation):
                 'c45','c46','c56']
         self.get_variables_from_lammps_output(
                 variables = lammps_results_names)
+
+        self.status = 'DONE'
 
     def write_potential_files(self,param_dict=None,filename='potential.mod'):
         LammpsSimulation.write_potential_files(\

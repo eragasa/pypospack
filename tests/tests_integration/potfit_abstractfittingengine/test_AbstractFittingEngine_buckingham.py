@@ -1,5 +1,21 @@
+import copy
 import pypospack.potfit as potfit
 import pypospack.potential as potential
+
+def get_lewis_catlow_parameters():
+    param_dict = {}
+    param_dict['chrg_Mg'] = +2.0
+    param_dict['chrg_O']  = -2.0
+    param_dict['MgMg_A']   = 0.0 
+    param_dict['MgMg_rho'] = 0.5
+    param_dict['MgMg_C']   = 0.0
+    param_dict['MgO_A']    = 821.6
+    param_dict['MgO_rho']  = 0.3242
+    param_dict['MgO_C']    = 0.0
+    param_dict['OO_A']     = 2274.00 
+    param_dict['OO_rho']   = 0.1490
+    param_dict['OO_C']     = 27.88
+    return copy.deepcopy(param_dict)
 
 class TestAbstractFittingEngineBuckingham(object):
 
@@ -39,6 +55,9 @@ if __name__ == "__main__":
                 fname_config_potential = 'pypospack.buckingham.yaml',
                 fname_config_qoi = 'pypospack.qoi.yaml',
                 fname_config_structures = 'pypospack.structure.yaml')
+
+    fitter.evaluate_parameter_set(\
+            param_dict = get_lewis_catlow_parameters())
 
     def print_qoi_names(fitter):
         assert isinstance(fitter, potfit.fitter)

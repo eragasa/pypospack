@@ -1,8 +1,7 @@
-import copy
+import copy, yaml
 import numpy as np
 
 import copy, importlib
-import pypospack.potfit as potfit
 
 def get_qoi_map():
     qoi_map = {
@@ -22,6 +21,10 @@ def get_qoi_map():
             'bulk_modulus':{
                 'qoi':['bulk_modulus'],
                 'module':'pypospack.qoi',
+                'class':'BulkModulus'},
+            'shear_modulus':{
+                'qoi':['shear_modulus'],
+                'module':'pypospack.qoi',
                 'class':'ShearModulus'},
             'surface_energy':{
                 'qoi':['surface_energy'],
@@ -34,7 +37,10 @@ def get_qoi_map():
     return copy.deepcopy(qoi_map)
 
 def get_supported_qois():
-    return list(get_qoi_map().keys())
+    qois = []
+    for k,v in get_qoi_map().items():
+        qois += v['qoi']
+    return list(qois)
 
 class QoiManager(object):
     """ Manager of Quantities of Interest 
@@ -46,7 +52,10 @@ class QoiManager(object):
     be done first.
 
     Args:
-
+        qoi_info (str,QoiDatabase,None):  If set to str, then this arguement 
+            is treated as a filename used to configure a QoiDatabase object.  If
+            QoiDatabase is passed, the reference is set to the qoi_info attribute.
+            Default value is None, where the attribute is left as None.
     Attributes:
         qoi_names (list): list of qoi_names
         qoi_targets (dict): key is the qoi_name, value is the reference value
@@ -60,10 +69,17 @@ class QoiManager(object):
         self.qoi_names = []
         self.obj_qois = {}
 
-        if qoi_info is not None:
-            assert isinstance(qoi_info,potfit.QoiDatabase)
+         
+        if isinstance(qoi_info,QoiDatabase):
             self.qoi_info = qoi_info
             self._config_from_qoi_info()
+        elif qoi_info is None:
+            pass
+        elif isinstance(qoi_info,str):
+            self.qoi_info = QoiDatabase(qoi_info)
+        else:
+            print('qoi_info:',qoi_info,type(qoi_info))
+            raise ValueError('qoi_info must be None,QoiDatabase,or string')
 
     def _config_from_qoi_info(self,qoi_info = None):
         """ configure qoi from QoiInformation object
@@ -131,6 +147,130 @@ class QoiManager(object):
                     self.required_simulations[sim_name] = copy.deepcopy(sim_info)
         return copy.deepcopy(self.required_simulations)
 
+class QoiDatabase(object):
+    """ Qoi Database 
+   
+        Contains methods for managing quantities of interests for a variety 
+        of tasks such as marshalling/unmarshalling objects to and from a
+        yaml file.  Also includes sanity tests.
+
+        Args:
+            filename(str): If this variable is set, this class will attempt to
+                unmarhsall the contents of the file into the class.  If this 
+                variable is set to None, then the class wil be initialized.
+                Default is None.
+        Attributes:
+            filename(str): file to read/write to yaml file.  By default this
+                attribute is set to 'pypospack.qoi.yaml'.
+            qois(dict): key is qoi name, value contains a variety of values
+    """
+        
+    def __init__(self, filename = None):
+        # initialize attributes
+        self.filename = 'pypospack.qoi.yaml'
+        self.qois = {}
+
+        if filename is not None:
+            self.read(filename)
+
+    @property
+    def qoi_names(self):
+        return list(self.qois.keys())
+
+    def add_qoi(self,name,qoi,structures,target):
+        """ add a qoi
+
+        Args:
+            name(str): name of the qoi.  Usually <structure>.<qoi>.
+            qoi(str): name of the qoi.
+            structures(list): list of structures
+        """
+
+        # make a copy of structures
+        _structures = None
+        if isinstance(structures,str):
+            _structures = [structures]
+        else:
+            _structures = list(structures)
+
+        self.qois[name] = {\
+                'qoi':qoi,
+                'structures':copy.deepcopy(structures),
+                'target':target}
+
+    def read(self,fname=None): 
+        """ read qoi configuration from yaml file
+
+        Args:
+            fname(str): file to read yaml file from.  If no argument is passed
+                then use the filename attribute.  If the filename is set, then
+                the filename attribute is also set.
+        """
+
+        # set the attribute if not none
+        if fname is not None:
+            self.filename = fname
+
+        try:
+            self.qois = yaml.load(open(self.filename))
+        except:
+            raise
+
+    def write(self,fname=None):
+        """ write qoi configuration to yaml file
+
+        Args:
+            fname(str): file to write yaml from from.  If no argument is passed
+               then use the filename attribute.  If the filename is set, then 
+               the filename attribute is also set.
+        """
+
+        # set the attribute if not none
+        if fname is not None:
+            self.filename = fname
+
+        # marshall attributes into a dictionary
+        self.qoi_db = copy.deepcopy(self.qois)
+
+        # dump to yaml file
+        with open(self.filename,'w') as f:
+            yaml.dump(self.qoi_db,f, default_flow_style=False)
+
+    def check(self):
+        """ perform sanity check on potential configuration
+        
+        does the following checks:
+        1.    check to see if the potential type is supported.
+
+        Raises:
+            ValueError: if the potential type is unsupported
+        # initialize variable, if a check fails the variable will be set to 
+        # false
+        """
+
+        passed_all_checks = True
+
+        for qoi_name,v in self.qois.items():
+            qoi_type = v['qoi']
+            if qoi_type not in get_supported_qois():
+                print("qoi_name:{}".format(qoi_name))
+                print("qoi_type:{}".format(qoi_type))
+                print("supported_qois:",get_supported_qois())
+                raise ValueError(\
+                    "unsupported qoi: {}:{}".format(
+                        qoi_name,qoi_type))
+
+    def get_required_structures(self):
+        """ get required structures """
+
+        required_structures = []
+        for qoi_name, qoi_info in self.qois.items():
+            structures = qoi_info['structures']
+            for s in structures:
+                if s not in required_structures:
+                    required_structures.append(s)
+
+        return required_structures
 
 class Qoi:
     """ Abstract Quantity of Interest
