@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from bokeh.io import output_file, show
-from bokeh.layouts import gridplot
+from bokeh.layouts import row
 from bokeh.models import ColumnDataSource
 from bokeh.models.callbacks import CustomJS
 from bokeh.plotting import figure, curdoc
@@ -135,29 +135,41 @@ class VisualizationTool(object):
                                         y_param_name: y_param_data})
         source_err_df = pd.DataFrame({x_err_name: x_err_data,
                                       y_err_name: y_err_data})
-        self._generate_frame(source_param_df, 'Param')
-        self._generate_frame(source_err_df, 'Error')
+        self._generate_frame(source_param_df, source_err_df)
 
 
-    def _generate_frame(self, source_df, title):
+    def _generate_frame(self, param_source_df, err_source_df):
         #make bokeh figure
         self.graph = {}
         self.graph['plot_width'] = 600
         self.graph['plot_height'] = 400
-        self.graph['title'] = title
-        self.graph['data_x'] = source_df.ix[:, 0]
-        self.graph['data_y'] = source_df.ix[:, 1]
+        self.graph['title'] = 'place holder title'
+        self.graph['param_data_x'] = param_source_df.ix[:, 0]
+        self.graph['param_data_y'] = param_source_df.ix[:, 1]
+        self.graph['err_data_x'] = err_source_df.ix[:, 0]
+        self.graph['err_data_y'] = err_source_df.ix[:, 1]
         self.graph['figure'] = figure(
             tools=self.bokeh_tools,
             plot_width=self.graph['plot_width'],
             plot_height=self.graph['plot_height'],
             title=self.graph['title']
         )
-        self.graph['figure'].circle(
-            x=self.graph['data_x'],
-            y=self.graph['data_y'],
+        self.graph['figure2'] = figure(
+            tools=self.bokeh_tools,
+            plot_width=self.graph['plot_width'],
+            plot_height=self.graph['plot_height'],
+            title=self.graph['title']
         )
-        show(self.graph['figure'])
+        self.graph['figure'].circle(
+            x=self.graph['param_data_x'],
+            y=self.graph['param_data_y'],
+        )
+        self.graph['figure2'].circle(
+            x=self.graph['err_data_x'],
+            y=self.graph['err_data_y']
+        )
+        bokeh_layout = row(self.graph['figure'], self.graph['figure2'])
+        show(bokeh_layout)
 
 if __name__ == "__main__":
     data_dir = 'data'
