@@ -1,5 +1,15 @@
 # imports here
+'''
+TODO:
+scaling
+labels
+selected ponts to file
+selected point visibility
 
+principal components analysis 
+clustering 
+manifold learning T-sne
+'''
 import os, time
 
 import numpy as np
@@ -89,23 +99,16 @@ class VisualizationDemo(object):
         self.err_names = list(err_names)
 
     def update_data(self, param_x, param_y, err_x, err_y):
+        print('update data')
         self.total_df['param_x'] = self.total_df[param_x]
         self.total_df['param_y'] = self.total_df[param_y]
         self.total_df['err_x'] = self.total_df[err_x]
         self.total_df['err_y'] = self.total_df[err_y]
-        #self.source.data = self.source.from_df(self.total_df[['param_x', 'param_y', 'err_x', 'err_y']])
-        '''
         self.source.data = dict(param_x=self.total_df['param_x'],
                                 param_y=self.total_df['param_y'],
                                 err_x=self.total_df['err_x'],
                                 err_y=self.total_df['err_y'])
-        '''
-        src = dict(param_x=self.total_df['param_x'],
-                                param_y=self.total_df['param_y'],
-                                err_x=self.total_df['err_x'],
-                                err_y=self.total_df['err_y'])
-        self.source.data.update(src)
-        self.source_static.data = self.source.data
+
 
     def nix(self, val, lst):
         return [x for x in lst if x != val]
@@ -204,9 +207,20 @@ class VisualizationDemo(object):
             self.err_graph['obj_glyph']
         )
 
-
-        def update(selected=None):
+        def update():
             print('update')
+            '''
+            if widget_name == 'param_x':
+                pass
+            elif widget_name == 'param_y':
+                pass
+            elif widget_name == 'err_x':
+                pass
+            elif widget_name == 'err_y':
+                pass
+            else:
+                pass
+            '''
             param_name_x = self.param_graph['obj_x_select'].value
             param_name_y = self.param_graph['obj_y_select'].value
             err_name_x = self.err_graph['obj_x_select'].value
@@ -216,17 +230,6 @@ class VisualizationDemo(object):
                 param_name_x, param_name_y,
                 err_name_x, err_name_y
             )
-            show(layout)
-
-        def selection_change(attrname, old, new):
-            print('selection change')
-            param_name_x = self.param_graph['obj_x_select'].value
-            param_name_y = self.param_graph['obj_y_select'].value
-            err_name_x = self.err_graph['obj_x_select'].value
-            err_name_y = self.err_graph['obj_y_select'].value
-
-        self.source.on_change('selected', selection_change)
-
 
         param_widgets = bokeh.layouts.row(
             self.param_graph['obj_x_select'],
@@ -248,42 +251,44 @@ class VisualizationDemo(object):
             param_pane,
             err_pane
         )
-
+        doc.add_root(layout)
         update()
-        curdoc().add_root(layout)
-        return doc
 
         # callback functions
         def param_x_select_change(attrname, old, new):
-            print('param x change')
+            self.source.data['param_x'] = self.total_df[new]
+            '''
             self.param_graph['obj_x_select'].options = \
-                self.nix(new, self.param_names)
-            self.source.trigger('change')
-            update()
+                self.nix(old, self.param_names)
+            '''
 
         def param_y_select_change(attrname, old, new):
-            print('param y change')
+            self.source.data['param_y'] = self.total_df[new]
+            '''
             self.param_graph['obj_y_select'].options = \
                 self.nix(new, self.param_names)
             self.source.trigger('change')
-            update()
+            '''
 
         self.param_graph['obj_x_select'].on_change('value', param_x_select_change)
         self.param_graph['obj_y_select'].on_change('value', param_y_select_change)
 
         def err_x_select_change(attrname, old, new):
-            print('err x change')
+            self.source.data['err_x'] = self.total_df[new]
+            '''
             self.err_graph['obj_x_select'].options = \
                 self.nix(new, self.err_names)
             self.source.trigger('change')
-            update()
+            '''
 
         def err_y_select_change(attrname, old, new):
-            print('err y change')
+            self.source.data['err_y'] = self.total_df[new]
+            '''
             self.err_graph['obj_y_select'].options = \
                 self.nix(new, self.err_names)
             self.source.trigger('change')
-            update()
+            '''
+
 
         self.err_graph['obj_x_select'].on_change('value', err_x_select_change)
         self.err_graph['obj_y_select'].on_change('value', err_y_select_change)
