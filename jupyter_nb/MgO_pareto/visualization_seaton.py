@@ -2,9 +2,6 @@
 '''
 TODO:
 scaling
-labels
-selected ponts to file
-selected point visibility
 
 principal components analysis 
 clustering 
@@ -99,7 +96,6 @@ class VisualizationDemo(object):
         self.err_names = list(err_names)
 
     def update_data(self, param_x, param_y, err_x, err_y):
-        print('update data')
         self.total_df['param_x'] = self.total_df[param_x]
         self.total_df['param_y'] = self.total_df[param_y]
         self.total_df['err_x'] = self.total_df[err_x]
@@ -151,19 +147,23 @@ class VisualizationDemo(object):
                 self.param_names
             )
         )
-
         self.param_graph['plot_width'] = 610
         self.param_graph['plot_height'] = 400
         self.param_graph['tools'] = self.bokeh_tools
         self.param_graph['obj_figure'] = figure(
             plot_width=self.param_graph['plot_width'],
             plot_height=self.param_graph['plot_height'],
-            tools=self.param_graph['tools']
+            tools=self.param_graph['tools'],
+            title=self.param_graph['obj_x_select'].value+' vs. '+self.param_graph['obj_y_select'].value
         )
+        self.param_graph['obj_figure'].xaxis.axis_label = self.param_graph['obj_x_select'].value
+        self.param_graph['obj_figure'].yaxis.axis_label = self.param_graph['obj_y_select'].value
         self.param_graph['obj_glyph'] = Circle(
             x='param_x',
             y='param_y',
             size=1,
+            fill_color='#5F77D5',
+            line_color='#5F77D5'
         )
         self.param_graph['obj_figure'].add_glyph(
             self.source,
@@ -195,12 +195,17 @@ class VisualizationDemo(object):
         self.err_graph['obj_figure'] = figure(
             plot_width=self.err_graph['plot_width'],
             plot_height=self.err_graph['plot_height'],
-            tools=self.err_graph['tools']
+            tools=self.err_graph['tools'],
+            title=self.err_graph['obj_x_select'].value + ' vs. ' + self.err_graph['obj_y_select'].value
         )
+        self.err_graph['obj_figure'].xaxis.axis_label = self.err_graph['obj_x_select'].value
+        self.err_graph['obj_figure'].yaxis.axis_label = self.err_graph['obj_y_select'].value
         self.err_graph['obj_glyph'] = Circle(
             x='err_x',
             y='err_y',
             size=1,
+            fill_color='#5F77D5',
+            line_color='#5F77D5'
         )
         self.err_graph['obj_figure'].add_glyph(
             self.source,
@@ -208,19 +213,6 @@ class VisualizationDemo(object):
         )
 
         def update():
-            print('update')
-            '''
-            if widget_name == 'param_x':
-                pass
-            elif widget_name == 'param_y':
-                pass
-            elif widget_name == 'err_x':
-                pass
-            elif widget_name == 'err_y':
-                pass
-            else:
-                pass
-            '''
             param_name_x = self.param_graph['obj_x_select'].value
             param_name_y = self.param_graph['obj_y_select'].value
             err_name_x = self.err_graph['obj_x_select'].value
@@ -257,41 +249,52 @@ class VisualizationDemo(object):
         # callback functions
         def param_x_select_change(attrname, old, new):
             self.source.data['param_x'] = self.total_df[new]
-            '''
-            self.param_graph['obj_x_select'].options = \
-                self.nix(old, self.param_names)
-            '''
+            self.param_graph['obj_figure'].title.text = new+' vs. '+self.param_graph['obj_y_select'].value
+            self.param_graph['obj_figure'].xaxis.axis_label = new
 
         def param_y_select_change(attrname, old, new):
             self.source.data['param_y'] = self.total_df[new]
-            '''
-            self.param_graph['obj_y_select'].options = \
-                self.nix(new, self.param_names)
-            self.source.trigger('change')
-            '''
+            self.param_graph['obj_figure'].title.text = self.param_graph['obj_x_select'].value+' vs. '+new
+            self.param_graph['obj_figure'].yaxis.axis_label = new
 
         self.param_graph['obj_x_select'].on_change('value', param_x_select_change)
         self.param_graph['obj_y_select'].on_change('value', param_y_select_change)
 
         def err_x_select_change(attrname, old, new):
             self.source.data['err_x'] = self.total_df[new]
-            '''
-            self.err_graph['obj_x_select'].options = \
-                self.nix(new, self.err_names)
-            self.source.trigger('change')
-            '''
+            self.err_graph['obj_figure'].title.text = new + ' vs. ' + self.err_graph['obj_y_select'].value
+            self.err_graph['obj_figure'].xaxis.axis_label = new
 
         def err_y_select_change(attrname, old, new):
             self.source.data['err_y'] = self.total_df[new]
-            '''
-            self.err_graph['obj_y_select'].options = \
-                self.nix(new, self.err_names)
-            self.source.trigger('change')
-            '''
+            self.err_graph['obj_figure'].title.text = self.err_graph['obj_x_select'].value+' vs. '+new
+            self.err_graph['obj_figure'].yaxis.axis_label = new
 
 
         self.err_graph['obj_x_select'].on_change('value', err_x_select_change)
         self.err_graph['obj_y_select'].on_change('value', err_y_select_change)
+
+        def source_callback(attrname, old, new):
+            file_obj = open('selected_points.txt', 'w')
+            selected_index_list = list(new['1d']['indices'])
+            selected_rows = []
+            for i in selected_index_list:
+                data_row = self.total_df.iloc[i]
+                selected_rows.append(data_row)
+            formatted_rows = []
+            for rows in selected_rows:
+                param_x_row = self.param_graph['obj_x_select'].value+': '+str(rows[self.param_graph['obj_x_select'].value])
+                param_y_row = self.param_graph['obj_y_select'].value+': '+str(rows[self.param_graph['obj_y_select'].value])
+                err_x_row = self.err_graph['obj_x_select'].value+': '+str(rows[self.err_graph['obj_x_select'].value])
+                err_y_row = self.err_graph['obj_y_select'].value+': '+str(rows[self.err_graph['obj_y_select'].value])
+                formatted_rows.append(str(param_x_row)+' '+str(param_y_row)+' '+str(err_x_row)+' '+str(err_y_row))
+            print(formatted_rows)
+
+            with open('selected_points.txt', 'w') as f:
+                for fr in formatted_rows:
+                    f.write(fr+'\n')
+
+        self.source.on_change('selected', source_callback)
 
     def start_bokeh_server(self):
         self.bokeh_app = Application(
