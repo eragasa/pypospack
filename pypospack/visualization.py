@@ -4,6 +4,9 @@ This module contains classes for visualizatio of results done in a variety
 of processed defined throughout the pypospack package library
 
 Author: Seaton Ullberg, 2017
+
+Version Requirements:
+    bokeh > 0.12.7, to avoid tornado conflicts, https://github.com/bokeh/bokeh/issues/6152
 """
 
 import os, time
