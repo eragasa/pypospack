@@ -58,3 +58,7 @@ if __name__ == "__main__":
     sim_manager.evaluate_parameters(
             param_dict = get_lewis_catlow_parameters())
 
+    for k,v in self.obj_lammps_tasks.items():
+        task_name = k
+        task = v['obj']
+        print(task_name)

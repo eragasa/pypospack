@@ -1,7 +1,7 @@
 import copy
 import pypospack.potfit as potfit
 import pypospack.potential as potential
-
+import pypospack.lammps as lammps
 def get_lewis_catlow_parameters():
     param_dict = {}
     param_dict['chrg_Mg'] = +2.0
@@ -58,6 +58,40 @@ if __name__ == "__main__":
 
     fitter.evaluate_parameter_set(\
             param_dict = get_lewis_catlow_parameters())
+
+    print(80*'-')
+    print('\t Inspecting SimulationManager')
+    sim_mgr = fitter.simulation_manager
+    sim_mgr.variable_dict= {}
+    for task_name, obj_lammps_task in sim_mgr.obj_lammps_tasks.items():
+        for var_name, var_value in obj_lammps_task['obj'].results.items():
+            k = '{}.{}'.format(task_name,var_name)
+            sim_mgr.variable_dict[k] = var_value
+
+    assert isinstance(sim_mgr, lammps.SimulationManager)
+    # assert isinstance(sim_mgr.variable_names, list)
+    assert isinstance(sim_mgr.variable_dict, dict)
+    for k,v in sim_mgr.variable_dict.items():
+        print(k,v)
+
+    print(80*'-')
+    print('\t Inspecting the QoiManager')
+    for qoi_name,qoi in fitter.qoi_manager.obj_qois.items():
+        print(qoi_name,qoi)
+        qoi.calculate_qoi(fitter.variables)
+        
+
+    print(80*'-')
+    print('\t Inspecting the QoiDatabase')
+    for k,v, in fitter.qoi_info.qois.items():
+        print(k,v)
+
+    print(80*'-')
+    print('\t Inspecting the SimulationManager')
+    for k,v in fitter.simulation_manager.obj_lammps_tasks.items():
+        print(k,type(v['obj']))
+        #for var_name, var_value in v['variables'].items():
+        #    print('\t',var_name,var_value)
 
     def print_qoi_names(fitter):
         assert isinstance(fitter, potfit.fitter)

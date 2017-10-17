@@ -467,6 +467,7 @@ class VisualizationDemo(object):
         self.bokeh_server.io_loop.start()
 
 if __name__ == "__main__":
+
     data_dir = 'data'
     filename = 'culled_009.out'
 

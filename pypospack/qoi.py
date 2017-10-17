@@ -70,7 +70,6 @@ class QoiManager(object):
         self.qoi_info = None
         self.qoi_names = []
         self.obj_qois = {}
-
          
         if isinstance(qoi_info,QoiDatabase):
             self.qoi_info = qoi_info
@@ -171,6 +170,7 @@ class QoiManager(object):
         for k,v in self.obj_qois.items():
 
             print(k,v)
+
 class QoiDatabase(object):
     """ Qoi Database 
    
@@ -400,7 +400,8 @@ class Qoi:
         raise NotImplementedError
 
     def calculate_qoi(self):
-        raise NotImplementedError
+        s_type = str(type(self))
+        raise NotImplementedError(s_type)
 
     def get_required_simulations(self):
         if self.required_simulations is None:
@@ -436,10 +437,18 @@ class ElasticTensor(Qoi):
         qoi_type = 'elastic_tensor'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
         self.determine_required_simulations()
-        
+        self.structure = self.structures[0]
+
         required_variables = ['c11','sc12','c13','c22','c23','c33',
                               'c44']
+        self.required_variables = {}
         for v in required_variables:
+            var_name = "{}.{}.{}".format(
+                    self.structure,
+                    self.qoi_type,
+                    v)
+            self.required_variables[var_name] = None
+
     def determine_required_simulations(self):
         if self.required_simulations is not None:
             return
@@ -516,16 +525,17 @@ class DefectFormationEnergy(Qoi):
         self.required_simulations[defect]['precedent_tasks'] = \
                 copy.deepcopy(precedent_tasks)
         
-    def calculate_qoi(self):
-        s_name_defect = self._req_structure_names[0]
-        s_name_bulk   = self._req_structure_names[1]
-        e_defect = self._req_vars["{}.E_min_pos".format(s_name_defect)]
-        e_bulk   = self._req_vars["{}.E_min".format(s_name_bulk)]
-        n_atoms_defect = self._req_vars["{}.n_atoms".format(s_name_defect)]
-        n_atoms_bulk   = self._req_vars["{}.n_atoms".format(s_name_bulk)]
-        e_f = e_defect - n_atoms_defect/n_atoms_bulk*e_bulk
-        self._predicted_value = e_f
-        return self._predicted_value
+    def calculate_qoi(self,variables):
+        s_name_defect = self.defect_structure
+        s_name_bulk   = self.bulk_structure
+
+        #e_defect = self._req_vars["{}.E_min_pos".format(s_name_defect)]
+        #e_bulk   = self._req_vars["{}.E_min".format(s_name_bulk)]
+        #n_atoms_defect = self._req_vars["{}.n_atoms".format(s_name_defect)]
+        #n_atoms_bulk   = self._req_vars["{}.n_atoms".format(s_name_bulk)]
+        #e_f = e_defect - n_atoms_defect/n_atoms_bulk*e_bulk
+        #self._predicted_value = e_f
+        #return self._predicted_value
 
 class SurfaceEnergy(Qoi):
     def __init__(self, qoi_name, structures):

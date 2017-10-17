@@ -39,8 +39,10 @@ class SimulationManager():
             for the potential formalism.
 
     Attributes:
+        obj_lammps_tasks(dict):
         structure_db (dict)
         variable_names (:obj:list of :obj:str): a list of variable names
+        variable_dict (dict): a dict of variables
         potential (pypospack.potential): an instance of the potential
     """
     def __init__(self, 
@@ -188,6 +190,7 @@ class SimulationManager():
                 all_sims_complete = False
         #print('all_sims_complete:',all_sims_complete)
         return all_sims_complete
+
     def add_lammps_simulation(self,sim_name,sim_info):
         lammps_map = get_lammps_map()
         task_name = sim_name

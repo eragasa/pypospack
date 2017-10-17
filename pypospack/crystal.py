@@ -20,7 +20,17 @@ iso_chem_symbols = ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al',
         'Cf','Es','Fm','Md','No','Lr','Rf','Db','Sg','Bh','Hs','Mt','Ds','Rg',
         'Uub','Uut','Uuq','Uup','Uuh','Uus','Uuo']
 
+atom_info = {}
+atom_info['Ar'] = {'amu':39.948}
+atom_info['Mg'] = {'amu':24.305}
+atom_info['O'] = {'amu':15.9994}
+atom_info['Si'] = {'amu':28.0855}
+atom_info['Ni'] = {'amu':58.6934}
+
 space_group = {}
+
+def get_amu(symbol):
+    return atom_info[symbol]['amu']
 
 def cartesian2direct(x,H):
     """ transforms cartesian coordinates to direct coordinates
@@ -168,6 +178,7 @@ class StructureDatabase(object):
                 structure_filename)
 
         return copy.deepcopy(structure_dict)
+
 class Atom(object):
     """description of an atom
 
@@ -270,29 +281,29 @@ class SimulationCell(object):
     @property
     def h1(self):
         """numpy.ndarray: which is the a1 lattice vector"""
-        return np.array(self._h_matrix[0,:])
+        return np.array(self.H[0,:])
 
     @h1.setter
     def h1(self, h1):
-        self._h_matrix[0,:] = np.array(h1)
+        self.H[0,:] = np.array(h1)
 
     @property
     def h2(self):
         """numpy.array: which is the a2 lattice vector"""
-        return np.array(self._h_matrix[1,:])
+        return np.array(self.H[1,:])
 
     @h2.setter
     def h2(self,h2):
-        self._h_matrix[1,:] = np.array(h2)
+        self.H[1,:] = np.array(h2)
  
     @property
     def h3(self):
         """numpy.array: this is the a3 lattice vector"""
-        return np.array(self._h_matrix[2,:])
+        return np.array(self.H[2,:])
 
     @h3.setter
     def h3(self,h3):
-        self._h_matrix[2,:] = np.array(h3)
+        self.H[2,:] = np.array(h3)
 
     @property
     def a1(self):
