@@ -26,7 +26,7 @@ def write_phonts_batch_script(filename,job_name,email,qos,ntasks,time,
     
     s += 'module load intel openmpi\n'
     s += '\n'
-    s += 'srun --mpi=pmi2 $PHONTS_BIN > vasp.log\n'
+    s += 'srun --mpi=pmi2 $PHONTS_BIN > phonts.log\n'
     s += 'touch jobCompleted\n'    
     s += 'echo end_time:$(date)\n'
 

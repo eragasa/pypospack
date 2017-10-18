@@ -47,7 +47,7 @@ __copyright__ = "Copyright (C) 2016,2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
-import os, shutil, pathlib, copy, shelex, subprocess,sys
+import os, shutil, pathlib, copy, shlex, subprocess,sys
 import numpy as np
 import pypospack.io.vasp as vasp
 import pypospack.io.slurm as slurm
@@ -279,10 +279,10 @@ class PhontsSimulation(object):
 
     def write_input_file(self):
         str_out = "# PhonTS input file created pypospack.\n"
-        str_out += "# {:*^78}\n".format('force evaluation')
-        str_out += self.force_evaluation_to_string()
         str_out += "# {:*^78}\n".format('simulation cell')
         str_out += self.simulation_cell_to_string()
+        str_out += "# {:*^78}\n".format('force evaluation')
+        str_out += self.force_evaluation_to_string()
         str_out += "\nend\n"
            
         with open(self.filename,'w') as f:
@@ -314,6 +314,7 @@ class PhontsSimulation(object):
             cmd_s = 'sbatch {}'.format(self.slurm_phonts_dict['filename'])
             args = shlex.split(cmd_s)
             p = subprocess.Popen(args)
+
     def force_evaluation_to_string(self):
         str_out = ''
         if  self.fp_interface in phonts_fp_interfaces:
@@ -362,10 +363,11 @@ class PhontsSimulation(object):
             for s in self.structure.symbols:
                 s_charge = self._get_charge(s)
                 s_amu = crystal.get_amu(s)
-                str_out += "{} {} {}\n".format(s,s_charge,s_amu)
+                str_out += "{} {} {}\n".format(s,s_amu,s_charge)
             str_out += "Lattice {:.10f}\n".format(a0)
             str_out += "cell {:.10f} {:.10f} {:.10f}\n".format(a1,a2,a3)
             str_out += "natoms {}\n".format(n_atoms)
+            str_out += "fractional\n"
             for a in self.structure.atomic_basis:
                 s = a.symbol
                 x = a.position[0]

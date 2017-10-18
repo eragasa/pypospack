@@ -19,6 +19,6 @@ echo hostname:$(hostname)
 echo start_time:$(date)
 module load intel openmpi
 
-srun --mpi=pmi2 $PHONTS_BIN > vasp.log
+srun --mpi=pmi2 $PHONTS_BIN > phonts.log
 touch jobCompleted
 echo end_time:$(date)

@@ -61,4 +61,5 @@ if __name__ == '__main__':
     phonts_ar_fcc.job_scheduler = 'slurm'
     phonts_ar_fcc.slurm_phonts_dict = copy.deepcopy(slurm_phonts_dict)
     phonts_ar_fcc.write_submission_script()
-
+    phonts_ar_fcc.run()
+    
