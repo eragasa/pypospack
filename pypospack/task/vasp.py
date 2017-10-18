@@ -5,7 +5,8 @@ __copyright__ = "Copyright (C) 2016,2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
-import os,shutil,subprocess
+import os,shutil,subprocess,yaml,copy,pathlib
+import numpy as np
 import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 import pypospack.io.slurm as slurm
@@ -51,6 +52,7 @@ class VaspSimulation(Task):
             additional_config_dict = {\
                 'incar':self.set_incar,
                 'poscar':self.set_poscar,
+                'kpoints':self.set_kpoints,
                 'xc':self.set_xc,
                 'encut':self.set_encut}
             additional_ready_dict = {}
@@ -306,6 +308,9 @@ class VaspSimulation(Task):
         else:
             raise ValueError
 
+    def set_kpoints(self,kpoints_info):
+        raise NotImplementedError
+
     def set_xc(self,xc):
         self.xc = xc
 
@@ -334,10 +339,32 @@ class VaspSimulation(Task):
         else:
             msg = 'do not know how to process incar params'
             raise VaspSimulationError(msg)
-    def get_encut_tfrom_potcar(self):
+    def get_encut_from_potcar(self):
         return max(self.potcar.encut_max)
 
 class VaspStructuralMinimization(VaspSimulation):
+    """ Task class for VASP structural minimization
+
+    The default configuration will do a full structural minimization using
+    the GGA functional.  The energy cutoff for the plane waves will be set
+    at the highest ENMAX contained in the POTCAR files.  The Kpoints will be
+    set at the 6x6x6 kpoint mesh in the Brillioun zone.  Forces are 
+    minimized to 1e-3 ev/Angs.
+
+    Args:
+        task_name(str): the task name for this VASP simulation
+        task_directory(str): where to create a directory
+        restart(bool): if this flag is set to True, then it will attempt
+           restart the simulation from information contained in task_directory.
+           Default is True.
+
+    Attributes:
+        poscar(pypospack.io.vasp.Poscar): A class to manage poscar files
+        incar(pypospack.io.vasp.Incar): A class to manage incar files
+        potcar(pypospack.io.Potcar): A class to manage potcar files
+        kpoints(pypospak.io.Kpoints): A class to manage kpoints
+
+    """
     def __init__(self,task_name,task_directory,restart=True):
         VaspSimulation.__init__(self,task_name,task_directory,restart)
 
@@ -374,3 +401,192 @@ class VaspCalculatePhonons(VaspSimulation):
             self.incar.potim = 0.015 # displacements
         self.incar.isif = 3
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
+
+class VaspKpointsConvergence(object):
+    pass
+
+class VaspEncutConvergence(object):
+    """
+    Args:
+        structure(str or pypospack.crystal.Structure):
+        xc(str): exchange correlation functional
+        encut_min(int): minimum of the range for the energy cutoff, in eV
+        encut_max(int): maximum of the range for the energy cutoff, in eV
+        encut_step(int): interval between simulations of energy cutoffs, in eV
+        incar_dict(str): parameters for the VASP simulation
+        slurm_dict(str): job submission parameters for the VASP simulation
+    Attributes:
+        poscar(pypospack.io.vasp.Poscar)
+        encut_min(int)
+        encut_max(int)
+        encut_step(int)
+        task(dict)
+        task_results(dict)
+    """
+    def __init__(self,structure='POSCAR',xc='GGA',
+            encut_min=None,encut_max=None,encut_step=25,
+            incar_dict=None,slurm_dict=None,full_auto=True):
+
+        # check argument 'structure'
+        if isinstance(structure,crystal.SimulationCell):
+            self.structure_filename = 'POSCAR'
+            self.poscar = vasp.Poscar(structure)
+            self.poscar.write(structure_filename)
+        elif isinstance(structure,str):
+            self.structure_filename = structure
+            self.poscar = vasp.Poscar()
+            self.poscar.read(structure)
+        else:
+            msg_err = "structure must either be an instance of "
+            msg_err += "pypospack.crystal.SimulationCell or a string"
+            raise ValueError(msg_err)
+
+        self.xc = xc
+
+        # determine energy cutoff
+        if any([encut_min is None, encut_max is None]):
+            # create a potcar containing the information contained in the 
+            # potcar files
+            potcar = vasp.Potcar()
+            potcar.symbols = self.poscar.symbols
+            potcar.xc = xc
+
+            # this is kind of clunky because I have to write the potcar file
+            # before i read it.
+            # TODO: what I should actually do is read the POTCARS for each
+            #       individual symbol and collect the information I need
+            potcar.write('POTCAR.tmp')
+            potcar.read('POTCAR.tmp')
+            os.remove('POTCAR.tmp')
+
+            # set encut min
+            if any([isinstance(encut_min,float),
+                    isinstance(encut_min,int)]):
+                self.encut_min = encut_min
+            else:
+                self.encut_min = max(potcar.encut_min)
+
+            # set encut max
+            if any([isinstance(encut_max,float),
+                    isinstance(encut_max,int)]):
+                self.encut_max = encut_max
+            else:
+                self.encut_max = 1.5 * max (potcar.encut_max)
+        else:
+            self.encut_min = encut_min
+            self.encut_max = encut_max
+
+        self.encut_step = encut_step
+
+        # set incut_dict
+        if isinstance(incar_dict, dict):
+            self.incar_dict = copy.deepcopy(incar_dict)
+
+        # set slurm_dict
+        if isinstance(slurm_dict, dict):
+            self.slurm_dict = copy.deepcopy(slurm_dict)
+
+        # additional attributes which aren't parameters
+        self.tasks = {}
+        self.task_results = {}
+
+        if full_auto is True:
+            self.do_full_auto()
+
+    def do_full_auto(self):
+        if not pathlib.Path('pypospack.manifest.yaml').is_file():
+            self.create_simulations()
+            self.manifest = SlurmSimulationManifest()
+            self.manifest.task_list = copy.deepcopy(self.task_list)
+            for task_name in self.task_list:
+                self.manifest.tasks[task_name] = {}
+                self.manifest.tasks[task_name]['created'] = True
+                self.manifest.tasks[task_name]['submitted'] = False
+                self.manifest.tasks[task_name]['complete'] = False
+            
+            self.run_simulations()
+            for task_name in self.task_list:
+                self.manifest.tasks[task_name]['sim_submitted'] = True
+            self.manifest.write('pypospack.manifest.yaml')
+        else:
+            self.manifest = SlurmSimulationManifest()
+            self.manifest.read('pypospack.manifest.yaml')
+
+    def create_simulations(self):
+        # local copy
+        encut_min = self.encut_min
+        encut_max = self.encut_max
+        encut_step = self.encut_step
+
+        encuts = np.arange(encut_min,encut_max+1,encut_step).tolist()
+
+        for encut in encuts:
+            encut = int(encut)
+            str_encut = str(encut)
+            incar_dict = copy.deepcopy(self.incar_dict)
+            incar_dict['encut'] = encut
+            self.tasks[str_encut] = VaspSimulation(
+                        task_name = str_encut,
+                        task_directory = str_encut)
+            self.tasks[str_encut].config(
+                    poscar=self.structure_filename,
+                    incar=incar_dict,
+                    xc=self.xc)
+
+        self.task_list = [str(int(v)) for v in encuts]
+
+    def run_simulations(self):
+        for task_name,task in self.tasks.items():
+            task.run(job_type='slurm',exec_dict=self.slurm_dict)
+
+    def post_process(self):
+        self.task_results = {}
+        for task_name,task in self.tasks.items():
+            if task.status == 'POST':
+                task.postprocess()
+
+                encut = task.outcar.encut
+                total_energy = task.outcar.total_energy
+                n_atoms = len(task.contcar.atomic_basis)
+                total_energy_per_atom = total_energy/n_atoms
+
+                self.task_results[task_name] = {
+                    'encut':encut,
+                    'total_energy':total_energy,
+                    'n_atoms':n_atoms,
+                    'total_energy_per_atom':total_energy_per_atom}
+         
+# ---- temporary classes until i can write a VaspSimulationManager ---
+
+class SimulationManifest(object):
+    def __init__(self,filename='pypospack.manifest.yaml'):
+        raise NotImplementedError
+    def process(self,filename=None):
+        raise NotImplementedError
+    def read(self,filename=None):
+        raise NotImplementedError
+    def write(self,filename=None):
+        raise NotImplementedError
+
+class SlurmSimulationManifest(SimulationManifest):
+    def __init__(self,filename='pypospack.manifest.yaml'):
+        self.filename = filename
+        self.manifest_dict = {}
+        self.task_list = []
+        self.tasks = {}
+
+    def read(self,filename=None):
+        if filename is not None:
+            self.filename = filename
+
+    def write(self,filename):
+        manifest = {}
+        manifest['task_list'] = self.task_list
+        manifest['tasks'] = self.tasks
+        if filename is not None:
+            self.filename = filename
+
+        with open(self.filename,'w') as f:
+            yaml.dump(manifest,f,default_flow_style=False)
+
+
