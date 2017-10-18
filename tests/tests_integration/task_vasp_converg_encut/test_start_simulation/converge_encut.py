@@ -34,7 +34,7 @@ class SlurmSimulationManifest(SimulationManifest):
             self.filename = filename
 
         with open(self.filename,'w') as f:
-            yaml.dump(manifest,f,default_flow_style=True)
+            yaml.dump(manifest,f,default_flow_style=False)
 
 class VaspConvergenceEnergyCutoff(object):
     """
@@ -165,7 +165,7 @@ class VaspConvergenceEnergyCutoff(object):
                     incar=incar_dict,
                     xc=self.xc)
 
-        self.task_list = [str(v) for v in encuts]
+        self.task_list = [str(int(v)) for v in encuts]
 
     def run_simulations(self):
         for task_name,task in self.tasks.items():

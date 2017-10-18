@@ -3,10 +3,56 @@ import pypospack.io.vasp as vasp
 import pypospack.task.vasp as tsk_vasp
 import os
 
+import yaml
+class SimulationManifest(object):
+    def __init__(self,filename='pypospack.manifest.yaml'):
+        self.filename = filename
+        self.manifest_dict = {}
+    def process(self, filename=None):
+        if filename is not None:
+            self.filename = filename
+        self.read()
 
+        self.write()
+    def read(self,filename=None):
+        if filename is not None:
+            self.filename = filename
+
+    def write(self,filename):
+        if filename is not None:
+            self.filename = filename
+
+def vasp_converge_encut(structure='POSCAR',xc='GGA'):
+    """
+    Args:
+        poscar(str or pypospack.crystal.SimulationCell): poscar filename
+        xc(str): exchange correlation functional
+    """
+
+    fname_sim_manifest = 'pyospack.sim.manifest.yaml'
+    if isinstance(structure,pypsopack.crystal.SimulationCell):
+        poscar = vasp.Poscar(structure)
+    elif isinstance(poscar,str):
+        poscar = vasp.Poscar()
+
+    potcar = vasp.Potcar()
+    potcar.symbols = poscar.symbols
+    potcar.xc = xc
 if __name__ == '__main__':
     structure_filename = '../MgO_vasp_structuralminimization/MgO_calc/CONTCAR'
     xc = 'GGA'
+
+    incar_dict = {}
+    incar_dict['ismear'] = 0
+    incar_dict['sigma'] = 0.05
+    incar_dict['ispin'] = 1
+
+    slurm_dict = {}
+    slurm_dict['email'] = 'eragasa@ufl.edu'
+    slurm_dict['qos'] = 'phillpot'
+    slurm_dict['ntasks'] = 16
+    slurm_dict['time'] = "1:00:00"
+
     is_restart = True
     poscar = vasp.Poscar()
     poscar.read(structure_filename)
