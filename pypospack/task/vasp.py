@@ -90,7 +90,6 @@ class VaspSimulation(Task):
             shutil.rmtree(self.task_directory)
             os.mkdir(self.task_directory)
             self.status = 'INIT'
-        print('TASK: {}, STATUS: {}'.format(self.task_name,self.status))
 
     def config(self,poscar=None,incar=None,kpoints=None,xc='GGA'):
         # read the poscar file, then write it
@@ -426,7 +425,8 @@ class VaspEncutConvergence(object):
     def __init__(self,structure='POSCAR',xc='GGA',
             encut_min=None,encut_max=None,encut_step=25,
             incar_dict=None,slurm_dict=None,full_auto=True):
-
+        
+        self.filename_results = 'converg.encut.results'
         # check argument 'structure'
         if isinstance(structure,crystal.SimulationCell):
             self.structure_filename = 'POSCAR'
@@ -499,7 +499,10 @@ class VaspEncutConvergence(object):
             self.manifest = SlurmSimulationManifest()
             self.manifest.task_list = copy.deepcopy(self.task_list)
             for task_name in self.task_list:
+                task_directory = self.tasks[task_name].task_directory
+
                 self.manifest.tasks[task_name] = {}
+                self.manifest.tasks[task_name]['directory'] = task_directory
                 self.manifest.tasks[task_name]['created'] = True
                 self.manifest.tasks[task_name]['submitted'] = False
                 self.manifest.tasks[task_name]['complete'] = False
@@ -511,7 +514,41 @@ class VaspEncutConvergence(object):
         else:
             self.manifest = SlurmSimulationManifest()
             self.manifest.read('pypospack.manifest.yaml')
+            self.task_list = list(self.manifest.task_list)
+            self.tasks = {}
+            for task_name in self.task_list:
+                task_directory = self.manifest.tasks[task_name]['directory']
+                self.tasks[task_name] = VaspSimulation(\
+                    task_name=task_name,
+                    task_directory=task_directory,
+                    restart=True)
 
+                status = self.tasks[task_name].status
+                if status == 'CONFIG':
+                    pass
+                elif status == 'RUN':
+                    self.manifest.tasks[task_name]['submitted'] = True
+                elif status == 'POST':
+                    self.manifest.tasks[task_name]['complete'] = True
+
+            all_sims_complete = all([v['complete'] for k,v in \
+                    self.manifest.tasks.items()])
+
+            if all_sims_complete:
+                self.post_process()
+
+                # write out everything
+                names = ['encut','total_energy','n_atoms','total_energy_per_atom']
+                values = []
+                for task_name in self.task_list:
+                    values.append([self.task_results[task_name][n] for n in names])
+                str_out = ','.join(names)+'\n'
+                for row in values:
+                    str_out += ','.join([str(v) for v in row])+'\n'
+                with open(self.filename_results,'w') as f:
+                    f.write(str_out)
+            else:
+                print('simulations not complete')
     def create_simulations(self):
         # local copy
         encut_min = self.encut_min
@@ -578,6 +615,12 @@ class SlurmSimulationManifest(SimulationManifest):
     def read(self,filename=None):
         if filename is not None:
             self.filename = filename
+
+        with open(self.filename,'r') as f:
+            manifest = yaml.load(f)
+
+        self.task_list = list(manifest['task_list'])
+        self.tasks = dict(manifest['tasks'])
 
     def write(self,filename):
         manifest = {}

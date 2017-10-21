@@ -1,4 +1,5 @@
 import os,shutil
+
 class Task(object):
     """
     Attributes:
@@ -35,7 +36,6 @@ class Task(object):
         # check to see if path exists
         if os.path.exists(self.task_directory):
             if self.is_restart:
-                print('checking for restart')
                 self.restart()
             else:
                 # if no restart, start
