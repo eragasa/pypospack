@@ -20,7 +20,13 @@ if __name__ == '__main__':
     slurm_dict['ntasks'] = 16
     slurm_dict['time'] = "1:00:00"
 
+    directory='MgO_NaCl'
+    structure_filename=os.path.join(
+            os.getcwd(),'rsrc','MgO_NaCl_prim.vasp')
     encut_conv = tsk_vasp.VaspEncutConvergence(
-            structure=structure_filename,xc='GGA',
-            incar_dict=incar_dict,slurm_dict=slurm_dict,
+            directory=directory
+            structure=structure_filename,
+            xc=xc,
+            incar_dict=incar_dict,
+            slurm_dict=slurm_dict,
             full_auto=full_auto)

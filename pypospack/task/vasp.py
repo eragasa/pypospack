@@ -422,11 +422,21 @@ class VaspEncutConvergence(object):
         task(dict)
         task_results(dict)
     """
-    def __init__(self,structure='POSCAR',xc='GGA',
+    def __init__(self,directory=None,structure='POSCAR',xc='GGA',
             encut_min=None,encut_max=None,encut_step=25,
             incar_dict=None,slurm_dict=None,full_auto=True):
         
+        self.orig_directory = os.getcwd()
         self.filename_results = 'converg.encut.results'
+        
+        # --- PROCESS ARGUMENTS ---
+        # process the dictionary attribute
+        if directory is not None:
+            self.directory = directory
+            if not os.path.exists(self.directory):
+                os.makedirs(self.directory)
+            # if the directory exists we do nothing
+
         # check argument 'structure'
         if isinstance(structure,crystal.SimulationCell):
             self.structure_filename = 'POSCAR'
@@ -494,6 +504,7 @@ class VaspEncutConvergence(object):
             self.do_full_auto()
 
     def do_full_auto(self):
+        os.chdir(self.directory)
         if not pathlib.Path('pypospack.manifest.yaml').is_file():
             self.create_simulations()
             self.manifest = SlurmSimulationManifest()
@@ -549,6 +560,7 @@ class VaspEncutConvergence(object):
                     f.write(str_out)
             else:
                 print('simulations not complete')
+
     def create_simulations(self):
         # local copy
         encut_min = self.encut_min
@@ -562,9 +574,12 @@ class VaspEncutConvergence(object):
             str_encut = str(encut)
             incar_dict = copy.deepcopy(self.incar_dict)
             incar_dict['encut'] = encut
+            
+            task_name = str_encut
+            task_directory = self.directory
             self.tasks[str_encut] = VaspSimulation(
-                        task_name = str_encut,
-                        task_directory = str_encut)
+                        task_name=task_name,
+                        task_directory=task_directory)
             self.tasks[str_encut].config(
                     poscar=self.structure_filename,
                     incar=incar_dict,
