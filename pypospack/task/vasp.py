@@ -42,11 +42,11 @@ class VaspSimulation(Task):
     def __init__(self,task_name,task_directory,restart=True):
         Task.__init__(self,task_name,task_directory,restart)
 
+        self.poscar = vasp.Poscar()
+        self.incar = vasp.Incar()
+        self.potcar = vasp.Potcar()
+        self.kpoints = vasp.Kpoints()
         if self.status == 'INIT':
-            self.poscar = vasp.Poscar()
-            self.incar = vasp.Incar()
-            self.potcar = vasp.Potcar()
-            self.kpoints = vasp.Kpoints()
 
             # additional items to add
             additional_config_dict = {\
@@ -428,29 +428,54 @@ class VaspEncutConvergence(object):
         
         self.orig_directory = os.getcwd()
         self.filename_results = 'converg.encut.results'
-        
+        self.manifest_filename = 'pypospack.manifest.yaml'
+
         # --- PROCESS ARGUMENTS ---
         # process the dictionary attribute
         if directory is not None:
-            self.directory = directory
+            if os.path.isabs(directory):
+                self.directory = directory
+            else:
+                self.directory = os.path.join(
+                    self.orig_directory,
+                    directory)
+
             if not os.path.exists(self.directory):
                 os.makedirs(self.directory)
-            # if the directory exists we do nothing
 
+        # change the location of the result output file
+        self.filename_results = os.path.join(
+            self.directory,
+            self.filename_results)
+
+        self.manifest_filename = os.path.join(
+            self.directory,
+            self.manifest_filename)
         # check argument 'structure'
         if isinstance(structure,crystal.SimulationCell):
             self.structure_filename = 'POSCAR'
             self.poscar = vasp.Poscar(structure)
             self.poscar.write(structure_filename)
         elif isinstance(structure,str):
-            self.structure_filename = structure
+            if os.path.isabs(structure):
+                self.structure_filename = structure
+            else:
+                # convert to absolute path
+                self.structure_filename = os.path.join(
+                    self.orig_directory,
+                    structure)
+                self.structure_filename = os.path.normpath(
+                    self.structure_filename)
+
+            # read the poscar file
             self.poscar = vasp.Poscar()
-            self.poscar.read(structure)
+            self.poscar.read(self.structure_filename)
         else:
             msg_err = "structure must either be an instance of "
             msg_err += "pypospack.crystal.SimulationCell or a string"
             raise ValueError(msg_err)
 
+        # self exchange correlation functional
         self.xc = xc
 
         # determine energy cutoff
@@ -504,14 +529,18 @@ class VaspEncutConvergence(object):
             self.do_full_auto()
 
     def do_full_auto(self):
-        os.chdir(self.directory)
-        if not pathlib.Path('pypospack.manifest.yaml').is_file():
+        if not pathlib.Path(self.manifest_filename).is_file():
             self.create_simulations()
+            # write_simulation_manifest()
+
             self.manifest = SlurmSimulationManifest()
             self.manifest.task_list = copy.deepcopy(self.task_list)
             for task_name in self.task_list:
                 task_directory = self.tasks[task_name].task_directory
-
+                #TODO:
+                # task_is_created = self.task[task_name].is_created
+                # task_is_submitted = self.task[task_name].is_submitted
+                # task_is_compled = self.task[task_name].is_completed
                 self.manifest.tasks[task_name] = {}
                 self.manifest.tasks[task_name]['directory'] = task_directory
                 self.manifest.tasks[task_name]['created'] = True
@@ -521,12 +550,14 @@ class VaspEncutConvergence(object):
             self.run_simulations()
             for task_name in self.task_list:
                 self.manifest.tasks[task_name]['sim_submitted'] = True
-            self.manifest.write('pypospack.manifest.yaml')
+            self.manifest.write(self.manifest_filename)
         else:
+            # read_simulation_manifest()
             self.manifest = SlurmSimulationManifest()
-            self.manifest.read('pypospack.manifest.yaml')
+            self.manifest.read(self.manifest_filename)
             self.task_list = list(self.manifest.task_list)
             self.tasks = {}
+
             for task_name in self.task_list:
                 task_directory = self.manifest.tasks[task_name]['directory']
                 self.tasks[task_name] = VaspSimulation(\
@@ -576,14 +607,24 @@ class VaspEncutConvergence(object):
             incar_dict['encut'] = encut
             
             task_name = str_encut
-            task_directory = self.directory
-            self.tasks[str_encut] = VaspSimulation(
+            task_directory = os.path.join(self.directory,task_name)
+            self.tasks[task_name] = VaspSimulation(
                         task_name=task_name,
                         task_directory=task_directory)
-            self.tasks[str_encut].config(
-                    poscar=self.structure_filename,
-                    incar=incar_dict,
-                    xc=self.xc)
+            try:
+                self.tasks[task_name].config(
+                        poscar=self.structure_filename,
+                        incar=incar_dict,
+                        xc=self.xc)
+            except AttributeError as e:
+                s = str(e)
+                print('debugging code')
+                print(type(self))
+                print('\ttask_name:{}'.format(task_name))
+                print('\ttask_obj:{}'.format(str(type(self.tasks[task_name]))))
+                print('\ttask_obj.potcar:{}'.format(
+                        str(type(self.tasks[task_name].potcar))))
+                raise
 
         self.task_list = [str(int(v)) for v in encuts]
 

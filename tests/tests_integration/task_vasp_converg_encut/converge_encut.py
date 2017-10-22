@@ -24,7 +24,7 @@ if __name__ == '__main__':
     structure_filename=os.path.join(
             os.getcwd(),'rsrc','MgO_NaCl_prim.vasp')
     encut_conv = tsk_vasp.VaspEncutConvergence(
-            directory=directory
+            directory=directory,
             structure=structure_filename,
             xc=xc,
             incar_dict=incar_dict,
