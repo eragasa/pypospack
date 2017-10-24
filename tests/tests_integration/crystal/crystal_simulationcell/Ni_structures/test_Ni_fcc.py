@@ -239,6 +239,7 @@ class Hcp(crystal.SimulationCell):
         crystal.SimulationCell.__init__(self,atoms)
         self.normalize_h_matrix()
 
+
 class SurfaceSlab(object):
     pass
 
