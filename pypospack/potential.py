@@ -5,7 +5,8 @@ __copyright__ = "Copyright (C) 2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
-import copy, yaml
+import os,pathlib,copy, yaml
+from collections import OrderedDict
 import numpy as np
 
 def get_potential_map():
@@ -247,6 +248,12 @@ class Buckingham(Potential):
                             r_cut)
         return str_out
 
+    def lammps_potential_section_to_string(self,param_dict,r_cut=10.0):
+        raise NotImplementedError()
+
+    def phonts_potential_section_to_string(self,param_dict,r_cut=10.0):
+        raise NotImplementedError()
+
     def to_string(self,param_dict,r_cut=10):
         if param_dict is None:
             param_dict = copy.deepcopy(self.param_dict)
@@ -411,9 +418,7 @@ class TersoffPotential(Potential):
                     str_out += ' ' + self._param_dict['{}_A'.format(s)]
                     str_out += '\n'
 
-class EamPotential(Potential):
-    def __init__(self,symbols):
-        Potential.__init__(self,symbols)
+
 class ShiftedForceCutoff(CutoffFunction):
     def eval(self, r):
         pass
@@ -426,11 +431,18 @@ def func_cutoff(r,rcut,h):
     phi[r_gt_rcut] = np.zeros(len(r_gt_rcut))
     return phi
 
-
-
 class EamPotential(Potential):
-    def __init__(self,symbols):
+    def __init__(self,symbols,setfl_filename='None',is_parameterized=True):
         Potential.__init__(self,symbols)
+        self.potential_type = 'eam'
+
+        self.is_eam_parameterized = True
+
+        self.is_eam_file = False
+        if setfl_filename is not None:
+            self.is_eam_file = True
+            
+            self.setfl_filename=setfl_filename
         self._pot_type = 'eam'
         self.param_dict = None
         self._param_names = None
@@ -476,14 +488,27 @@ class EamPotential(Potential):
     #def make_setfl_file(self):
 
 class EamElectronDensityFunction(Potential):
-    pass
-
+    def __init__(self,symbols):
+        s = None
+        if isinstance(symbols,list):
+            if len(symbols) != 1:
+                err_msg = "symbols must either be a string containing one symbol, or an array of length one"
+                raise ValueError(err_msg)
+            s = list(symbols)
+        elif isinstance(symbols,str):
+            s = [symbols]
+        else:
+            err_msg = "symbols must either be a string containing one symbol, or an array of length one"
+            raise ValueError(err_msg)
+        Potential.__init__(self,s)
+        self.potential_type 
 class ExponentialDensityFunction(EamElectronDensityFunction):
     def __init__(self,symbols):
         EamElectronDensityFunction.__init__(self,symbols)
+        self.potential_type = 'elec_dens.exponential'
         self._pot_type = 'elec_dens_exp'
         self.param_dict = None
-        self._param_names
+        self.param_names = []
 
         self._determine_parameter_names()
         self._create_param_dictionary()
@@ -495,53 +520,77 @@ class ExponentialDensityFunction(EamElectronDensityFunction):
 
     def _create_param_dictionary(self):
         self._determine_parameter_names()
-        return self._param_names
+        return self.param_names
 
     def _determine_parameter_names(self):
-        self._param_names = []
-        for s in self._symbols:
-            self._param_names.append('{}_rho0'.format(s))
-            self._param_names.append('{}_beta'.format(s))
-            self._param_names.append('{}_r0'.format(s))
+        self.param_names = []
+        for s in self.symbols:
+            self.param_names.append('d.{}.rho0'.format(s))
+            self.param_names.append('d.{}.beta'.format(s))
+            self.param_names.append('d.{}.r0'.format(s))
 
-    def evaluate(self,r,symbol,params,rcut=0,h=1):
-        err_msg = "cannot find {} parameter for {}"
-
-        rho0 = None
-        beta = None
-        r0 = None
-
-        if '{}_rho0'.format(symbol) in self._param_names:
-            rho0 = params['{}_rho0'.format(symbol)]
+    def evaluate(self,r,symbol,params,rcut=False):
+        s = None
+        if isinstance(symbol,str):
+            s = symbol
+        elif isinstance(symbol,list):
+            if len(symbol) == 1:
+                s = symbol[0]
+            else:
+                msg_err = "symbol may either be a string of a list of length one."
+                raise ValueError(msg_err)
         else:
-            str_out = err_msg.format(err_msg.format('rho0',symbol))
-            raise ValueError(str_out)
+            msg_err = "symbol may either be a string of a list of length one."
+            raise ValueError(msg_err)
 
-        if '{}_beta'.format(symbol) in self._param_names:
-            beta = params['{}_beta'.format(symbol)]
+        if s not in self.symbols:
+            msg_err = "symbol not in list of symbols"
+            raise ValueError(msg_err)
+
+        # make local copy of parameters, from dictionary
+        try:
+            rho0 = params['d.{}.rho0'.format(s)]
+            beta = params['d.{}.beta'.format(s)]
+            r0 = params['d.{}.r0'.format(s)]
+        except:
+            raise
+
+        val = None
+        if rcut is False:
+            val = rho0 * np.exp(-beta*(r/r0-1))
         else:
-            str_out = err_msg.format(err_msg.format('beta',symbol))
-            raise ValueError(str_out)
-
-        
-        if '{}_r0'.format(symbol) in self._param_names:
-            r0 = params['{}_r0'.format(symbol)]
-        else:
-            str_out = err_msg.format(err_msg.format('r0',symbol))
-            raise ValueError(str_out)
-
-        val = rho0 * np.exp(-beta*(r/r0-1))
-
-        if rcut != 0:
+            val = rho0 * np.exp(-beta*(r/r0-1))
             val = val * func_cutoff(r,rcut,h)
 
         return val
+
 class MorsePotential(Potential):
+    """
+
+    This class manages the parameterization, evaluation, and creation of 
+    different section of the inputs files required for GULP, LAMMPS, and
+    PhonTS through the pypospack library.
+
+    The formalism used here is the same used in the LAMMPS documentation.
+
+    Args:
+        symbols(list of str): a list of the chemical symbols for the potential.
+    Attributes:
+        symbols(list of str)
+        is_charge(bool): for the Morse Potential, this is set to false.
+        param_dict(collections.OrderedDict)
+        param_names(list)
+
+    References:
+    ===========
+    http://lammps.sandia.gov/doc/pair_morse.html
+    """
     def __init__(self,symbols):
         Potential.__init__(self,symbols)
-        self._pot_type = 'pair_morse'
+        self.potential_type = 'morse'
+        self.is_charge = False
         self.param_dict = None
-        self._param_names = None
+        self.param_names = None
 
         self._determine_parameter_names()
         self._create_param_dictionary()
@@ -552,69 +601,49 @@ class MorsePotential(Potential):
         return self._param_names
 
     def _create_param_dictionary(self):
-        self.param_dict = {}
-        for v in self._param_names:
+        self.param_dict = OrderedDict()
+        for v in self.param_names:
             self.param_dict[v] = None
 
-    def evaluate(self,r,pair,params, rcut=0, h=1.):
+    def evaluate(self,r,pair,param_dict,rcut=False):
         """
         Args:
-
+            r(numpy.ndarray)
+            symbols(list): a list of symbols
+            params(dict): a dictionary of parameters
             rcut(float) - the cutoff function.  If set to 0, then no cutoff
         function is applied.
         """
         err_msg = "MorsePotential cannot find {} parameter for {},{} pair"
 
         # free_params = De, a, re
-        D0 = None
-        a = None
-        r0 = None
-
-        if '{}{}_D0'.format(pair[0],pair[1]) in self._param_names:
-            D0 = params['{}{}_D0'.format(pair[0],pair[1])]
-        elif '{}{}_D0'.format(pair[1],pair[0]) in self._param_names:
-            D0 = params['{}{}_D0'.format(pair[1],pair[0])]
-        else:
-            str_out = err_msg.format('D0',pair[0],pair[1])
-            raise ValueError(str_out)
-
-        if '{}{}_a'.format(pair[0],pair[1]) in self._param_names:
-            a = params['{}{}_a'.format(pair[0],pair[1])]
-        elif '{}{}_a'.format(pair[1],pair[0]) in self._param_names:
-            a = params['{}{}_a'.format(pair[1],pair[0])]
-        else:
-            str_out = err_msg.format('a',pair[0],pair[1])
-            raise ValueError(str_out)
-
-        if '{}{}_r0'.format(pair[0],pair[1]) in self._param_names:
-            r0 = params['{}{}_r0'.format(pair[0],pair[1])]
-        elif '{}{}_r0'.format(pair[1],pair[0]) in self._param_names:
-            r0 = params['{}{}_r0'.format(pair[1],pair[0])]
-        else:
-            str_out = err_msg.format('r0',pair[0],pair[1])
-            raise ValueError(str_out)
+        try:
+            D0 = param_dict['{}{}.D0'.format(*pair)]
+            a = param_dict['{}{}.a'.format(*pair)]
+            r0 = param_dict['{}{}.r0'.format(*pair)]
+        except:
+            raise
 
         val = D0 * ((1 - np.exp(-a*(r-r0)))**2 -1)
         #val = D0 * (1 - np.exp(-a*(r-r0)))**2
 
-        if rcut != 0:
-            print('using rcut')
-            val = val * func_cutoff(r,rcut,h)
+        if rcut is False:
+            val = D0 * ((1 - np.exp(-a*(r-r0)))**2 -1)
 
         return val
 
     def _determine_parameter_names(self):
-        symbols = self._symbols
+        symbols = self.symbols
         n_symbols = len(symbols)
-        self._param_names = []
+        self.param_names = []
         for i in range(n_symbols):
             for j in range(n_symbols):
                 if i <=j:
                     s_i = symbols[i]
                     s_j = symbols[j]
-                    self._param_names.append("{}{}_D0".format(s_i,s_j))
-                    self._param_names.append("{}{}_a".format(s_i,s_j))
-                    self._param_names.append("{}{}_r0".format(s_i,s_j))
+                    self.param_names.append("{}{}_D0".format(s_i,s_j))
+                    self.param_names.append("{}{}_a".format(s_i,s_j))
+                    self.param_names.append("{}{}_r0".format(s_i,s_j))
 
 class EamEmbeddingFunction(Potential):
     def __init__(self,symbols):
@@ -639,7 +668,6 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
         self.param_dict = {}
         for v in self._param_names:
             self.param_dict[v] = None
-
 
     def _determine_parameter_names(self):
         self._param_names = []
