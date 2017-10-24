@@ -18,7 +18,7 @@ from bokeh.layouts import gridplot, row, column
 from bokeh.models import ColumnDataSource
 from bokeh.models.glyphs import Circle, Quad, Line
 from bokeh.plotting import figure, curdoc
-from bokeh.models.widgets import Select, PreText, TextInput
+from bokeh.models.widgets import Select, Paragraph, RadioGroup
 from bokeh.models import Range1d
 from bokeh.server.server import Server
 from bokeh.application.handlers import FunctionHandler
@@ -27,6 +27,7 @@ from bokeh.application import Application
 import pypospack.visualization as visualization
 
 import scipy.special as special
+import scipy.stats
 import statistics
 
 
@@ -36,6 +37,12 @@ class Statistics_1D(object):
         self.total_df = vizdemo.total_df
         self.param_names = vizdemo.param_names
         self.err_names = vizdemo.err_names
+
+        # create new columns for squared error
+        for names in self.err_names:
+            squared_err_name = 'squared_'+names
+            self.total_df[squared_err_name] = self.total_df[names]**2
+
 
     def analyze_params(self, val):
         mu = statistics.mean(self.total_df[val])
@@ -48,6 +55,11 @@ class Statistics_1D(object):
         sigma = statistics.stdev(self.total_df[val])
         self.err_mu = mu
         self.err_sigma = sigma
+
+        skew = scipy.stats.skew(self.total_df[val])
+        kurtosis = scipy.stats.kurtosis(self.total_df[val])
+        self.err_skew = skew
+        self.err_kurtosis = kurtosis
 
 
     def nix(self, val, lst):
@@ -139,6 +151,11 @@ class Statistics_1D(object):
 
         self.err_graph['plot_width'] = 610
         self.err_graph['plot_height'] = 400
+
+        self.err_graph['paragraph_display'] = Paragraph(text=None,
+                                                        width=self.err_graph['plot_width'],
+                                                        height=self.err_graph['plot_height'])
+
         self.err_graph['title'] = 'Gaussian Fit of ' + self.err_graph['data_select'].value
         self.err_graph['object_figure'] = figure(width=self.err_graph['plot_width'],
                                                    height=self.err_graph['plot_height'],
@@ -155,6 +172,8 @@ class Statistics_1D(object):
         ))
 
         self.analyze_err(self.err_graph['data_select'].value)
+        self.err_graph['paragraph_display'].text = 'Skew: '+str(self.err_skew)+'\n'+'Kurtosis: '+str(self.err_kurtosis)
+
         self.gaussian_fit(self.total_df[self.err_graph['data_select'].value], self.err_mu, self.err_sigma, 'err')
 
         self.err_graph_hist_source.data = {'hist': self.err_hist, 'left_edge': self.err_edges[:-1],
@@ -169,10 +188,19 @@ class Statistics_1D(object):
         self.err_graph['object_figure'].add_glyph(self.err_graph_line_source, self.err_graph['pdf_glyph'])
 
 
+        # radio group is not necessarily affiliated with err plot
 
-        param_layout = column(self.param_graph['object_figure'], self.param_graph['data_select'])
-        err_layout = column(self.err_graph['object_figure'], self.err_graph['data_select'])
-        doc.add_root(row(param_layout, err_layout))
+        self.radio_group = RadioGroup(labels=['Raw Error', 'Squared Error'], active=0)
+
+
+        param_layout = column(self.param_graph['object_figure'],
+                              self.param_graph['data_select'])
+
+        err_layout = column(self.err_graph['object_figure'],
+                            self.err_graph['data_select'],
+                            self.err_graph['paragraph_display'])
+
+        doc.add_root(row(param_layout, err_layout, self.radio_group))
 
         '''
         -----------------------------------------------------------------------------------
@@ -193,16 +221,56 @@ class Statistics_1D(object):
         self.param_graph['data_select'].on_change('value', param_select_callback)
 
         def err_select_callback(attrname, old, new):
-            self.analyze_err(new)
-            self.err_graph['plotting_data'] = np.array(self.total_df[new])
-            self.gaussian_fit(np.array(self.total_df[new]), self.err_mu, self.err_sigma, 'err')
-            self.err_graph_hist_source.data = {'hist':self.err_hist, 'left_edge':self.err_edges[:-1],
+            if self.radio_group.active == 1:
+                radio_group_callback(None, None, 1)
+            else:
+                self.analyze_err(new)
+                self.err_graph['plotting_data'] = np.array(self.total_df[new])
+                self.gaussian_fit(np.array(self.total_df[new]), self.err_mu, self.err_sigma, 'err')
+                self.err_graph_hist_source.data = {'hist':self.err_hist, 'left_edge':self.err_edges[:-1],
                                              'right_edge':self.err_edges[1:]}
-            self.err_graph_line_source.data = self.err_graph_line_source.data = {'x': self.err_x,
+                self.err_graph_line_source.data = self.err_graph_line_source.data = {'x': self.err_x,
                                              'y_pdf': self.err_pdf}
-            self.err_graph['object_figure'].title.text = 'Gaussian Fit of ' + new
+                self.err_graph['object_figure'].title.text = 'Gaussian Fit of ' + new
+
+                self.err_graph['paragraph_display'].text = 'Skew: '+str(self.err_skew)+'\n'+'Kurtosis: '+str(self.err_kurtosis)
 
         self.err_graph['data_select'].on_change('value', err_select_callback)
+
+        def radio_group_callback(attrname, old, new):
+            # selected_val is equivalent to 'new' in the selection callbacks
+            selected_val = self.err_graph['data_select'].value
+            # 0 is the raw error condition
+            if new == 0:
+                self.analyze_err(selected_val)
+                self.err_graph['plotting_data'] = np.array(self.total_df[selected_val])
+                self.gaussian_fit(np.array(self.total_df[selected_val]), self.err_mu, self.err_sigma, 'err')
+                self.err_graph_hist_source.data = {'hist': self.err_hist, 'left_edge': self.err_edges[:-1],
+                                                   'right_edge': self.err_edges[1:]}
+                self.err_graph_line_source.data = self.err_graph_line_source.data = {'x': self.err_x,
+                                                                                     'y_pdf': self.err_pdf}
+                self.err_graph['object_figure'].title.text = 'Gaussian Fit of ' + selected_val
+
+                self.err_graph['paragraph_display'].text = 'Skew: ' + str(self.err_skew) + '\n' + 'Kurtosis: ' + str(
+                    self.err_kurtosis)
+            # 1 is the squared error condition
+            elif new == 1:
+                # transform selected val to access transformed columns
+                selected_val = 'squared_'+selected_val
+
+                self.analyze_err(selected_val)
+                self.err_graph['plotting_data'] = np.array(self.total_df[selected_val])
+                self.gaussian_fit(np.array(self.total_df[selected_val]), self.err_mu, self.err_sigma, 'err')
+                self.err_graph_hist_source.data = {'hist': self.err_hist, 'left_edge': self.err_edges[:-1],
+                                                   'right_edge': self.err_edges[1:]}
+                self.err_graph_line_source.data = self.err_graph_line_source.data = {'x': self.err_x,
+                                                                                     'y_pdf': self.err_pdf}
+                self.err_graph['object_figure'].title.text = 'Gaussian Fit of ' + selected_val
+
+                self.err_graph['paragraph_display'].text = 'Skew: ' + str(self.err_skew) + '\n' + 'Kurtosis: ' + str(
+                    self.err_kurtosis)
+
+        self.radio_group.on_change('active', radio_group_callback)
 
     def start_bokeh_server(self):
         self.bokeh_app = Application(
