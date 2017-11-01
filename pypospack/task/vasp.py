@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Input and output functions and classes for VASP """
+"""pypospack.task.vasp
+
+Input and output functions and classes for VASP 
+
+"""
 __author__ = "Eugene J. Ragasa"
 __copyright__ = "Copyright (C) 2016,2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
 import os,shutil,subprocess,yaml,copy,pathlib
+from collections import OrderedDict
 import numpy as np
 import pypospack.crystal as crystal
+import pypospack.dft as dft
 import pypospack.io.vasp as vasp
 import pypospack.io.slurm as slurm
 from pypospack.task import Task
@@ -160,6 +166,15 @@ class VaspSimulation(Task):
         self.contcar.read(os.path.join(self.task_directory,'CONTCAR'))
         # self.oszicar = vasp.Oszicar()
         # self.oszicar.read(os.path.join(self.task_directory,'OSZICAR'))
+
+        self.check_simulation_for_failure()
+        self.get_results()
+
+    def check_simulation_for_failure(self):
+        pass
+
+    def get_results(self):
+        pass
 
     def read_poscar(self,poscar=None):
         """ read in a poscar file or object
@@ -401,8 +416,401 @@ class VaspCalculatePhonons(VaspSimulation):
         self.incar.isif = 3
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
-class VaspKpointsConvergence(object):
-    pass
+class VaspWorkflow(object):
+    """
+    This class is an abstract implementation of VaspWorkflow.  Currently, it
+    can only handle a batch of tasks to send to a SLURM job submission system.
+    In order to use this abstract class, you need to subclass this class
+
+        Args:
+            directory(str): directory where the the simulations are going to
+                be put.  Default is None, which will set this to the current
+                working directory.  Relative paths are converted to absolute
+                paths.
+            xc(str): the exchange correlation functional.  The choices are
+                LDA and GGA.  LDA is the local density approximation. GGA
+                is General Gradient Approximation.
+            incar_dict(dict): a dictionary of the tags and values for the 
+                INCAR input file.  The tags are contained in the keys in
+                lower case.  The setting the each respective take is contained
+                in the value section of the key-value pair.
+            slurm_dict(dict): a dictionary of the tags and values for managing
+                submissions to a cluster server running SLURM.
+            full_auto(bool): Default is True
+            filename_results(str):Default is 'default'.
+            manifest_filename(str):Default is 'pypospack.manifest.yaml'
+        Attributes:
+            directory(str):
+            xc(str)
+            incar_dict(str)
+            slurm_dict(str)
+            full_auto
+            filename_results
+            manifest_filename
+
+        References:
+            LDA - CA
+            GGA - General Gradient Approximation
+    """
+
+    def __init__(self,directory=None,
+            structure='POSCAR',xc='GGA',incar_dict=None,
+            slurm_dict=None,full_auto=True,
+            filename_results = 'default',
+            manifest_filename = 'pypospack.manifest.yaml'):
+
+        self.orig_directory = os.getcwd()
+        self.filename_results = filename_results
+        self.manifest_filename = manifest_filename
+
+        self._process_directory_arg(directory)
+
+        # change the location of the result output file
+        self.filename_results = os.path.join(
+            self.directory,
+            self.filename_results)
+
+        # change the location of the manifest file
+        self.manifest_filename = os.path.join(
+            self.directory,
+            self.manifest_filename)
+        # check argument 'structure'
+
+        if isinstance(structure,crystal.SimulationCell):
+            self.structure_filename = 'POSCAR'
+            self.poscar = vasp.Poscar(structure)
+            self.poscar.write(self.structure_filename)
+        elif isinstance(structure,str):
+            if os.path.isabs(structure):
+                self.structure_filename = structure
+            else:
+                # convert to absolute path
+                self.structure_filename = os.path.join(
+                    self.orig_directory,
+                    structure)
+                self.structure_filename = os.path.normpath(
+                    self.structure_filename)
+
+            # read the poscar file
+            self.poscar = vasp.Poscar()
+            self.poscar.read(self.structure_filename)
+        else:
+            msg_err = "structure must either be an instance of "
+            msg_err += "pypospack.crystal.SimulationCell or a string"
+            raise ValueError(msg_err)
+
+        # self exchange correlation functional
+        self.xc = xc
+
+        # set incar_dict
+        if isinstance(incar_dict, dict):
+            self.incar_dict = copy.deepcopy(incar_dict)
+
+        # set slurm_dict
+        if isinstance(slurm_dict, dict):
+            self.slurm_dict = copy.deepcopy(slurm_dict)
+      
+        self.manifest = None
+        self.task_list = None
+        self.tasks = None
+
+        self.full_auto = full_auto
+
+
+    def do_full_auto(self):
+        if not pathlib.Path(self.manifest_filename).is_file():
+            self.start()
+        else:
+            self.restart()
+
+    def create_manifest(self):
+        if self.manifest is None:
+            self.manifest = SlurmSimulationManifest()
+        else:
+            assert isinstance(
+                    self.manifest,
+                    SlurmSimulationManifest)
+        
+        # check conditions to initialize simulation manifest
+        is_manifest_configured = not any(
+                [self.manifest.task_list is None,
+                 len(self.manifest.task_list) == 0])
+        is_self_configured = all(
+                [self.task_list is not None,
+                 self.tasks is not None])
+
+        if all([not is_manifest_configured,\
+                is_self_configured]):
+
+            # the manifest task list should be the same as 
+            # the task list
+            self.manifest.task_list = copy.deepcopy(self.task_list)
+            for task_name in self.task_list:
+                task_directory = self.tasks[task_name].task_directory
+                self.manifest.tasks[task_name] = {}
+                self.manifest.tasks[task_name]['directory'] = task_directory
+                self.manifest.tasks[task_name]['created'] = True
+                self.manifest.tasks[task_name]['submitted'] = False
+                self.manifest.tasks[task_name]['complete'] = False
+            self.manifest.write(self.manifest_filename)
+
+        # --- raises errors 
+        elif all([not is_manifest_configured,\
+                not is_self_configured]):
+            msg_err = (
+                "manifest attribute is configured, but neither the task nor "
+                "the task_list attribute have been configured")
+            raise ValueError(msg_err)
+        # --- catch all other conditions
+        else:
+            msg_err = (
+                "In trying to configure the manifest file, an unsupported "
+                "state was reached\n"
+                "\n"
+                "is_manifest_configured:{}\n"
+                "    manifest={}\n"
+                "    manifest.task_list={}\n"
+                "is_self_configured:{}\n"
+                "    task_list={}\n"
+                "    tasks={}\n").format(
+                            is_manifest_configured,
+                            str(type(self.manifest)),
+                            str(type(self.manifest.task_list)),
+                            is_self_configured,
+                            str(type(self.task_list)),
+                            str(type(self.tasks))
+                            )
+            raise ValueError(msg_err)
+                
+    def start(self):
+        try:
+            self.create_simulations()
+            self.create_manifest()
+        except NotImplementedError as e:
+            raise
+
+        # manage the SlurmSimulationManifest
+        self.manifest = SlurmSimulationManifest()
+        self.manifest.task_list = copy.deepcopy(self.task_list)
+        for task_name in self.task_list:
+            task_directory = self.tasks[task_name].task_directory
+            #TODO:
+            # task_is_created = self.task[task_name].is_created
+            # task_is_submitted = self.task[task_name].is_submitted
+            # task_is_compled = self.task[task_name].is_completed
+            self.manifest.tasks[task_name] = {}
+            self.manifest.tasks[task_name]['directory'] = task_directory
+            self.manifest.tasks[task_name]['created'] = True
+            self.manifest.tasks[task_name]['submitted'] = False
+            self.manifest.tasks[task_name]['complete'] = False
+
+        # TODO: i should do some process checking here 
+        # This should be added into the pypospack.task.vasp.VaspSimulation
+        # import subprocess
+        # from subprocess import check_output, CalledProcessError
+        # try:
+        #     out = subprocess.check_output(["dir"]) # windows  out = check_output(["cmd", "/c", "dir"])
+        # except CalledProcessError as e:
+        #    out = e.output
+        #    print(out)v
+
+
+        self.run_simulations()
+        for task_name in self.task_list:
+            self.manifest.tasks[task_name]['sim_submitted'] = True
+        self.manifest.write(self.manifest_filename)
+
+    def restart(self):
+        # read_simulation_manifest()
+        self.manifest = SlurmSimulationManifest()
+        self.manifest.read(self.manifest_filename)
+        self.task_list = list(self.manifest.task_list)
+        self.tasks = {}
+
+        for task_name in self.task_list:
+            task_directory = self.manifest.tasks[task_name]['directory']
+            self.tasks[task_name] = VaspSimulation(\
+                task_name=task_name,
+                task_directory=task_directory,
+                restart=True)
+
+            status = self.tasks[task_name].status
+            if status == 'CONFIG':
+                pass
+            elif status == 'RUN':
+                self.manifest.tasks[task_name]['submitted'] = True
+            elif status == 'POST':
+                self.manifest.tasks[task_name]['complete'] = True
+
+        all_sims_complete = all([v['complete'] for k,v in \
+                self.manifest.tasks.items()])
+
+        if all_sims_complete:
+            self.post_process()
+
+            # write out everything
+            names = ['encut','total_energy','n_atoms','total_energy_per_atom']
+            values = []
+            for task_name in self.task_list:
+                values.append([self.task_results[task_name][n] for n in names])
+            str_out = ','.join(names)+'\n'
+            for row in values:
+                str_out += ','.join([str(v) for v in row])+'\n'
+            with open(self.filename_results,'w') as f:
+                f.write(str_out)
+        else:
+            print('simulations not complete')
+
+
+    def create_simulations(self):
+        """
+        This method populates the attributes: task_list and tasks
+        """
+        raise NotImplementedError()
+
+    def run_simulations(self):
+        for task_name,task in self.tasks.items():
+            task.run(job_type='slurm',exec_dict=self.slurm_dict)
+
+    def post_process(self):
+        self.task_results = {}
+        for task_name,task_obj in self.tasks.items():
+            if task_obj.status == 'POST':
+                task_obj.postprocess()
+
+                encut = task.outcar.encut
+                total_energy = task.outcar.total_energy
+                n_atoms = len(task.contcar.atomic_basis)
+                total_energy_per_atom = total_energy/n_atoms
+
+                self.task_results[task_name] = {
+                        'encut':encut,
+                        'total_energy':total_energy,
+                        'n_atoms':n_atoms,
+                        'total_energy_per_atom':total_energy_per_atom}
+
+    def _process_directory_arg(self,directory):
+        if directory is None:
+            # if directory is None, then set to the current working directory.
+            self.directory = os.getcwd()
+        else:
+            if os.path.isabs(directory):
+                self.directory = directory
+            else:
+                self.directory = os.path.join(
+                    self.orig_directory,
+                    directory)
+
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+        else:
+            # since the directory exists, then a simulation may have been
+            # already started in this location.
+            pass
+
+class VaspKpointsConvergence(VaspWorkflow):
+    """
+    Args:
+       structure(str or pypospack.crystal.SimulationCell):
+        xc
+        incar_dict
+        slurm_dict
+        full_auto
+        rho_min
+        rho_max
+        d_rho
+        kpoint_min
+        kpoint_max
+    Attributes:
+        rho_min
+        rho_max
+        d_rho
+        kpoint_min
+        kpoint_max
+        orig_directory
+        filename_results
+        manifest_filename
+    """
+    def __init__(self,directory=None,
+            structure='POSCAR',xc='GGA',incar_dict=None,
+            slurm_dict=None,full_auto=True,
+            rho_min=1,rho_max=10,d_rho=0.1,
+            kpoint_min=3,kpoint_max=15):
+       
+        VaspWorkflow.__init__(self,directory=directory,
+            structure=structure,xc=xc,incar_dict=incar_dict,
+            slurm_dict=slurm_dict,full_auto=full_auto,
+            filename_results = 'converg.kpoints.results',
+            manifest_filename = 'pypospack.manifest.yaml')
+
+        assert isinstance(self.incar_dict,dict)
+
+        # copy parameters --> attributes of the class
+        self.rho_min = rho_min
+        self.rho_max = rho_max
+        self.d_rho = d_rho
+        self.kpoint_min = kpoint_min
+        self.kpoint_max = kpoint_max
+        self.orig_directory = os.getcwd()
+        self.filename_results = 'converg.kpoints.results'
+        self.manifest_filename = 'pypospack.manifest.yaml'
+
+        if self.full_auto is True:
+            self.do_full_auto()
+    
+        # --- PROCESS ARGUMENTS ---
+        # process the dictionary attribute
+    def do_full_auto(self):
+        if not pathlib.Path(self.manifest_filename).is_file():
+            self.create_simulations()
+
+    def create_simulations(self):
+        # step 1: determine list of simulations
+        # kpoint_meshes(dict)
+        # --> key(str): "kp_{k1}_{k2}_{k3}".format(int,int,int)
+        # --> value(list): [int,int,int]
+        kpoint_meshes = dft.determine_kpoint_meshes(
+                simulation_cell=self.poscar,
+                rho_min=self.rho_min,
+                rho_max=self.rho_max,
+                d_rho=self.d_rho,
+                kpoint_min=self.kpoint_min,
+                kpoint_max=self.kpoint_max)
+        
+        # create_task_list
+        self.task_list = [*kpoint_meshes] # <--- convert keys of dict to list
+        self.tasks = OrderedDict()
+        # step 2: loop over list of simulations
+        for kp_key,kp_mesh in kpoint_meshes.items():
+            # SLURM INFO
+            task_name = kp_key
+            task_directory = os.path.join(self.directory,task_name)
+            # <--- THIS AREA IS DIFFERENT FOR THIS SIMULATION --->
+            # check that kp_mesh = [k1,k2,k3]
+            assert isinstance(kp_mesh,list)
+            assert all([isinstance(v,int) for v in kp_mesh])
+            kpoints_dict = {'mesh_size':kp_mesh}
+            # <--- END DIFFERENCES --->
+
+            # Step 2(b).  Create Simulations
+            self.tasks[task_name] = VaspSimulation(
+                    task_name=task_name,
+                    task_directory=task_directory)
+            try:
+                self.tasks[task_name].config(
+                        poscar=self.structure_filename,
+                        incar=self.incar_dict,
+                        kpoints=kpoints_dict,
+                        xc=self.xc)
+            except AttributeError as e:
+                s = str(e)
+                print('debugging code')
+                print(type(self))
+                print('\ttask_name:{}'.format(task_name))
+                print('\ttask_obj:{}'.format(str(type(self.tasks[task_name]))))
+                print('\ttask_obj.potcar:{}'.format(
+                        str(type(self.tasks[task_name].potcar))))
+                raise
 
 class VaspEncutConvergence(object):
     """
@@ -549,7 +957,7 @@ class VaspEncutConvergence(object):
             
             self.run_simulations()
             for task_name in self.task_list:
-                self.manifest.tasks[task_name]['sim_submitted'] = True
+                self.manifest.tasks[task_name]['submitted'] = True
             self.manifest.write(self.manifest_filename)
         else:
             # read_simulation_manifest()
