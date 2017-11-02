@@ -17,7 +17,7 @@ def get_eam_radii_vector(r_max,N_r):
     d_r = r_max / N_r
     return r, d_r
 
-class EamCurveFitteri(object):
+class EamCurveFitter(object):
     
     def __init__(self, element_names):
 
@@ -66,6 +66,9 @@ class EamSetflFile(object):
     physical requirement that V(r_cut) = 0 and rho(r_cut) = 0.  The 
     application of a cutoff function not implemented by this class, and
     it is responsibility of the code using this class to ensure this.
+
+    All units of measurement are in metal units.  Distance being Angstroms,
+    and energy being eV.
 
     Args:
         None
@@ -125,7 +128,7 @@ class EamSetflFile(object):
         self.N_embedding_lines = None
         self.N_pairpotential_lines = None
         self.N_atomicsection_lines = None
-        self.N_pairpotential_lines = None
+        self.N_pairsection_lines = None
 
         # these attributes shoulde be treated as public
         self._comments = [
@@ -141,7 +144,7 @@ class EamSetflFile(object):
         self.r = None
         self.rho = None
         self.func_embedding = None
-        self.func_pair_potential = None
+        self.func_pairpotential = None
         self.func_density = None
 
         self._N_rho = None
@@ -253,6 +256,8 @@ class EamSetflFile(object):
         assert isinstance(self.lines,list)
         if autoprocess is True:
             self.process_setfl_header_section()
+            self.process_setfl_atomic_section()
+            self.process_setfl_pairpotential_section()
 
     def process_setfl_header_section(self):
         """
@@ -297,73 +302,21 @@ class EamSetflFile(object):
         self.N_atomicsection_lines = self.n_symbols*(
                 1+self.N_density_lines+self.N_embedding_lines)
 
-    def process_setfl_atomic_section(self):
-        # initialize
-        self.symbol_dict = OrderedDict()
-        self.func_embedding = OrderedDict()
-        self.func_density = OrderedDict()
-
-        # Local copy of attributes
-        start_line = self.N_headersection_lines + 1
-        N_embedding_lines = self.N_embedding_lines
-        N_density_lines = self.N_density_lines
-
-        for i_sym, sym in enumerate(self.symbols):
-            # read atomic_definition
-
-            i = start_line + i_sym*(1+N_density_lines+N_embedding_lines)
-            args = self.lines[i-1].split() 
-            self.symbol_dict[sym] = OrderedDict({
-                    'atomic_number':int(args[0]),
-                    'atomic_mass':float(args[1]),
-                    'lattice_constant':float(args[2]),
-                    'lattice_type':args[3]})
-            
-            # read embedding function
-            f_embed = []
-            for i_line in range(N_density_lines):
-                i = start_line \
-                        + i_sym*(1+N_density_lines+N_embedding_lines)\
-                        + i_line
-                args = self.lines[i-1].strip().split()
-                f_embed += [float(arg) for arg in args]
-            self.func_embedding[sym] = np.array(f_embed)
-            
-            # read density function
-            f_dens  = []
-            for i_line in range(N_embedding_lines):
-                i = start_line \
-                        + i_sym*(1+N_density_lines+N_embedding_lines)\
-                        + N_density_lines\
-                        + i_line
-                args = self.lines[i-1].strip().split()
-                f_dens += [float(arg) for arg in args]
-            self.func_density[sym] = np.array(f_dens)
-
-    def process_setfl_pairpotential_section(self):
-        start_line = self.N_headersection_lines + self.N_atomicsection_lines + 1
-        N_pair_lines = self.N_pairpotential_lines
-
         pairs = []
-        for idx1,sym1 in enumerate(self.symbols):
-            for idx2,sym2 in enumerate(self.symbols):
-                if idx1 <= idx2:
-                    pairs.append([sym1,sym2])
+        for i1,s1 in enumerate(self.symbols):
+            for i2,s2 in enumerate(self.symbols):
+                if i1 >= i2:
+                    pairs.append([s1,s2])
 
-        self.func_pair_potential = OrderedDict()
-        for i_pair,pair in enumerate(pairs):
-
-            f_pair = []
-            for i_line in range(N_pair_lines):
-                i = start_line + i_pair * N_pair_lines + i_line
-                #print(i,':',self.lines[i])
-                args = self.lines[i-1].strip().split()
-                f_pair = [float(arg) for arg in args]
-            k = self.PAIR_KEY_FORMAT.format(pair[0],pair[1])
-            self.func_pair_potential[k] = np.array(f_pair)
+        self.N_pairs = len(pairs)
+        self.N_pairsection_lines = self.N_pairs * N_pairpotential_lines 
 
     def process_setfl_comments(self):
         """
+
+        The header section of the setfl files containes three lines which
+        can have arbitrary text in it.
+
         Args:
             None
         Returns:
@@ -384,7 +337,6 @@ class EamSetflFile(object):
         n_symbols = int(args[0])
         symbols = []
         for i in range(1,len(args)):
-            print(i)
             symbols.append(args[i])
 
         if n_symbols != len(symbols):
@@ -412,7 +364,6 @@ class EamSetflFile(object):
 
     def process_setfl_rho_r_args(self,string=None):
         # initialize private variables
-
         line = args = None
 
         # process method arguments
@@ -430,7 +381,6 @@ class EamSetflFile(object):
         self.d_r = float(args[3])
         self.r_cut = float(args[4])
 
-
         return_dict = {
                 'N_rho':self.N_rho,
                 'd_rho':self.d_rho,
@@ -439,6 +389,85 @@ class EamSetflFile(object):
                 'r_cut':self.r_cut}
 
         return return_dict
+
+    def process_setfl_atomic_section(self):
+        # initialize
+        self.symbol_dict = OrderedDict()
+        self.func_embedding = OrderedDict()
+        self.func_density = OrderedDict()
+
+        # Local copy of attributes
+        start_line = self.N_headersection_lines + 1
+        N_embedding_lines = self.N_embedding_lines
+        N_density_lines = self.N_density_lines
+        N_atomicsection_lines = self.N_atomicsection_lines
+        N_atomicdefinition_lines = 1
+        for i_sym, sym in enumerate(self.symbols):
+            # NOTICE: The use of the notion self.lines[i-1] 
+            # I decided to calculate the line we are on using an index of one,
+            # then using (i-1) to convert to the python convertion of an
+            # index starting a 0
+
+            # read atomic_definition
+            i = start_line + i_sym*(1+N_density_lines+N_embedding_lines)
+            args = self.lines[i-1].split()
+            self.symbol_dict[sym] = OrderedDict({
+                    'atomic_number':int(args[0]),
+                    'atomic_mass':float(args[1]),
+                    'lattice_constant':float(args[2]),
+                    'lattice_type':args[3]})
+            
+            # read embedding function
+            f_embed = []
+            for i_line in range(N_density_lines):
+                i = start_line \
+                        + i_sym*N_atomicsection_lines\
+                        + N_atomicdefinition_lines \
+                        + i_line
+                args = self.lines[i-1].strip().split()
+                f_embed += [float(arg) for arg in args]
+                self.func_embedding[sym] = np.array(f_embed)
+            
+            # read density function
+            f_dens  = []
+            for i_line in range(N_embedding_lines):
+                i = start_line \
+                        + i_sym*N_atomicsection_lines\
+                        + N_atomicdefinition_lines\
+                        + N_embedding_lines\
+                        + i_line
+                args = self.lines[i-1].strip().split()
+                f_dens += [float(arg) for arg in args]
+            self.func_density[sym] = np.array(f_dens)
+
+    def process_setfl_pairpotential_section(self):
+        """
+        
+        The SETFL convention for storing V(r) is as r*V(r).  This was probably 
+        important during the time when computational cycles were expensive.  
+        However, we divide this storage value by r to get the potential in 
+        eV.
+        """
+        start_line = self.N_headersection_lines + self.N_atomicsection_lines + 1
+        N_pair_lines = self.N_pairpotential_lines
+
+        pairs = []
+        for idx1,sym1 in enumerate(self.symbols):
+            for idx2,sym2 in enumerate(self.symbols):
+                if idx1 <= idx2:
+                    pairs.append([sym1,sym2])
+
+        self.func_pairpotential = OrderedDict()
+        for i_pair,pair in enumerate(pairs):
+
+            f_pair = []
+            for i_line in range(N_pair_lines):
+                i = start_line + i_pair * N_pair_lines + i_line
+                args = self.lines[i-1].strip().split()
+                f_pair += [float(arg) for arg in args]
+            k = self.PAIR_KEY_FORMAT.format(pair[0],pair[1])
+            self.func_pairpotential[k] = np.array(f_pair)/self.r
+
 
     def calc_N_lines_atomic_section(self,
             N_symbols=None,

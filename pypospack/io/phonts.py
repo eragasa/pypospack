@@ -387,4 +387,33 @@ class PhontsSimulation(object):
             shutil.rmtree(self.task_directory)
         os.mkdir(self.task_directory)
 
+#******************************************************************************
+# POST PROCESSING SCRIPTS
+#******************************************************************************
 
+def get_pdos_data(filename='pdos.dat'):
+    
+    def process_first_line(line):
+        args = line.strip().split()
+        args = [arg.strip() for arg in args]
+        args = args[1:]
+        return args
+
+    pdos_labels = None
+    pdos_data = None
+    with open(filename,'r') as f:
+        lines = f.readlines()
+    # except FileNotFoundError
+
+    #initialize variables
+    values = []
+    for i,line in enumerate(lines):
+        if i == 0:
+            pdos_labels = process_first_line(line)
+        else:
+            args = line.strip().split()
+            values.append([float(arg) for arg in args])
+
+    pdos_data = np.array(values)
+
+    return pdos_data,pdos_labels
