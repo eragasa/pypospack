@@ -8,7 +8,96 @@ __version__ = "1.0"
 import os,pathlib,copy, yaml
 from collections import OrderedDict
 import numpy as np
+import pypospack.potentials
 
+def determine_symbol_pairs(symbols):
+    if not isinstance(symbols,list):
+        raise ValueError("symbols must be a list")
+
+    pairs = []
+    for i1,s1 in enumerate(symbols):
+        for i2,s2 in enumerate(symbols):
+            if i1 <= i2:
+                pairs.append([s1,s2])
+
+    return pairs
+
+class Potential(object):
+    def __init__(self,
+            symbols,
+            potential_type=None,
+            is_charge=None):
+        self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
+
+        self.symbols = list(symbols)
+        self.potential_type = potential_type
+        self.is_charge = is_charge
+
+        # these attributes will be initialized by _init_parameter_names
+        self.symbol_pairs = None
+        self.parameter_names = None
+        self._init_parameter_names()
+        
+        # these attributes will be initialized by _init_parameter_names
+        self.parameters = None
+        self._init_parameters()
+
+        # deprecated parameters here
+        self.param = {}
+        self.param_names = None         # list of str
+        
+    def _init_parameter_names(self):
+        raise NotImplementedError
+    
+    def _init_parameters(self):
+        raise NotImplementedError
+
+    def evaluate(self,r,parameter_dict,r_cut=False):
+        raise NotImplementedError
+
+        #<---- example implementation
+        self.potential_evaluations = OrderedDict()
+
+        for s in self.symbol_pairs:
+        
+        #<---- 
+    def write_lammps_potential_file(self):
+        raise NotImplementedError
+
+    def lammps_potential_section_to_string(self):
+        raise NotImplementedError
+
+    def write_gulp_potential_section(self):
+        raise NotImplementedError
+
+    def gulp_potential_section_to_string(self):
+        raise NotImplementedError
+    
+    def _get_mass(self,element):
+        if element == 'Mg':
+            return 24.305
+        elif element == "O":
+            return 15.999
+        elif element == 'Si':
+            return 28.086
+        elif element == 'Ni':
+            return 58.6934
+        else:
+            raise ValueError("element {} not in database".format(element))
+          
+    def _get_name(self,element):
+        if element == "Mg":
+            return 'magnesium'
+        elif element == "O":
+            return 'oxygen'
+        elif element == 'Si':
+            return 'silicon'
+        elif element == 'Ni':
+            return 'nickel'
+        else:
+            raise ValueError('element {} not in database'.format(element))
+
+from pypospack.potentials.morse import MorsePotential
 def get_potential_map():
     """ get the potential map
 
@@ -27,6 +116,7 @@ def get_potential_map():
     potential_map = {\
             'buckingham':['pypospack.potential','Buckingham'],
             'eam':['pypospack.potential','EmbeddedAtomModel'],
+            'morse':['pypospack.potential','MorsePotential'],
             'tersoff':['pypospack.potential','Tersoff']}
     return copy.deepcopy(potential_map)
 
@@ -137,7 +227,7 @@ class PotentialInformation(object):
     def check(self):
         """ performs sanity checks to potential configuration
 
-        does the following checks:
+        doe the following checks:
         1.    check to see if the potential type is supported.
 
         Raises:
@@ -161,51 +251,8 @@ class PotentialInformation(object):
         potential_dict['params'] = None
         return copy.deepcopy(potential_dict)
 
-class Potential(object):
-    def __init__(self,symbols):
-        self.potential_type = None
-        self.symbols = list(symbols)
-        self.param_names = None
-        self.is_charge = None
-        self.param = {}
-        # self.__init_param_names()
-        # self.__init_param_dict()
 
-    def write_lammps_potential_file(self):
-        raise NotImplementedError
-
-    def lammps_potential_section_to_string(self):
-        raise NotImplementedError
-
-    def write_gulp_potential_section(self):
-        raise NotImplementedError
-
-    def gulp_potential_section_to_string(self):
-        raise NotImplementedError
-    def _get_mass(self,element):
-        if element == 'Mg':
-            return 24.305
-        elif element == "O":
-            return 15.999
-        elif element == 'Si':
-            return 28.086
-        elif element == 'Ni':
-            return 58.6934
-        else:
-            raise ValueError("element {} not in database".format(element))
-          
-    def _get_name(self,element):
-        if element == "Mg":
-            return 'magnesium'
-        elif element == "O":
-            return 'oxygen'
-        elif element == 'Si':
-            return 'silicon'
-        elif element == 'Ni':
-            return 'nickel'
-        else:
-            raise ValueError('element {} not in database'.format(element))
-
+#from pypospack.potentials.buckingham import BuckinghamPotential
 class Buckingham(Potential):
 
     def __init__(self,symbols):
@@ -564,86 +611,95 @@ class ExponentialDensityFunction(EamElectronDensityFunction):
 
         return val
 
-class MorsePotential(Potential):
-    """
-
-    This class manages the parameterization, evaluation, and creation of 
-    different section of the inputs files required for GULP, LAMMPS, and
-    PhonTS through the pypospack library.
-
-    The formalism used here is the same used in the LAMMPS documentation.
-
-    Args:
-        symbols(list of str): a list of the chemical symbols for the potential.
-    Attributes:
-        symbols(list of str)
-        is_charge(bool): for the Morse Potential, this is set to false.
-        param_dict(collections.OrderedDict)
-        param_names(list)
-
-    References:
-    ===========
-    http://lammps.sandia.gov/doc/pair_morse.html
-    """
-    def __init__(self,symbols):
-        Potential.__init__(self,symbols)
-        self.potential_type = 'morse'
-        self.is_charge = False
-        self.param_dict = None
-        self.param_names = None
-
-        self._determine_parameter_names()
-        self._create_param_dictionary()
-
-    @property
-    def parameter_names(self):
-        self._determine_parameter_names()
-        return self._param_names
-
-    def _create_param_dictionary(self):
-        self.param_dict = OrderedDict()
-        for v in self.param_names:
-            self.param_dict[v] = None
-
-    def evaluate(self,r,pair,param_dict,rcut=False):
+if False:
+    class MorsePotential(Potential):
         """
+
+        This class manages the parameterization, evaluation, and creation of 
+        different section of the inputs files required for GULP, LAMMPS, and
+        PhonTS through the pypospack library.
+
+        The formalism used here is the same used in the LAMMPS documentation.
+
         Args:
-            r(numpy.ndarray)
-            symbols(list): a list of symbols
-            params(dict): a dictionary of parameters
-            rcut(float) - the cutoff function.  If set to 0, then no cutoff
-        function is applied.
+            symbols(list of str): a list of the chemical symbols for the potential.
+        Attributes:
+            symbols(list of str)
+            is_charge(bool): for the Morse Potential, this is set to false.
+            param_dict(collections.OrderedDict)
+            param_names(list)
+
+        References:
+        ===========
+        http://lammps.sandia.gov/doc/pair_morse.html
         """
-        err_msg = "MorsePotential cannot find {} parameter for {},{} pair"
+        def __init__(self,symbols):
+            Potential.__init__(self,symbols)
+            self.potential_type = 'morse'
+            self.is_charge = False
+            self.param_dict = None
+            self.param_names = None
 
-        # free_params = De, a, re
-        try:
-            D0 = param_dict['{}{}.D0'.format(*pair)]
-            a = param_dict['{}{}.a'.format(*pair)]
-            r0 = param_dict['{}{}.r0'.format(*pair)]
-        except:
-            raise
+            self._determine_parameter_names()
+            self._create_param_dictionary()
 
-        val = D0 * ((1 - np.exp(-a*(r-r0)))**2 -1)
-        #val = D0 * (1 - np.exp(-a*(r-r0)))**2
+        @property
+        def parameter_names(self):
+            self._determine_parameter_names()
+            return self._param_names
 
-        if rcut is False:
-            val = D0 * ((1 - np.exp(-a*(r-r0)))**2 -1)
 
-        return val
+        def evaluate(self,r,param_dict,rcut=False):
+            """
+            Args:
+                r(numpy.ndarray)
+                symbols(list): a list of symbols
+                params(dict): a dictionary of parameters
+                rcut(float) - the cutoff function.  If set to 0, then no cutoff
+            function is applied.
+            """
+            err_msg = "MorsePotential cannot find {} parameter for {},{} pair"
 
-    def _determine_parameter_names(self):
-        symbols = self.symbols
-        n_symbols = len(symbols)
-        self.param_names = []
-        for i in range(n_symbols):
-            for j in range(n_symbols):
-                if i <=j:
-                    s_i = symbols[i]
-                    s_j = symbols[j]
-                    self.param_names.append("{}{}_D0".format(s_i,s_j))
-                    self.param_names.append("{}{}_a".format(s_i,s_j))
-                    self.param_names.append("{}{}_r0".format(s_i,s_j))
+            _r = None
+            if isinstance(r,list):
+                _r = np.array(r)
+            elif isinstance(r,np.ndarray):
+                _r = np.copy(r)
+            else:
+                msg_err = "r must either be a list of numbers or a numpy array"
+                raise ValueError(msg_err)
+
+            self.potential = OrderedDict()
+
+            for i1,s1 in enumerate(self.symbols):
+                for i2,s2 in enumerate(self.symbols):
+                    if i1 <= i2:
+                        pair_key = "{}{}".format(s1,s2)
+                        D0=param_dict['{}_D0'.format(pair_key)]
+                        a=param_dict['{}_a'.format(pair_key)]
+                        r0=param_dict['{}_r0'.format(pair_key)]
+                        self.potential[pair_key] \
+                                = D0 * ((1 - np.exp(-a*(r-r0)))**2 -1)
+
+            return self.potential
+
+        def _determine_parameter_names(self):
+            symbols = self.symbols
+            n_symbols = len(symbols)
+            self.param_names = []
+            for i in range(n_symbols):
+                for j in range(n_symbols):
+                    if i <=j:
+                        s_i = symbols[i]
+                        s_j = symbols[j]
+                        self.param_names.append("{}{}_D0".format(s_i,s_j))
+                        self.param_names.append("{}{}_a".format(s_i,s_j))
+                        self.param_names.append("{}{}_r0".format(s_i,s_j))
+
+        def _create_param_dictionary(self):
+            self.param_dict = OrderedDict()
+            for v in self.param_names:
+                self.param_dict[v] = None
 
 class EamEmbeddingFunction(Potential):
     def __init__(self,symbols):

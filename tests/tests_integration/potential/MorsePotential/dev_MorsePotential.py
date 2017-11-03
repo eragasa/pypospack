@@ -2,78 +2,65 @@ import pypospack.potential as potential
 import numpy as np
 from collections import OrderedDict
 
-def print_potential_attributes(pot):
-    attribute_dict = OrderedDict()
-    attribute_dict['symbols'] = pot.symbols
-    attribute_dict['potential_type'] = pot.potential_type
-    attribute_dict['param_names'] = pot.param_names
-    attribute_dict['is_charge'] = pot.is_charge 
-    for k,v in attribute_dict.items():
-        print("{} = {}".format(k,v))
+if __name__ == "__main__":
+    symbols = ['Ni']
+    param_names = ['NiNi_D0', 'NiNi_a', 'NiNi_r0']
+    param_dict = OrderedDict()
+    param_dict['NiNi_D0'] = 0.001114
+    param_dict['NiNi_a'] = 3.429506
+    param_dict['NiNi_r0'] = 2.6813
+    morse = potential.MorsePotential(symbols=symbols)
+    assert type(morse.potential_type) is str
+    assert morse.potential_type == 'morse' 
+    assert type(morse.symbols) is list
+    assert morse.symbols == symbols
+    assert type(morse.param_names) is list
+    assert morse.param_names == param_names
+    assert type(morse.is_charge) is bool
 
-import copy
-import matplotlib.pyplot as plt
+    if True:
+        print("potential_type:{}".format(morse.potential_type))
+        print("symbols:{}".format(morse.symbols))
+        print("param_names:{}".format(morse.param_names))
+        print("is_charge:{}".format(morse.is_charge))
 
-class PairPotentialPlot(object):
-    def __init__(self,r,V,fname_plot='pair_potential.png'):
-        assert isinstance(r,np.ndarray)
-        assert isinstance(V,np.ndarray)
+    r = r_max * np.linespace(1,100,N_r)/100
+    morse.evaluate(r,param_dict)
 
-        self.r = copy.deepcopy(r)
-        self.V = copy.deepcopy(V)
-        self.fname_plot=fname_plot
+    symbols = ['Ni','Al']
+    param_names = ['NiNi_D0', 'NiNi_a', 'NiNi_r0']
+    morse = potential.MorsePotential(symbols=symbols)
+    assert type(morse.potential_type) is str
+    assert morse.potential_type == 'morse' 
+    
+    print("potential_type:{}".format(morse.potential_type))
+    print("symbols:{}".format(morse.symbols))
+    print("param_names:{}".format(morse.param_names))
 
-        self.v_lim = [-0.01,0.01]
-        self.r_lim = [min(self.r),max(self.r)]
+if False:
+    import copy
+    import matplotlib.pyplot as plt
 
-    def plot(self):
-        self.figure, self.ax = plt.subplots(nrows=1,ncols=1)
+    class PairPotentialPlot(object):
+        def __init__(self,r,V,fname_plot='pair_potential.png'):
+            assert isinstance(r,np.ndarray)
+            assert isinstance(V,np.ndarray)
 
-        self.ax.plot(self.r,self.V)
-        self.ax.set_xlim(self.r_lim)
-        self.ax.set_ylim(self.v_lim)
+            self.r = copy.deepcopy(r)
+            self.V = copy.deepcopy(V)
+            self.fname_plot=fname_plot
 
-        self.figure.savefig(self.fname_plot)
-        plt.close(self.figure)
+            self.v_lim = [-0.01,0.01]
+            self.r_lim = [min(self.r),max(self.r)]
 
-print(80*'-')
-print('MorsePotential, one_symbol')
-print(80*'-')
+        def plot(self):
+            self.figure, self.ax = plt.subplots(nrows=1,ncols=1)
 
-symbols = ['Ni']
-param_dict_NiNi = OrderedDict()
-param_dict_NiNi['NiNi.D0'] = 0.001114 #eV 
-param_dict_NiNi['NiNi.a'] = 3.429506 #Angs^(-2)
-param_dict_NiNi['NiNi.r0'] = 2.6813 #Angs
+            self.ax.plot(self.r,self.V)
+            self.ax.set_xlim(self.r_lim)
+            self.ax.set_ylim(self.v_lim)
 
-pot = potential.MorsePotential(symbols=symbols)
-print_potential_attributes(pot)
+            self.figure.savefig(self.fname_plot)
+            plt.close(self.figure)
 
-#test_evaluate
-r_min = 0
-r_max = 10
-N_r = 500
-d_r = (r_max-r_min)/(N_r-1)
-r = np.linspace(r_min,r_max,N_r)
-
-#print('r:{},{},{},{}'.format(r_min,r_max,N_r,d_r))
-#print('N_r_theo:{}'.format(N_r))
-#print('N_r_actual:{}'.format(len(r)))
-#print('d_r_theo:{}'.format(d_r))
-#print('d_r_actual:{}'.format(r[1]-r[0]))
-
-V = pot.evaluate(r,['Ni','Ni'],param_dict_NiNi,rcut=False)
-
-pair_plot = PairPotentialPlot(r,V) 
-pair_plot.plot()
-
-
-print
-print(80*'-')
-print('MorsePotential_two_symbols')
-print(80*'-')
-symbols = ['Ni','Al']
-
-pot = potential.MorsePotential(symbols=symbols)
-print_potential_attributes(pot)
-
+            pair_plot = PairPotentialPlot(r,V) 

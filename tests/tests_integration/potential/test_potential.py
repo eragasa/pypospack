@@ -36,3 +36,5 @@ class TestPotential(object):
         for i,v, in enumerate(self.symbols):
             assert self.potential.symbols[i] == v
 
+if __name__ == "__main__":
+
