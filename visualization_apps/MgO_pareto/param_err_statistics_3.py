@@ -27,18 +27,14 @@ from bokeh.transform import transform
 
 import pypospack.visualization as visualization
 
-import plotly.offline
-import plotly.graph_objs
-
 # frames and names loaded in class to prevent the use of global variables
 # (pandas.DataFrame) total_df is used in all functions and is always the pandas.DataFrame which conatains all parameter and err data
 # (list) param_names refer to the total_df headers which are used to reference param columns
 # (list) err_names refer to the total_df headers which are used to refernce err columns
 
-def _square_errors(total_df, param_names, err_names):
+def _square_errors(total_df, err_names):
     """
-    :return: (tuple) first value = list of all total_df headers (including squared errors)
-                        second value is list of only squared err names
+    :return: (list) list of squared err names
     """
     sq_err_names = []
     for names in err_names:
@@ -46,8 +42,7 @@ def _square_errors(total_df, param_names, err_names):
         sq_err_names.append(squared_names)
         total_df[squared_names] = total_df[names]**2
 
-    all_names = param_names+err_names+sq_err_names
-    return (all_names, sq_err_names)
+    return sq_err_names
 
 
 def trim_data(name, total_df, z=2.58):
@@ -197,15 +192,17 @@ def set_color(name_x, name_y, total_df, C=50):
             plotting_y_list.append(y_vals[i])
 
     necessary_stats = basic_stats([name_x, name_y], total_df)
-    mean_x = necessary_stats[0][name_x][0]
-    mean_y = necessary_stats[1][name_y][0]
+    median_x = necessary_stats[0][name_x][1]
+    median_y = necessary_stats[1][name_y][1]
 
     heat_frame['rect_x'] = plotting_x_list
     heat_frame['rect_y'] = plotting_y_list
-    heat_frame['rect_width'] = incr_x*(x_upper-x_lower)
-    heat_frame['rect_height'] = incr_y*(y_upper-y_lower)
-    heat_frame['x_diff'] = (heat_frame['rect_x'] - mean_x) ** 2
-    heat_frame['y_diff'] = (heat_frame['rect_y'] - mean_y) ** 2
+    heat_frame['rect_width'] = incr_x
+    heat_frame['rect_height'] = incr_y
+    heat_frame['x_diff'] = (heat_frame['rect_x'] - median_x) ** 2
+    heat_frame['x_diff'] = heat_frame['x_diff'] / heat_frame['x_diff'].max()
+    heat_frame['y_diff'] = (heat_frame['rect_y'] - median_y) ** 2
+    heat_frame['y_diff'] = heat_frame['y_diff'] / heat_frame['y_diff'].max()
     heat_frame['heat_values'] = (heat_frame['x_diff'] + heat_frame['y_diff']) / 2
 
     return heat_frame
@@ -261,9 +258,10 @@ class PlotStatistics(object):
         self.total_pandas_df = vizdemo.total_df
         self.param_names = vizdemo.param_names
         self.err_names = vizdemo.err_names
-        name_tuple = _square_errors(self.total_pandas_df, self.param_names, self.err_names)
-        self.all_names = name_tuple[0]
-        self.sq_err_names = name_tuple[1]
+        self.sq_err_names = _square_errors(self.total_pandas_df, self.err_names)
+        self.free_param_names = ['chrg_Mg', 'MgO_A', 'MgO_rho', 'OO_A', 'OO_rho', 'OO_C']
+        # param names not included in all because some are constants
+        self.all_names = self.free_param_names+self.err_names+self.sq_err_names
 
 
     def start_bokeh_server(self):
@@ -284,12 +282,12 @@ class PlotStatistics(object):
         self.select_widget_1 = Select(
             title='Variable 1 Selection',
             options=self.all_names,
-            value=self.param_names[0]
+            value=self.all_names[0]
         )
         self.select_widget_2 = Select(
             title='Variable 2 Selection',
             options=self.all_names,
-            value=self.param_names[1]
+            value=self.all_names[1]
         )
         self.select_widget_hist = Select(
             title='Histogram Variable Selection',
@@ -346,8 +344,8 @@ class PlotStatistics(object):
 
     def generate_plots(self, doc):
         '''
-        :param doc: 
-        :return: 
+        :param doc: curdoc() required for bokeh function handler
+        :return: None
         '''
 
         '''
@@ -426,8 +424,8 @@ class PlotStatistics(object):
 
         # mapper is a transform required by bokeh to generate heatmaps
         mapper = LinearColorMapper(palette=colors,
-                                   low=self.heat_map_source.data['heat_values'].min(),
-                                   high=self.heat_map_source.data['heat_values'].max())
+                                   low=heat_frame['heat_values'].min(),
+                                   high=heat_frame['heat_values'].max())
 
         self.heat_map['circle_glyph'] = Circle(x='x', y='y',
                                               size=1, line_color=None,
