@@ -7,15 +7,6 @@ Version Requirements:
     bokeh > 0.12.7, to avoid tornado conflicts, https://github.com/bokeh/bokeh/issues/6152
 """
 
-'''
-TODO:
-- nan statistics in sq err
-- make color gradient more defined
-- investigate better trim method
-- figure out deg_f for chi
-- figure out covariance position
-'''
-
 import os, time
 
 import numpy as np
@@ -41,10 +32,9 @@ import pypospack.visualization as visualization
 # (list) param_names refer to the total_df headers which are used to reference param columns
 # (list) err_names refer to the total_df headers which are used to refernce err columns
 
-def _square_errors(total_df, param_names, err_names):
+def _square_errors(total_df, err_names):
     """
-    :return: (tuple) first value = list of all total_df headers (including squared errors)
-                        second value is list of only squared err names
+    :return: (list) list of squared err names
     """
     sq_err_names = []
     for names in err_names:
@@ -52,8 +42,7 @@ def _square_errors(total_df, param_names, err_names):
         sq_err_names.append(squared_names)
         total_df[squared_names] = total_df[names]**2
 
-    all_names = param_names+err_names+sq_err_names
-    return (all_names, sq_err_names)
+    return sq_err_names
 
 
 def trim_data(name, total_df, z=2.58):
@@ -74,8 +63,25 @@ def trim_data(name, total_df, z=2.58):
     lower_bound = mean-margin_err
     bounds['upper_bound'] = upper_bound
     bounds['lower_bound'] = lower_bound
+
     return bounds
 
+
+def resize(name, plot, total_df, axis):
+    '''
+    :param name: name of total_df col
+    :param plot: bokeh figure object to be manipulated
+    :param total_df: pd.Dataframe to draw from
+    :param axis: either 'x' of 'y' 
+    :return: None
+    '''
+    bounds = trim_data(name, total_df)
+    if axis == 'x':
+        plot.x_range.start = bounds['upper_bound']
+        plot.x_range.end = bounds['lower_bound']
+    elif axis == 'y':
+        plot.y_range.start = bounds['upper_bound']
+        plot.y_range.end = bounds['lower_bound']
 
 def basic_stats(name_list, total_df):
     """
@@ -155,51 +161,17 @@ def fill_data_table(name_list, total_df):
 
     return data_table_frame
 
-'''
-def set_color(name1, name2, total_df):
-    """
-    :param name1: (str) name of total_df col to be analyzed
-    :param name2: (str) name of total_df col to be analyzed
-    :return: (pandas.Series) colum of data containing the percentile of each value to be used when
-                determining color
-    """
 
-    color_frame = pd.DataFrame()
-    color_frame['raw_x'] = total_df[name1]
-    color_frame['raw_y'] = total_df[name2]
-    color_frame['mean_x'] = color_frame['raw_x'].mean()
-    color_frame['mean_y'] = color_frame['raw_y'].mean()
-    color_frame['diff_x'] = (color_frame['raw_x'] - color_frame['mean_x']) ** 2
-    color_frame['diff_y'] = (color_frame['raw_y'] - color_frame['mean_y']) ** 2
-    color_frame['combined_value'] = color_frame[['diff_x', 'diff_y']].mean(axis=1)
-    color_frame['percentile'] = color_frame['combined_value'] / color_frame['combined_value'].max()
-
-    return color_frame['percentile']
-'''
-
-def set_color(name_x, name_y, total_df, C=500):
+def set_color(name_x, name_y, total_df, C=50):
 
     assert len(total_df[name_x]) == len(total_df[name_y])
 
     heat_frame = pd.DataFrame()
-    '''
+
     x_upper = total_df[name_x].max()
     x_lower = total_df[name_x].min()
     y_upper = total_df[name_y].max()
     y_lower = total_df[name_y].min()
-    '''
-
-    x_bounds = trim_data(name_x, total_df)
-    x_upper = x_bounds['upper_bound']
-    x_lower = x_bounds['lower_bound']
-    #x_upper = 2*x_upper
-    #x_lower = 0.5*x_lower
-
-    y_bounds = trim_data(name_y, total_df)
-    y_upper = y_bounds['upper_bound']
-    y_lower = y_bounds['lower_bound']
-    #y_upper = 2*y_upper
-    #y_lower = 0.5*y_lower
 
     incr_x = (x_upper - x_lower)/C
     incr_y = (y_upper - y_lower)/C
@@ -207,44 +179,31 @@ def set_color(name_x, name_y, total_df, C=500):
     x_vals = np.arange(x_lower, x_upper, incr_x)
     y_vals = np.arange(y_lower, y_upper, incr_y)
 
-    necessary_stats = basic_stats([name_x, name_y], total_df)
-    mean_x = necessary_stats[0][name_x][0]
-    mean_y = necessary_stats[1][name_y][0]
-
-
-    all_x_list = [list(x_vals) for i in range(len(y_vals))]
-    all_y_list = [list(y_vals) for i in range(len(x_vals))]
-
     plotting_x_list = []
-    for sublists_x in all_x_list:
-        for elements_x in sublists_x:
-            plotting_x_list.append(elements_x)
+    # make a list that repeats the x series len(y) times for plotting against y
+    for i in range(len(y_vals)):
+        for x in x_vals:
+            plotting_x_list.append(x)
 
+    # make a list that repeats the i_th value of the y series len(y) times for plotting against x
     plotting_y_list = []
-    list_count = 0
-    for sublists_y in all_y_list:
-        if list_count != 0:
-            sublists_y = sublists_y[list_count:]+sublists_y[:list_count]
-        list_count += 1
-        for elements_y in sublists_y:
-            plotting_y_list.append(elements_y)
+    for i in range(len(y_vals)):
+        for y in range(len(y_vals)):
+            plotting_y_list.append(y_vals[i])
 
-    heat_frame['heat_x'] = plotting_x_list
-    heat_frame['heat_y'] = plotting_y_list
-    heat_frame['rect_width'] = incr_x/2
-    heat_frame['rect_height'] = incr_y/2
-    heat_frame['x_diff'] = (heat_frame['heat_x'] - mean_x) ** 2
-    heat_frame['y_diff'] = (heat_frame['heat_y'] - mean_y) ** 2
-    heat_frame['avg_diff'] = (heat_frame['x_diff'] + heat_frame['y_diff']) / 2
+    necessary_stats = basic_stats([name_x, name_y], total_df)
+    median_x = necessary_stats[0][name_x][1]
+    median_y = necessary_stats[1][name_y][1]
 
-    '''
-    color_frame['x'] = x_vals
-    color_frame['y'] = y_vals
-    
-    color_frame['x_diff'] = (color_frame['x'] - mean_x)**2
-    color_frame['y_diff'] = (color_frame['y'] - mean_y)**2
-    color_frame['avg_diff'] = (color_frame['x_diff'] + color_frame['y_diff'])/2
-    '''
+    heat_frame['rect_x'] = plotting_x_list
+    heat_frame['rect_y'] = plotting_y_list
+    heat_frame['rect_width'] = incr_x
+    heat_frame['rect_height'] = incr_y
+    heat_frame['x_diff'] = (heat_frame['rect_x'] - median_x) ** 2
+    heat_frame['x_diff'] = heat_frame['x_diff'] / heat_frame['x_diff'].max()
+    heat_frame['y_diff'] = (heat_frame['rect_y'] - median_y) ** 2
+    heat_frame['y_diff'] = heat_frame['y_diff'] / heat_frame['y_diff'].max()
+    heat_frame['heat_values'] = (heat_frame['x_diff'] + heat_frame['y_diff']) / 2
 
     return heat_frame
 
@@ -299,9 +258,10 @@ class PlotStatistics(object):
         self.total_pandas_df = vizdemo.total_df
         self.param_names = vizdemo.param_names
         self.err_names = vizdemo.err_names
-        name_tuple = _square_errors(self.total_pandas_df, self.param_names, self.err_names)
-        self.all_names = name_tuple[0]
-        self.sq_err_names = name_tuple[1]
+        self.sq_err_names = _square_errors(self.total_pandas_df, self.err_names)
+        self.free_param_names = ['chrg_Mg', 'MgO_A', 'MgO_rho', 'OO_A', 'OO_rho', 'OO_C']
+        # param names not included in all because some are constants
+        self.all_names = self.free_param_names+self.err_names+self.sq_err_names
 
 
     def start_bokeh_server(self):
@@ -322,12 +282,12 @@ class PlotStatistics(object):
         self.select_widget_1 = Select(
             title='Variable 1 Selection',
             options=self.all_names,
-            value=self.param_names[0]
+            value=self.all_names[0]
         )
         self.select_widget_2 = Select(
             title='Variable 2 Selection',
             options=self.all_names,
-            value=self.param_names[1]
+            value=self.all_names[1]
         )
         self.select_widget_hist = Select(
             title='Histogram Variable Selection',
@@ -335,154 +295,160 @@ class PlotStatistics(object):
             value=self.all_names[0]
         )
 
-        DATA_TABLE_HEAT_WIDTH = 500
-        DATA_TABLE_HIST_WIDTH = 300
-        DATA_TABLE_COL_WIDTH = 75
+        self.DATA_TABLE_HEAT_WIDTH = 600
+        self.DATA_TABLE_HIST_WIDTH = 300
+        self.DATA_TABLE_COL_WIDTH = 100
 
         self.data_table_heat = DataTable(
             source=ColumnDataSource(fill_data_table([self.select_widget_1.value, self.select_widget_2.value],
                                                     self.total_pandas_df)),
             columns=[
-                TableColumn(field="labels", title="Statistics", width=DATA_TABLE_COL_WIDTH),
-                TableColumn(field="variable_1", title=self.select_widget_1.value, width=DATA_TABLE_COL_WIDTH),
-                TableColumn(field="variable_2", title=self.select_widget_2.value, width=DATA_TABLE_COL_WIDTH),
+                TableColumn(field="labels", title="Statistics", width=int(self.DATA_TABLE_COL_WIDTH*0.6)),
+                TableColumn(field="variable_1", title=self.select_widget_1.value, width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_2", title=self.select_widget_2.value, width=self.DATA_TABLE_COL_WIDTH),
                 TableColumn(field="variable_1_2", title=self.select_widget_1.value+' and '+self.select_widget_2.value,
-                            width=DATA_TABLE_COL_WIDTH)
+                            width=int(self.DATA_TABLE_COL_WIDTH*1.8))
             ],
-            width=DATA_TABLE_HEAT_WIDTH
+            width=self.DATA_TABLE_HEAT_WIDTH
         )
         self.data_table_hist = DataTable(
             source=ColumnDataSource(fill_data_table([self.select_widget_hist.value], self.total_pandas_df)),
             columns=[
-                TableColumn(field="labels", title="Statistics", width=DATA_TABLE_COL_WIDTH),
-                TableColumn(field="variable_1", title=self.select_widget_hist.value, width=DATA_TABLE_COL_WIDTH),
+                TableColumn(field="labels", title="Statistics", width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_1", title=self.select_widget_hist.value, width=self.DATA_TABLE_COL_WIDTH),
             ],
-            width=DATA_TABLE_HIST_WIDTH
+            width=self.DATA_TABLE_HIST_WIDTH
+        )
+
+        self.x_range_slider = RangeSlider(
+            start=self.total_pandas_df[self.select_widget_1.value].min(),
+            end=self.total_pandas_df[self.select_widget_1.value].max(),
+            value=(
+                self.total_pandas_df[self.select_widget_1.value].min(),
+                self.total_pandas_df[self.select_widget_1.value].max()
+            ),
+            step=(self.total_pandas_df[self.select_widget_1.value].max() - self.total_pandas_df[
+                self.select_widget_1.value].min())/100
+        )
+
+        self.y_range_slider = RangeSlider(
+            start=self.total_pandas_df[self.select_widget_2.value].min(),
+            end=self.total_pandas_df[self.select_widget_2.value].max(),
+            value=(
+                self.total_pandas_df[self.select_widget_2.value].min(),
+                self.total_pandas_df[self.select_widget_2.value].max()
+            ),
+            step=(self.total_pandas_df[self.select_widget_2.value].max() - self.total_pandas_df[
+                self.select_widget_2.value].min()) / 100
         )
 
     def generate_plots(self, doc):
+        '''
+        :param doc: curdoc() required for bokeh function handler
+        :return: None
+        '''
 
-        # use nested functions to get around the (doc) parameter restriction
+        '''
+        ----------------------------------------------------------------------------------------------------------
+        Define Histogram
+        ----------------------------------------------------------------------------------------------------------
+        '''
+        self.hist_plot = {}
 
-        hist_plot = {}
-        heat_map = {}
+        self.hist_plot['plotting_data'] = np.array(self.total_pandas_df[self.select_widget_hist.value])
+        self.hist_plot['plot_width'] = 610
+        self.hist_plot['plot_height'] = 400
+        self.hist_plot['title'] = 'Gaussian Fit of ' + self.select_widget_hist.value
 
-        def generate_histogram():
-            nonlocal  hist_plot
-            hist_plot['plotting_data'] = np.array(self.total_pandas_df[self.select_widget_hist.value])
-            hist_plot['plot_width'] = 610
-            hist_plot['plot_height'] = 400
-            hist_plot['title'] = 'Gaussian Fit of ' + self.select_widget_hist.value
+        self.hist_plot['object_figure'] = figure(width=self.hist_plot['plot_width'],
+                                                 height=self.hist_plot['plot_height'],
+                                                 title=self.hist_plot['title'])
 
-            hist_plot['object_figure'] = figure(width=hist_plot['plot_width'],
-                                                     height=hist_plot['plot_height'],
-                                                     title=hist_plot['title'])
-
-            hist_plot['source'] = ColumnDataSource(data=dict(
+        self.hist_plot['source'] = ColumnDataSource(data=dict(
                 hist=[],
                 left_edge=[],
                 right_edge=[]
             ))
-            hist_plot['pdf_source'] = ColumnDataSource(data=dict(
+        self.hist_plot['pdf_source'] = ColumnDataSource(data=dict(
                 x=[],
                 y_pdf=[]
             ))
 
-            # get stats and gaus fit
-            hist_stats_list = basic_stats([self.select_widget_hist.value], self.total_pandas_df)
-            mu = hist_stats_list[0][self.select_widget_hist.value][0]
-            sigma = hist_stats_list[0][self.select_widget_hist.value][2]
-            gauss_dict = gaussian_fit(self.select_widget_hist.value, self.total_pandas_df)
-            hist = gauss_dict['hist']
-            edges = gauss_dict['edges']
-            x = gauss_dict['x']
-            pdf = gauss_dict['pdf']
+        # get stats and gaus fit
+        hist_stats_list = basic_stats([self.select_widget_hist.value], self.total_pandas_df)
+        mu = hist_stats_list[0][self.select_widget_hist.value][0]
+        sigma = hist_stats_list[0][self.select_widget_hist.value][2]
+        gauss_dict = gaussian_fit(self.select_widget_hist.value, self.total_pandas_df)
+        hist = gauss_dict['hist']
+        edges = gauss_dict['edges']
+        x = gauss_dict['x']
+        pdf = gauss_dict['pdf']
 
-            hist_plot['source'].data = {'hist': hist, 'left_edge': edges[:-1],
+        self.hist_plot['source'].data = {'hist': hist, 'left_edge': edges[:-1],
                                      'right_edge': edges[1:]}
-            hist_plot['pdf_source'].data = {'x': x,
+        self.hist_plot['pdf_source'].data = {'x': x,
                                          'y_pdf': pdf}
 
-            hist_plot['quad_glyph'] = Quad(top='hist', bottom=0, left='left_edge', right='right_edge')
-            hist_plot['pdf_glyph'] = Line(x='x', y='y_pdf', line_color="#D95B43", line_width=8, line_alpha=0.7)
+        self.hist_plot['quad_glyph'] = Quad(top='hist', bottom=0, left='left_edge', right='right_edge')
+        self.hist_plot['pdf_glyph'] = Line(x='x', y='y_pdf', line_color="#D95B43", line_width=8, line_alpha=0.7)
 
-            hist_plot['object_figure'].add_glyph(hist_plot['source'], hist_plot['quad_glyph'])
-            hist_plot['object_figure'].add_glyph(hist_plot['pdf_source'], hist_plot['pdf_glyph'])
+        self.hist_plot['object_figure'].add_glyph(self.hist_plot['source'], self.hist_plot['quad_glyph'])
+        self.hist_plot['object_figure'].add_glyph(self.hist_plot['pdf_source'], self.hist_plot['pdf_glyph'])
 
-        generate_histogram()
-        self.hist_plot = hist_plot
+        '''
+        ----------------------------------------------------------------------------------------------------------
+        Define Heatmap
+        ----------------------------------------------------------------------------------------------------------
+        '''
 
-        def generate_heatmap():
-            nonlocal  heat_map
-            # get stats
-            #heat_stats_list = basic_stats([self.select_widget_1.value, self.select_widget_2.value], self.total_pandas_df)
+        self.heat_map = {}
 
-            heat_map['rect_source'] = ColumnDataSource(data=dict(
-                heat_x=[],
-                heat_y=[],
-                heat_values=[]
-            ))
-            heat_map['point_source'] = ColumnDataSource(data=dict(
-                x=[],
-                y=[]
-            ))
-            # determine percentile of each value for color assignment
-            #frames_list = set_color(self.select_widget_1.value, self.select_widget_2.value, self.total_pandas_df)
-            heat_frame = set_color(self.select_widget_1.value, self.select_widget_2.value, self.total_pandas_df)
-            heat_map['rect_source'].data = {'heat_x': heat_frame['heat_x'],
-                                       'heat_y': heat_frame['heat_y'],
-                                       'heat_values': heat_frame['avg_diff']}
-            heat_map['point_source'].data = {'x': self.total_pandas_df[self.select_widget_1.value],
-                                             'y': self.total_pandas_df[self.select_widget_2.value]
-            }
-            heat_map['plot_width'] = 610
-            heat_map['plot_height'] = 400
-            heat_map['title'] = "Heat Map of "+self.select_widget_1.value+' vs. '+self.select_widget_2.value
-            heat_map['object_figure'] = figure(width=heat_map['plot_width'],
-                                               height=heat_map['plot_height'],
-                                               title=heat_map['title'])
-            x_bounds = trim_data(self.select_widget_1.value, self.total_pandas_df)
-            y_bounds = trim_data(self.select_widget_2.value, self.total_pandas_df)
-            x_upper = x_bounds['upper_bound']
-            x_lower = x_bounds['lower_bound']
-            y_upper = y_bounds['upper_bound']
-            y_lower = y_bounds['lower_bound']
+        heat_frame = set_color(self.select_widget_1.value, self.select_widget_2.value, self.total_pandas_df)
+        self.heat_map_source = ColumnDataSource(heat_frame)
 
-            heat_map['object_figure'].x_range.start = x_lower
-            heat_map['object_figure'].x_range.end = x_upper
-            heat_map['object_figure'].y_range.start = y_lower
-            heat_map['object_figure'].y_range.end = y_upper
+        self.points_source = ColumnDataSource(data=dict(
+            x=self.total_pandas_df[self.select_widget_1.value],
+            y=self.total_pandas_df[self.select_widget_2.value]
+        ))
 
-            colors = ['#FF0000', '#F2000D', '#E6001A', '#D90026', '#CC0033', '#BF0040', '#B2004C', '#A60059', '#990066',
+        self.heat_map['plot_width'] = 610
+        self.heat_map['plot_height'] = 400
+        self.heat_map['title'] = "Heat Map of "+self.select_widget_1.value+' vs. '+self.select_widget_2.value
+        self.heat_map['object_figure'] = figure(width=self.heat_map['plot_width'],
+                                               height=self.heat_map['plot_height'],
+                                               title=self.heat_map['title'])
+
+        colors = ['#FF0000', '#F2000D', '#E6001A', '#D90026', '#CC0033', '#BF0040', '#B2004C', '#A60059', '#990066',
                       '#8C0073', '#800080', '#73008C', '#660099', '#5900A6', '#4D00B2', '#4000BF', '#3300CC', '#2600D9',
                       '#1900E6', '#0D00F2', '#0000FF']
-            # mapper is a transform required by bokeh to generate heatmaps
-            mapper = LinearColorMapper(palette=colors,
-                                       low=heat_map['rect_source'].data['heat_values'].min(),
-                                       high=heat_map['rect_source'].data['heat_values'].max())
 
-            heat_map['circle_glyph'] = Circle(x='x', y='y',
+        # mapper is a transform required by bokeh to generate heatmaps
+        mapper = LinearColorMapper(palette=colors,
+                                   low=heat_frame['heat_values'].min(),
+                                   high=heat_frame['heat_values'].max())
+
+        self.heat_map['circle_glyph'] = Circle(x='x', y='y',
                                               size=1, line_color=None,
                                               fill_color='black')
-            heat_map['rect_glyph'] = Rect(x="heat_x", y="heat_y", width=heat_frame['rect_width'].loc[0],
+        self.heat_map['rect_glyph'] = Rect(x="rect_x", y="rect_y", width=heat_frame['rect_width'].loc[0],
                                           height=heat_frame['rect_width'].loc[0],
                                           fill_color={'field': 'heat_values', 'transform': mapper},
-                                          line_color=None)
-            heat_map['object_figure'].add_glyph(heat_map['point_source'], heat_map['circle_glyph'])
-            heat_map['object_figure'].add_glyph(heat_map['rect_source'], heat_map['rect_glyph'])
+                                          line_color=None,
+                                          fill_alpha=0.75)
+        self.heat_map['object_figure'].add_glyph(self.points_source, self.heat_map['circle_glyph'])
+        self.heat_map['object_figure'].add_glyph(self.heat_map_source, self.heat_map['rect_glyph'])
 
-            heat_map['color_bar'] = ColorBar(color_mapper=mapper, major_label_text_font_size="5pt",
+        self.heat_map['color_bar'] = ColorBar(color_mapper=mapper, major_label_text_font_size="5pt",
                                  ticker=BasicTicker(desired_num_ticks=len(colors)),
-                                 label_standoff=6, border_line_color=None, location=(0, 0))
-            heat_map['object_figure'].add_layout(heat_map['color_bar'], 'left')
-
-        generate_heatmap()
-        self.heat_map = heat_map
+                                 label_standoff=6, border_line_color=None, location=(0, 0),
+                                    background_fill_alpha=0.75)
+        self.heat_map['object_figure'].add_layout(self.heat_map['color_bar'], 'left')
 
         WIDGETBOX_WIDTH = 610
 
         self.layout = layout([self.select_widget_1, self.select_widget_2, self.select_widget_hist],
                             [self.heat_map['object_figure'], self.hist_plot['object_figure']],
+                             [self.x_range_slider, self.y_range_slider],
                             [widgetbox(self.data_table_heat, width=WIDGETBOX_WIDTH), widgetbox(self.data_table_hist, width=WIDGETBOX_WIDTH)])
 
         # unavoidable resize error forces two figures to be displayed at once rather that switch between
@@ -491,9 +457,118 @@ class PlotStatistics(object):
 
         doc.add_root(self.layout)
 
+        """
+        --------------------------------------------------------------------
+        Callbacks
+        --------------------------------------------------------------------
+        """
+
+        def select_1_callback(attrname, old, new):
+
+            self.points_source.data['x'] = self.total_pandas_df[new]
+
+            self.data_table_heat.columns = [
+                TableColumn(field="labels", title="Statistics", width=int(self.DATA_TABLE_COL_WIDTH * 0.6)),
+                TableColumn(field="variable_1", title=new, width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_2", title=self.select_widget_2.value, width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_1_2",
+                            title=new + ' and ' + self.select_widget_2.value,
+                            width=int(self.DATA_TABLE_COL_WIDTH * 1.8))
+            ]
+
+            heat_frame = set_color(new, self.select_widget_2.value, self.total_pandas_df)
+
+            self.heat_map_source.data['rect_x'] = heat_frame['rect_x']
+            self.heat_map_source.data['rect_width'] = heat_frame['rect_width']
+            self.heat_map_source.data['heat_values'] = heat_frame['heat_values']
+
+            self.data_table_heat.source = ColumnDataSource(fill_data_table([new, self.select_widget_2.value],
+                                                                           self.total_pandas_df))
+
+            self.heat_map['object_figure'].title.text = "Heat Map of " + new + ' vs. ' + self.select_widget_2.value
+
+            self.x_range_slider.start = self.total_pandas_df[new].min()
+            self.x_range_slider.end = self.total_pandas_df[new].max()
+            self.x_range_slider.step = (self.total_pandas_df[new].max() - self.total_pandas_df[new].min())/100
+            self.x_range_slider.value = (self.total_pandas_df[new].min(), self.total_pandas_df[new].max())
+
+        self.select_widget_1.on_change('value', select_1_callback)
+
+        def select_2_callback(attrname, old, new):
+
+            self.points_source.data['y'] = self.total_pandas_df[new]
+
+            self.data_table_heat.columns = [
+                TableColumn(field="labels", title="Statistics", width=int(self.DATA_TABLE_COL_WIDTH * 0.6)),
+                TableColumn(field="variable_1", title=self.select_widget_1.value, width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_2", title=new, width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_1_2",
+                            title=self.select_widget_1.value + ' and ' + new,
+                            width=int(self.DATA_TABLE_COL_WIDTH * 1.8))
+            ]
+
+            heat_frame = set_color(self.select_widget_1.value, new, self.total_pandas_df)
+
+            self.heat_map_source.data['rect_y'] = heat_frame['rect_y']
+            self.heat_map_source.data['rect_height'] = heat_frame['rect_height']
+            self.heat_map_source.data['heat_values'] = heat_frame['heat_values']
+
+            self.data_table_heat.source = ColumnDataSource(fill_data_table([new, self.select_widget_2.value],
+                                                                           self.total_pandas_df))
+
+            self.heat_map['object_figure'].title.text = "Heat Map of " + self.select_widget_1.value + ' vs. ' + new
+
+            self.y_range_slider.start = self.total_pandas_df[new].min()
+            self.y_range_slider.end = self.total_pandas_df[new].max()
+            self.y_range_slider.step = (self.total_pandas_df[new].max() - self.total_pandas_df[new].min()) / 100
+            self.y_range_slider.value = (self.total_pandas_df[new].min(), self.total_pandas_df[new].max())
+
+        self.select_widget_2.on_change('value', select_2_callback)
+
+        def select_hist_callback(attrname, old, new):
+            # get stats and gaus fit
+            hist_stats_list = basic_stats([new], self.total_pandas_df)
+            mu = hist_stats_list[0][new][0]
+            sigma = hist_stats_list[0][new][2]
+            gauss_dict = gaussian_fit(new, self.total_pandas_df)
+            hist = gauss_dict['hist']
+            edges = gauss_dict['edges']
+            x = gauss_dict['x']
+            self.hist_plot['source'].data = {'hist': hist, 'left_edge': edges[:-1],
+                                             'right_edge': edges[1:]}
+
+            if new not in self.sq_err_names:
+                pdf = gauss_dict['pdf']
+            else:
+                pdf = chi_squared(new, self.total_pandas_df)
+
+            self.hist_plot['pdf_source'].data = {'x': x,
+                                                'y_pdf': pdf}
+
+            self.hist_plot['object_figure'].title.text = "Gaussian Fit of " + new
+
+            self.data_table_hist.source = ColumnDataSource(fill_data_table([new], self.total_pandas_df))
+            self.data_table_hist.columns = [
+                TableColumn(field="labels", title="Statistics", width=self.DATA_TABLE_COL_WIDTH),
+                TableColumn(field="variable_1", title=new, width=self.DATA_TABLE_COL_WIDTH)
+            ]
+
+        self.select_widget_hist.on_change('value', select_hist_callback)
+
+        def x_range_callback(attrname, old, new):
+            self.heat_map['object_figure'].x_range.start = new[0]
+            self.heat_map['object_figure'].x_range.end = new[1]
+
+
+        def y_range_callback(attrname, old, new):
+            self.heat_map['object_figure'].y_range.start = new[0]
+            self.heat_map['object_figure'].y_range.end = new[1]
+
+        self.x_range_slider.on_change('value', x_range_callback)
+        self.y_range_slider.on_change('value', y_range_callback)
+
 if __name__ == "__main__":
 
     plot_stats = PlotStatistics()
     plot_stats.create_widgets()
     plot_stats.start_bokeh_server()
-    # print(set_color(plot_stats.param_names[0], plot_stats.param_names[1], plot_stats.total_pandas_df))
