@@ -33,13 +33,22 @@ def simulation_cell_to_gulp_string(sim_cell):
                     raise
     return str_out
 
-class GulpSimulation(Task):
-    def __init__(self,task_name,task_directory,restart=False):
-        Task.__init__(self,task_name,task_directory,restart)
-        self.structure = vasp.Poscar()
+def get_potential_section_as_string(potential):
+    if isinstance(potential,potential.Potential):
+        msg_err = "potential must be a pypospack.potential.Potential object"
+        raise ValueError(msg_err)
+    if type(potential) == potential.MorsePotential:
+        get_morse_potential_section_as_string(potential)
+
+def get_morse_potential_section_as_string(potential):
+    raise NotImplementedError
+
+def get_buckingham_potential_section_as_string(potential):
+    raise NotImplementedError
+
+class GulpInputFile(object):
+
+    def __init__(self):
         self.potential = None
-        self.status == 'INIT'
+        self.potential
 
-    def config(self,config_dict,param_dict):
-
-   

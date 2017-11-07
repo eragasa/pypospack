@@ -1,8 +1,13 @@
 import os,shutil
+from collections import OrderedDict
 
 class Task(object):
     """
+    An abstract task for the implementation of pypospack.task objects.
+
+    Args:
     Attributes:
+        status_states(list of str): the list of status states
         task_name(str): the task name, will be used in
             job submission scripts
         task_directory(str): the directory the task,
@@ -14,47 +19,106 @@ class Task(object):
     set.
 
     """
-    def __init__(self,task_name,task_directory,restart=False):
-        self.task_name = task_name
-        self.task_directory = None
+    def __init__(self,
+            task_name,
+            task_directory,
+            restart=False):
+
+        # supported status states
+        self.status_states = self.get_status_states()
+        # private member varaibles
+        self._is_restart = None
+        self._task_directory = None
+        self._status = None
+        # process initialization arguments
         self.is_restart = restart
-        self.config_dict = {}
-        self.ready_dict = {}
-        self.run_dict = {}
-        self.post_dict = {}
+        self.task_name = task_name
+        self.root_directory = os.getcwd()
 
-        if os.path.isabs(task_directory):
-            # absolute path, set directly.
-            self.task_directory = task_directory
-        else:
-            # if a relative path, make it an
-            # absolute path
-            self.task_directory = os.path.join(\
-                    os.getcwd(),
-                    task_directory)
+        #self.config_dict = OrderedDict()
+        #self.ready_dict = OrderedDict()
+        #self.run_dict = OrderedDict()
+        #self.post_dict = OrderedDict()
+        self.create_task_directory(task_directory)
 
-        # check to see if path exists
-        if os.path.exists(self.task_directory):
+    def get_status_states(self):
+        return ['INIT','CONFIG','RUNNING','POST','FINISHED','ERROR']
+    
+    def restart(self):
+        raise NotImplementedError()
+
+    def create_task_directory(self,task_directory):
+        #<--- check condition
+        if os.path.abspath(self.root_directory) \
+                == os.path.abspath(task_directory):
+            err_msg = (
+                "Cannot set the path of the task_directory to the "
+                "root_directory.\n"
+                "\ttask_directory:{}\n"
+                "\troot_directory:{}\n").format(
+                    task_directory,
+                    root_directory)
+            raise ValueError(err_msg)
+
+        #<--- change to task_directory to an absolute path
+        _task_directory = os.path.abspath(task_directory) 
+        self.task_directory = _task_directory
+        #<--- we do this if the path already exists
+        if os.path.exists(_task_directory):
             if self.is_restart:
                 self.restart()
             else:
-                # if no restart, start
-                shutil.rmtree(self.task_directory)
-                os.mkdir(self.task_directory)
+                shutil.rmtree(_task_directory)
+                os.mkdir(_task_directory)
                 self.status = 'INIT'
         else:
-            os.mkdir(self.task_directory)
+            os.mkdir(_task_directory)
             self.status = 'INIT'
+    
+    @property
+    def task_name(self): 
+        return self._task_name
+    
+    @task_name.setter
+    def task_name(self, task_name):
+        if isinstance(task_name,str):
+            self._task_name = task_name
+        else:
+            self._task_name = str(task_name)
 
-    def restart(self):
-        raise NotImplementedError
+    @property
+    def task_directory(self): 
+        return self._task_directory
 
-class TestTask(Task):
-    """ Testing implementation of Task Abstract class.
+    @task_directory.setter
+    def task_directory(self, task_directory):
+        assert type(task_directory) is str
+        self._task_directory = task_directory
+    @property
+    def is_restart(self):
+        return self._is_restart
 
-    This class has stub implementations for unit testing purposes.  It 
-    overrides class methods of Task which would normally throw 
-    NotImplementedErrors.
+    @is_restart.setter
+    def is_restart(self,is_restart):
+        if not isinstance(is_restart,bool):
+            msg_err = "is_restart must be a boolean value"
+        self._is_restart = is_restart
 
-    """
-    pass
+    @property
+    def status(self): 
+        return self._status
+
+    @status.setter
+    def status(self,status):
+        if status not in self.status_states:
+            msg_err = (
+                    "unsupported status state.\n"
+                    "\tstatus:{}\n"
+                    "\tsupported_status_states\n"
+                    ).format(
+                            status,
+                            self.supported_status_states)
+            raise ValueError(msg_err)
+        self._status = status
+
+
