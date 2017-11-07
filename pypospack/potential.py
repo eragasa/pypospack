@@ -27,8 +27,10 @@ class Potential(object):
             symbols,
             potential_type=None,
             is_charge=None):
+        self.PYPOSPACK_CHRG_FORMAT = "chrg_{s}"
         self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
 
+        self.potential = None
         self.symbols = list(symbols)
         self.potential_type = potential_type
         self.is_charge = is_charge
@@ -52,15 +54,9 @@ class Potential(object):
     def _init_parameters(self):
         raise NotImplementedError
 
-    def evaluate(self,r,parameter_dict,r_cut=False):
+    def evaluate(self,r,parameters,r_cut=False):
         raise NotImplementedError
 
-        #<---- example implementation
-        self.potential_evaluations = OrderedDict()
-
-        for s in self.symbol_pairs:
-        
-        #<---- 
     def write_lammps_potential_file(self):
         raise NotImplementedError
 
@@ -97,7 +93,252 @@ class Potential(object):
         else:
             raise ValueError('element {} not in database'.format(element))
 
+from pypospack.potentials.tersoff import TersoffPotential
+
+#-----------------------------------------------------------------------------
+class PairPotential(Potential):
+    def __init__(self,symbols,potential_type,is_charge):
+        Potential.__init__(self,
+                symbols=symbols,
+                potential_type=potential_type,
+                is_charge=is_charge)
+
 from pypospack.potentials.morse import MorsePotential
+from pypospack.potentials.buckingham import BuckinghamPotential
+#-----------------------------------------------------------------------------
+class EamDensityFunction(Potential):
+    def __init__(self,
+            symbols,
+            potential_type='eamdens'):
+
+        Potential.__init__(self,
+                symbols=symbols,
+                potential_type=potential_type,
+                is_charge=False)
+
+        self.density = None
+from pypospack.potentials.eam_dens_exp import ExponentialDensityFunction
+
+#------------------------------------------------------------------------------
+class EamEmbeddingFunction(Potential):
+    def __init__(self,
+            symbols,
+            potential_type='eamembed'):
+
+        Potential.__init__(self,
+                symbols=symbols,
+                potential_type=potential_type,
+                is_charge=False)
+        self.embedding = None
+from pypospack.potentials.eam_embed_bjs import BjsEmbeddingFunction
+from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
+
+class EamPotential(Potential):
+    """
+    Args:
+       symbols(list of str):
+       func_pairpotential(str):
+       func_density(str):
+       func_embedding(str):
+    Attributes:
+       symbols(list of str):
+
+       obj_pair(OrderedDict of PairPotential)
+       obj_density(OrderedDict of EamDensityFunction)
+       obj_embedding(OrderedDict of EamEmbeddingFunction)
+    """
+    def __init__(self,
+            symbols,
+            func_pair=None,
+            func_density=None,
+            func_embedding=None,
+            filename=None):
+        
+        self.obj_pair = None
+        self.obj_density = None
+        self.obj_embedding = None
+
+        self.pair= None
+        self.density = None
+        self.embedding = None
+
+        self.symbols = symbols
+
+        assert type(func_pair) is str
+        assert type(func_density) is str
+        assert type(func_embedding) is str
+        self.set_obj_pair(func_pair=func_pair)
+        self.set_obj_density(func_density=func_density)
+        self.set_obj_embedding(func_embedding=func_embedding)
+        
+        Potential.__init__(self,
+                symbols=symbols,
+                potential_type='eam')
+
+    def _init_parameter_names(self):
+        p_params = ['p_{}'.format(p) for p in self.obj_pair.parameter_names]
+        d_params = ['d_{}'.format(p) for p in self.obj_density.parameter_names]
+        e_params = ['e_{}'.format(p) for p in self.obj_embedding.parameter_names]
+
+        self.parameter_names = list(p_params + d_params + e_params)
+
+    def _init_parameters(self):
+        self.parameters = OrderedDict()
+        for p in self.parameter_names:
+            self.parameters[p] = None
+
+    def evaluate(self,r,rho,parameters,rcut=None):
+        for p in self.parameters:
+            self.parameters[p] = parameters[p]
+
+        self.evaluate_pair()
+        self.evaluate_density()
+        self.evaluate_embedding()
+    
+    def set_obj_pair(self,func_pair):
+        if func_pair == 'morse':
+            self.obj_pair = MorsePotential(symbols=self.symbols)
+        else:
+            msg_err = "func_pair must be a PairPotential"
+            raise ValueError(msg_err)
+        if not isinstance(self.obj_pair,PairPotential):
+            msg_err = "func_pair must be a PairPotential"
+            raise ValueError(msg_err)
+
+    def set_obj_density(self,func_density):
+        if func_density == 'eam_dens_exp':
+            self.obj_density = ExponentialDensityFunction(symbols=self.symbols)
+        else:
+            msg_err = "func_dens must be an EamDensityfunction"
+            raise ValueError(msg_err)
+
+        #<--- ensure that the potential configured is an EamDensityFunction
+        if not isinstance(self.obj_density,EamDensityFunction):
+            msg_err = (
+                "func_dens must be an EamDensityFunction\n"
+                 "\tfunc_density={}\n"
+                 "\ttype(attr.obj_density)={}\n").format(
+                         func_density,
+                         type(self.obj_density))
+            raise ValueError(msg_err)
+
+    def set_obj_embedding(self,func_embedding):
+        if func_embedding == 'eam_embed_universal':
+            self.obj_embedding = UniversalEmbeddingFunction(symbols=self.symbols)
+        elif func_embedding == 'eam_embed_bjs':
+            self.obj_embedding = BjsEmbeddingFunction(symbols=self.symbols)
+        else:
+            msg_err = "func_embedding must be a EamEmbeddingFunction"
+            raise ValueError(msg_err)
+
+        if not isinstance(self.obj_embedding,EamEmbeddingFunction):
+            msg_err = "func_embedding must be a EamEmbeddingFunction"
+            raise ValueError(msg_err)
+
+    def evaluate_pair(self,r=None,parameters=None,rcut=None):
+        if parameters is not None:
+            for p in self.parameters:
+                self.parameters[p] = parameters[p]
+
+        if r is not None:
+            if not isinstance(r,np.ndarray):
+                raise ValueError("r must be a numpy.ndarray")
+
+        p_params = [p for p in self.parameters if p.startswith('p_')]
+        p_params = [s.partition('_')[2] for s in p_params]
+        self.obj_pairs.evaluate(
+                r=r,
+                parameters=p_params,
+                r_cut=r_cut)
+        self.pairpotential = copy.deepcopy(self.obj_pairs.potential)
+ 
+    def evaluate_density(self,
+            rho=None,
+            parameters=None,
+            rcut=None):
+        
+        #<--- check arguments of the function
+        if parameters is not None:
+            if not isinstance(parameters,dict):
+                raise ValueError("parameters must be a dict")
+            for p in self.parameters:
+                self.parameters[p] = parameters[p]
+        if rho is not None:
+            if not isinstance(rho,np.ndarray):
+                raise ValueError("rho must be an numpy.ndarray")
+
+        #<--- grab the parameters of the density function
+        d_params = [p for p in self.parameters if p.startswith('d_')]
+        d_params = [s.partition('_')[2] for s in d_params]
+        self.obj_density.evaluate(
+                rho=rho,
+                parameters=d_params,
+                rho_cut=rho_cut)
+
+        #<--- set the internal attribute
+        self.density = copy.deepcopy(self.obj_density.density)
+
+    def evaluate_embedding(self,
+            rho=None,
+            parameters=None,
+            rho_cut=None):
+
+        #<--- check arguments of the function
+        if parameters is not None:
+            for p in self.parameters:
+                self.parameters[p] = parameters[p]
+        if rho is not None:
+            if isinstance(r,np.ndarray):
+                self.rho = np.copy(rho)
+            else:
+                raise ValueError("r must be a numpy.ndarray")
+            self.rho = np.copy(rho)
+        if rho_cut is not None:
+            if type(rho_cut) in [float,int]:
+                self.rho_cut = rho_cut
+            else:
+                raise ValueError("rho_cut must be a numeric variable")
+        #<--- grab the parameters for the embedding function
+        e_params = [p for p in self.parameters if p.startswith('e_')]
+        e_params = [s.partition('_')[2] for s in e_params]
+        self.obj_embedding.evaluate(
+                rho=self.rho,
+                parameters=e_params,
+                rho_cut=self.rho_cut)
+        
+        #<--- set the internal attribute
+        self.embedding = copy.deepcopy(self.obj_embedding.embedding)
+    
+def PotentialObjectMap():
+    potential_map = OrderedDict()
+    potential_map['buckingham'] = OrderedDict()
+    potential_map['buckingham']['module'] = 'pypospack.potential'
+    potential_map['buckingham']['class'] = 'BuckinghamPotential'
+
+    potential_map['eam'] = OrderedDict()
+    potential_map['eam']['module'] = 'pypospack.potential'
+    potential_map['eam']['class'] = 'EmbeddedAtomModel'
+
+    potential_map['morse'] = OrderedDict()
+    potential_map['morse']['module'] = 'pypospack.potential'
+    potential_map['morse']['class'] = 'MorsePotential'
+
+    potential_map['tersoff'] = OrderedDict()
+    potential_map['tersoff']['module'] = 'pypospack.potential'
+    potential_map['tersoff']['class'] = 'TersoffPotential'
+
+    potential_map['eam_dens_exp'] = OrderedDict()
+    potential_map['eam_dens_exp']['module'] = 'pypospack.potential'
+    potential_map['eam_dens_exp']['class'] = 'ExponentialDensityFunction'
+
+    potential_map['eam_embed_bjs'] = OrderedDict()
+    potential_map['eam_embed_bjs']['module'] = 'pypospack.potential'
+    potential_map['eam_embed_bjs']['class'] = 'BjsEmbeddingFunction'
+
+    potential_map['eam_embed_universal'] = OrderedDict()
+    potential_map['eam_embed_universal']['module'] = 'pypospack.potential'
+    potential_map['eam_embed_universal']['class'] = 'UniversalEmbeddingFunction'
+
 def get_potential_map():
     """ get the potential map
 
@@ -251,138 +492,6 @@ class PotentialInformation(object):
         potential_dict['params'] = None
         return copy.deepcopy(potential_dict)
 
-
-#from pypospack.potentials.buckingham import BuckinghamPotential
-class Buckingham(Potential):
-
-    def __init__(self,symbols):
-        Potential.__init__(self,symbols)
-        self.potential_type = 'buckingham'
-        self.param_dict = None
-        self.is_charge = True
-        self._init_param_names()
-        self._init_param_dict()
-
-    @property
-    def parameter_names(self): return list(self.param_names)
-
-    def copy(self):
-        clone = Buckingham(self.symbols)
-        return clone
-
-    def write_potential_file(self,fname_out,param_dict,r_cut=10.0):
-
-        str_out = self.to_string(param_dict,r_cut)
-        with open(fname_out,'w') as f:
-            f.write(self.to_string(param_dict,r_cut=10.0))
-
-    def gulp_potential_section_to_string(self,param_dict,r_cut=10.0):
-        str_out = 'species\n'
-        for s in self.symbols:
-            str_out += "{} core {}\n".format(\
-                    s,
-                    param_dict['chrg_{}'.format(s)])
-        str_out += 'buck\n'
-        for i,si in enumerate(self.symbols):
-            for j,sj in enumerate(self.symbols):
-                if i<=j:
-                    str_out += "{} core {} core {} {} {} {} {}\n".format(\
-                            si,sj,
-                            param_dict['{}{}_A'.format(si,sj)],
-                            param_dict['{}{}_rho'.format(si,sj)],
-                            param_dict['{}{}_C'.format(si,sj)],
-                            0,
-                            r_cut)
-        return str_out
-
-    def lammps_potential_section_to_string(self,param_dict,r_cut=10.0):
-        raise NotImplementedError()
-
-    def phonts_potential_section_to_string(self,param_dict,r_cut=10.0):
-        raise NotImplementedError()
-
-    def to_string(self,param_dict,r_cut=10):
-        if param_dict is None:
-            param_dict = copy.deepcopy(self.param_dict)
-        else:
-            self.param_dict = copy.deepcopy(param_dict)
-
-        # set masses
-        str_out = ''
-        for i,s in enumerate(self.symbols):
-            str_out += "mass {} {}\n".format(i+1,self._get_mass(s))
-        str_out += "\n"
-
-        # set groups
-        for i,s in enumerate(self.symbols):
-            str_out += "group {} type {}\n".format(s,i+1)
-        str_out += "\n"
-
-        # set chrg
-        for i,s in enumerate(self.symbols):
-            charge = self.param_dict['chrg_{}'.format(s)]
-            str_out += "set group {} charge {}\n".format(s,charge)
-        str_out += "\n"
-
-        str_out += 'variable R_cut equal {}\n'.format(r_cut)
-        str_out += '\n'
-        str_out += 'pair_style buck/coul/long ${R_cut}\n'
-
-        # set param values
-        for i,si in enumerate(self.symbols):
-            for j,sj in enumerate(self.symbols):
-                if i <= j:
-                    try:
-                        A = self.param_dict['{}{}_A'.format(si,sj)]
-                        rho = self.param_dict['{}{}_rho'.format(si,sj)]
-                        C = self.param_dict['{}{}_C'.format(si,sj)]
-                        str_out += "pair_coeff {} {} {} {} {} {}\n".format(\
-                                i+1,j+1,A,rho,C,'${R_cut}')
-                    except KeyError as ke:
-                        s = str(ke)
-                        print('key_requested:',s)
-                        print('keys:',self.param_dict.keys())
-                        raise
-                    except TypeError as te: 
-                        s = str(te)
-                        print(self.param_dict)
-                        print('key_requested:',s)
-                        print('keys:',self.param_dict.keys())
-                        raise
-        # coulumbic charge summuation         
-        str_out += "\n"
-        str_out += "kspace_style pppm 1.0e-5\n"
-        str_out += "\n"
-        str_out += "neighbor 1.0 bin\n"
-        str_out += "neigh_modify every 1 delay 0 check yes\n"
-
-
-        return str_out
-
-    def _init_param_names(self):
-        """ initializes the parameter names """
-
-        pairs = []
-        for s in self.symbols:
-            pairs.append('{}{}'.format(s,s))
-        for i,si in enumerate(self.symbols):
-            for j,sj in enumerate(self.symbols):
-                if i<j:
-                    pairs.append('{}{}'.format(si,sj))
-
-        self.param_names = []
-        for s in self.symbols:
-            self.param_names.append('chrg_{}'.format(s))
-        for p in pairs:
-            self.param_names.append('{}_A'.format(p))
-            self.param_names.append('{}_rho'.format(p))
-            self.param_names.append('{}_C'.format(p))
-
-    def _init_param_dict(self):
-        self.param = {}
-        for pn in self.param_names:
-            self.param[pn] = None
-
 class CutoffFunction(object):
     def __init__(self):
         pass
@@ -411,61 +520,6 @@ def cutoff_shifted_energy(r,v,rcut):
     """
     return sv
 
-class TersoffPotential(Potential):
-    def __init__(self,symbols):
-        Potential.__init__(self,symbols)
-        self._pot_type = 'tersoff'
-        self._determine_parameter_names()
-        self._fname_potential_file = 'potential.mod'
-
-    @property
-    def parameter_names(self):
-        return self._param_names
-
-    def _determine_parameter_names(self):
-        # TODO: This is only written for a single element potential
-        symbols = self._symbols
-        for i in range(n_symbols):
-            for j in range(n_symbols):
-                for k in range(n_symbols):
-                    el1 = symbols[i]
-                    el2 = symbols[j]
-                    el3 = symbols[k]
-                    self._add_parameter_names(el1,el2,el3)
-
-    def _self_add_parameter_names(self,el1,el2,el3):
-        s = "{}{}{}".format(el1,el2,el3)
-        tersoff_param_names = ['m','gamma','lambda3','c','d','costheta0','n','beta',
-                       'lambda2','B','R','D','lambda1','A']
-        for p in param_names:
-            self._param_names.append("{}_{}".format(s,p))
-
-    def write_lammps_potential_file(self):
-        fname_potential_mod = 'potential.mod'
-        fname_tersoff_file = 'potential.tersoff'
-
-        for i, el1 in enumerate(elements):
-            for j, el2 in enumerate(elements):
-                for k, el3 in enumerate(elements):
-                    s = '{}{}{}'.format(el1,el2,el3)
-                    m = self._param_dict['{}_m'.format(s)]
-                    str_pot += '{} {} {}'.format(el1,el2,el3)
-                    str_out += ' ' + self._param_dict['{}_gamma'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda3'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_c'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_d'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_costheta0'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_n'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_beta'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda2'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_B'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_R'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_D'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda1'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_A'.format(s)]
-                    str_out += '\n'
-
-
 class ShiftedForceCutoff(CutoffFunction):
     def eval(self, r):
         pass
@@ -477,313 +531,3 @@ def func_cutoff(r,rcut,h):
     r_gt_rcut = np.where(r >= rcut)
     phi[r_gt_rcut] = np.zeros(len(r_gt_rcut))
     return phi
-
-class EamPotential(Potential):
-    def __init__(self,symbols,setfl_filename='None',is_parameterized=True):
-        Potential.__init__(self,symbols)
-        self.potential_type = 'eam'
-
-        self.is_eam_parameterized = True
-
-        self.is_eam_file = False
-        if setfl_filename is not None:
-            self.is_eam_file = True
-            
-            self.setfl_filename=setfl_filename
-        self._pot_type = 'eam'
-        self.param_dict = None
-        self._param_names = None
-
-        self._pair_function = None
-        self._density_function = None
-        self._embedding_function = None
-
-    @property
-    def pair_function(self):
-        return self._pair_function
-
-    @pair_function.setter
-    def pair_function(self,func):
-        self._pair_function = func
-
-    @property
-    def density_function(self):
-        return self._density_function
-
-    @density_function.setter
-    def density_function(self, func):
-        self._density_function = func
-
-    @property
-    def embedding_function(self):
-        return self._embedding_function
-
-    @embedding_function.setter
-    def embedding_function(self, func):
-        self._embedding_function = func
-
-    @property
-    def parameter_names(self):
-        self._determine_parameter_names()
-        return self._param_names
-
-    def _determine_parameter_names(self):
-        self._param_names  = ['p.{}'.format(v) for v in self.pair_function.parameter_names]
-        self._param_names += ['d.{}'.format(v) for v in self.density_function.parameter_names]
-        self._param_names += ['e.{}'.format(v) for v in self.embedding_function.parameter_names]
-
-    #def make_setfl_file(self):
-
-class EamElectronDensityFunction(Potential):
-    def __init__(self,symbols):
-        s = None
-        if isinstance(symbols,list):
-            if len(symbols) != 1:
-                err_msg = "symbols must either be a string containing one symbol, or an array of length one"
-                raise ValueError(err_msg)
-            s = list(symbols)
-        elif isinstance(symbols,str):
-            s = [symbols]
-        else:
-            err_msg = "symbols must either be a string containing one symbol, or an array of length one"
-            raise ValueError(err_msg)
-        Potential.__init__(self,s)
-        self.potential_type 
-class ExponentialDensityFunction(EamElectronDensityFunction):
-    def __init__(self,symbols):
-        EamElectronDensityFunction.__init__(self,symbols)
-        self.potential_type = 'elec_dens.exponential'
-        self._pot_type = 'elec_dens_exp'
-        self.param_dict = None
-        self.param_names = []
-
-        self._determine_parameter_names()
-        self._create_param_dictionary()
-
-    @property
-    def parameter_names(self):
-        self._determine_parameter_names()
-        return self._param_names
-
-    def _create_param_dictionary(self):
-        self._determine_parameter_names()
-        return self.param_names
-
-    def _determine_parameter_names(self):
-        self.param_names = []
-        for s in self.symbols:
-            self.param_names.append('d.{}.rho0'.format(s))
-            self.param_names.append('d.{}.beta'.format(s))
-            self.param_names.append('d.{}.r0'.format(s))
-
-    def evaluate(self,r,symbol,params,rcut=False):
-        s = None
-        if isinstance(symbol,str):
-            s = symbol
-        elif isinstance(symbol,list):
-            if len(symbol) == 1:
-                s = symbol[0]
-            else:
-                msg_err = "symbol may either be a string of a list of length one."
-                raise ValueError(msg_err)
-        else:
-            msg_err = "symbol may either be a string of a list of length one."
-            raise ValueError(msg_err)
-
-        if s not in self.symbols:
-            msg_err = "symbol not in list of symbols"
-            raise ValueError(msg_err)
-
-        # make local copy of parameters, from dictionary
-        try:
-            rho0 = params['d.{}.rho0'.format(s)]
-            beta = params['d.{}.beta'.format(s)]
-            r0 = params['d.{}.r0'.format(s)]
-        except:
-            raise
-
-        val = None
-        if rcut is False:
-            val = rho0 * np.exp(-beta*(r/r0-1))
-        else:
-            val = rho0 * np.exp(-beta*(r/r0-1))
-            val = val * func_cutoff(r,rcut,h)
-
-        return val
-
-if False:
-    class MorsePotential(Potential):
-        """
-
-        This class manages the parameterization, evaluation, and creation of 
-        different section of the inputs files required for GULP, LAMMPS, and
-        PhonTS through the pypospack library.
-
-        The formalism used here is the same used in the LAMMPS documentation.
-
-        Args:
-            symbols(list of str): a list of the chemical symbols for the potential.
-        Attributes:
-            symbols(list of str)
-            is_charge(bool): for the Morse Potential, this is set to false.
-            param_dict(collections.OrderedDict)
-            param_names(list)
-
-        References:
-        ===========
-        http://lammps.sandia.gov/doc/pair_morse.html
-        """
-        def __init__(self,symbols):
-            Potential.__init__(self,symbols)
-            self.potential_type = 'morse'
-            self.is_charge = False
-            self.param_dict = None
-            self.param_names = None
-
-            self._determine_parameter_names()
-            self._create_param_dictionary()
-
-        @property
-        def parameter_names(self):
-            self._determine_parameter_names()
-            return self._param_names
-
-
-        def evaluate(self,r,param_dict,rcut=False):
-            """
-            Args:
-                r(numpy.ndarray)
-                symbols(list): a list of symbols
-                params(dict): a dictionary of parameters
-                rcut(float) - the cutoff function.  If set to 0, then no cutoff
-            function is applied.
-            """
-            err_msg = "MorsePotential cannot find {} parameter for {},{} pair"
-
-            _r = None
-            if isinstance(r,list):
-                _r = np.array(r)
-            elif isinstance(r,np.ndarray):
-                _r = np.copy(r)
-            else:
-                msg_err = "r must either be a list of numbers or a numpy array"
-                raise ValueError(msg_err)
-
-            self.potential = OrderedDict()
-
-            for i1,s1 in enumerate(self.symbols):
-                for i2,s2 in enumerate(self.symbols):
-                    if i1 <= i2:
-                        pair_key = "{}{}".format(s1,s2)
-                        D0=param_dict['{}_D0'.format(pair_key)]
-                        a=param_dict['{}_a'.format(pair_key)]
-                        r0=param_dict['{}_r0'.format(pair_key)]
-                        self.potential[pair_key] \
-                                = D0 * ((1 - np.exp(-a*(r-r0)))**2 -1)
-
-            return self.potential
-
-        def _determine_parameter_names(self):
-            symbols = self.symbols
-            n_symbols = len(symbols)
-            self.param_names = []
-            for i in range(n_symbols):
-                for j in range(n_symbols):
-                    if i <=j:
-                        s_i = symbols[i]
-                        s_j = symbols[j]
-                        self.param_names.append("{}{}_D0".format(s_i,s_j))
-                        self.param_names.append("{}{}_a".format(s_i,s_j))
-                        self.param_names.append("{}{}_r0".format(s_i,s_j))
-
-        def _create_param_dictionary(self):
-            self.param_dict = OrderedDict()
-            for v in self.param_names:
-                self.param_dict[v] = None
-
-class EamEmbeddingFunction(Potential):
-    def __init__(self,symbols):
-        Potential.__init__(self,symbols)
-        self._pot_type = None
-        self.param_dict = None
-        self._symbols = [s for s in symbols]
-
-class UniversalEmbeddingFunction(EamEmbeddingFunction):
-    def __init__(self,symbols):
-        EamEmbeddingFunction.__init__(self,symbols)
-        self._pot_type = 'embed_universal'
-        self._determine_parameter_names()
-        self._create_param_dictionary()
-
-    @property 
-    def parameter_names(self):
-        self._determine_parameter_names()
-        return self._param_names
-
-    def _create_param_dictionary(self):
-        self.param_dict = {}
-        for v in self._param_names:
-            self.param_dict[v] = None
-
-    def _determine_parameter_names(self):
-        self._param_names = []
-        symbols = self._symbols
-        for s in symbols:
-            self._param_names.append("{}_F0".format(s))
-            self._param_names.append("{}_p".format(s))
-            self._param_names.append("{}_q".format(s))
-            self._param_names.append("{}_F1".format(s))
-
-    def eval(rho, symbol, params):
-
-        F0 = None
-        p = None
-        q = None
-        F1 = None
-
-        if "{}_F0".format(symbol) in self._param_names:
-            F0 = params["{}_F0".format(symbol)]
-        if "{}_p".format(symbol) in self._param_names:
-            p = params["{}_p".format(symbol)]
-        if "{}_q".format(symbol) in self._param_names:
-            q = params["{}_q".format(symbol)]
-        if "{}_F1".format(symbol) in self_param_names:
-            F1 = params["{}_F1".format(symbol)]
-
-        val = F0 * ( q/(q-p)*rho**p - p/(q-p)*rho**q) + F1 *rho
-        return val
-
-class BjsEmbeddingFunction(EamEmbeddingFunction):
-    def __init__(self,symbols):
-        EamEmbeddingFunction.__init__(self.symbols)
-        self._pot_type = 'bjs'
-
-    @property
-    def parameter_names(self):
-        self._determin_parameter_names()
-        return self._param_names
-
-    def _determine_parameter_names(self):
-        self._param_names = None
-        sybols = self._symbols
-        for s in range(symbols):
-            self._param_names.append("{}_F0").format(s)
-            self._param_names.append("{}_gamma").format(s)
-            self._param_names.append("{}_F1").format(s)
-
-    def eval(rho, symbol, params):
-
-        F0 = None # free paramter
-        gamma = None # free parameter
-        F1 = None # free parameter
-
-        if "{}_F0".format(symbol) in self._param_names:
-            F0 = params["{}_F0".format(symbol)]
-        if "{}_gamma".format(symbol) in self._param_names:
-            p = params["{}_gamma".format(symbol)]
-        if "{}_F1".format(symbol) in self_param_names:
-            F1 = params["{}_F1".format(symbol)]
-
-        val = F0*(1-gamma*np.ln(rho))*rho**gamma + F1*gamma
-        return val
-
