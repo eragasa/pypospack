@@ -23,9 +23,9 @@ class Task(object):
             task_name,
             task_directory,
             restart=False):
-
         # supported status states
         self.status_states = self.get_status_states()
+        
         # private member varaibles
         self._is_restart = None
         self._task_directory = None
@@ -33,27 +33,33 @@ class Task(object):
         # process initialization arguments
         self.is_restart = restart
         self.task_name = task_name
+        self.task_directory = task_directory
         self.root_directory = os.getcwd()
 
-        #self.config_dict = OrderedDict()
-        #self.ready_dict = OrderedDict()
-        #self.run_dict = OrderedDict()
-        #self.post_dict = OrderedDict()
-        self.create_task_directory(task_directory)
+
+        if restart is True:
+            self.restart()
+        else:
+             self.create_task_directory(task_directory)
 
     def get_status_states(self):
         return ['INIT','CONFIG','RUNNING','POST','FINISHED','ERROR']
     
     def restart(self):
+        #<--- check if init has already occured
+        if not os.path.exists(self.task_directory):
+            self.create_task_directory(self.task_directory)
+
+    def run(self):
         raise NotImplementedError()
 
     def create_task_directory(self,task_directory):
-        #<--- check condition
+        #<--- check condition, we cannot run a simulation in the 
+        #     same directory which we run this script.
         if os.path.abspath(self.root_directory) \
                 == os.path.abspath(task_directory):
             err_msg = (
-                "Cannot set the path of the task_directory to the "
-                "root_directory.\n"
+                "Cannot set the path of the task_directory to the root_directory.\n"
                 "\ttask_directory:{}\n"
                 "\troot_directory:{}\n").format(
                     task_directory,
@@ -61,18 +67,15 @@ class Task(object):
             raise ValueError(err_msg)
 
         #<--- change to task_directory to an absolute path
-        _task_directory = os.path.abspath(task_directory) 
-        self.task_directory = _task_directory
+        self.task_directory = os.path.abspath(task_directory) 
+        
         #<--- we do this if the path already exists
-        if os.path.exists(_task_directory):
-            if self.is_restart:
-                self.restart()
-            else:
-                shutil.rmtree(_task_directory)
-                os.mkdir(_task_directory)
-                self.status = 'INIT'
+        if os.path.exists(self.task_directory):
+            shutil.rmtree(self.task_directory)
+            os.mkdir(self.task_directory)
+            self.status = 'INIT'
         else:
-            os.mkdir(_task_directory)
+            os.mkdir(self.task_directory)
             self.status = 'INIT'
     
     @property
