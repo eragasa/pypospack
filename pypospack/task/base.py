@@ -36,15 +36,109 @@ class Task(object):
         self.task_directory = task_directory
         self.root_directory = os.getcwd()
 
-
         if restart is True:
             self.restart()
         else:
-             self.create_task_directory(task_directory)
+            self.create_task_directory(self.task_directory)
+            self.update_status()
+
+    def on_update_status(self):
+        if self.status == 'INIT': 
+            self.on_init()
+        elif self.status == 'CONFIG': 
+            self.on_config()
+        elif self.status == 'READY': 
+            self.on_ready()
+        elif self.status == 'RUNNING':
+            self.on_running()
+        elif self.status == 'POST':
+            self.on_post()
+        elif self.status == "FINISHED":
+            self.on_finished()
+        elif self.status == "ERROR":
+            self.on_error()
+    
+    def update_status(self):
+        self.get_conditions_init()
+        self.get_conditions_config()
+        self.get_conditions_ready()
+        self.get_conditions_running()
+        self.get_conditions_post()
+        self.get_conditions_finished()
+        self.get_conditions_error()
+
+        self.all_conditions_INIT \
+                = all([v for k,v in self.conditions_INIT.items()])
+        self.all_conditions_CONFIG \
+                = all([v for k,v in self.conditions_CONFIG.items()])
+        self.all_conditions_READY \
+                = all([v for k,v in self.conditions_READY.items()])
+        self.all_conditions_RUNNING \
+                = all([v for k,v in self.conditions_RUNNING.items()])
+        self.all_conditions_POST \
+                = all([v for k,v in self.conditions_POST.items()])
+        self.all_conditions_FINISHED \
+                = all([v for k,v in self.conditions_FINISHED.items()])
+
+        if self.all_conditions_INIT:
+            self.status = 'INIT'
+        if self.all_conditions_INIT and self.all_conditions_CONFIG:
+            self.status = 'CONFIG'
+        if self.all_conditions_INIT and self.all_conditions_CONFIG\
+                and self.all_conditions_READY:
+            self.status = 'READY'
+        if self.all_conditions_INIT and self.all_conditions_CONFIG\
+                and self.all_conditions_READY and self.all_conditions_RUNNING:
+            self.status = 'RUNNING'
+        if self.all_conditions_INIT and self.all_conditions_CONFIG\
+                and self.all_conditions_READY and self.all_conditions_RUNNING\
+                and self.all_conditions_POST:
+            self.status = 'POST'
+        if self.all_conditions_INIT and self.all_conditions_CONFIG\
+                and self.all_conditions_READY and self.all_conditions_RUNNING\
+                and self.all_conditions_POST and self.all_conditions_FINISHED:
+            self.status = 'FINISHED'
+       
+    def get_conditions_init(self):
+        raise NotImplementedError
+
+    def get_conditions_config(self):
+        raise NotImplementedError
+
+    def get_conditions_ready(self):
+        raise NotImplementedError
+
+    def get_conditions_running(self):
+        raise NotImplementedError
+
+    def get_conditions_post(self):
+        raise NotImplementedError
+
+    def get_conditions_finished(self):
+        raise NotImplementedError
 
     def get_status_states(self):
-        return ['INIT','CONFIG','RUNNING','POST','FINISHED','ERROR']
-    
+
+        return ['INIT','CONFIG','READY','RUNNING','POST','FINISHED','ERROR']
+   
+    def on_init(self):
+        raise NotImplementedError
+
+    def on_config(self):
+        raise NotImplementedError
+
+    def on_ready(self):
+        raise NotImplementedError
+
+    def on_post(self):
+        raise NotImplementedError
+
+    def on_finished(self):
+        raise NotImplementedError
+
+    def on_error(self):
+        raise NotImplementedError
+
     def restart(self):
         #<--- check if init has already occured
         if not os.path.exists(self.task_directory):

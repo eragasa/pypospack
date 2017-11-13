@@ -1,16 +1,21 @@
 import pytest
+import os
 from pypospack.io.vasp import Poscar
 
 def test__import__from_pypospack_io_phonts():
     from pypospack.io.phonts import simulation_cell_to_phonts_string
 
 def test__setup__can_read_poscar_file():
-    filename = 'Si_dia_unit.relax.gga.vasp' 
+    filename = os.path.join(
+            'test__simulation_cell_to_phonts_string',
+            'Si_dia_unit.relax.gga.vasp')
     poscar = Poscar()
     poscar.read(filename=filename)
 
 def test__no_charges():
-    filename = 'Si_dia_unit.relax.gga.vasp' 
+    filename = os.path.join(
+            'test__simulation_cell_to_phonts_string',
+            'Si_dia_unit.relax.gga.vasp')
     poscar = Poscar()
     poscar.read(filename=filename)
 
