@@ -46,6 +46,9 @@ class LammpsSimulation(Task):
             input and output files for LAMMPS.
 
     Attributes:
+        task_name(str)
+        task_directory(str)
+
         potential(pypospack.potential.Potential): the potential class
         structure(pypospack.io.vasp.Poscar): the structure
         config(:obj:'list' of :obj:'str'): a list of attributes required to 
@@ -55,28 +58,32 @@ class LammpsSimulation(Task):
         results(dict): results of the simulation
 
     """
-    def __init__(self,task_name,task_directory):
-        Task.__init__(self,task_name,task_directory)
-        if self.status == 'INIT':
-            self.potential = None
-            self.structure = None
-            self.results = None
-            additional_config_dict = {\
-                'structure':self.set_structure,
-                'potential':self.set_potential
-                }
-            additional_ready_dict = {}
-            additional_run_dict = {}
-            additional_post_dict = {}
-            
-            self.config_dict.update(additional_config_dict)
-            self.ready_dict.update(additional_config_dict)
-            self.run_dict.update(additional_config_dict)
-            self.post_dict.update(additional_post_dict)
+    def __init__(self,
+            task_name,
+            task_directory,
+            restart=False):
+        self.potential = None
+        self.structure = None
+        self.structure_filename = None
+        Task.__init__(
+                self,
+                task_name=task_name,
+                task_directory=task_directory,
+                restart=restart)
 
     def restart(self):
         raise NotImplementedError
 
+    def get_conditions_init(self):
+        self.conditions_INIT = OrderedDict()
+        self.conditions_INIT['task_directory_created']\
+                = os.path.isdir(self.task_directory)
+        return self.conditions_INIT
+
+    def get_conditions_config(self):
+        self.conditions_CONFIG = OrderedDict()
+        self.conditions_CONFIG['potential_class_initialized']\
+                == type(pypospack.potential.potential_type)
     def config(self, structure=None,potential=None):
         """ configure this class
 

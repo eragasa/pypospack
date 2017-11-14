@@ -766,9 +766,14 @@ class Poscar(crystal.SimulationCell):
         self.comment = f.readline().strip()
 
         # read lattice parameter
-        self.a0 = float(f.readline())
+        try:
+            line = f.readline()
+            self.a0 = float(line)
+        except ValueError as e:
+            print(type(line))
+            print(line)
+            raise ValueError(line)
 
-        # read h_matrix
         h_matrix = np.zeros(shape=[3,3])
         for i in range(3):
             h_row = f.readline().strip().split()

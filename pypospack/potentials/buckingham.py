@@ -10,6 +10,13 @@ from pypospack.potential import PairPotential
 from pypospack.potential import determine_symbol_pairs
 
 class BuckinghamPotential(PairPotential):
+    """ Implementation of the Buckingham Potential
+
+    This class provides an interface for the management of parameters
+    to and from different molecular dynamics and lattice dynamics programs.
+
+    E = A * e^{r/\rho} - \frac{C}{r^6}
+    """
 
     def __init__(self,symbols):
         self.pair_potential_parameters = ['A','rho','C']
@@ -102,13 +109,21 @@ class BuckinghamPotential(PairPotential):
 
         return str_out
     
-    # same as parent class
-    def gulp_potential_section_to_string(self,parameters,rcut=10.0):
+    # overrides the parents class
+    def gulp_potential_section_to_string(self,parameters=None,r_cut=10.0):
+        """ get GULP potential to string
+
+        The buckingham potential is a charged potential and so the charges
+        associated with the potential are also part of the potential."
+        """
+        if parameters is not None:
+            for pn in self.parameters:
+                self.parameters[pn] = parameters[pn]
+
         str_out = 'species\n'
         for s in self.symbols:
-            str_out += "{} core {}\n".format(\
-                    s,
-                    parameters,['chrg_{}'.format(s)])
+            chrg=self.parameters['chrg_{}'.format(s)]
+            str_out += "{s} core {chrg}\n".format(s=s,chrg=chrg)
 
         str_out += 'buck\n'
 
@@ -117,12 +132,13 @@ class BuckinghamPotential(PairPotential):
             s2 = symbols[1]
             sp = "{}{}".format(s1,s2)
 
+            # get parameters
             A = parameters['{}_A'.format(sp)]
             rho = parameters['{}_rho'.format(sp)]
             C = parameters['{}_C'.format(sp)]
 
-            str_out += "{} core {} core {} {} {} {} {}\n".format(\
-                    s1,s2,A,rho,C,r_cut)
+            str_out += "{s1} core {s2} core {A} {rho} {C} {r_cut}\n".format(
+                    s1=s1,s2=s2,A=A,rho=rho,C=C,r_cut=r_cut)
         
         return str_out
     

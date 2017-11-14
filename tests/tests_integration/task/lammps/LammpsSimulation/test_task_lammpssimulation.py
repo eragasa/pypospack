@@ -3,6 +3,7 @@ import pypospack.task.lammps as tsk_lammps
 import pypospack.potential
 import pytest
 
+
 class TestTaskLammpsElasticCalculation(object):
 
     @classmethod 

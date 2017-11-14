@@ -309,7 +309,7 @@ class EamPotential(Potential):
         #<--- set the internal attribute
         self.embedding = copy.deepcopy(self.obj_embedding.embedding)
     
-def PotentialObjectMap():
+def PotentialObjectMap(potential_type):
     potential_map = OrderedDict()
     potential_map['buckingham'] = OrderedDict()
     potential_map['buckingham']['module'] = 'pypospack.potential'
@@ -338,6 +338,11 @@ def PotentialObjectMap():
     potential_map['eam_embed_universal'] = OrderedDict()
     potential_map['eam_embed_universal']['module'] = 'pypospack.potential'
     potential_map['eam_embed_universal']['class'] = 'UniversalEmbeddingFunction'
+
+    module_name = potential_map[potential_type]['module']
+    class_name = potential_map[potential_type]['class']
+
+    return module_name,class_name
 
 def get_potential_map():
     """ get the potential map
@@ -387,29 +392,27 @@ class PotentialInformation(object):
     """
     def __init__(self):
         self.filename = 'pypospack.potential.yaml'
-        self.elements = []
+        self.symbols = None
         self.potential_type = None
-        self.param_info = {}
+        self.parameter_definitions = None
 
         # for eam functions
-        self.eam_pair_potential = None
-        self.eam_embedding_function = None
-        self.eam_density_function = None
+        self.eam_pair = None
+        self.eam_embedding = None
+        self.eam_density = None
 
+        self.parameter_names = None
+        self._free_parameter_names = None
+    
     @property
-    def symbols(self):
-        return list(self.elements)
-
-    @property
-    def free_parameters(self):
-        free_params = []
+    def free_parameter_names(self):
+        self._free_parameter_names = []
         for p in self.parameter_names:
-            if 'equals' not in self.param_info[p]:
-                free_params.append(p)
+            if 'equals' not in self.parameter_definitions[p]:
+                self._free_parameter_names.append(p)
+        return self._free_parameter_names
 
-        return list(free_params)
-
-    def read(self,fname=None):
+    def read(self,filename=None):
         """ read potential information from yaml file 
 
         Args:
@@ -419,51 +422,66 @@ class PotentialInformation(object):
         """
 
         # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
+        if filename is not None:
+            self.filename = filename
 
         try:
-            pot_info = yaml.load(open(self.filename))
+            yaml_potential_info = yaml.load(open(self.filename))
         except:
             raise
 
         # process elements of the yaml file
-        self.elements = list(pot_info['elements'])
-        self.parameter_names = list(pot_info['parameter_names'])
-        self.potential_type = pot_info['potential_type']
+        self.symbols = list(yaml_potential_info['symbols'])
+        self.parameter_names = list(yaml_potential_info['parameter_names'])
+        self.potential_type = yaml_potential_info['potential_type']
         if self.potential_type == 'eam':
-            self.eam_pair_potential = pot_info['eam_pair_potential']
-            self.eam_embedding_function = pot_info['eam_embedding_function']
-            self.eam_density_function = pot_info['eam_density_function']
-        self.param_info = copy.deepcopy(pot_info['param_info'])
+            self.eam_pair\
+                    = yaml_potential_info['eam_pair_potential']
+            self.eam_embedding\
+                    = yaml_potential_info['eam_embedding_function']
+            self.eam_density\
+                    = yaml_potential_info['eam_density_function']
+        self.parameter_definitions = copy.deepcopy(
+                yaml_potential_info['parameter_definitions'])
 
-    def write(self,fname=None):
+    def write(self,
+            filename=None,
+            potential_configuration=None):
         """ write potential information from yaml file
 
         Args:
-            fname(str): file to potential to.  If no argument is passed then
+            filename(str): file to potential to.  If no argument is passed then
                 use the filename attribute.  If the filename is set, then the
                 filename atribute is also set.
         """
 
         # set the filename attribute
-        if fname is not None:
-            self.filename = fname
+        if filename is not None:
+            self.filename = filename
 
-        # marshall attributes into a dict
-        pot_info = {}
-        pot_info['elements'] = list(self.elements)
-        pot_info['parameter_names'] = list(self.parameter_names)
-        pot_info['potential_type'] = self.potential_type
-        if self.potential_type == 'eam':
-            pot_info['eam_pair_potential'] = self.eam_pair_potential
-            pot_info['eam_embedding_function'] = self.eam_embedding_function
-            pot_info['eam_density_function'] = self.eam_density_function
-        pot_info['param_info'] = copy.deepcopy(self.param_info)
+        if potential_configuration is not None:
+            self.potential_configuration \
+                    = copy.deepcopy(potential_configuration)
+        else:
+            self.potential_configuration = OrderedDict()
+            self.potential_configuration['potential_type'] = self.potential_type
+            self.potential_configuration['symbols'] = self.symbols
+            self.potential_configuration['parameter_names'] = self.parameter_names
+            if self.potential_type == 'eam':
+                self.potential_configuration['eam_pair_type'] \
+                        = self.eam_pair_type
+                self.potential_configuration['eam_density_type'] \
+                        = self.eam_density_type
+                self.potential_configuration['eam_embedding_type'] \
+                        = self.eam_embedding_type
+            self.potential_configuration['parameter_definitions'] \
+                    = copy.deepcopy(self.parameter_definitions)
 
         # dump dict to yaml
-        with open(fname,'w') as f:
-            yaml.dump(pot_info,f,default_flow_style=False)
+        with open(self.filename,'w') as f:
+            yaml.dump(self.potential_configuration,
+                    f,
+                    default_flow_style=False)
 
     def check(self):
         """ performs sanity checks to potential configuration

@@ -44,6 +44,42 @@ class PyPosmatError(Exception):
   def __str__(self):
     return repr(self.value)
 
+class PyposmatFile(object):
+
+    def __init__(self,filename):
+        self.filename = filename
+        self.parameter_names = None
+        self.qoi_names = None
+        self.qoi_err = None
+    def read(self,filename=None):
+        if filename is not None:
+            self.filename = filename
+
+        lines = None
+        with open(self.filename,'r') as f:
+            lines = f.readlines()
+        
+        self.names = [s.strip() for s in lines[0].split()]
+        self.types = [s.strip() for s in lines[1].split()]
+
+        self.data = []
+        for i in range(2,len(lines)):
+            self.data.append([s.strip() for s in lines[i].split()])
+
+    def write(self,filename):
+        if self.data is None:
+            raise ValueError()
+        if self.names is None:
+            raise ValueError()
+        if self.types is None:
+            raise ValueError()
+    
+        with open(self.filename,'w') as f:
+            f.write(",".join(self.parameter_names))
+            for ps in self.parameters:
+                f.write(",".join(['{}'.format(p) for p in param]))
+
+
 class PyPosmatEngine(object):
 
     def __init__(self,

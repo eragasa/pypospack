@@ -40,8 +40,11 @@ def test____init____norestart__with_cleanup():
             == os.path.abspath(task_directory)
     assert testtask.task_name == task_name
 
-    #<-- check directory structure
+    #<--- check directory structure
     assert os.path.isdir(testtask.task_directory)
+    #<--- cleanup
+    shutil.rmtree(task_directory)
+
 
 def test____init____norestart__no_cleanup():
     #<--- create simulation variables
@@ -85,6 +88,9 @@ def test____init____norestart__no_cleanup():
     #<-- check directory structure
     assert os.path.isdir(testtask.task_directory)
 
+    #<--- cleanup
+    shutil.rmtree(task_directory)
+
 def test____init____restart__with_cleanup():
     #<--- create simulation variables
     task_name = "task_name"
@@ -114,6 +120,8 @@ def test____init____restart__with_cleanup():
 
     #<-- check directory structure
     assert os.path.isdir(testtask.task_directory)
+    #<--- cleanup
+    shutil.rmtree(task_directory)
 
 def test__init____restart__no_cleanup():
     #<--- create simulation variables
@@ -132,11 +140,10 @@ def test__init____restart__no_cleanup():
             restart=restart)
     assert os.path.isdir(task_directory)
     #<--- code we are testing
-    with pytest.raises(NotImplementedError):
-        testtask = Task(
-                task_name=task_name,
-                task_directory=task_directory,
-                restart=restart)
+    testtask = Task(
+            task_name=task_name,
+            task_directory=task_directory,
+            restart=restart)
     #<--- did the code leave us where we started?
     assert os.getcwd() == root_directory
     #<--- checking the attributes
@@ -147,4 +154,6 @@ def test__init____restart__no_cleanup():
     assert testtask.task_name == task_name
     #<-- check directory structure
     assert os.path.isdir(testtask.task_directory)
+    #<--- cleanup
+    shutil.rmtree(task_directory)
 

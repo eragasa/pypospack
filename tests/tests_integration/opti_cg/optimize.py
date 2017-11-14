@@ -1,4 +1,5 @@
 import numpy as np
+from collections import OrderedDict
 import scipy.optimize
 
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fmin_cg.html
@@ -21,7 +22,7 @@ class MultiObjectiveFunction(object):
         self.objective_functions = []
 
     def evaluate(self,theta):
-        return [f(theta) for f in self.objective_functions]
+        return [f(theta) for k,f in self.objective_functions.items()]
     
     def callback(self,xk):
         pass
@@ -29,9 +30,9 @@ class MultiObjectiveFunction(object):
 class BinhAndKornFunction(MultiObjectiveFunction):
     def __init__(self):
         MultiObjectiveFunction.__init__(self)
-        self.objective_functions = []
-        self.objective_functions.append(self.func_f1)
-        self.objective_functions.append(self.func_f1)
+        self.objective_functions = OrderedDict()
+        self.objective_functions['f1'] = self.func_f1
+        self.objective_functions['f2'] = self.func_f1
 
     def func_f1(self,theta):
         x = theta[0]
@@ -42,7 +43,7 @@ class BinhAndKornFunction(MultiObjectiveFunction):
         x = theta[0]
         y = theta[1]
         return (x-5)**2 + (y-5)**2
-
+        
 class SingleObjectiveOptimization(object):
     pass
 
@@ -72,6 +73,14 @@ class WeightedCostFunction(ObjectiveFunction):
         print(",".join(values_to_str))
         return weighted_cost
 
+class UniformMonteCarloSampler(object):
+    def __init__(self,moo_problem):
+        assert isinstance(moo_problem,MultiObjectiveFunction)
+        self.objective_function = moo_problem
+
+    def define_distribution(self,parameter_distribution):
+
+
 class ParetoOptimization(MultiObjectiveOptimization):
     def __init__(self,moo_problem):
         assert isinstance(moo_problem,MultiObjectiveFunction)
@@ -79,7 +88,6 @@ class ParetoOptimization(MultiObjectiveOptimization):
 
     def minimize(self,theta0):
         pass
-
 
 class ConjugateGradientOptimization(SingleObjectiveOptimization):
     def __init__(self,obj_function):

@@ -49,12 +49,14 @@ __version__ = "1.0"
 
 import os, shutil, pathlib, copy, shlex, subprocess,sys
 import numpy as np
+from collections import OrderedDict
 import pypospack.io.vasp as vasp
 import pypospack.io.slurm as slurm
 import pypospack.crystal as crystal
 import pypospack.potential as potential
 import pypospack.crystal as crystal
-
+from pypospack.task import Task
+from pypospack.crystal import get_amu
 # *****************************************************************************
 # ****    ERROR EXCEPTION HANDLING CLASSES                                 ****
 # *****************************************************************************
@@ -67,89 +69,120 @@ class PhontsError(Exception):
 # *****************************************************************************
 # ****     CORE CLASSES                                                    ****
 # *****************************************************************************
-
-phonts_fp_interfaces = ['VASP','QE','LAMMPS']
+PHONTS_INTERACTIONS = ['AbInitio']
+PHONTS_FP_INTERFACES = ['VASP','QE','LAMMPS']
 job_schedulers = ['slurm','rocks','pbs']
 
-def simulation_cell_to_gulp_string(sim_cell):
-    if not isinstance(sim_cell,crystal.SimulationCell):
+
+def simulation_cell_to_phonts_string(simulation_cell,charges=None):
+    """
+
+    This function converts as simulation cell and a dictionary of charges
+    into the simulation cell secton of the PhonTS input file.
+
+    Args:
+        simulation_cell(pypospack.crystal.SimulationCell): This arguement
+            expects the simulation cell to either to be a SimulationCell
+            object, or an object which inherits those methods.
+        charges(OrderedDict): This keys of this dictionary should have the 
+            ISO chemical symbols of the atoms while the values of these 
+            keys should provide floats of the charge.
+    Returns:
+        (str): a string of the the simulation cell in PhonTS format.
+    """
+    if not isinstance(simulation_cell,crystal.SimulationCell):
         err_msg = 'simulation cell is not an instance of '
         err_msg += 'pypospack.crystal.SimulationCell'
         raise ValueError(err_msg)
 
-    # check if system is cubic
-    a0 = sim_cell.a0
-    H = sim_cell.H
-    cond1 = H[0,0] != 0 and H[0,1] == 0 and H[0,2] == 0
-    cond2 = H[1,0] == 0 and H[1,1] != 1 and H[1,2] == 0
-    cond3 = H[2,0] == 0 and H[2,1] == 0 and H[2,2] == 0
-    if cond1 and cond2 and cond3:
-        pass
+    _charges = OrderedDict()
+    if charges is None:
+        for s in simulation_cell.symbols:
+            _charges[s] = 0.0
     else:
-        err_msg = 'simulation cell is not orthogonal'
-        raise ValueError(err_msg)
+        for c in charges:
+            _charges[c] = charges[c]
 
-def gulp_phonon_section_to_string(self,shrink=[8,8,8],kpoints=[10,10,10]):
-    str_out = (\
-        "shrink\n"
-        "{} {} {}\n"
-        "kpoints\n"
-        "{} {} {}\n"
-        "output freq text freq.gulp 12 \n"
-        "output phonon text phonon.gulp\n"
-        "output osc test phonon.osc\n").format(\
-                shrink[0],shrink[1],shrink[2],
-                kpoints[0],kpoints[1],kpoints[2])
-
-    return str_out
-
-def gulp_positions_to_string(self,structure='POSCAR'):
-    """ returns the gulp position section to create simulation cell
-
-    Args:
-        structure (str): the filename of the POSCAR format file.  Default 
-            is 'POSCAR'.  If an object which subclasses the 
-            pyposmat.crystal.SimulationCell class is passed, this method
-            will use this that class instead.
-
-    Returns
-        str:
-    """
-
-    sim_cell = None
-    if isinstance(structure,crystal.SimulationCell):
-        sim_cell = crystal.SimulationCell(poscar)
-    else:
-        sim_cell = vasp.Poscar()
-        try:
-            sim_cell.read(structure)
-        except FileNotFoundError as e:
-            msg = 'PYPOSPACK_ERROR: cannot find the POSCAR file:{}'.format(structure)
-            raise
-
-    H = sim_cell.H * sim_cell.a0
-    str_out = "vectors\n"
-    str_out += "{:.10f} {:.10f} {:.10f}\n".format(H[0,0],H[0,1],H[0,2])
-    str_out += "{:.10f} {:.10f} {:.10f}\n".format(H[1,0],H[1,1],H[1,2])
-    str_out += "{:.10f} {:.10f} {:.10f}\n".format(H[2,0],H[2,1],H[2,2])
+    str_out = "species {n_symbols}\n".format(
+            n_symbols=len(simulation_cell.symbols))
+    for s in simulation_cell.symbols:
+        str_out += "{s} {amu} {chrg}\n".format(
+                s=s,
+                amu=get_amu(s),
+                chrg=_charges[s])
+    str_out += "Lattice {:10.6f}\n".format(1.0)
+    str_out += "cell {a1:10.6f} {a2:10.6f} {a3:10.6f}\n".format(
+        a1=simulation_cell.a1,
+        a2=simulation_cell.a2,
+        a3=simulation_cell.a3)
+    str_out += "natoms {n}\n".format(n=simulation_cell.n_atoms)
     str_out += "fractional\n"
-    for s in sim_cell.symbols:
-        for a in sim_cell.atomic_basis:
+    for s in simulation_cell.symbols:
+        for a in simulation_cell.atomic_basis:
             if a.symbol == s:
-                try:
-                    str_out += "{} core {} {} {}\n".format(\
-                            s,a.position[0],a.position[1],a.position[2])
-                except:
-                    print(s)
-                    print(a.symbol)
-                    print(a.position)
-                    raise
+                str_out += "{s} {a1:10.6f} {a2:10.6f} {a3:10.6f}\n".format(
+                        s=s,
+                        a1=a.position[0],
+                        a2=a.position[1],
+                        a3=a.position[2])
     return str_out
 
-def get_charge(symbol):
-    return 0
+def abinitio_interface_to_string(
+        fp_interface='VASP',
+        is_prep_step=True,
+        numerical_2der=True, 
+        numerical_3der=True,
+        d3_cutoff=5.0,
+        delta=0.005):
+    """
+    Args:
+        fp_interface(str): first-principals interface.  Can be VASP, QE or
+            LAMMPS.  Default is set to LAMMPS.
+        numerical_2der(bool):
+        numerical_3der(bool):
+        d3_cutoff(float):
+    """
+    #<--- check the arguments of the functions
+    if fp_interface not in ['VASP','QE','LAMMPS']:
+        msg_out = "fp_interface must either be VASP, QE, or LAMMPS or None"
+        raise ValueError(msg_out)
+    if type(is_start) is not bool:
+        raise ValueError("is_start must be a boolean")
+    if type(numerical_2der) is not bool:
+        raise ValueError("numerical_2der must be boolean")
+    if type(numerical_3der) is not bool:
+        raise ValueError("numerical_3der must be boolean")
+    if type(asr_3der) is not bool:
+        raise ValueError("asr_3der must be boolean")
+    #if type(3d_cutoff) not in [int,float]:
+    #    raise ValueError("3d_cutoff must be a numerical value")
 
-def phonts_kpoints_section(k1=9,k2=9,k3=9,kbte=1):
+    #<--- nested function to convert bool to 'T' or 'F'
+    def bool2char(b):
+        if b is True: 
+            return 'T'
+        else: 
+            return 'F'
+
+    str_out = \
+        (
+            "FP_interface {fp_interface}\n"
+            "AbInitio {ab_init_0} {ab_init_1}\n"
+            "numerical_2der {num_2der}\n"
+            "numerical_3der {num_3der}\n"
+            "delta {delta:10.6f}\n"
+            "D3_cutoff {d3_cutoff:10.6f}\n"
+        ).format(
+            fp_interface=fp_interface,
+            ab_init_0=bool2char(is_start),ab_init_1=bool2char(not is_start),
+            numerical_2der=bool2char(numerical_2der),
+            numerical_3der=bool2char(numerical_3der),
+            delta=delta,
+            d3_cutoff=d3_cutoff
+        )
+    return str_out
+
+def phonts_kpoints_section_to_str(k1=9,k2=9,k3=9,kbte=1):
     """ Define the kpoint mesh for Phonons
 
     Defines the k-point mesh on which phonon properties are to be calculated.
@@ -164,8 +197,8 @@ def phonts_kpoints_section(k1=9,k2=9,k3=9,kbte=1):
             for more accurate determination of the energy conservation surface
             in thermal conductivity calculations.
     """
-
     str_out = "kpoints {} {} {} {}".format(k1,k2,k3,kbte)
+    return str_out
 
 def phonts_bte_section():
     pass
@@ -173,223 +206,201 @@ def phonts_bte_section():
 def phonts_dispersions():
     pass
 
-def phonts_ab_initio_section(is_start=True,
-        numerical_2der=True, numerical_3dr=True,
-        fp_interface='VASP',asr_3der=False,d3_cutoff=10.0):
-    """
-    Args:
-        numerical_2der(bool):
-        numerical_3der(bool):
-        d3_cutoff(float):
-        fp_interface(str): first-principals interface.  Can be VASP, QE or
-            LAMMPS.  Default is set to LAMMPS.
-    """
-
-    str_out = ''
-    if fp_interface not in phonts_fp_interfaces:
-        if fp_interface is not None:
-            msg_out = "fp_interface must either be VASP, QE, or LAMMPS or None"
-            raise ValueError(msg_out)
-    else:
-        str_out += 'FP_interface {}'.format(fp_interface)
-
-    if is_start:
-        str_out += 'AbInitio T F\n'
-    else:
-        str_out += 'AbInitio F T\n'
-
-
-
-    if numerical_2der is True:
-
-        str_out += 'numerical_2der T\n'
-    else:
-        str_out += 'numerical_2der F\n'
-
-    if numerical_3der is True:
-        str_out += 'numerical_3der T\n'
-    else:
-        str_out += 'numerical_3der F\n'
-
-    str_out += 'D3_cutoff {}\n'.format(d3_cutoff)
-
-    return str_out
 
 # *****************************************************************************
 # ****     CORE CLASSES                                                    ****
 # *****************************************************************************
-class PhontsSimulation(object):
+class PhontsInputFile(object):
     """
     Args:
-        task_name(str)
-        task_dir(str)
+        force_evaluation(str):
+        phonon_kpoints(list of int): K-point mesh in on which phonon properties
+            are to be calculated.  It should be an array with four elements,
+            [N1,N2,N3,N4], where N4 specifies the finer grid along the z-axis
+            for more accurate determination of the energy conversation surface
+            in thermal conductivity simulations.
 
-    Attributes:
-        task_name(str)
-        task_dir(str)
-        structure_filename(str): Attribute initialized to None.
-        structure(pypospack.crystal.SimulationCell): Attribute initialized to 
-            None
-        simulation_cell(pypospack.io.vasp.Poscar)
-        filename(str): name of the phonts input file  Initialized to be
-            <task_dir>/phonons_input.dat
-
-        potential(pypospack.potential.Potential)
-        fp_interface(str): must be
-            VASP, QE, or LAMMPS
     """
-    def __init__(self,task_name='phonts',task_dir=None):
+    def __init__(self,
+            filename='phonon_input.dat',
+            structure_filename='POSCAR',
+            phonts_configuration=None):
 
-        if isinstance(task_name,str):
-            self.task_name = task_name
-        else:
-            err_msg = "task_name must be a string"
-            raise ValueError(err_msg)
+        # intitialize attributes    
+        self._interaction_type = None
 
-        if task_dir is None:
-            self.task_directory = os.path.join(
-                    os.getcwd(),'phonts')
-        elif isinstance(task_dir,str):
-            self.task_directory = task_dir
-        else:
-            err_msg = "task_dir must be a string"
-            raise ValueError(err_msg)
+        # process constructor arguements
+        self.filename = filename
+        self.structure_filename = structure_filename
+        if phonts_configuration is not None:
+            self.phonts_configuration = copy.deepcopy(phonts_configuration)
 
-        self.structure_filename = None
-        self.structure = None
-        self.simulation_cell = vasp.Poscar()
-        self.filename = os.path.join(
-                self.task_directory,
-                'phonons_input.dat')
+    def write(self,filename=None):
+        if filename is not None:
+            self.filename = filename
 
-        # internal interatomic potential parameters
-        self.potential = None
-        self.phonts_potential_type = None
-        self.phonts_potential_params = None
+        str_phonts_input = self.get_header_section()
+        str_phonts_input += self.get_simulation_cell_section()
+        str_phonts_input += self.get_iteraction_section()
+        str_phonts_input += self.get_calculation_section()
+        str_phonts_input += "\nend\n"
 
-        # external force evaluation
-        self.fp_interface = None
-        self.phonts_bin = os.environ['PHONTS_BIN']
+        with open(filename,'w') as f:
+            f.write(str_phonts_input)
 
-        # job manager attributes
-        self.job_scheduler = None
-        self.slurm_phonts_dict = None
-        self.slurm_vasp_dict = None
-        self._create_task_directory()
 
-    def write_input_file(self):
-        str_out = "# PhonTS input file created pypospack.\n"
-        str_out += "# {:*^78}\n".format('simulation cell')
-        str_out += self.simulation_cell_to_string()
-        str_out += "# {:*^78}\n".format('force evaluation')
-        str_out += self.force_evaluation_to_string()
-        str_out += "\nend\n"
-           
+    def process_phonts_configuration(self,phonts_configuration=None):
+        """
+        Args:
+            phonts_configuration(dict):
+        """
+        if phonts_configuration is not None:
+            self.phonts_configuration = copy.deepcopy(phonts_configuration)
+
+        #process interaction type
+        self.interaction_type = self.phonts_configuration['interaction_type']
+        if self.interaction_type == 'AbInitio':
+            self.is_prep_step = self.phonts_configuration['is_prep_step']
+            self.fp_interface = self.phonts_configuration['fp_interface']
+            self.numerical_2der = self.phonts_configuration['numerical_2der']
+            self.numerical_3der = self.phonts_configuration['numerical_3der']
+            self.d3_cutoff = self.phonts_configuration['d3_cutoff']
+            self.delta = self.phonts_configuration['delta']
+
+        self.calculation_type = self.phonts_configurationp['calculation_type']
+        if self.calculation_type == 'iterations':
+            self.iter_steps = self.phonts_configuration['iter_steps']
+            self.phonons_kpoints = self.phonts_configuration['phonon_kpoints']
+            self.temperature = self.phonts_configurationp['temperature']
+
+    def on_interaction_type_changed(self):
+        if self.interaction_type == 'AbInitio':
+            self.is_prep_step = True
+            self.fp_interface = 'VASP'
+            self.numerical_2der = True
+            self.numerical_3der = True
+            self.d3_cutoff = 5.0
+            self.delta=0.005
+
+    @property
+    def interaction_type(self):
+        return self._interaction_type
+
+    @interaction_type.setter
+    def interaction_type(self,interaction_type):
+        if interaction_type not in PHONTS_INTERACTIONS:
+            msg_err = (
+                 "interaction_type is not supported. Supported interactions "
+                 "types supported by pypospack is contained in "
+                 "pypospack.io.phonts.PHONTS_INTERACTIONS.")
+            raise ValueError(msg_err)
+        self._interaction_type = interaction_type
+        self.on_interaction_type_changed()
+
+    def write(self,filename=None):
+        if type(filename) is str:
+            self.filename = filename
+
+        str_phonts_input = ""
+        str_phonts_input += self.get_header_section()
+        str_phonts_input += self.get_simulation_cell_section()
+        str_phonts_input += self.get_force_evaluation_section()
+        str_phonts_input += self.get_phonts_calculated_properties()
         with open(self.filename,'w') as f:
-            f.write(str_out)
-        return str_out
+            f.write(str_phonts_input)
     
-    def write_submission_script(self):
+    def get_header_section(self):
+        str_out = "# PhonTS input file created pypospack.\n"
 
-        if self.job_scheduler == 'slurm':
-            self.slurm_phonts_dict['filename'] = os.path.join(
-                    self.task_directory,
-                    self.slurm_phonts_dict['filename'])
-            slurm.write_phonts_batch_script(\
-                    filename=self.slurm_phonts_dict['filename'],
-                    job_name=self.slurm_phonts_dict['job_name'],
-                    email=self.slurm_phonts_dict['email'],
-                    qos=self.slurm_phonts_dict['qos'],
-                    ntasks=self.slurm_phonts_dict['ntasks'],
-                    time=self.slurm_phonts_dict['time'])
-        elif self.job_scheduler == 'sge':
-            raise NotImplementedError()
-        elif self.job_scheduler == 'pbs':
-            raise NotImplementedError()
+    def get_simulation_cell_section(self,structure_filename=None):
+        if type(structure_filename) is str:
+            self.structure_filename = structure_filename
+        self.read_poscar_file()
 
-    def run(self):
-        self.orig_dir = os.getcwd()
-        os.chdir(self.task_directory)
-        if self.job_scheduler == 'slurm':
-            cmd_s = 'sbatch {}'.format(self.slurm_phonts_dict['filename'])
-            args = shlex.split(cmd_s)
-            p = subprocess.Popen(args)
-
-    def force_evaluation_to_string(self):
-        str_out = ''
-        if  self.fp_interface in phonts_fp_interfaces:
-            str_out += self._get_external_force_evaluation_to_string() 
-        elif self.potential is not None:
-            str_out += self._get_internal_force_evaluation_to_string()
-        else:
-            err_msg = "either the potential must be specified or an "
-            err_msg += "external method must be provided"
-            raise ValueError(err_msg)
-        return str_out
+        str_out += "# {:*^78}\n".format('simulation cell')
+        charges = None
+        if self.potential is not None:
+            if self.potential.is_charge:
+                charges = self.potential.get_charges()
+        str_out += simulation_cell_to_phonts_string(
+            simulation_cell=self.structure,
+            charges=charges)
+   
+    def get_interaction_section(self):
+        str_out = "# {:*^78}\n".format('INTERACTION SECTION')
+        if self.interaction_type == 'AbInitio':
+            str_out += abinitio_iterface_to_string(
+                    fp_interface=self.fp_interface,
+                    is_prep_step = self.is_prep_step,
+                    numerical_2der= self.numerical_2der,
+                    numerical_3der=self.numerical_3der,
+                    d3_cutoff=self.d3_cutoff,
+                    delta=self.delta)
     
-    def _get_external_force_evaluation_to_string(self):
-        str_out = ''
-        if self.fp_interface == 'VASP':
-            pass
-        elif self.fp_interface == 'QE':
-            raise NotImplementedError('fp_interface == QE not supported')
-        elif self.fp_interface == 'LAMMPS':
-            raise NotImplementedError('fp_interface == LAMMPS not supported')
-        return str_out
+    def get_calculation_section(self):
+        def bool2char(b):
+            if b:
+                return 'T'
+            else:
+                return 'F'
+        str_out = "# {:*^78}\n".format('INTERACTION SECTION')
+        if self.calculation_type == 'iterations':
+            str_out += (
+                    "Iterations {is_iterations}\n"
+                    "iter_steps {iter_steps}\n"
+                    "kpoints {k1} {k2} {k2} {k4}\n"
+            ).format(
+                is_iterations=bool2char(True),
+                iter_steps=self.phonts_configuration['iter_steps'],
+                k1=self.phonts_configuration['phonon_kpoints'][0],
+                k2=self.phonts_configuration['phonon_kpoints'][1],
+                k3=self.phonts_configuration['phonon_kpoints'][2],
+                k4=self.phonts_configuration['phonon_kpoints'][3]
+            )
+            temperature = self.phonts_configuration['temperature']
+            if len(temperature) == 1:
+                str_out += "temperature {t1}\n".format(
+                        t1=temperature[0])
+            elif len(temperature) == 3:
+                str_out += "temperature {t1} {t2} {N_t}\n".format(
+                    t1=temperature[0],
+                    t2=temperature[1],
+                    N_t=temperature[2])
+            else:
+                raise ValueError()
+    def read_poscar_file(self,filename=None):
+        if type(filename) is str:
+            self.structure_filename = filename
+        if self.structure_filename is None:
+            raise ValueError('PhontsInputFile requires a structure file')
 
-    def _get_internal_force_evaluation_to_string(self):
-        str_out = ''
-        str_out += ' '.join([str(v) for v in self.phonts_potential_type]) + '\n'
-        str_out += ' '.join([str(v) for v in self.phonts_potential_params]) + '\n'
-        return str_out 
-    
-    def simulation_cell_to_string(self):
-        if isinstance(self.structure_filename,str):
-            self.structure = vasp.Poscar()
-            self.structure.read(self.structure_filename)
+        self.simulation_cell = vasp.Poscar()
+        self.simulation_cell.read(self.structure_filename)
 
-        str_out = ""
-        if isinstance(self.structure,crystal.SimulationCell):
-            # get relevant information
-            n_species = len(self.structure.symbols)
-            a0 = self.structure.a0
-            a1 = self.structure.a1/a0
-            a2 = self.structure.a2/a0
-            a3 = self.structure.a3/a0
-            n_atoms = self.structure.n_atoms
-
-            # build string
-            str_out += "species {}\n".format(n_species)
-            for s in self.structure.symbols:
-                s_charge = self._get_charge(s)
-                s_amu = crystal.get_amu(s)
-                str_out += "{} {} {}\n".format(s,s_amu,s_charge)
-            str_out += "Lattice {:.10f}\n".format(a0)
-            str_out += "cell {:.10f} {:.10f} {:.10f}\n".format(a1,a2,a3)
-            str_out += "natoms {}\n".format(n_atoms)
-            str_out += "fractional\n"
-            for a in self.structure.atomic_basis:
-                s = a.symbol
-                x = a.position[0]
-                y = a.position[1]
-                z = a.position[2]
-                str_out += "{} {:10f} {:10f} {:10f}\n".format(s,x,y,z)
-        else:
-            msg_out = "structure must be an instance of "
-            msg_out += "pypospack.crystal.SimulationCell"
-            raise ValueError(msg_out)
-
-        return str_out
-    def _get_charge(self,s):
-        return 0
-    def _create_task_directory(self):
-        if os.path.exists(self.task_directory):
-            shutil.rmtree(self.task_directory)
-        os.mkdir(self.task_directory)
 
 #******************************************************************************
 # POST PROCESSING SCRIPTS
 #******************************************************************************
+
+class PhontsPdosDatafile(object):
+
+    def __init__(self,filename=None):
+        self.filename = filename
+        self.data = None
+        self.labels = None
+        if filename is not None:
+            self.read()
+
+    @property
+    def df(self):
+        """(pandas.DataFrame)"""
+        return self._df
+
+    def read(self,filename='pdos.dat'):
+        if filename is not None:
+            self.filename = filename
+
+        self.data,self.labels = get_pdos_data(self.filename)
 
 def get_pdos_data(filename='pdos.dat'):
     
