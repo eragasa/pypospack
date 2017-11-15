@@ -62,13 +62,14 @@ def make_pdos_plot(
 
     figure = plt.figure()
     pdos_plot = figure.add_subplot(111)
-    pdos_plot.plot(pdos_data[:,2],pdos_data[:,3], label='density of states as calculated')
+    pdos_plot.plot(pdos_data[:,2],pdos_data[:,3])
     pdos_plot.plot(pdos_data[:,2],pdos_data[:,4], label='density of states as smoothed')
-    pdos_title=plt.title('Density of states for Argon')
-    pdos_xlabel=plt.xlabel('Frequency (meV)')
-    pdos_ylabel=plt.ylabel('PDOS')
+    pdos_title=plt.title('Density of states for Argon', fontname='Times New Roman') 
+    pdos_xlabel=plt.xlabel('Frequency (meV)', fontname='Times New Roman')
+    pdos_ylabel=plt.ylabel('PDOS', fontname='Times New Roman')
     pdos_legend=plt.legend(loc='upper right', prop={'size':7})
-
+    
+    pdos_font=plt.rc('font', family='Times New Roman')   
     # set axis here
     if xlim is not None:
         pdos_plot.set_xlim(xlim)
@@ -77,7 +78,7 @@ def make_pdos_plot(
      
     figure.savefig(figure_filename)
     plt.close()
-
+    
 if __name__ == "__main__":
 
     phonts_sim_dir = 'Ar_result'
@@ -88,8 +89,8 @@ if __name__ == "__main__":
     assert os.path.isfile(pdos_data_filename)
 
     # example how to use get_pdos_data()
-    (pdos_data,pdos_labels) = get_pdos_data(
-        filename=pdos_data_filename)
+    #(pdos_data,pdos_labels) = get_pdos_data(
+    #    filename=pdos_data_filename)
 
     # example how to use make_pdos_plot(i)
     make_pdos_plot(
