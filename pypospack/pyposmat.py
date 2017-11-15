@@ -109,9 +109,12 @@ class PyposmatDataFile(object):
 
     def __init__(self,filename):
         self.filename = filename
+
+        self.names = None
+        self.types = None
         self.parameter_names = None
         self.qoi_names = None
-        self.err_names = None
+        self.error_names = None
    
         self.df = None
         self.parameter_df = None
@@ -149,7 +152,7 @@ class PyposmatDataFile(object):
         self.qoi_names = [
                 n for i,n in enumerate(self.names) \
                         if self.types[i] == 'qoi']
-        self.err_names = [
+        self.error_names = [
                 n for i,n in enumerate(self.names) \
                         if self.types[i] == 'err']
         
@@ -157,7 +160,7 @@ class PyposmatDataFile(object):
                 columns=self.names,copy=True)
         self.df.set_index('sim_id')
         self.parameter_df = self.df[self.parameter_names] 
-        self.error_df = self.df[self.err_names]
+        self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
 
     def create_optimal_population(
@@ -205,10 +208,19 @@ class PyposmatDataFile(object):
         self.optimal_parameter_df = self.parameter_df.loc[self.optimal_indices]
         self.optimal_qoi_df = self.qoi_df.loc[self.optimal_indices]
 
-    def write_optimal_population(self,filename):
+    def write_optimal_population(self,
+            filename,
+            n=1,
+            scaling_factors='DFT',
+            err_type='abs'):
         str_out = ','.join([n for n in self.names]) + "\n"
         str_out += ','.join([t for t in self.types]) + "\n"
-        for row in data.culled[9].optimal_df.iterrows():
+        if self.optimal_df is None:
+            self.create_optimal_population(
+                    n=n,
+                    scaling_factors=scaling_factors,
+                    err_type=err_type)
+        for row in self.optimal_df.iterrows():
             _row = [a for i,a in enumerate(row[1])] #unpack tuple
             _row[0] = int(_row[0]) # row[0] is the sim_id
             str_out += ','.join([str(s) for s in _row]) + "\n"
