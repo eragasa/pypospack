@@ -8,8 +8,9 @@ __version__ = "1.0"
 import time
 import copy, shutil, os.path
 import os, subprocess
-
+from collections import OrderedDict
 import numpy as np
+import pandas as pd
 import scipy.stats
 
 import pyflamestk.lammps as lammps
@@ -36,6 +37,196 @@ def get_supported_potentials():
             'tersoff']
     return supported_potentials
 
+class PyposmatData(object):
+
+    def __init__(self,data_directory):
+        self.RESULTS_FILENAME_FORMAT = "results_{:03d}.out"
+        self.PARETO_FILENAME_FORMAT = "pareto_{:03d}.out"
+        self.CULLED_FILENAME_FORMAT = "culled_{:03d}.out"
+        self._data_directory = None
+        self.data_directory = data_directory
+        self.n_iterations = None
+        self.parameter_names = None
+        self.qoi_names = None
+        self.error_names = None
+
+        self.qoi_references = OrderedDict()
+        self.parameter_references = OrderedDict()
+
+    def read(self,data_directory=None):
+        if data_directory is not None:
+            self.data_directory = data_directory
+
+        data_filenames = os.listdir(self.data_directory)
+        n_culled = len([s for s in data_filenames if s.startswith('culled')])
+        n_pareto = len([s for s in data_filenames if s.startswith('pareto')])
+        n_results = len([s for s in data_filenames if s.startswith('results')])
+
+        if n_culled == n_pareto and n_culled == n_results:
+            self.n_iterations = n_culled
+        else:
+            raise ValueError("missing some files")
+
+        self.culled = []
+        self.results = []
+        self.pareto = []
+        for i in range(self.n_iterations):
+            self.culled.append(PyposmatDataFile(
+                filename=os.path.join(
+                    self.data_directory,
+                    self.CULLED_FILENAME_FORMAT.format(i))))
+            self.results.append(PyposmatDataFile(
+                filename=os.path.join(
+                    self.data_directory,
+                    self.RESULTS_FILENAME_FORMAT.format(i))))
+            self.pareto.append(PyposmatDataFile(
+                filename=os.path.join(
+                    self.data_directory,
+                    self.PARETO_FILENAME_FORMAT.format(i))))
+
+        for filename in self.results: 
+            filename.read()
+            filename.qoi_references = self.qoi_references
+        for filename in self.pareto:
+            filename.read()
+            filename.qoi_references = self.qoi_references
+        for filename in self.culled:
+            filename.read()
+            filename.qoi_references = self.qoi_references
+   
+    @property
+    def data_directory(self):
+        return self._data_directory
+
+    @data_directory.setter
+    def data_directory(self,data_directory):
+        if os.path.isdir(data_directory):
+            self._data_directory = data_directory
+        else:
+            raise
+
+class PyposmatDataFile(object):
+
+    def __init__(self,filename):
+        self.filename = filename
+
+        self.names = None
+        self.types = None
+        self.parameter_names = None
+        self.qoi_names = None
+        self.error_names = None
+   
+        self.df = None
+        self.parameter_df = None
+        self.error_df = None
+        self.qoi_df = None
+        self.rescaled_error_df = None
+        
+        self.optimal_indices = None
+        self.optimal_df = None
+        self.optimal_parameter_df = None
+        self.optimal_qoi_df = None
+        self.optimal_error_df = None
+
+    def read(self,filename=None):
+        if filename is not None:
+            self.filename = filename
+
+        with open(self.filename,'r') as f:
+            lines = f.readlines()
+
+        self.names = [s.strip() for s in lines[0].strip().split(',')]
+        self.types = [s.strip() for s in lines[1].strip().split(',')]
+        
+        self.values = []
+        for i in range(2,len(lines)):
+            line = lines[i].strip()
+            values = [float(s.strip()) for s in line.split(',')]
+            values[0] = int(values[0])
+            self.values.append(list(values))
+        self.values = np.array(self.values)
+
+        self.parameter_names = [
+                n for i,n in enumerate(self.names) \
+                    if self.types[i] == 'param']
+        self.qoi_names = [
+                n for i,n in enumerate(self.names) \
+                        if self.types[i] == 'qoi']
+        self.error_names = [
+                n for i,n in enumerate(self.names) \
+                        if self.types[i] == 'err']
+        
+        self.df = pd.DataFrame(data=self.values,
+                columns=self.names,copy=True)
+        self.df.set_index('sim_id')
+        self.parameter_df = self.df[self.parameter_names] 
+        self.error_df = self.df[self.error_names]
+        self.qoi_df = self.df[self.qoi_names]
+
+    def create_optimal_population(
+            self,
+            n=1,
+            scaling_factors='DFT',
+            err_type='abs'):
+        """
+            Args:
+                scaling_factors(dict): the key is the error name, the value 
+                    is a scalar vaue from which the errors will be divided for 
+                    the purposes of scaling.
+                n(int): the number of points to return
+                result(str): should be either results, pareto or culled.  
+                    Default is culled.
+        """
+       
+        # here we create the scaling factors
+        if type(scaling_factors) == str:
+            str_sf = scaling_factors
+            self.scaling_factors = OrderedDict()
+            for col in self.error_df:
+                if col != 'sim_id':
+                    qn = '{}.{}'.format(col.split('.')[0],col.split('.')[1])
+                    self.scaling_factors[col] = self.qoi_references[str_sf][qn]
+        elif isinstance(scaling_factors,dict):
+            self.scaling_factors = copy.deepcopy(scaling_factors)
+        else:
+            raise ValueError()
+        
+        self.rescaled_error_df = self.error_df.copy(deep=True)
+        for col in self.rescaled_error_df:
+            if col != 'sim_id':
+                sf = self.scaling_factors[col]
+                self.rescaled_error_df[col] = self.rescaled_error_df[col].abs() / sf
+
+        # our metric is the sum of the rescaled errors
+        self.rescaled_error_df['d_metric'] = self.rescaled_error_df[
+                self.rescaled_error_df.columns].sum(axis=1)
+
+        self.optimal_indices = self.rescaled_error_df.nsmallest(n,'d_metric').index
+
+        self.optimal_df = self.df.loc[self.optimal_indices]
+        self.optimal_error_df = self.error_df.loc[self.optimal_indices]
+        self.optimal_parameter_df = self.parameter_df.loc[self.optimal_indices]
+        self.optimal_qoi_df = self.qoi_df.loc[self.optimal_indices]
+
+    def write_optimal_population(self,
+            filename,
+            n=1,
+            scaling_factors='DFT',
+            err_type='abs'):
+        str_out = ','.join([n for n in self.names]) + "\n"
+        str_out += ','.join([t for t in self.types]) + "\n"
+        if self.optimal_df is None:
+            self.create_optimal_population(
+                    n=n,
+                    scaling_factors=scaling_factors,
+                    err_type=err_type)
+        for row in self.optimal_df.iterrows():
+            _row = [a for i,a in enumerate(row[1])] #unpack tuple
+            _row[0] = int(_row[0]) # row[0] is the sim_id
+            str_out += ','.join([str(s) for s in _row]) + "\n"
+
+        with open(filename,'w') as f:
+            f.write(str_out)
 class PyPosmatError(Exception):
   """Exception handling class for pyposmat"""
   def __init__(self, value):
@@ -589,9 +780,11 @@ class PyPosmatEngine(object):
                 err_msg = err_msg.format(st_name,st_dir)
                 raise PyPosmatError(err_msg)
 
-    def _validate_external_software(self): pass
+    def _validate_external_software(self):
         self.lammps_bin = None
         self.lammps_bin = os.environ('LAMMPS_BIN')
+        self.gulp_bin = None
+        self.gulp_bin = os.environ('GULP_BIN')
 
     def _validate_quantities_of_interest(self):
         self._log('validating quantities of interest.')
