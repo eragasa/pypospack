@@ -51,13 +51,37 @@ def read_spectral_k(filename="tc_dos.dat"):
 
     return {k:v.copy() for k,v in tcdos_df_dict.items()}
 
+def normalize_tcdos(
+        data_filename='tc_dos.dat'):
+
+    tcdos_df_dict = read_spectral_k(filename=data_filename)
+    tcdos_df_dict_n = tcdos_df_dict
+
+    for k, v in tcdos_df_dict.items():
+
+        k_xx_raw = sum(list(tcdos_df_dict[k]['k_xx_raw']))
+        k_yy_raw = sum(list(tcdos_df_dict[k]['k_yy_raw']))
+        k_zz_raw = sum(list(tcdos_df_dict[k]['k_zz_raw']))
+        k_xx_smooth = sum(list(tcdos_df_dict[k]['k_xx_smooth']))
+        k_yy_smooth = sum(list(tcdos_df_dict[k]['k_yy_smooth']))
+        k_zz_smooth = sum(list(tcdos_df_dict[k]['k_zz_smooth']))
+        
+        tcdos_df_dict_n[k]['k_xx_raw'] = tcdos_df_dict[k]['k_xx_raw']/k_xx_raw
+        tcdos_df_dict_n[k]['k_yy_raw'] = tcdos_df_dict[k]['k_yy_raw']/k_yy_raw
+        tcdos_df_dict_n[k]['k_zz_raw'] = tcdos_df_dict[k]['k_zz_raw']/k_zz_raw
+        tcdos_df_dict_n[k]['k_xx_smooth'] = tcdos_df_dict[k]['k_xx_smooth']/k_xx_smooth
+        tcdos_df_dict_n[k]['k_yy_smooth'] = tcdos_df_dict[k]['k_yy_smooth']/k_yy_smooth
+        tcdos_df_dict_n[k]['k_zz_smooth'] = tcdos_df_dict[k]['k_zz_smooth']/k_zz_smooth
+
+    return {k:v.copy() for k,v in tcdos_df_dict_n.items()}
+
 def make_tcdos_plot(
         data_filename='tc_dos.dat',
         figure_prefix='tc_dos',
         xlim=None,
         ylim=None):
         
-    tcdos_df_dict = read_spectral_k(filename=data_filename)
+    tcdos_df_dict = normalize_tcdos(data_filename=data_filename)
     for keys in tcdos_df_dict.keys():
         tcdos_figure_filename = tcdos_figure_prefix + '_' + str(keys) + 'K' + '.png'
         figure = plt.figure()
@@ -98,7 +122,7 @@ if __name__ == "__main__":
         data_filename = tcdos_data_filename,
         figure_prefix = tcdos_figure_prefix,
         xlim = [0,15],
-        ylim = [0,4])
+        ylim = [0,0.06])
     
 
 

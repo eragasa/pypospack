@@ -22,18 +22,27 @@ class PhontsBteData(object):
         self.directory =directory
         self.ph_lt_file = None
         self.ph_freq_file = None
+
+        self.ph_lt_filename = 'phon_lifetime.dat'
+        self.ph_freq_filename = 'freq.dat'
+
         self.natoms = natoms
         self.data = None
+
     def read(self,directory=None):
         if directory is not None:
             self.directory = directory
             
         self.ph_lt_file = PhononLifetimeFile(
             natoms=self.natoms,
-            filename=os.path.join(self.directory,'phon_lifetime.dat'))
+            filename=os.path.join(
+                self.directory,
+                self.ph_lt_filename))
         self.ph_freq_file = PhononFrequencyFile(
             natoms=self.natoms,
-            filename=os.path.join(self.directory,'freq.dat'))
+            filename=os.path.join(
+                self.directory,
+                self.ph_freq_filename))
         
         self.ph_lt_file.read()
         self.ph_freq_file.read()
@@ -45,10 +54,16 @@ class PhontsBteData(object):
             self.data[temp] = None
             self.build_data_at_temp(temp)
 
-        for temp in self.ph_lt_file.temp:
-            self.data[temp] = np.array(self.data[temp])
 
     def build_data_at_temp(self,temp):
+        """
+        This method consolidates the data contained in two different files
+        so that we can compare phonon frequencies with with phonon lifetimes.
+        
+        Args:
+            temp(int): the temperature from the BTE calculation, this value
+                must be in list of values contained in the list ph_lt_file.temp
+        """
         if self.data is None:
             self.data = OrderedDict()
 
@@ -57,11 +72,16 @@ class PhontsBteData(object):
         self.kpoint_keys_format = "{kp1:.6f}_{kp2:.6f}_{kp3:.6f}"
 
         freq_n_rows, freq_n_cols = self.ph_freq_file.data.shape
-        lt_n_rows, lt_n_cols = self.ph_lt_file.data[temp].shape 
+        lt_n_rows, lt_n_cols = self.ph_lt_file.data[temp].shape
+
+        #these indices are the column index for the columns kp1,kp2,kp3 in 
+        #phonon frequency file (ph_fr_file) 
         freq_kp1_idx = self.ph_freq_file.col_names.index('kp1')
         freq_kp2_idx = self.ph_freq_file.col_names.index('kp2')
         freq_kp3_idx = self.ph_freq_file.col_names.index('kp3')
 
+        # these indices are the the column indices for the columns kp1,kp2,kp3
+        # in the lifetime frequency file (ph_lt_file)
         lt_kp1_idx = self.ph_lt_file.col_names.index('kp1')
         lt_kp2_idx = self.ph_lt_file.col_names.index('kp2')
         lt_kp3_idx = self.ph_lt_file.col_names.index('kp3')
@@ -82,6 +102,15 @@ class PhontsBteData(object):
 
                if freq_kpoint_key == lt_kpoint_key:
                    for k in range(3*self.natoms):
+                       # here we are building the row for the phonon frequency
+                       # and the associated limetime with that phonon
+                       # ph_id(int) - unique integer assigned to a phonon for
+                       #        identification
+                       # kp1,kp2,kp3 - the location of the kpoint associated with
+                       #     phonon frequency represented in the basis of the 
+                       #     reciprocal lattice
+                       # fr - this is the frequency of the phonon in meV
+                       # lt - this is the phonon lifetime in ps
                        ph_id = len(self.data[temp])
                        kp1 = self.ph_lt_file\
                            .data[temp][j,lt_kp1_idx]
@@ -89,28 +118,21 @@ class PhontsBteData(object):
                            .data[temp][j,lt_kp2_idx]
                        kp3 = self.ph_lt_file\
                            .data[temp][j,lt_kp3_idx]
+
+                       # we need the index associated with the phonon freq
                        fr_idx = self.ph_freq_file.col_names.index(
                            "freq{}".format(k+1))
+
+                       # wew need the index associated with the phonon lifetime
                        lt_idx = self.ph_lt_file.col_names.index(
                            "lt{}".format(k+1))
                        fr = self.ph_freq_file.data[i,fr_idx]
-                       try:
-                            lt = self.ph_lt_file.data[temp][j,lt_idx]
-                       except KeyError as e:
-                           print(str(e))
-                           print('DEBUGGING INFORMATION')
-                           print('freq_kpoint_key={}'.format(freq_kpoint_key))
-                           print('lt_kpoint_key={}'.format(lt_kpoint_key))
-                           print('i:{}'.format(i))
-                           print('j:{}'.format(j))
-                           print('k:{}'.format(k))
-                           print('lt_idx:{}'.format(lt_idx))
-                           raise
+                       lt = self.ph_lt_file.data[temp][j,lt_idx]
                        self.data[temp].append([
                            ph_id,
                            kp1,kp2,kp3,
                            fr,lt])
-
+        self.data[temp] = np.array(self.data[temp])
 class PhononLifetimeFile(object):
     
     def __init__(self,natoms,filename='phon_lifetime.dat'):
@@ -236,3 +258,5 @@ if __name__ == "__main__":
     bte_data = PhontsBteData(natoms=4,directory=phonts_sim_dir)
     bte_data.read()
     bte_data.build_data_at_temp(temp=400)
+    ph_freq = bte_data.data[400][:,4]
+    ph_lt = bte_data.data[400][:,5]

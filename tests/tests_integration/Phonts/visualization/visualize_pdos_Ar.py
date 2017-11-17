@@ -62,10 +62,10 @@ def make_pdos_plot(
 
     figure = plt.figure()
     pdos_plot = figure.add_subplot(111)
-    pdos_plot.plot(pdos_data[:,2],pdos_data[:,3])
-    pdos_plot.plot(pdos_data[:,2],pdos_data[:,4], label='density of states as smoothed')
-    pdos_title=plt.title('Density of states for Argon', fontname='Times New Roman') 
-    pdos_xlabel=plt.xlabel('Frequency (meV)', fontname='Times New Roman')
+    pdos_plot.plot(pdos_data[:,0],pdos_data[:,3], label='raw density of states')
+    pdos_plot.plot(pdos_data[:,0],pdos_data[:,4], label='smoothed density of states')
+    pdos_title=plt.title('Density of states', fontname='Times New Roman') 
+    pdos_xlabel=plt.xlabel('Frequency (THz)', fontname='Times New Roman')
     pdos_ylabel=plt.ylabel('PDOS', fontname='Times New Roman')
     pdos_legend=plt.legend(loc='upper right', prop={'size':7})
     
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     make_pdos_plot(
         data_filename = pdos_data_filename,
         figure_filename = pdos_figure_filename,
-        xlim=[0,600],
+        xlim=[0,13],
         ylim=None)
 
 
