@@ -260,3 +260,7 @@ if __name__ == "__main__":
     bte_data.build_data_at_temp(temp=400)
     ph_freq = bte_data.data[400][:,4]
     ph_lt = bte_data.data[400][:,5]
+    
+    idx_not_zero = np.where(ph_lt != 0)[0]
+    ph_freq = bte_data.data[400][idx_not_zero,4]
+    ph_inv_lt = 1/bte_data.data[400][idx_not_zero,5]
