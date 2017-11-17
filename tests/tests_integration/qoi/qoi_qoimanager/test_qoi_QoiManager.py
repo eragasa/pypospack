@@ -1,5 +1,7 @@
 import pypospack.potfit as potfit
 import pypospack.qoi as qoi
+
+
 class TestQoiManager(object):
     def test_without_QoiInfo(self):
         self.qoi_manager = QoiManager()

@@ -1,10 +1,9 @@
-import pytest
 import os, copy
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from pypospack.pyposmat import PyposmatDataFile
-
+from pypospack.pyposmat import PyposmatFileSampler
 data_directory = os.path.join(
         '../../../test_data/test_PyposmatData',
         'data',
@@ -61,63 +60,148 @@ reference_BG1 = [2.0,-2.0,0.0,0.5,0.0,1279.69,0.29969,0.0,9547.96,0.21916,32.0,4
 reference_BG2 = [1.7,-1.7,0.0,0.5,0.0,929.69,0.29909,0.0,4870,0.2679,77.0,4.222448,301.315822490901,150.827961179874,142.471471673523,200.990581616883,75.2439306555135,10.434727086962994,8.526633932683126,5.509135247188169,0.0692527749868838,-0.02355200000000046,24.315822490900985,59.15796117987399,-1.5385283264769782,47.540581616883,-17.416069344486502,-0.543272913037006,-0.4593660673168749,0.442135247188169,0.0133027749868838]
 
 
-class PyposmatFileSampler(object):
+MgO_LewisCatlow= OrderedDict()
+MgO_LewisCatlow['chrg_Mg'] = +2.0
+MgO_LewisCatlow['chrg_O']  = -2.0
+MgO_LewisCatlow['MgMg_A']   = 0.0 
+MgO_LewisCatlow['MgMg_rho'] = 0.5
+MgO_LewisCatlow['MgMg_C']   = 0.0
+MgO_LewisCatlow['MgO_A']    = 821.6
+MgO_LewisCatlow['MgO_rho']  = 0.3242
+MgO_LewisCatlow['MgO_C']    = 0.0
+MgO_LewisCatlow['OO_A']     = 2274.00 
+MgO_LewisCatlow['OO_rho']   = 0.1490
+MgO_LewisCatlow['OO_C']     = 27.88
 
-    def __init__(self,
-            pyposmat_data_filename):
-        self.pyposmat_data_filename = pyposmat_data_filename
-        self.workflow = None
-        self.tasks = None
-        self.obj_pyposmat_datafile = None
+MgO_BallGrimes1 = OrdredDict()
+MgO_BallGrimes1['chrg_Mg'] = 2.0
+MgO_BallGrimes1['chrg_O'] = -2.0
+MgO_BallGrimes1['MgMg_A'] = 0.0
+MgO_BallGrimes1['MgMg_rho'] 0.5
+MgO_BallGrimes1['MgMg_C'] = 0.0
+MgO_BallGrimes1['MgO_A'] = 1279.69
+MgO_BallGrimes1['MgO_rho'] = 0.29969
+MgO_BallGrimes1['MgO_C'] =0.0
+MgO_BallGrimes1['OO_A'] = 9547.96
+MgO_BallGrimes1['OO_rho'] = 0.21916
+MgO_BallGrimes1['OO_C'] = 32.0
 
-    def add_task(self,task_name,task):
-        if self.tasks is None:
-            self.tasks = OrderedDict()
-        self.task[task_name] = task
+MgO_BallGrimes2 = OrderedDict()
+MgO_BallGrimes2['chrg_Mg'] = 1.7
+MgO_BallGrimes2['chrg_O'] = -1,7
+MgO_BallGrimes2['MgMg_A'] = 0.0
+MgO_BallGrimes2['MgMg_rho'] = 0.5
+MgO_BallGrimes2['MgMg_C'] = 0.0
+MgO_BallGrimes2['MgO_A'] = 929.69
+MgO_BallGrimes2['MgO_rho'] 0.29909
+MgO_BallGrimes2['MgO_C'] = 0.0
+MgO_BallGrimes2['OO_A' = 4870
+MgO_BallGrimes2['OO_rho'] = 0.2679
+MgO_BallGrimes2['OO_C'] = 77
+pyposmat_optimal_filename ='optimal_1000.out'
 
-    def read_pyposmat_datafile(self,filename=None):
-        if filename is not None:
-            self.pyposmat_data_filename= filename
+def create_pyposmat_optimal_file(
+        filename_in,
+        filename_out,
+        n,
+        scaling_factors,
+        qoi_references,
+        err_type):
+    assert type(filename_in) == str
+    assert type(filename_out) == str
+    assert n == int
+    assert scaling_factors == str
+    assert isinstance(qoi_references,dict)
+    assert scaling_factors in qoi_references
+    assert err_type == str
 
-        self.obj_pyposmat_datafile = PyposmatDataFile(
-                filename=self.pyposmat_data_filename)
+    obj_datafile = PyposmatDataFile(filename=filename_in)
+    obj_datafile.read(filename=filename_in)
 
-    def evaluate_from_file(self,filename=None):
-        if filename is not None:
-            self.pypospack_data_filename = filename
-            self.read_pyposmat_datafile()
-        if self.obj_pyposmat_datafile is None:
-            self.read_pyposmat_datafile():
-
-        _dataframe = self.obj_pypospack_datafile.df
-        self.obj_pypospack_datafile = PyposmatDataFile(
-                filename = self.filename)
-        self.obj_pypospack_datafile.read(
-                filename = self.filename)
-        for row in self.obj_pypospack_datafile.df:
-            self.evaluate_parameter_set(self,parameters)
-
-    def evaluate_parameter_set(self,parameters):
-        print(parameters)
-if __name__ == "__main__":
-    n = 1000
-    scaling_factors='DFT'
-    err_type='abs'
-    pypospack_optimal_filename='optimal_{n}.out'.format(n=n)
-
-    obj_datafile = PyposmatDataFile(filename=pypospack_data_filename)
-    obj_datafile.read(filename=pypospack_data_filename)
-
-    obj_datafile.qoi_references = OrderedDict()
-    obj_datafile.qoi_references['DFT'] = copy.deepcopy(qoi_reference_dft)
+    obj_datafile.qoi_references = copy.deepcopy(qoi_references)
     obj_datafile.create_optimal_population(
             n=n,
             scaling_factors=scaling_factors,
             err_type=err_type)
 
     obj_datafile.write_optimal_population(
-            filename=pypospack_optimal_filename,
+            filename=filename_out,
             n=n,
             scaling_factors=scaling_factors,
             err_type=err_type)
-    obj_datafile.read(filename=pypospack_optimal_filename)
+
+if __name__ == "__main__":
+    n = 1000
+    scaling_factors='DFT'
+    err_type='abs'
+    pypospack_optimal_filename='optimal_{n}.out'.format(n=n)
+    is_create_file = False
+
+    if is_create_file:
+        qoi_references = OrderedDict()
+        qoi_references['DFT'] = copy.deepcopy(qoi_reference_dft)
+        create_pypospack_optimal_file(
+                filename_in=pypospack_data_filename,
+                filename_out=pypospack_optimal_filename,
+                n = 1000,
+                scaling_factors='DFT',
+                qoi_references = copy.deepcopy(qoi_references),
+                err_type='abs')
+
+    #--------------------------------------------------------------------------
+    # PHONON EXAMPLE
+    #--------------------------------------------------------------------------
+    from pypospack.task.gulp import GulpPhononCalculation
+    from pypospack.task.gulp import GulpGammaPointPhonons
+    MgO_phonon_task= OrderedDict()
+    MgO_phonon_task['task_name'] = 'MgO_NaCl.phonon'
+    MgO_phonon_task['task_type'] = 'gulp_gamma_phonons'
+    MgO_phonon_task['task_directory'] = 'MgO_NaCl.phonon'
+    MgO_phonon_task['structure_filename'] = os.path.join(
+            'test_PyposmatFileSampler',
+            'MgO_NaCl_prim.gga.relax.vasp')
+   
+    MgO_potential = OrderedDict()
+    MgO_potential['potential_type'] = 'buckingham'
+    MgO_potential['symbols'] = ['Mg','O']
+    MgO_potential['parameter_names'] = [
+        'chrg_Mg','chrg_O',
+        'MgMg_A','MgMg_rho','MgMg_C',
+        'MgO_A','MgO_rho','MgO_C',
+        'OO_A','OO_rho','OO_C']
+    
+    MgO_configuration_phonon = OrderedDict()
+    MgO_configuration_phonon['potential'] \
+            = copy.deepcopy(MgO_potential)
+    MgO_configuration_phonon['tasks'] = OrderedDict()
+    MgO_configuration_phonon['tasks']['MgO_NaCl.phonon'] \
+            = copy.deepcopy(MgO_phonon_task)
+    MgO_configuration_phonon['parameters'] = None
+    #<--- use generic variables so we can test different stuff
+    configuration = copy.deepcopy(MgO_configuration_phonon)
+    task_information = copy.deepcopy(MgO_phonon_task)
+    #<---- code start
+    file_sampler = PyposmatFileSampler(
+            filename_in = pypospack_optimal_filename)
+    file_sampler.add_task(
+            task_name=task_information['task_name'],
+            task_directory=task_information['task_directory'],
+            structure_filename=task_information['structure_filename'],
+            task_type=task_information['task_type'])
+    #<--- testing
+    _task_name = task_information['task_name']
+    assert _task_name in file_sampler.tasks
+    assert type(file_sampler.tasks[_task_name])== GulpGammaPointPhonons
+    assert file_sampler.tasks[_task_name].status == 'INIT'
+    #<--- end testing
+    file_sampler.configuration = copy.deepcopy(configuration)
+
+    #<--- evaluate just one
+    file_sampler.evaluate_parameter_set(MgO_LewisCatlow)
+    for task_name,task in file_sampler.tasks.items(): 
+        print(task.results)
+    #<--- evaluate MgO
+    #file_sampler.run()
+    #file_sampler.read_pyposmat_datafile()
+    #file_sampler.sample_from_file()
+    #print('n_rows={}'.format(file_sampler.parameter_df.shape[0]))

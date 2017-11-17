@@ -235,41 +235,109 @@ class PyPosmatError(Exception):
   def __str__(self):
     return repr(self.value)
 
-class PyposmatFile(object):
+class PyposmatEngine(object):
+    def __init__(self):
+        pass
 
-    def __init__(self,filename):
-        self.filename = filename
+class PyposmatFileSampler(PyposmatEngine):
+
+    def __init__(self,
+            filename_in = None,
+            filename_out = 'pypospack.results.out'):
+        # attributes which are marshalled
+        self.configuration = None
         self.parameter_names = None
-        self.qoi_names = None
-        self.qoi_err = None
-    def read(self,filename=None):
-        if filename is not None:
-            self.filename = filename
+        self.pyposmat_filename_in = filename_in
+        self.pyposmat_filename_out = filename_out
 
-        lines = None
-        with open(self.filename,'r') as f:
-            lines = f.readlines()
+        # attributes which are not marshalled
+        self.workflow = None
+        self.tasks = None
+        # attributes which are not marshalled
+        self.pyposmat_file_in = None
+        self.pyposmat_file_out = None
+        self.parameter_df = None
+
+    def add_task(self,task_name,task_directory,structure_filename,task_type):
+        if self.tasks is None:
+            self.tasks = OrderedDict()
         
-        self.names = [s.strip() for s in lines[0].split()]
-        self.types = [s.strip() for s in lines[1].split()]
+        if task_type == 'gulp_phonon':
+            from pypospack.task.gulp import GulpPhononCalculation
+            
+            _task_name = task_name
+            _task_directory = task_directory
+            _structure_filename = structure_filename
 
-        self.data = []
-        for i in range(2,len(lines)):
-            self.data.append([s.strip() for s in lines[i].split()])
+            self.tasks[task_name] = GulpPhononCalculation(
+                    task_name=_task_name,
+                    task_directory=_task_directory,
+                    structure_filename=_structure_filename,
+                    restart=False)
+        elif task_type == 'gulp_gamma_phonons':
+            from pypospack.task.gulp import GulpGammaPointPhonons
+            _task_name = task_name
+            _task_directory = task_directory
+            _structure_filename = structure_filename
 
-    def write(self,filename):
-        if self.data is None:
-            raise ValueError()
-        if self.names is None:
-            raise ValueError()
-        if self.types is None:
-            raise ValueError()
-    
-        with open(self.filename,'w') as f:
-            f.write(",".join(self.parameter_names))
-            for ps in self.parameters:
-                f.write(",".join(['{}'.format(p) for p in param]))
+            self.tasks[task_name] = GulpGammaPointPhonons(
+                    task_name=_task_name,
+                    task_directory=_task_directory,
+                    structure_filename=_structure_filename,
+                    restart=False)
 
+    def read_pyposmat_datafile(self,filename=None):
+        if filename is not None:
+            self.pyposmat_filename_in = filename
+
+        self.pyposmat_file_in = PyposmatDataFile(
+                filename=self.pyposmat_filename_in)
+        self.pyposmat_file_in.read()
+
+    def sample_from_file(self,filename=None):
+        if filename is not None:
+            self.pyposmat_filename_in = filename
+            self.read_pyposmat_datafile()
+        if self.pyposmat_file_in is None:
+            self.read_pyposmat_datafile()
+        if self.pyposmat_file_out is None:
+            self.pyposmat_file_out = PyposmatDataFile
+        self.parameter_df = self.pyposmat_file_in.parameter_df
+
+        _parameter_df = self.pyposmat_file_in.parameter_df
+        _columns = _parameter_df.columns
+        self.parameter_names = list(_columns)
+        
+        self.file_out = open(self.pyposmat_filename_out,'w')
+        for idx,row in _parameter_df.iterrows():
+            parameters = OrderedDict([(col,row[col]) for col in _columns])
+            self.evaluate_parameter_set(parameters)
+            for task_name,task in self.tasks.items():
+                str_out = ",".join([str(v) for k,v in task.results.items()]) + "\n"
+                self.file_out.write(str_out)
+        self.file_out.close()
+    def run(self):
+        self.sample_from_file()
+
+    def is_all_tasks_complete(self):
+        all_tasks_complete = all(
+                [task.status=='FINISHED' for tn,task in self.tasks.items()])
+        return all_tasks_complete
+
+    def evaluate_parameter_set(self,parameters):
+        for task_name,task in self.tasks.items():
+            for f in os.listdir(task.task_directory):
+                os.unlink(os.path.join(task.task_directory,f))
+            if os.path.exists(task.results_filename):
+                os.remove(task.results_filename)
+            task.potential = None
+            task.update_status()
+        self.configuration['parameters'] = copy.deepcopy(parameters)
+
+        while not self.is_all_tasks_complete():
+            for task_name,task in self.tasks.items():
+                self.tasks[task_name].configuration = self.configuration
+                self.tasks[task_name].on_update_status()
 
 class PyPosmatEngine(object):
 
