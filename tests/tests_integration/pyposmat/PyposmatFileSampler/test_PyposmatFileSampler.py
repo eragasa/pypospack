@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 from pypospack.pyposmat import PyposmatDataFile
-
+from pypospack.pyposmat import PyposmatFileSampler
 data_directory = os.path.join(
         '../../../test_data/test_PyposmatData',
         'data',
@@ -60,41 +60,72 @@ reference_LC = [2.0,-2.0,0.0,0.5,0.0,821.6,0.3242,0.0,22764.0,0.149,27.88,4.2107
 reference_BG1 = [2.0,-2.0,0.0,0.5,0.0,1279.69,0.29969,0.0,9547.96,0.21916,32.0,4.20923604431415,383.274119165401,169.434215310753,179.601185701851,240.71418326230233,106.91995192732399,12.419259511088967,11.869114175328832,7.198887069605007,0.08070791160146304,-0.036763955685850114,106.27411916540098,77.76421531075299,35.591185701851,87.26418326230234,14.259951927323996,1.4412595110889672,2.8831141753288314,2.131887069605007,0.02475791160146304]
 reference_BG2 = [1.7,-1.7,0.0,0.5,0.0,929.69,0.29909,0.0,4870,0.2679,77.0,4.222448,301.315822490901,150.827961179874,142.471471673523,200.990581616883,75.2439306555135,10.434727086962994,8.526633932683126,5.509135247188169,0.0692527749868838,-0.02355200000000046,24.315822490900985,59.15796117987399,-1.5385283264769782,47.540581616883,-17.416069344486502,-0.543272913037006,-0.4593660673168749,0.442135247188169,0.0133027749868838]
 
+
 pyposmat_optimal_filename ='optimal_1000.out'
-def test__import__from_pypospack_pyposmat():
-    from dev_PypospackDataSampler import PyposmatFileSampler
+#def test__import__from_pypospack_pyposmat():
+#    from pypospack.pyposmat import PyposmatFileSampler
 
 def test____init____():
-    from dev_PypospackDataSampler import PyposmatFileSampler
+#    from pypospack.pyposmat import PyposmatFileSampler
     file_sampler = PyposmatFileSampler(
-            pyposmat_data_filename=pyposmat_optimal_filename)
+         filename_in = pyposmat_optimal_filename)
 
-    assert file_sampler.pyposmat_data_filename \
-            == pyposmat_optimal_filename
+    assert file_sampler.pyposmat_filename_in == pyposmat_optimal_filename
+    assert file_sampler.pyposmat_filename_out is None
     assert file_sampler.workflow is None
     assert file_sampler.tasks is None
-    assert file_sampler.obj_pyposmat_datafile is None
+    assert file_sampler.pyposmat_file_in is None
+    assert file_sampler.pyposmat_file_out is None
 
 def test__read_pypospack_datafile_wo_datafile():
-    from dev_PypospackDataSampler import PyposmatFileSampler
+#    from pypospack.pyposmat import PyposmatFileSampler
     file_sampler = PyposmatFileSampler(
-            pyposmat_data_filename=pyposmat_optimal_filename)
-
+            filename_in=pyposmat_optimal_filename)
     file_sampler.read_pyposmat_datafile()
 
+    #<--- nothing changes here
+    assert file_sampler.pyposmat_filename_out is None
+    assert file_sampler.workflow is None
+    assert file_sampler.tasks is None
+
+    #<---- this gets configured
+    assert file_sampler.pyposmat_filename_in == pyposmat_optimal_filename
+    assert type(file_sampler.pyposmat_file_in) == PyposmatDataFile
+    assert type(file_sampler.pyposmat_file_in.df) == pd.DataFrame 
+    assert type(file_sampler.pyposmat_file_in.parameter_df) == pd.DataFrame
+    #<---- this file should not have been configured
+    assert file_sampler.pyposmat_file_out is None
+
 def test__read_pypospack_datafile_w_datafile():
-    from dev_PypospackDataSampler import PyposmatFileSampler
+#    from pypospack.pyposmat import PyposmatFileSampler
+    pyposmat_fake_filename = 'pyposmat_fake_filename'
     file_sampler = PyposmatFileSampler(
-            pyposmat_data_filename='fake_datafile_name')
+            filename_in=pyposmat_fake_filename)
    
-    assert file_sampler.pyposmat_data_filename == 'fake_datafile_name'
+    assert file_sampler.pyposmat_filename_in \
+            == pyposmat_fake_filename
 
     file_sampler.read_pyposmat_datafile(
             filename=pyposmat_optimal_filename)
 
-    assert type(file_sampler.obj_pyposmat_datafile) == PyposmatDataFile
+    #<--- nothing changed here 
+    assert file_sampler.pyposmat_filename_out is None
+    assert file_sampler.workflow is None
+    assert file_sampler.tasks is None
 
-def test__evaluate_from_file(self,filename=None)
+    #<---- this gets configured
+    assert file_sampler.pyposmat_filename_in == pyposmat_optimal_filename
+    assert type(file_sampler.pyposmat_file_in) == PyposmatDataFile
+    assert type(file_sampler.pyposmat_file_in.df) == pd.DataFrame 
+    assert type(file_sampler.pyposmat_file_in.parameter_df) == pd.DataFrame
+    #<---- this file should not have been configured
+    assert file_sampler.pyposmat_file_out is None
+
+def test__sample_from_file():
+    file_sampler = PyposmatFileSampler(
+            filename_in=pyposmat_optimal_filename)
+    file_sampler.read_pyposmat_datafile()
+    file_sampler.sample_from_file()
 
 if __name__ == "__main__":
     n = 1000

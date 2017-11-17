@@ -24,6 +24,16 @@ class GulpSimulationError():
     pass
 
 class GulpSimulation(Task):
+    """
+        Args:
+            task_name(str)
+            task_directory(str)
+            structure_filename(str)
+            restart(bool)
+            fullauto(bool)
+        Attributes:
+             
+    """
     def __init__(self,
             task_name,
             task_directory,
@@ -99,8 +109,8 @@ class GulpSimulation(Task):
         self.update_status()
         if self.is_fullauto:
             self.on_update_status()
+    
     def on_ready(self,configuration=None):
-
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
 
@@ -110,18 +120,18 @@ class GulpSimulation(Task):
         Path(running_filename).touch()
         
         self.run()
-
+        
         self.update_status()
         if self.is_fullauto:
             self.on_update_status()
 
-    def on_running():
+    def on_running(self):
         pass
 
-    def on_post():
-         pass
+    def on_post(self):
+        print('<---GulpSimulation.on_post')
 
-    def on_error():
+    def on_error(self):
         pass
 
     # override default behavior
@@ -304,4 +314,4 @@ class GulpSimulation(Task):
             self._parameters[p] = parameters[p]
 
 from pypospack.task.tasks_gulp.gulp_phonons import GulpPhononCalculation
-
+from pypospack.task.tasks_gulp.gulp_phonons import GulpGammaPointPhonons

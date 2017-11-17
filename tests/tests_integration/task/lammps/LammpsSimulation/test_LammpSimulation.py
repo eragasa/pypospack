@@ -1,14 +1,14 @@
 import pytest
-import os
+import os,shutil
 from collections import OrderedDict
 
-def test__import__from_pypospack_task_lammps():
-    from pypospack.task.lammps import LammpsSimulation
+import pypospack.crystal as crystal
+import pypospack.io.vasp as vasp
+import pypospack.potential as potential
 
-
-potential_definition = OrderedDict()
-potential_definition['potential_type'] = 'buckingham'
-potential_definition['symbols'] = ['Mg','O']
+MgO_buck_potential_definition = OrderedDict()
+MgO_buck_potential_definition['potential_type'] = 'buckingham'
+MgO_buck_potential_definition['symbols'] = ['Mg','O']
 
 MgO_LC_parameters = OrderedDict()
 MgO_LC_parameters['chrg_Mg'] = +2.0
@@ -23,46 +23,112 @@ MgO_LC_parameters['OO_A']     = 2274.00
 MgO_LC_parameters['OO_rho']   = 0.1490
 MgO_LC_parameters['OO_C']     = 27.88
 
-structure_definition = OrderedDict()
-structure_definition['name'] = 'MgO_NaCl_unit'
-structure_definition['filename'] = os.path.join(
-        'test_LammpsSimulation','MgO_NaCl_unit.gga.relax.vasp')
+MgO_structure_definition = OrderedDict()
+MgO_structure_definition['name'] = 'MgO_NaCl_unit'
+MgO_structure_definition['filename'] = os.path.join(
+        'test_LammpsSimulation',
+        'MgO_NaCl_unit.gga.relax.vasp')
 
-configuration_MgO = OrderedDict()
-configuration_MgO['potential'] = potential_definition
-configuration_MgO['parameters'] = MgO_LC_parameters
-configuration_MgO['structure'] = structure_definition
+MgO_LC_configuration = OrderedDict()
+MgO_LC_configuration['task'] = OrderedDict()
+MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_sp'
+MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_sp'
+MgO_LC_configuration['task_type'] = 'min_none'
+MgO_LC_configuration['potential'] = MgO_buck_potential_definition
+MgO_LC_configuration['parameters'] = MgO_LC_parameters
+MgO_LC_configuration['structure'] = MgO_structure_definition
+
+configuration=MgO_LC_configuration
+
+def cleanup(task_directory):
+    if os.path.isdir(task_directory):
+        shutil.rmtree(task_directory)
+
+def test__import__from_pypospack_task_lammps():
+    from pypospack.task.lammps import LammpsSimulation
 
 def test____init___():
-    task_name = 'test_task_name'
-    task_directory = 'test_task_directory'
+    task_name = configuration['task']['task_name']
+    task_directory = configuration['task']['task_directory']
+    structure_filename = configuration['structure']['filename']
+    restart=False
+    fullauto=False
 
+    cleanup(task_directory)
+    assert not os.path.exists(task_directory)
+    #<--- code being tested
     from pypospack.task.lammps import LammpsSimulation
     lammps_task = LammpsSimulation(
             task_name = task_name,
-            task_directory = task_directory)
+            task_directory = task_directory,
+            structure_filename = structure_filename)
 
     #<--- check directory structure
-    assert os.path.exists(task_directory)
+    assert os.path.isdir(
+            os.path.abspath(lammps_task.task_directory))
+    assert os.listdir(lammps_task.task_directory) == []
+    #<--- check attributes
+    assert lammps_task.task_name == task_name
     assert os.path.abspath(lammps_task.task_directory)\
             == os.path.abspath(task_directory)
+    assert lammps_task.task_type == 'single_point'
+    assert lammps_task.lammps_bin == os.environ['LAMMPS_BIN']
+    assert lammps_task.lammps_input_filename == 'lammps.in'
+    assert lammps_task.lammps_output_filename == 'lammps.out'
+    assert lammps_task.lammps_structure_filename == 'lammps.structure'
+    assert lammps_task.lammps_eam_filename is None
+    assert lammps_task.potential is None
+    assert lammps_task.structure_filename == structure_filename
+    assert isinstance(lammps_task.structure,crystal.SimulationCell)
+
     assert lammps_task.status == 'INIT'
 
-    lammps_task.on_init(configuration=configuration_MgO)
+def test__on_init():
+    task_name = configuration['task']['task_name']
+    task_directory = configuration['task']['task_directory']
+    structure_filename = configuration['structure']['filename']
+    restart=False
+    fullauto=False
+
+    cleanup(task_directory)
+    assert not os.path.exists(task_directory)
+    assert 'potential' in configuration
+    assert 'parameters' in configuration
+    #<--- code setup
+    from pypospack.task.lammps import LammpsSimulation
+    lammps_task = LammpsSimulation(
+            task_name = task_name,
+            task_directory = task_directory,
+            structure_filename = structure_filename)
+    #<--- test setup
+    assert os.path.exists(task_directory)
+    assert lammps_task.status == 'INIT'
+    assert lammps_task.potential is None
+    #<--- code being testing
+    lammps_task.on_init(configuration)
+
+    #<--- check directory structure
+    assert os.path.isdir(
+            os.path.abspath(lammps_task.task_directory))
+    #<--- check attributes
+    assert lammps_task.task_name == task_name
+    assert os.path.abspath(lammps_task.task_directory)\
+            == os.path.abspath(task_directory)
+    assert lammps_task.task_type == 'single_point'
+    assert lammps_task.lammps_bin == os.environ['LAMMPS_BIN']
+    assert lammps_task.lammps_input_filename == 'lammps.in'
+    assert lammps_task.lammps_output_filename == 'lammps.out'
+    assert lammps_task.lammps_structure_filename == 'lammps.structure'
+    assert lammps_task.lammps_eam_filename is None
+    assert isinstance(lammps_task.potential,potential.Potential)
+    assert lammps_task.structure_filename == structure_filename
+    assert isinstance(lammps_task.structure,crystal.SimulationCell)
+
+    assert lammps_task.conditions_INIT['task_directory_created']
+    assert all(lammps_task.conditions_INIT) == True
+    assert lammps_task.conditions_CONFIG['potential_initialized'] == True
+    assert lammps_task.conditions_CONFIG['parameters_processed'] == True
+    assert all(lammps_task.conditions_CONFIG) == True
+
     assert lammps_task.status == 'CONFIG'
-    assert isinstance(lammps_task.potential,
-            pypospack.potential.Potential)
-
-    lammps_task.on_config(configuration=configuration_MgO)
-    assert lammps_task.status == 'READY'
-
-    lammps_task.on_ready(configuration=configuration_MgO)
-    assert lammps_task.status == 'RUNNING'
-
-    lammps_task.on_running(configuration=configuration_MgO)
-    assert lammps_task.status == 'POST'
-
-    lammps_task.on_post(configuration=configuration_MgO)
-    assert lammps_task.status == 'FINISHED'
-
 

@@ -28,6 +28,7 @@ class Task(object):
         
         # private member varaibles
         self._is_restart = None
+        self._task_name = None
         self._task_directory = None
         self._status = None
         # process initialization arguments
@@ -35,7 +36,7 @@ class Task(object):
         self.task_name = task_name
         self.task_directory = task_directory
         self.root_directory = os.getcwd()
-
+        self.results = None
         if restart is True:
             self.restart()
         else:

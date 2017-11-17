@@ -5,27 +5,31 @@ import copy, importlib
 
 def get_qoi_map():
     qoi_map = {
+            'energy':{
+                'qoi':['E_coh_sp',
+                       'p_xx_sp','p_xy_sp','p_xz_sp',
+                       'p_yx_sp','p_yy_sp','p_yz_sp',
+                       'p_zx_sp','p_zy_sp','p_zz_sp'],
+                'module':'pypospack.qoi',
+                'class':'SinglePointCalculation'},
             'crystal':{
-                'qoi':['a0','a1','a2','a3','alpha','beta','gamma'],
+                'qoi':['E_coh',
+                       'a11','a12','a13',
+                       'a21','a22','a23',
+                       'a31','a32','a33'],
                 'module':'pypospack.qoi',
                 'class':'CrystalStructureGeometry'},
             'elastic':{
                 'qoi':['c11','c12','c13','c22','c23',
-                       'c33','c44','c55','c66'],
+                       'c33','c44','c55','c66',
+                       'bulk_modulus',
+                       'shear_modulus'],
                 'module':'pypospack.qoi',
                 'class':'ElasticTensor'},
             'defect_energy':{
                 'qoi':['defect_energy'],
                 'module':'pypospack.qoi',
                 'class':'DefectFormationEnergy'},
-            'bulk_modulus':{
-                'qoi':['bulk_modulus'],
-                'module':'pypospack.qoi',
-                'class':'BulkModulus'},
-            'shear_modulus':{
-                'qoi':['shear_modulus'],
-                'module':'pypospack.qoi',
-                'class':'ShearModulus'},
             'surface_energy':{
                 'qoi':['surface_energy'],
                 'module':'pypospack.qoi',
@@ -41,6 +45,125 @@ def get_supported_qois():
     for k,v in get_qoi_map().items():
         qois += v['qoi']
     return list(qois)
+
+class Qoi:
+    """ Abstract Quantity of Interest
+
+    Args:
+        qoi_name(str)
+        qoi_type(str)
+        structure_names(list of str)
+
+    Attributes:
+        qoi_name(str): this is a unique identifier
+        qoi_type(str): this should be set by the implementing class
+        structure_names
+        reference_values(dict): these are the reference values of quantities
+            of interest which we want to calculate.
+        task_definitions(dict):
+             task_definition[task_name]
+             task_definition[task_name][task_type]
+             task_definition[task_name][structure]
+        task_dependencies(dict):
+             task_dependencies[task_name]
+        results(dict): these are the results after aggregating the values
+            from the different simulations and making some calculations.
+    """
+    def __init__(self, qoi_name, qoi_type, structure_names):
+        self.qoi_name = qoi_name
+        self.qoi_type = qoi_type
+        self.structure_names = list(structure_names)
+        
+        self.reference_values = None
+        self.task_definitions = None
+        self.task_dependencies = None
+        self.results = None
+
+    def calculate_qoi(self):
+        raise NotImplementedError
+
+    @property
+    def reference_value(self):
+        return self._ref_value
+
+    @reference_value.setter
+    def reference_value(self, value):
+        assert type(value), float
+        self._ref_value = value
+
+    @property
+    def predicted_value(self):
+        return self._predicted_value 
+
+    @predicted_value.setter
+    def predicted_value(self, qhat):
+        self._predicted_value = qhat
+    def set_variable(self, v_name, v_value):
+        self._req_vars[v_name] = v_value
+
+    def add_required_simulation(self,structure,simulation_type):
+        simulation_name = '{}.{}'.format(structure,simulation_type)
+        self.required_simulations[simulation_name] = {}
+        self.required_simulations[simulation_name]['structure'] = structure
+        self.required_simulations[simulation_name]['simulation_type'] = simulation_type
+        self.required_simulations[simulation_name]['precedent_tasks'] = None
+        return simulation_name
+    
+    def add_precedent_task(self,
+            task_name,precedent_task_name,precedent_variables):
+        """add a precedent task
+
+        Args:
+            task_name(str):
+            precedent_task_name(str):
+            precedent_variables(str):
+
+        Raises:
+            ValueError
+
+        """
+
+        if task_name not in self.required_simulations.keys():
+            s = ( 'Tried to add precedent_task_name to task_name.  task_name '
+                  'does not exist in required_simulations.\n'
+                  '\ttask_name: {}\n'
+                  '\tpredecessor_task_name: {}\n' ).format(
+                          task_name,
+                          precedent_task_name)
+            raise ValueError(s)
+       
+        if precedent_task_name not in self.required_simulations.keys():
+            s = ( 'Tried to add predecessor_task_name to task_name.  '
+                  'predecessor_task_name task_name does not exist in ' 
+                  'required_simulations.\n'
+                  '\ttask_name: {}\n'
+                  '\tpredecessor_task_name: {}\n' ).format(
+                          task_name,
+                          precedent_task_name)
+            raise ValueError(s)
+
+        if self.required_simulations[task_name]['precedent_tasks'] is None:
+            self.required_simulations[task_name]['precedent_tasks'] = {}
+
+        self.required_simulations[task_name]['precedent_tasks'][precedent_task_name] ={}
+        for v in required_variables:
+            self.required_simulations[task_name]['precedent_tasks'][precedent_task_name] = {
+                    'variable_name':v,
+                    'variable_value':None}
+
+    def determine_required_simulations(self):
+        raise NotImplementedError
+
+    def calculate_qoi(self):
+        s_type = str(type(self))
+        raise NotImplementedError(s_type)
+
+    def get_required_simulations(self):
+        if self.required_simulations is None:
+            self.determine_required_simulations()
+        return copy.deepcopy(self.required_simulations)
+
+from pypospack.qois.crystalstructuregeometry import CrystalStructureGeometry
 
 class QoiManager(object):
     """ Manager of Quantities of Interest 
@@ -296,141 +419,6 @@ class QoiDatabase(object):
 
         return required_structures
 
-class Qoi:
-    """ Abstract Quantity of Interest
-
-    Args:
-        qoi_name(str)
-        qoi_type(str)
-        structure_names(list of str)
-
-    Attributes:
-        qoi_name(str)
-        qoi_type(str)
-        ref_value(float)
-        required_simulations(dict)
-    """
-    def __init__(self, qoi_name, qoi_type, structures):
-        self.qoi_name = qoi_name
-        self.qoi_type = qoi_type
-
-        self.required_simulations = None
-        self.predecessor_task = {}
-        self.required_variables = {}
-        self.ref_value = None
-        self.predicted_value = None
-        self.error = None
-
-        # set required structure names and set up the dictionary
-        self.structures = list(structures)
-
-    def calculate_qoi(self):
-        raise NotImplementedError
-
-    @property
-    def reference_value(self):
-        return self._ref_value
-
-    @reference_value.setter
-    def reference_value(self, value):
-        assert type(value), float
-        self._ref_value = value
-
-    @property
-    def predicted_value(self):
-        return self._predicted_value 
-
-    @predicted_value.setter
-    def predicted_value(self, qhat):
-        self._predicted_value = qhat
-    def set_variable(self, v_name, v_value):
-        self._req_vars[v_name] = v_value
-
-    def add_required_simulation(self,structure,simulation_type):
-        simulation_name = '{}.{}'.format(structure,simulation_type)
-        self.required_simulations[simulation_name] = {}
-        self.required_simulations[simulation_name]['structure'] = structure
-        self.required_simulations[simulation_name]['simulation_type'] = simulation_type
-        self.required_simulations[simulation_name]['precedent_tasks'] = None
-        return simulation_name
-    
-    def add_precedent_task(self,
-            task_name,precedent_task_name,precedent_variables):
-        """add a precedent task
-
-        Args:
-            task_name(str):
-            precedent_task_name(str):
-            precedent_variables(str):
-
-        Raises:
-            ValueError
-
-        """
-
-        if task_name not in self.required_simulations.keys():
-            s = ( 'Tried to add precedent_task_name to task_name.  task_name '
-                  'does not exist in required_simulations.\n'
-                  '\ttask_name: {}\n'
-                  '\tpredecessor_task_name: {}\n' ).format(
-                          task_name,
-                          precedent_task_name)
-            raise ValueError(s)
-       
-        if precedent_task_name not in self.required_simulations.keys():
-            s = ( 'Tried to add predecessor_task_name to task_name.  '
-                  'predecessor_task_name task_name does not exist in ' 
-                  'required_simulations.\n'
-                  '\ttask_name: {}\n'
-                  '\tpredecessor_task_name: {}\n' ).format(
-                          task_name,
-                          precedent_task_name)
-            raise ValueError(s)
-
-        if self.required_simulations[task_name]['precedent_tasks'] is None:
-            self.required_simulations[task_name]['precedent_tasks'] = {}
-
-        self.required_simulations[task_name]['precedent_tasks'][precedent_task_name] ={}
-        for v in required_variables:
-            self.required_simulations[task_name]['precedent_tasks'][precedent_task_name] = {
-                    'variable_name':v,
-                    'variable_value':None}
-
-    def determine_required_simulations(self):
-        raise NotImplementedError
-
-    def calculate_qoi(self):
-        s_type = str(type(self))
-        raise NotImplementedError(s_type)
-
-    def get_required_simulations(self):
-        if self.required_simulations is None:
-            self.determine_required_simulations()
-        return copy.deepcopy(self.required_simulations)
-
-class CrystalStructureGeometry(Qoi):
-    def __init__(self,qoi_name,structures):
-        qoi_type = 'crystal_structure'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.determine_required_simulations()
-        self.variables = {}
-        self.variables['xx'] = None
-        self.variables['yy'] = None
-        self.variables['zz'] = None
-        self.variables['xy'] = None
-        self.variables['xz'] = None
-        self.variables['yz'] = None
-
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-
-        self.required_simulations = {}
-        structure = self.structures[0]
-        self.add_required_simulation(structure,'E_min_all')
-
-    def get_required_variables(self):
-        return list(self.variables.keys())
 
 class ElasticTensor(Qoi):
     def __init__(self,qoi_name,structures):

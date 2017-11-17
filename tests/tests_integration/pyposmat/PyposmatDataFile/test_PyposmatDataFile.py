@@ -66,17 +66,47 @@ def test__init__():
     from pypospack.pyposmat import PyposmatDataFile
     obj_datafile = PyposmatDataFile(filename=pypospack_data_filename)
 
+    assert obj_datafile.filename == pypospack_data_filename
+    assert obj_datafile.names is None
+    assert obj_datafile.types is None
+    assert obj_datafile.parameter_names is None
+    assert obj_datafile.qoi_names is None
+    assert obj_datafile.error_names is None
+    assert obj_datafile.df is None
+    assert obj_datafile.parameter_df is None
+    assert obj_datafile.error_df is None
+    assert obj_datafile.qoi_df is None
+    assert obj_datafile.rescaled_error_df is None
+    assert obj_datafile.optimal_indices is None
+    assert obj_datafile.optimal_df is None
+    assert obj_datafile.optimal_parameter_df is None
+    assert obj_datafile.optimal_qoi_df is None
+    assert obj_datafile.optimal_error_df is None
+
 def test__read_wo_args():
     from pypospack.pyposmat import PyposmatDataFile
     obj_datafile = PyposmatDataFile(filename=pypospack_data_filename)
     obj_datafile.read()
    
+    #<--- these attributes have changed
+    assert obj_datafile.filename == pypospack_data_filename
     assert obj_datafile.names == ['sim_id'] + names
+    assert type(obj_datafile.types) == list
     assert obj_datafile.parameter_names == parameter_names
     assert obj_datafile.qoi_names == qoi_names
     assert obj_datafile.error_names == error_names
     assert type(obj_datafile.df) == pd.DataFrame
+    assert type(obj_datafile.parameter_df) == pd.DataFrame
+    assert type(obj_datafile.error_df) == pd.DataFrame
+    assert type(obj_datafile.qoi_df) == pd.DataFrame
 
+    #<--- these attributes have not changed state since initialization
+    assert obj_datafile.rescaled_error_df is None
+    assert obj_datafile.optimal_indices is None
+    assert obj_datafile.optimal_df is None
+    assert obj_datafile.optimal_parameter_df is None
+    assert obj_datafile.optimal_qoi_df is None
+    assert obj_datafile.optimal_error_df is None
 def test__read_w_filename_arg():
     from pypospack.pyposmat import PyposmatDataFile
     obj_datafile = PyposmatDataFile(filename=pypospack_data_filename)
@@ -90,6 +120,26 @@ def test__create_optimal_population():
     obj_datafile.qoi_references = OrderedDict()
     obj_datafile.qoi_references['DFT'] = copy.deepcopy(qoi_reference_dft)
     obj_datafile.create_optimal_population(n=100,scaling_factors='DFT',err_type='abs')
+
+    #<--- these attributes should not have changed
+    assert obj_datafile.filename == pypospack_data_filename
+    assert obj_datafile.names == ['sim_id'] + names
+    assert type(obj_datafile.types) == list
+    assert obj_datafile.parameter_names == parameter_names
+    assert obj_datafile.qoi_names == qoi_names
+    assert obj_datafile.error_names == error_names
+    assert type(obj_datafile.df) == pd.DataFrame
+    assert type(obj_datafile.parameter_df) == pd.DataFrame
+    assert type(obj_datafile.error_df) == pd.DataFrame
+    assert type(obj_datafile.qoi_df) == pd.DataFrame
+    
+    #<--- these attributes have changed
+    assert type(obj_datafile.rescaled_error_df) == pd.DataFrame
+    assert type(obj_datafile.optimal_indices) == pd.Int64Index
+    assert type(obj_datafile.optimal_df) == pd.DataFrame
+    assert type(obj_datafile.optimal_parameter_df) == pd.DataFrame
+    assert type(obj_datafile.optimal_qoi_df) == pd.DataFrame
+    assert type(obj_datafile.optimal_error_df) == pd.DataFrame
 
 def test__write_optimal_population():
     from pypospack.pyposmat import PyposmatDataFile
