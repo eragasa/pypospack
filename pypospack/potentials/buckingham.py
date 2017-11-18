@@ -23,7 +23,7 @@ class BuckinghamPotential(PairPotential):
         PairPotential.__init__(self,
                 symbols,
                 potential_type='buckingham',
-                is_charge=False)
+                is_charge=True)
 
     def _init_parameter_names(self):
         self.symbol_pairs = list(determine_symbol_pairs(self.symbols))
@@ -55,7 +55,6 @@ class BuckinghamPotential(PairPotential):
         if parameters is not None:
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
-          
 
         # set masses
         str_out = ''
@@ -70,11 +69,11 @@ class BuckinghamPotential(PairPotential):
 
         # set chrg
         for i,s in enumerate(self.symbols):
-            charge = self.param_dict['chrg_{}'.format(s)]
+            charge = self.parameters['chrg_{}'.format(s)]
             str_out += "set group {} charge {}\n".format(s,charge)
         str_out += "\n"
 
-        str_out += 'variable R_cut equal {}\n'.format(r_cut)
+        str_out += 'variable R_cut equal {}\n'.format(rcut)
         str_out += '\n'
         str_out += 'pair_style buck/coul/long ${R_cut}\n'
 
@@ -83,29 +82,23 @@ class BuckinghamPotential(PairPotential):
             for j,sj in enumerate(self.symbols):
                 if i <= j:
                     try:
-                        A = self.param_dict['{}{}_A'.format(si,sj)]
-                        rho = self.param_dict['{}{}_rho'.format(si,sj)]
-                        C = self.param_dict['{}{}_C'.format(si,sj)]
+                        A = self.parameters['{}{}_A'.format(si,sj)]
+                        rho = self.parameters['{}{}_rho'.format(si,sj)]
+                        C = self.parameters['{}{}_C'.format(si,sj)]
                         str_out += "pair_coeff {} {} {} {} {} {}\n".format(\
                                 i+1,j+1,A,rho,C,'${R_cut}')
                     except KeyError as ke:
                         s = str(ke)
                         print('key_requested:',s)
-                        print('keys:',self.param_dict.keys())
+                        print('keys:',self.parameters.keys())
                         raise
                     except TypeError as te: 
                         s = str(te)
                         print(self.param_dict)
                         print('key_requested:',s)
-                        print('keys:',self.param_dict.keys())
+                        print('keys:',self.parameters.keys())
                         raise
         
-        # coulumbic charge summation         
-        str_out += "\n"
-        str_out += "kspace_style pppm 1.0e-5\n"
-        str_out += "\n"
-        str_out += "neighbor 1.0 bin\n"
-        str_out += "neigh_modify every 1 delay 0 check yes\n"
 
         return str_out
     

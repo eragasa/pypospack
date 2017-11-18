@@ -104,13 +104,14 @@ class LammpsSimulation(Task):
         self.lammps_input_filename = 'lammps.in'
         self.lammps_output_filename = 'lammps.out'
         self.lammps_structure_filename = 'lammps.structure'
+        self.lammps_potentialmod_filename = 'potential.mod'
         self.lammps_eam_filename = None
         self.lammps_bin = os.environ['LAMMPS_BIN']
 
         # flowcontrol filename
-        self.running_filename = 'running'
         self.results_filename = 'pypospack.{}.out'.format(task_name)
 
+        self.process = None
         # configuration
         self.configuration = OrderedDict()
         self.task_type = task_type
@@ -130,14 +131,24 @@ class LammpsSimulation(Task):
     @parameters.setter
     def parameters(self,parameters):
         self.potential.parameters = parameters
-    
-    def set_potential_parameters(self,parameters):
+   
+    @property
+    def symbols(self):
+        return self.potential.symbols
+
+    def set_potential_parameters(self,parameters=None):
+        """
+
+        Sets the parameters of the potential
+
+        Args:
+            parameters(OrderedDict)
+        """
         if self.potential is None:
             return
-        else:
-            if parameters is not None:
-                _parameters = copy.deepcopy(parameters)
-
+        
+        if parameters is not None:
+            _parameters = copy.deepcopy(parameters)
             self.parameters = _parameters
 
         if parameters in self.configuration:
@@ -161,24 +172,17 @@ class LammpsSimulation(Task):
         if self.is_fullauto:
             self.on_update_status()
 
+
     def on_config(self,configuration=None):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
 
         self.configure_potential()
-        # write lammps output file
-        _lammps_input_filename = os.path.join(
-                self.task_directory,
-                self.lammps_input_filename)
-        self.write_lammps_input_file(
-                filename=_lammps_input_filename)
-
-        _lammps_potentialmod_filename = os.path.join(
-                self.task_directory,
-                self.lammps_potential_mod)
-        self.write_potential_mod(
-                filename=_lammps_potential_mod_filename)
-
+        if 'parameters' in self.configuration:
+            if isinstance(self.potential,potential.Potential):
+                _parameters = self.configuration['parameters']
+                self.potential.parameters = _parameters
+        
         if self.potential.potential_type == 'eam':
             _eam_setfl_filename = os.path.join(
                 self.task_directory,
@@ -186,10 +190,6 @@ class LammpsSimulation(Task):
             self.write_potential_mod(
                     filename=_eam_setfl_filename)
 
-        if 'parameters' in self.configuration:
-            if isinstance(self.potential,potential.Potential):
-                _parameters = self.configuration['parameters']
-                self.potential.parameters = _parameters
         
         self.update_status()
         if self.is_fullauto:
@@ -199,11 +199,9 @@ class LammpsSimulation(Task):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
 
-        _running_filename = os.path.join(
-                self.task_directory,
-                self.running_filename)
-        Path(_running_filename).touch()
-
+        self.write_lammps_input_file()
+        self.write_potential_file()
+        self.write_structure_file()
         self.run()
 
         self.update_status()
@@ -243,14 +241,24 @@ class LammpsSimulation(Task):
 
     def get_conditions_ready(self):
         self.conditions_READY = OrderedDict()
+    
     def get_conditions_running(self):
         self.conditions_RUNNING = OrderedDict()
-        self.conditions_RUNNING['is_running_file'] \
-                = os.path.isfile(os.path.join(
-                    self.task_directory,
-                    self.running_filename))
+        self.conditions_RUNNING['process_initialized'] \
+                = self.process is not None
+   
     def get_conditions_post(self):
         self.conditions_POST = OrderedDict()
+        
+        if self.process is None:
+            _process_finished = False
+        else:
+            if self.process.poll() is not None:
+                _process_finished = True
+            else:
+                _process_finished = False
+        self.conditions_POST['process_finished'] = _process_finished
+
     def get_conditions_finished(self):
         self.conditions_FINISHED = OrderedDict()
         self.conditions_FINISHED['is_results_exists'] \
@@ -264,19 +272,16 @@ class LammpsSimulation(Task):
         raise NotImplementedError
 
     def run(self):
-        self.write_lammps_input_file()
-        self.write_potential_files()
-        self.write_structure_file()
 
-        cmd_str = '{} -i lammps.in > lammps.out'.format(self.lmps_bin)
+        _lammps_bin = self.lammps_bin
+        cmd_str = '{} -i lammps.in > lammps.out'.format(_lammps_bin)
 
         # change context directory
-        _orig_dir = os.getcwd()
         os.chdir(self.task_directory)
-        try:
-            subprocess.call(cmd_str,shell=True)
-        finally:
-            os.chdir(orig_dir)
+        self.process = subprocess.Popen(
+                cmd_str,
+                shell=True,
+                cwd=self.task_directory)
 
     def post(self):
         lammps_result_names = ['tot_energy','num_atoms',
@@ -320,6 +325,29 @@ class LammpsSimulation(Task):
                         print('line:{}'.format(line.strip()))
                         raise
 
+    def write_potential_file(self):
+        if self.potential is None:
+            return
+
+        _str_out = self.potential.lammps_potential_section_to_string()
+        _str_out += "\n"
+        
+        # coulumbic charge summation         
+        if self.potential.is_charge:
+            _str_out += "kspace_style pppm 1.0e-5\n"
+            _str_out += "\n"
+        
+        # neighborlists
+        _str_out += "neighbor 1.0 bin\n"
+        _str_out += "neigh_modify every 1 delay 0 check yes\n"
+
+        _lammps_potentialmod_filename = os.path.join(
+                self.task_directory,
+                self.lammps_potentialmod_filename)
+
+        with open(_lammps_potentialmod_filename,'w') as f:
+            f.write(_str_out)
+    
     def write_lammps_input_file(self,filename='lammps.in'):
         """ writes LAMMPS input file 
         
@@ -346,47 +374,28 @@ class LammpsSimulation(Task):
                 self._lammps_input_run_minimization(),
                 self._lammps_input_out_section()])
         return(str_out)
-
-    def write_potential_files(self,param_dict=None,filename='potential.mod'):
-        filename = os.path.join(self.task_directory,filename)
-    
-        if param_dict is not None:
-            try:
-                str_out = self.potential.to_string(param_dict)
-            except KeyError as ke:
-                s = str(ke)
-                print("keyerror:{}".format(s))
-                print("param_dict:",param_dict)
-                print("self.param_dict:",self.param_dict)
-                raise
-
-            with open(filename,'w') as f:
-                f.write(str_out)
-        else:
-            for src_filename in self.potential_files:
-                shutil.copyfile(src=self.potential_file,
-                                dst=filename)
             
     def write_structure_file(self,filename=None):
         if filename is not None:
             self.lammmps_structure_filename = filename
+        
         _filename = os.path.join(
                 self.task_directory,
                 self.lammps_structure_filename)
-
         if self.potential.is_charge:
-            atom_style = 'charge'
+            _atom_style = 'charge'
         else:
-            atom_style = 'atomic'
-        symbol_list = self.symbols
+            _atom_style = 'atomic'
+        _symbol_list = self.potential.symbols
     
         # instatiate using lammpsstructure file
         self.lammps_structure = lammps.LammpsStructure(\
                 obj=self.structure)
+        
         self.lammps_structure.write(\
-                filename=filename,
-                symbol_list=symbol_list,
-                atom_style=atom_style)
+                filename=_filename,
+                symbol_list=_symbol_list,
+                atom_style=_atom_style)
 
     def modify_structure(self):pass
 
@@ -410,24 +419,30 @@ class LammpsSimulation(Task):
     # private functions for building lammps input files
     def _lammps_input_initialization_section(self):
         if self.potential.is_charge:
-            atom_style = 'charge'
+            _atom_style = 'charge'
         else:
-            atom_style = 'atomic'
+            _atom_style = 'atomic'
         str_out = (
             '# ---- initialize simulations\n'
             'clear\n'
             'units metal\n'
             'dimension 3\n'
             'boundary p p p\n'
-            'atom_style {}\n'
+            'atom_style {atom_style}\n'
             'atom_modify map array\n'
-              ).format(atom_style)
+            ).format(
+                    atom_style=_atom_style)
         return str_out
 
     def _lammps_input_create_atoms(self):
+        _structure_filename = os.path.join(
+                self.task_directory,
+                self.lammps_structure_filename)
         str_out = (
             '# ---- create atoms\n'
-            'read_data structure.dat\n')
+            'read_data {structure_filename}\n'
+            ).format(
+                    structure_filename=_structure_filename)
 
         return str_out
 
@@ -494,6 +509,8 @@ class LammpsSimulation(Task):
                   )
         return str_out
 
+from pypospack.task.tasks_lammps.single_point_calc \
+        import LammpsSinglePointCalculation
 class LammpsStructuralMinimization(LammpsSimulation):
     """ Class for LAMMPS structural minimization
 
