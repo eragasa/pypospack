@@ -6,63 +6,76 @@ import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 import pypospack.potential as potential
 
-MgO_buck_potential_definition = OrderedDict()
-MgO_buck_potential_definition['potential_type'] = 'buckingham'
-MgO_buck_potential_definition['symbols'] = ['Mg','O']
-
-MgO_LC_parameters = OrderedDict()
-MgO_LC_parameters['chrg_Mg'] = +2.0
-MgO_LC_parameters['chrg_O']  = -2.0
-MgO_LC_parameters['MgMg_A']   = 0.0 
-MgO_LC_parameters['MgMg_rho'] = 0.5
-MgO_LC_parameters['MgMg_C']   = 0.0
-MgO_LC_parameters['MgO_A']    = 821.6
-MgO_LC_parameters['MgO_rho']  = 0.3242
-MgO_LC_parameters['MgO_C']    = 0.0
-MgO_LC_parameters['OO_A']     = 2274.00 
-MgO_LC_parameters['OO_rho']   = 0.1490
-MgO_LC_parameters['OO_C']     = 27.88
-
-MgO_structure_definition = OrderedDict()
-MgO_structure_definition['name'] = 'MgO_NaCl_unit'
-MgO_structure_definition['filename'] = os.path.join(
+Ni_eam_potential_definition = OrderedDict()
+Ni_eam_potential_definition['potential_type'] = 'eam'
+Ni_eam_potential_definition['symbols'] = ['Ni']
+Ni_eam_potential_definition['setfl_filename'] = os.path.join(
         'test_LammpsSinglePointCalculation',
-        'MgO_NaCl_unit.gga.relax.vasp')
+        'Ni_Mendelev_2010.eam.fs')
 
-MgO_LC_configuration = OrderedDict()
-MgO_LC_configuration['task'] = OrderedDict()
-MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task_type'] = 'min_none'
-MgO_LC_configuration['potential'] = MgO_buck_potential_definition
-MgO_LC_configuration['parameters'] = MgO_LC_parameters
-MgO_LC_configuration['structure'] = MgO_structure_definition
+print(Ni_eam_potential_definition['setfl_filename'])
+assert os.path.isfile(Ni_eam_potential_definition['setfl_filename'])
 
-configuration=MgO_LC_configuration
+Ni_eam_parameters = None
+
+Ni_structure_definition = OrderedDict()
+Ni_structure_definition['name'] = 'Ni_fcc_unit'
+Ni_structure_definition['filename'] = os.path.join(
+        'test_LammpsSinglePointCalculation',
+        'Ni_fcc_unit.vasp')
+
+print(Ni_structure_definition['filename'])
+assert os.path.isfile(Ni_structure_definition['filename'])
+Ni_task_configuration= OrderedDict()
+Ni_task_configuration['task'] = OrderedDict()
+Ni_task_configuration['task']['task_name'] = 'Ni_fcc_unit.E_min_all'
+Ni_task_configuration['task']['task_directory'] = 'Ni_fcc_.E_min_all'
+Ni_task_configuration['task_type'] = 'min_none'
+Ni_task_configuration['potential'] = Ni_eam_potential_definition
+Ni_task_configuration['parameters'] = Ni_eam_parameters
+Ni_task_configuration['structure'] = Ni_structure_definition
+
+configuration=Ni_task_configuration
+
+task_name = configuration['task']['task_name']
+task_directory = configuration['task']['task_directory']
+structure_filename = configuration['structure']['filename']
+restart=False
+fullauto=False
 
 def cleanup(task_directory):
     if os.path.isdir(task_directory):
         shutil.rmtree(task_directory)
 
 def test__import__from_pypospack_task_lammps():
-    from pypospack.task.lammps import LammpsSimulation
+    from pypospack.task.lammps import LammpsSinglePointCalculation
 
 def test____init___():
+    symbols = configuration['potential']['symbols']
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
     structure_filename = configuration['structure']['filename']
+    eam_setfl_filename = configuration['potential']['setfl_filename']
     restart=False
     fullauto=False
 
     cleanup(task_directory)
     assert not os.path.exists(task_directory)
+    assert type(eam_setfl_filename) is str
+    assert type(structure_filename) is str
+    poscar = vasp.Poscar()
+    poscar.read(structure_filename)
+    assert os.path.isfile(eam_setfl_filename)
+    assert os.path.isfile(structure_filename)
     #<--- code being tested
-    from pypospack.task.lammps import LammpsSimulation
-    lammps_task = LammpsSimulation(
+    from pypospack.task.lammps import LammpsSinglePointCalculation
+    lammps_task = LammpsSinglePointCalculation(
             task_name = task_name,
             task_directory = task_directory,
             structure_filename = structure_filename)
 
+    #<--- expected behavior
+    lammps_setfl_filename = '{}.eam.alloy'.format("".join(symbols))
     #<--- check directory structure
     assert os.path.isdir(
             os.path.abspath(lammps_task.task_directory))
@@ -76,7 +89,7 @@ def test____init___():
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
     assert lammps_task.lammps_structure_filename == 'lammps.structure'
-    assert lammps_task.lammps_setfl_filename is None
+    assert lammps_task.lammps_setfl_filename == None
     assert lammps_task.potential is None
     assert lammps_task.structure_filename == structure_filename
     assert isinstance(lammps_task.structure,crystal.SimulationCell)
@@ -84,6 +97,7 @@ def test____init___():
     assert lammps_task.status == 'INIT'
 
 def test__on_init():
+    symbols = configuration['potential']['symbols']
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
     structure_filename = configuration['structure']['filename']
@@ -95,8 +109,8 @@ def test__on_init():
     assert 'potential' in configuration
     assert 'parameters' in configuration
     #<--- code setup
-    from pypospack.task.lammps import LammpsSimulation
-    lammps_task = LammpsSimulation(
+    from pypospack.task.lammps import LammpsSinglePointCalculation
+    lammps_task = LammpsSinglePointCalculation(
             task_name = task_name,
             task_directory = task_directory,
             structure_filename = structure_filename)
@@ -106,7 +120,8 @@ def test__on_init():
     assert lammps_task.potential is None
     #<--- code being testing
     lammps_task.on_init(configuration)
-
+    #<--- expected behavior
+    lammps_setfl_filename = '{}.eam.alloy'.format("".join(symbols))
     #<--- check directory structure
     assert os.path.isdir(
             os.path.abspath(lammps_task.task_directory))
@@ -119,13 +134,14 @@ def test__on_init():
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
     assert lammps_task.lammps_structure_filename == 'lammps.structure'
-    assert lammps_task.lammps_setfl_filename is None
+    assert lammps_task.lammps_setfl_filename is None 
     assert isinstance(lammps_task.potential,potential.Potential)
     assert lammps_task.structure_filename == structure_filename
     assert isinstance(lammps_task.structure,crystal.SimulationCell)
     assert lammps_task.process is None
 
 def test__on_ready():
+    symbols = configuration['potential']['symbols']
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
     structure_filename = configuration['structure']['filename']
@@ -137,8 +153,8 @@ def test__on_ready():
     assert 'potential' in configuration
     assert 'parameters' in configuration
     #<--- code setup
-    from pypospack.task.lammps import LammpsSimulation
-    lammps_task = LammpsSimulation(
+    from pypospack.task.lammps import LammpsSinglePointCalculation
+    lammps_task = LammpsSinglePointCalculation(
             task_name = task_name,
             task_directory = task_directory,
             structure_filename = structure_filename)
@@ -149,7 +165,10 @@ def test__on_ready():
     assert lammps_task.status == 'READY'
     #<--- code being testing
     lammps_task.on_ready(configuration)
+    #<--- expected behavior
+    lammps_setfl_filename = '{}.eam.alloy'.format("".join(symbols))
 
+    #<--- check to see if the configuration dictionaries were setup correctly
     assert type(lammps_task.conditions_INIT) == OrderedDict
     assert type(lammps_task.conditions_CONFIG) == OrderedDict
     assert type(lammps_task.conditions_READY) == OrderedDict
@@ -163,14 +182,14 @@ def test__on_ready():
     assert lammps_task.conditions_CONFIG['parameters_processed'] == True
     assert all([v for k,v in lammps_task.conditions_CONFIG.items()]) == True
     assert all([v for k,v in lammps_task.conditions_READY.items()]) == True
-    assert lammps_task.conditions_RUNNING['process_initialized']== True
-    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == True
+    assert lammps_task.conditions_RUNNING['process_initialized']== False
+    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == False
     assert lammps_task.conditions_POST['process_finished'] == False
     assert all([v for k,v in lammps_task.conditions_POST.items()]) == False
     assert all([v for k,v in lammps_task.conditions_FINISHED.items()]) == False
 
-    #if len(lammps_task.conditions_READY) == 0:
-    #    assert lammps_task.status == 'READY'
-    #else:
-    #    assert lammps_task.status == 'CONFIG'
+    if len(lammps_task.conditions_READY) == 0:
+        assert lammps_task.status == 'READY'
+    else:
+        assert lammps_task.status == 'CONFIG'
 
