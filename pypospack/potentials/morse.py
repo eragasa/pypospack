@@ -60,9 +60,13 @@ class MorsePotential(PairPotential):
                 self.potential['{}{}'.format(s[0],s[1])] \
                         = D0 * ((1-np.exp(-a*(r-r0)))**2-1)
             else:
+                idx = rcut_idx = max(np.where(r<=r_cut)[0])
+                _V = D0 * ((1-np.exp(-a*(r-r0)))**2-1)
+                _dr = r[1] - r[0]
+                _dVdr = (_V[idx]-_V[idx-1])/_dr
                 self.potential['{}{}'.format(s[0],s[1])] \
-                        = D0 * ((1-np.exp(-a*(r-r0)))**2-1)
-
+                        = _V - _dVdr*(r-r-cut)
+                
         return copy.deepcopy(self.potential_evaluations)
     
     # same as parent class

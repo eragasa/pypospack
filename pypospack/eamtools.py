@@ -13,9 +13,10 @@ def get_eam_radii_vector(r_max,N_r):
     if N_r%5 != 0:
         raise ValueError('N_r must be divisible by 5')
 
-    r = r_max * np.linspace(1,100,N_r)/100
-    d_r = r_max / N_r
-    return r, d_r
+    _r = r_max * np.linspace(1,N_r,N_r)/N_r
+    _dr = r_max / N_r
+
+    return _r, _dr
 
 class EamCurveFitter(object):
     
@@ -271,12 +272,12 @@ class EamSetflFile(object):
 
         # determine the rho and r arrays
         self.max_rho = self.N_rho * self.d_rho
-        self.max_r = self.N_r * self.d_rho
+        self.max_r = self.N_r * self.d_r
         if self.max_r <= self.r_cut:
             self.r_cut = self.max_r
 
-        self.r = self.max_r*np.linspace(1,100,self.N_rho)/100
-        self.rho = self.max_rho*np.linspace(1,100,self.N_r)/100
+        self.r = self.max_r*np.linspace(1,self.N_r,self.N_r)/self.N_r
+        self.rho = self.max_rho*np.linspace(1,self.N_rho,self.N_rho)/self.N_rho
    
         if self.N_rho % self.N_VALUES_PER_LINE_RHO != 0:
             raise ValueError("N_rho not divisible by {}".format(

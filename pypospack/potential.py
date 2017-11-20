@@ -9,6 +9,7 @@ import os,pathlib,copy, yaml
 from collections import OrderedDict
 import numpy as np
 import pypospack.potentials
+from pypospack.eamtools import EamSetflFile
 
 def determine_symbol_pairs(symbols):
     if not isinstance(symbols,list):
@@ -140,6 +141,7 @@ class EamPotential(Potential):
        func_pairpotential(str):
        func_density(str):
        func_embedding(str):
+       filename(str):
     Attributes:
        symbols(list of str):
 
@@ -153,36 +155,73 @@ class EamPotential(Potential):
             func_density=None,
             func_embedding=None,
             filename=None):
-        
+       
+        # these are pypospack.potential.Potential objects
         self.obj_pair = None
         self.obj_density = None
         self.obj_embedding = None
 
+        # these will be numpy arrays
         self.pair= None
         self.density = None
         self.embedding = None
 
         self.symbols = symbols
 
-        assert type(func_pair) is str
-        assert type(func_density) is str
-        assert type(func_embedding) is str
-        self.set_obj_pair(func_pair=func_pair)
-        self.set_obj_density(func_density=func_density)
-        self.set_obj_embedding(func_embedding=func_embedding)
+        self.setfl_filename_src = filename
+        self.setfl_filename_dst = "{symbols}.eam.alloy".format(
+                symbols="".join(self.symbols))
+        self.setfl = None
         
+        if filename is None:
+            self.set_obj_pair(func_pair=func_pair)
+            self.set_obj_density(func_density=func_density)
+            self.set_obj_embedding(func_embedding=func_embedding)
+        else:
+            self.setfl = EamSetflFile()
+            self.setfl.read(filename=self.setfl_filename_src)
+
         Potential.__init__(self,
                 symbols=symbols,
-                potential_type='eam')
+                potential_type='eam',
+                is_charge = False)
+
+    def lammps_potential_section_to_string(self,setfl_dst_filename):
+
+        # set masses
+        str_out = ''
+        for i,s in enumerate(self.symbols):
+            str_out += "mass {} {}\n".format(i+1,self._get_mass(s))
+        str_out += "\n"
+
+        # set groups
+        for i,s in enumerate(self.symbols):
+            str_out += "group {} type {}\n".format(s,i+1)
+        str_out += "\n"
+
+        str_out += "pair_style eam/alloy\n"
+        str_out += "pair_coeff * * {setfl_dst_filename} {str_symbols}\n".format(
+                    setfl_dst_filename=setfl_dst_filename,
+                    str_symbols=" ".join(self.symbols))
+        
+        return str_out
+
 
     def _init_parameter_names(self):
-        p_params = ['p_{}'.format(p) for p in self.obj_pair.parameter_names]
-        d_params = ['d_{}'.format(p) for p in self.obj_density.parameter_names]
-        e_params = ['e_{}'.format(p) for p in self.obj_embedding.parameter_names]
-
-        self.parameter_names = list(p_params + d_params + e_params)
+        if all([self.obj_pair is not None,
+                self.obj_density is not None,
+                self.obj_embedding is not None]):
+            p_params = ['p_{}'.format(p) for p in self.obj_pair.parameter_names]
+            d_params = ['d_{}'.format(p) for p in self.obj_density.parameter_names]
+            e_params = ['e_{}'.format(p) for p in self.obj_embedding.parameter_names]
+            self.parameter_names = list(p_params + d_params + e_params)
+        else:
+            self.parameter_names = None
 
     def _init_parameters(self):
+        if self.parameter_names is None:
+            return
+
         self.parameters = OrderedDict()
         for p in self.parameter_names:
             self.parameters[p] = None
@@ -317,7 +356,7 @@ def PotentialObjectMap(potential_type):
 
     potential_map['eam'] = OrderedDict()
     potential_map['eam']['module'] = 'pypospack.potential'
-    potential_map['eam']['class'] = 'EmbeddedAtomModel'
+    potential_map['eam']['class'] = 'EamPotential'
 
     potential_map['morse'] = OrderedDict()
     potential_map['morse']['module'] = 'pypospack.potential'

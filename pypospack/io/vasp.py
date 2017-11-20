@@ -759,9 +759,16 @@ class Poscar(crystal.SimulationCell):
         """
         if filename is not None:
             self.filename = filename
-            
-        f = open(self.filename, 'r')
-       
+        
+        try:    
+            f = open(self.filename, 'r')
+        except FileNotFoundError as e:
+            str_out = "\n".join(
+                [
+                "cwd={}".format(os.getcwd()),
+                "filename={}".format(self.filename)
+                ])
+            raise
         # read structure comment
         self.comment = f.readline().strip()
 
