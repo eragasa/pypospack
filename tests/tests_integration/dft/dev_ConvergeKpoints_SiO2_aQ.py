@@ -1,5 +1,5 @@
 import pytest
-import shutil, copy
+import shutil, copy, os
 import numpy as np
 import pypospack.task.vasp as tsk_vasp
 import pypospack.io.vasp as vasp
@@ -32,7 +32,9 @@ def cleanup(directory):
 
 if __name__ == "__main__":
     directory = 'SiO2_aQ'
-    structure_filename = '../rsrc/SiO2_a_quartz.vasp'
+    structure_filename = os.path.join(
+            'SiO2_structures',
+            'SiO2_aq_cubic.vasp')
 
     poscar = vasp.Poscar()
     poscar.read(structure_filename)
