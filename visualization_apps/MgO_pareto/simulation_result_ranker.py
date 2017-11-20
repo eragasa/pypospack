@@ -1,27 +1,23 @@
-import os, time
+import os
 
 import numpy as np
-import scipy.stats
 import pandas as pd
-import math
-
-from bokeh.io import output_file, show, curdoc, output_notebook
-from bokeh.layouts import gridplot, row, column, widgetbox, layout
 from bokeh.models import ColumnDataSource, HoverTool
-from bokeh.models.glyphs import Circle, Quad, Line, VBar
+from bokeh.models.glyphs import Quad, Line
 from bokeh.plotting import figure, curdoc
-from bokeh.models.widgets import Select, Slider
+from bokeh.models.widgets import Select, Slider, RadioGroup
 from bokeh.server.server import Server
 from bokeh.application.handlers import FunctionHandler
 from bokeh.application import Application
-from bokeh.transform import factor_cmap
 
 import pypospack.visualization as visualization
 
 
 '''
 score += 1 for err less than mean
+Histogram of scores
 '''
+
 
 
 def _square_errors(total_df, err_names):
@@ -36,7 +32,60 @@ def _square_errors(total_df, err_names):
 
     return sq_err_names
 
-def get_score(df, name_list):
+
+def basic_stats(name_list, total_df):
+    """
+    :param name_list: (list) contains names of total_df columns to be analyzed
+    :return: (list) list of dicts key=total_df column name, value=list of statistics about that col
+                the order of the stats list is [mu, median, sigma, skew, kurtosis]
+    """
+
+    aggregate_stats_list = []
+
+    for names in name_list:
+        names_stats_dict = {}
+        mu = np.mean(total_df[names])
+        median = np.median(total_df[names])
+        sigma = np.std(total_df[names])
+        skew = total_df[names].skew()
+        kurtosis = total_df[names].kurt()
+        names_stats_dict[names] = [mu, median, sigma, skew, kurtosis]
+        aggregate_stats_list.append(names_stats_dict)
+
+    return aggregate_stats_list
+
+
+def gaussian_fit(name, total_df):
+    """
+    :param name: (str) name of total_df column to be fit
+    :return: (dict) contains hist, edges, x, pdf
+    """
+
+    gaussian_dict = {}
+    minimum = total_df[name].min()
+    maximum = total_df[name].max()
+    mu = basic_stats([name], total_df)
+    mu = mu[0][name][0]
+    sigma = basic_stats([name], total_df)
+    sigma = sigma[0][name][2]
+
+    # fix this later use length of name list
+    bin_list = list(range(0, 11))
+    bin_list = [v+0.5 for v in bin_list]
+    hist, edges = np.histogram(total_df[name], density=True, bins=bin_list, range=(minimum, maximum))
+    x = np.linspace(minimum, maximum, len(total_df[name]))
+    # probability density function
+    pdf = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(x - mu) ** 2 / (2 * sigma ** 2))
+    pdf = pdf[np.logical_not(np.isnan(pdf))]
+    gaussian_dict['hist'] = hist
+    gaussian_dict['edges'] = edges
+    gaussian_dict['x'] = x
+    gaussian_dict['pdf'] = pdf
+
+    return gaussian_dict
+
+
+def get_score_by_param(df, name_list):
 
     name_avg_dict = {}
     name_score_dict = {}
@@ -49,9 +98,24 @@ def get_score(df, name_list):
             if (df[names].iloc[i])**2 < name_avg_dict[names]:
                 name_score_dict[names] += 1
 
-    return name_score_dict
 
+def get_score_by_simulation(df, name_list):
+    avg_val_dict = {}
+    row_score_list = []
+    for names in name_list:
+        mean = df[names].median()
+        avg_val_dict[names] = mean
+    for i in range(0, len(df)):
+        row = df.iloc[i]
+        row_score = 0
+        for names in name_list:
+            value = row[names]
+            if value < avg_val_dict[names]:
+                row_score += 1
+        row_score_list.append(row_score)
 
+    df['score'] = row_score_list
+    return row_score_list
 
 
 class CreateInterface(object):
@@ -66,6 +130,8 @@ class CreateInterface(object):
         self.sq_err_names = _square_errors(self.total_pandas_df, self.err_names)
         self.free_param_names = ['chrg_Mg', 'MgO_A', 'MgO_rho', 'OO_A', 'OO_rho', 'OO_C']
         self.qoi_names = vizdemo.qoi_names
+
+        # print(len(self.param_names), len(self.err_names), len(self.sq_err_names), len(self.qoi_names))
 
 
     def start_bokeh_server(self):
@@ -82,52 +148,78 @@ class CreateInterface(object):
         )
         self.bokeh_server.io_loop.start()
 
-    def create_widgets(self):
-        self.slider_widget = Slider(
-            start=0,
-            end=1,
-            step=.1,
-            title='test title'
-        )
+
+    def write_text_file(self):
+        scores = get_score_by_simulation(self.total_pandas_df, self.sq_err_names)
+        best_simulations = []
+        for i, v in enumerate(scores):
+            if v == 10:
+                best_simulations.append(i)
+        best_sim_values = []
+        for sims in best_simulations:
+            pandas_row = self.total_pandas_df.iloc[sims]
+            pandas_row = list(pandas_row)
+            pandas_row = map(str, pandas_row)
+            pandas_row = ' '.join(pandas_row)
+            formatted_row = str(sims)+' '+str(pandas_row)
+            best_sim_values.append(formatted_row)
+        header = 'sim_id '+' '.join(list(self.total_pandas_df))
+        assert len(best_sim_values) > 0
+        with open('best_simulations.txt', mode='w') as f:
+            f.write(header)
+            f.write('\n')
+            for sim_rows in best_sim_values:
+                f.write(sim_rows)
+                f.write('\n')
+
 
     def generate_plots(self, doc):
-        self.bar_chart = {}
+        self.hist_plot = {}
+        get_score_by_simulation(self.total_pandas_df, self.sq_err_names)
+        self.hist_plot['plotting_data'] = np.array(self.total_pandas_df['score'])
+        self.hist_plot['plot_width'] = 1000
+        self.hist_plot['plot_height'] = 500
+        self.hist_plot['title'] = 'Simulation Score Histogram'
 
-        self.bar_chart['plot_width'] = 1200
-        self.bar_chart['plot_height'] = 600
-        self.bar_chart['title'] = 'Score by QOI Parameter'
+        self.hist_plot['object_figure'] = figure(width=self.hist_plot['plot_width'],
+                                                 height=self.hist_plot['plot_height'],
+                                                 title=self.hist_plot['title'])
 
-        self.bar_chart['object_figure'] = figure(width=self.bar_chart['plot_width'],
-                                                 height=self.bar_chart['plot_height'],
-                                                 title=self.bar_chart['title'],
-                                                 x_range=self.qoi_names)
+        self.hist_plot['source'] = ColumnDataSource(data=dict(
+                hist=[],
+                left_edge=[],
+                right_edge=[]
+            ))
+        self.hist_plot['pdf_source'] = ColumnDataSource(data=dict(
+                x=[],
+                y_pdf=[]
+            ))
 
-        score_dict = get_score(self.total_pandas_df, self.err_names)
-        scores = [v for k, v in score_dict.items()]
-        scores = [(s/len(self.total_pandas_df))*100 for s in scores]
-        self.bar_chart['source'] = ColumnDataSource(data=dict(height=[],
-                                                              x=[],
-                                                              width=[],
-                                                              bottom=[]))
+        # get stats and gaus fit
+        gauss_dict = gaussian_fit(name='score', total_df=self.total_pandas_df)
+        hist = gauss_dict['hist']
+        edges = gauss_dict['edges']
+        x = gauss_dict['x']
+        pdf = gauss_dict['pdf']
 
-        self.bar_chart['source'].data = {'height': scores, 'x': self.qoi_names,
-                                         'width': [0.5 for i in range(len(scores))],
-                                         'bottom': [0 for i in range(len(scores))]}
+        self.hist_plot['source'].data = {'hist': hist, 'left_edge': edges[:-1],
+                                     'right_edge': edges[1:]}
+        self.hist_plot['pdf_source'].data = {'x': x,
+                                         'y_pdf': pdf}
 
-        self.bar_chart['bar_glyph'] = VBar(x='x', width='width', bottom='bottom', top='height', fill_color='#3264C8')
+        self.hist_plot['quad_glyph'] = Quad(top='hist', bottom=0, left='left_edge', right='right_edge')
+        self.hist_plot['pdf_glyph'] = Line(x='x', y='y_pdf', line_color="#D95B43", line_width=8, line_alpha=0.7)
 
-        self.bar_chart['object_figure'].xaxis.major_label_orientation = 'vertical'
-        self.bar_chart['object_figure'].yaxis.axis_label = 'Percent of Simulations Below Error Threshold'
+        self.hist_plot['object_figure'].add_glyph(self.hist_plot['source'], self.hist_plot['quad_glyph'])
+        self.hist_plot['object_figure'].add_glyph(self.hist_plot['pdf_source'], self.hist_plot['pdf_glyph'])
 
-        self.bar_chart['object_figure'].add_glyph(self.bar_chart['source'], self.bar_chart['bar_glyph'])
+        self.hist_plot['object_figure'].yaxis.axis_label = 'Relative Frequency'
+        self.hist_plot['object_figure'].xaxis.axis_label = 'Simulation Score'
 
-        self.bar_chart['object_figure'].add_tools(HoverTool(tooltips=[("Score", "@height"), ("Name", "@x")]))
-
-        doc.add_root(self.bar_chart['object_figure'])
-
+        doc.add_root(self.hist_plot['object_figure'])
+        self.write_text_file()
 
 
 if __name__ == "__main__":
     c_i = CreateInterface()
-    c_i.create_widgets()
     c_i.start_bokeh_server()
