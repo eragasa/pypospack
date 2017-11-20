@@ -273,6 +273,9 @@ class SimulationCell(object):
         for a in obj:
             symbol = a.symbol
             position = cartesian2direct(a.position,self.H)
+            for i in range(3):
+                if position[i] < 0:
+                    position[i] = 1 + position[i]
             self.atomic_basis.append(
                     Atom(symbol=symbol,position=position))
         self.vacancies = []
