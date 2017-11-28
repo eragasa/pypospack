@@ -31,9 +31,9 @@ MgO_structure_definition['filename'] = os.path.join(
 
 MgO_LC_configuration = OrderedDict()
 MgO_LC_configuration['task'] = OrderedDict()
-MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task_type'] = 'min_none'
+MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_min_none'
+MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_min_none'
+MgO_LC_configuration['task']['task_type'] = 'lmps_min_none'
 MgO_LC_configuration['potential'] = MgO_buck_potential_definition
 MgO_LC_configuration['parameters'] = MgO_LC_parameters
 MgO_LC_configuration['structure'] = MgO_structure_definition
@@ -45,7 +45,7 @@ def cleanup(task_directory):
         shutil.rmtree(task_directory)
 
 def test__import__from_pypospack_task_lammps():
-    from pypospack.task.lammps import LammpsSimulation
+    from pypospack.task.lammps import LammpsSinglePointCalculation
 
 def test____init___():
     task_name = configuration['task']['task_name']
@@ -57,12 +57,13 @@ def test____init___():
     cleanup(task_directory)
     assert not os.path.exists(task_directory)
     #<--- code being tested
-    from pypospack.task.lammps import LammpsSimulation
-    lammps_task = LammpsSimulation(
+    from pypospack.task.lammps import LammpsSinglePointCalculation
+    lammps_task = LammpsSinglePointCalculation(
             task_name = task_name,
             task_directory = task_directory,
             structure_filename = structure_filename)
-
+    #<--- expected behavior
+    task_type = configuration['task']['task_type']
     #<--- check directory structure
     assert os.path.isdir(
             os.path.abspath(lammps_task.task_directory))
@@ -71,7 +72,7 @@ def test____init___():
     assert lammps_task.task_name == task_name
     assert os.path.abspath(lammps_task.task_directory)\
             == os.path.abspath(task_directory)
-    assert lammps_task.task_type == 'single_point'
+    assert lammps_task.task_type == task_type
     assert lammps_task.lammps_bin == os.environ['LAMMPS_BIN']
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
@@ -95,8 +96,8 @@ def test__on_init():
     assert 'potential' in configuration
     assert 'parameters' in configuration
     #<--- code setup
-    from pypospack.task.lammps import LammpsSimulation
-    lammps_task = LammpsSimulation(
+    from pypospack.task.lammps import LammpsSinglePointCalculation
+    lammps_task = LammpsSinglePointCalculation(
             task_name = task_name,
             task_directory = task_directory,
             structure_filename = structure_filename)
@@ -106,7 +107,8 @@ def test__on_init():
     assert lammps_task.potential is None
     #<--- code being testing
     lammps_task.on_init(configuration)
-
+    #<--- expected behavior
+    task_type = configuration['task']['task_type']
     #<--- check directory structure
     assert os.path.isdir(
             os.path.abspath(lammps_task.task_directory))
@@ -114,7 +116,7 @@ def test__on_init():
     assert lammps_task.task_name == task_name
     assert os.path.abspath(lammps_task.task_directory)\
             == os.path.abspath(task_directory)
-    assert lammps_task.task_type == 'single_point'
+    assert lammps_task.task_type == task_type
     assert lammps_task.lammps_bin == os.environ['LAMMPS_BIN']
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
@@ -137,8 +139,8 @@ def test__on_ready():
     assert 'potential' in configuration
     assert 'parameters' in configuration
     #<--- code setup
-    from pypospack.task.lammps import LammpsSimulation
-    lammps_task = LammpsSimulation(
+    from pypospack.task.lammps import LammpsSinglePointCalculation
+    lammps_task = LammpsSinglePointCalculation(
             task_name = task_name,
             task_directory = task_directory,
             structure_filename = structure_filename)

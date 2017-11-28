@@ -28,9 +28,9 @@ print(Ni_structure_definition['filename'])
 assert os.path.isfile(Ni_structure_definition['filename'])
 Ni_task_configuration= OrderedDict()
 Ni_task_configuration['task'] = OrderedDict()
-Ni_task_configuration['task']['task_name'] = 'Ni_fcc_unit.E_min_all'
-Ni_task_configuration['task']['task_directory'] = 'Ni_fcc_.E_min_all'
-Ni_task_configuration['task_type'] = 'min_none'
+Ni_task_configuration['task']['task_name'] = 'Ni_fcc_unit.E_min_none'
+Ni_task_configuration['task']['task_directory'] = 'Ni_fcc_unit.E_min_none'
+Ni_task_configuration['task']['task_type'] = 'lmps_min_none'
 Ni_task_configuration['potential'] = Ni_eam_potential_definition
 Ni_task_configuration['parameters'] = Ni_eam_parameters
 Ni_task_configuration['structure'] = Ni_structure_definition
@@ -76,6 +76,7 @@ def test____init___():
 
     #<--- expected behavior
     lammps_setfl_filename = '{}.eam.alloy'.format("".join(symbols))
+    task_type = configuration['task']['task_type']
     #<--- check directory structure
     assert os.path.isdir(
             os.path.abspath(lammps_task.task_directory))
@@ -84,7 +85,7 @@ def test____init___():
     assert lammps_task.task_name == task_name
     assert os.path.abspath(lammps_task.task_directory)\
             == os.path.abspath(task_directory)
-    assert lammps_task.task_type == 'single_point'
+    assert lammps_task.task_type == task_type
     assert lammps_task.lammps_bin == os.environ['LAMMPS_BIN']
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
@@ -122,6 +123,7 @@ def test__on_init():
     lammps_task.on_init(configuration)
     #<--- expected behavior
     lammps_setfl_filename = '{}.eam.alloy'.format("".join(symbols))
+    task_type = configuration['task']['task_type']
     #<--- check directory structure
     assert os.path.isdir(
             os.path.abspath(lammps_task.task_directory))
@@ -129,7 +131,7 @@ def test__on_init():
     assert lammps_task.task_name == task_name
     assert os.path.abspath(lammps_task.task_directory)\
             == os.path.abspath(task_directory)
-    assert lammps_task.task_type == 'single_point'
+    assert lammps_task.task_type == task_type
     assert lammps_task.lammps_bin == os.environ['LAMMPS_BIN']
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
@@ -140,6 +142,10 @@ def test__on_init():
     assert isinstance(lammps_task.structure,crystal.SimulationCell)
     assert lammps_task.process is None
 
+    if len(lammps_task.conditions_READY) == 0:
+        assert lammps_task.status == 'READY'
+    else:
+        assert lammps_task.status == 'CONFIG'
 def test__on_ready():
     symbols = configuration['potential']['symbols']
     task_name = configuration['task']['task_name']
@@ -182,14 +188,10 @@ def test__on_ready():
     assert lammps_task.conditions_CONFIG['parameters_processed'] == True
     assert all([v for k,v in lammps_task.conditions_CONFIG.items()]) == True
     assert all([v for k,v in lammps_task.conditions_READY.items()]) == True
-    assert lammps_task.conditions_RUNNING['process_initialized']== False
-    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == False
+    assert lammps_task.conditions_RUNNING['process_initialized']== True
+    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == True
     assert lammps_task.conditions_POST['process_finished'] == False
     assert all([v for k,v in lammps_task.conditions_POST.items()]) == False
     assert all([v for k,v in lammps_task.conditions_FINISHED.items()]) == False
 
-    if len(lammps_task.conditions_READY) == 0:
-        assert lammps_task.status == 'READY'
-    else:
-        assert lammps_task.status == 'CONFIG'
 

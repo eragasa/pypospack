@@ -76,7 +76,7 @@ def test____init___():
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
     assert lammps_task.lammps_structure_filename == 'lammps.structure'
-    assert lammps_task.lammps_eam_filename is None
+    assert lammps_task.lammps_setfl_filename is None
     assert lammps_task.potential is None
     assert lammps_task.structure_filename == structure_filename
     assert isinstance(lammps_task.structure,crystal.SimulationCell)
@@ -119,7 +119,7 @@ def test__on_init():
     assert lammps_task.lammps_input_filename == 'lammps.in'
     assert lammps_task.lammps_output_filename == 'lammps.out'
     assert lammps_task.lammps_structure_filename == 'lammps.structure'
-    assert lammps_task.lammps_eam_filename is None
+    assert lammps_task.lammps_setfl_filename is None
     assert isinstance(lammps_task.potential,potential.Potential)
     assert lammps_task.structure_filename == structure_filename
     assert isinstance(lammps_task.structure,crystal.SimulationCell)

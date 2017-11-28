@@ -24,7 +24,7 @@ Ni_structure_definition['filename'] = os.path.join(
 Ni_task_configuration= OrderedDict()
 Ni_task_configuration['task'] = OrderedDict()
 Ni_task_configuration['task']['task_name'] = 'Ni_fcc_unit.E_min_all'
-Ni_task_configuration['task']['task_directory'] = 'Ni_fcc_.E_min_all'
+Ni_task_configuration['task']['task_directory'] = 'Ni_fcc_unit.E_min_all'
 Ni_task_configuration['task_type'] = 'min_none'
 Ni_task_configuration['potential'] = Ni_eam_potential_definition
 Ni_task_configuration['parameters'] = Ni_eam_parameters
@@ -135,6 +135,11 @@ def test__on_init():
     assert isinstance(lammps_task.structure,crystal.SimulationCell)
     assert lammps_task.process is None
 
+    if len(lammps_task.conditions_READY) == 0:
+        assert lammps_task.status == 'READY'
+    else:
+        assert lammps_task.status == 'CONFIG'
+
 def test__on_ready():
     symbols = configuration['potential']['symbols']
     task_name = configuration['task']['task_name']
@@ -177,14 +182,10 @@ def test__on_ready():
     assert lammps_task.conditions_CONFIG['parameters_processed'] == True
     assert all([v for k,v in lammps_task.conditions_CONFIG.items()]) == True
     assert all([v for k,v in lammps_task.conditions_READY.items()]) == True
-    assert lammps_task.conditions_RUNNING['process_initialized']== False
-    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == False
+    assert lammps_task.conditions_RUNNING['process_initialized']== True
+    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == True
     assert lammps_task.conditions_POST['process_finished'] == False
     assert all([v for k,v in lammps_task.conditions_POST.items()]) == False
     assert all([v for k,v in lammps_task.conditions_FINISHED.items()]) == False
 
-    if len(lammps_task.conditions_READY) == 0:
-        assert lammps_task.status == 'READY'
-    else:
-        assert lammps_task.status == 'CONFIG'
 
