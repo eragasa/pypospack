@@ -44,7 +44,7 @@ class BjsEmbeddingFunction(EamEmbeddingFunction):
         for p in self.parameter_names:
             self.parameters[p] = None
 
-    def evaluate(self,rho,parameters,r_cut=None):
+    def evaluate(self,rho,parameters):
         """
 
         Given a vector of electron densities, rho, passed in as variable

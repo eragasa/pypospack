@@ -240,10 +240,44 @@ class EamSetflFile(object):
 
         self._N_r = nr
     
-    def write(self,filename=None):
+    def write(self,
+            filename,
+            r,
+            rcut,
+            rho,
+            pair,
+            embedding,
+            density):
+        assert isinstance(filename,str)
+        assert isinstance(r,np.ndarray)
+        assert isinstance(rcut,float)
+        assert isinstance(rho,np.ndarray)
+        assert type(pair) in [dict,OrderedDict]
+        assert type(embedding) in [dict,OrderedDict]
+        assert type(density) in [dict,OrderedDict]
+
+        for pn,pv in pair:
+            assert isinstance(pv,np.ndarray)
+        for en,ev in embedding:
+            assert isinstance(ev,np.ndarray)
+        for dn,dv in density:
+            assert isinstance(dv,np.ndarray)
+
         if filename is not None:
-            assert type(filename) is str
             self.filename = filename
+        
+        self.get_str_setfl_header_section()
+        self.get_str_setfl_atomic_section()
+        self.get_str_setfl_pairpotential_section()
+
+    def get_str_setfl_header_section(self):
+        raise NotImplementedError
+
+    def get_str_setfl_atomic_section(self):
+        raise NotImplementedError
+
+    def get_str_setfl_pairpotential_section(self):
+        raise NotImplementedError
 
     def read(self,
             filename=None,

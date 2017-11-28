@@ -115,18 +115,21 @@ class PyposmatDataFile(object):
         self.parameter_names = None
         self.qoi_names = None
         self.error_names = None
-   
+        self.score_names = None
+
+        self.scaling_factors = None
+
         self.df = None
         self.parameter_df = None
         self.error_df = None
         self.qoi_df = None
         self.rescaled_error_df = None
         
-        self.optimal_indices = None
-        self.optimal_df = None
-        self.optimal_parameter_df = None
-        self.optimal_qoi_df = None
-        self.optimal_error_df = None
+        self.sub_indices = None
+        self.sub_df = None
+        self.sub_parameter_df = None
+        self.sub_qoi_df = None
+        self.sub_error_df = None
 
     def read(self,filename=None):
         if filename is not None:
@@ -155,7 +158,9 @@ class PyposmatDataFile(object):
         self.error_names = [
                 n for i,n in enumerate(self.names) \
                         if self.types[i] == 'err']
-        
+        self.score_names = [
+                n for i,n in enumerate(self.names) \
+                        if self.types[i] == 'score']
         self.df = pd.DataFrame(data=self.values,
                 columns=self.names,copy=True)
         self.df.set_index('sim_id')
@@ -163,11 +168,72 @@ class PyposmatDataFile(object):
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
 
-    def create_optimal_population(
+    def score_by_sum_if_less_than_median(
             self,
-            n=1,
+            error_df=None,
+            err_type='abs'):
+
+        _abs_error_df = self.error_df.copy(deep=True)
+        _abs_error_df = _abs_error_df.loc[:,_abs_error_df.columns != 'sim_id'].abs()
+        _sub_medians = _abs_error_df - _abs_error_df.median(axis=0)
+        _scores = _sub_medians.copy(deep=True)
+        _scores[_scores > 0] = 0 # no points if greater than median
+        _scores[_scores < 0 ] = 1 # one point if less than median
+        _metric = _scores.sum(axis=1)
+        
+        # calculate the metric
+        self.names.append('sum_b_lt_median')
+        self.score_names.append('sum_b_lt_median')
+        self.types.append('score')
+        self.df['sum_b_lt_median'] = np.copy(_metric)
+    def score_by_d_metric(
+            self,
+            error_df=None,
             scaling_factors='DFT',
             err_type='abs'):
+        
+        _sf = 'd_metric'
+        if type(scaling_factors) == str:
+            _qoi_ref = scaling_factors
+            if self.scaling_factors is None:
+                self.scaling_factors = OrderedDict()
+            self.scaling_factors[_sf] = OrderedDict()
+            for qn in self.qoi_names:
+                en = '{qoi_name}.err'.format(qoi_name=qn)
+                self.scaling_factors[_sf][en] = 1/self.qoi_references[_qoi_ref][qn]
+        elif isinstance(scaling_factors,dict):
+            if self.scaling_factors is None:
+                self.scaling_factors = OrderedDict()
+            self.scaling_factors[_sf] = OrderedDict()
+            for qn in self.qoi_names:
+                self.scaling_factors[_sf][en] = scaling_factors[en]
+
+        # normalize the errors
+        _rescaled_error_df = None
+        if err_type == 'abs':
+            if error_df is None:
+                _rescaled_error_df = self.error_df.copy(deep=True)
+            else:
+                _rescaled_error_df = error_df.copy(deep=True)
+            for col in _rescaled_error_df:
+                if col != 'sim_id':
+                    sf = self.scaling_factors[_sf][col]
+                    _rescaled_error_df[col] = sf*_rescaled_error_df[col].abs()
+        self.rescaled_error_df = _rescaled_error_df.copy(deep=True)
+
+        # calculate the metric
+        _d_metric = np.sqrt(np.square(
+                _rescaled_error_df.loc[:,_rescaled_error_df.columns != 'sim_id']
+            ).sum(axis=1))
+        self.names.append('d_metric')
+        self.score_names.append('d_metric')
+        self.types.append('score')
+        self.df['d_metric'] = np.copy(_d_metric)
+         
+    def subselect_by_score(
+            self,
+            score_name,
+            n=1000):
         """
             Args:
                 scaling_factors(dict): the key is the error name, the value 
@@ -177,56 +243,49 @@ class PyposmatDataFile(object):
                 result(str): should be either results, pareto or culled.  
                     Default is culled.
         """
-       
-        # here we create the scaling factors
-        if type(scaling_factors) == str:
-            str_sf = scaling_factors
-            self.scaling_factors = OrderedDict()
-            for col in self.error_df:
-                if col != 'sim_id':
-                    qn = '{}.{}'.format(col.split('.')[0],col.split('.')[1])
-                    self.scaling_factors[col] = self.qoi_references[str_sf][qn]
-        elif isinstance(scaling_factors,dict):
-            self.scaling_factors = copy.deepcopy(scaling_factors)
+
+        # determine sub population
+        if score_name == 'd_metric':
+            self.sub_indices = self.df.nsmallest(n,'d_metric').index
+        elif score_name == 'sum_b_lt_median':
+            self.sub_indices = self.df.nlargest(n,'sum_b_lt_median').index
         else:
-            raise ValueError()
+            err_msg = "{score_name} is not a valid score_name".format(
+                    score_name=score_name)
+            raise ValueError(err_msg)
         
-        self.rescaled_error_df = self.error_df.copy(deep=True)
-        for col in self.rescaled_error_df:
-            if col != 'sim_id':
-                sf = self.scaling_factors[col]
-                self.rescaled_error_df[col] = self.rescaled_error_df[col].abs() / sf
+        self.sub_df = self.df.loc[self.sub_indices]
+        self.sub_error_df = self.error_df.loc[self.sub_indices]
+        self.sub_parameter_df = self.parameter_df.loc[self.sub_indices]
+        self.sub_qoi_df = self.qoi_df.loc[self.sub_indices]
 
-        # our metric is the sum of the rescaled errors
-        self.rescaled_error_df['d_metric'] = self.rescaled_error_df[
-                self.rescaled_error_df.columns].sum(axis=1)
+    def write_subselect(self,filename=None):
+        _filename = None
+        if filename is None:
+            _filename = "subselect.{}.out".format(
+                    ".".join(self.score_names))
+        elif type(filename) is str:
+            _filename = filename
+        else:
+            err_msg = "the filename argument for this method must be a string"
+            raise ValueError(err_msg)
 
-        self.optimal_indices = self.rescaled_error_df.nsmallest(n,'d_metric').index
-
-        self.optimal_df = self.df.loc[self.optimal_indices]
-        self.optimal_error_df = self.error_df.loc[self.optimal_indices]
-        self.optimal_parameter_df = self.parameter_df.loc[self.optimal_indices]
-        self.optimal_qoi_df = self.qoi_df.loc[self.optimal_indices]
-
-    def write_optimal_population(self,
-            filename,
-            n=1,
-            scaling_factors='DFT',
-            err_type='abs'):
-        str_out = ','.join([n for n in self.names]) + "\n"
+        if not isinstance(self.sub_df,pd.DataFrame) :
+            err_msg = "the sub_df attribute must be a pandas.DataFrame"
+            raise ValueError(err_msg)
+        
+        # build the string
+        str_out  = ','.join([n for n in self.names]) + "\n"
         str_out += ','.join([t for t in self.types]) + "\n"
-        if self.optimal_df is None:
-            self.create_optimal_population(
-                    n=n,
-                    scaling_factors=scaling_factors,
-                    err_type=err_type)
-        for row in self.optimal_df.iterrows():
+        for row in self.sub_df.iterrows():
             _row = [a for i,a in enumerate(row[1])] #unpack tuple
             _row[0] = int(_row[0]) # row[0] is the sim_id
             str_out += ','.join([str(s) for s in _row]) + "\n"
 
-        with open(filename,'w') as f:
+        with open(_filename,'w') as f:
             f.write(str_out)
+
+        return _filename
 class PyPosmatError(Exception):
   """Exception handling class for pyposmat"""
   def __init__(self, value):
@@ -307,13 +366,31 @@ class PyposmatFileSampler(PyposmatEngine):
         _parameter_df = self.pyposmat_file_in.parameter_df
         _columns = _parameter_df.columns
         self.parameter_names = list(_columns)
-        
+        self.qoi_names = ['MgO_NaCl.ph_{}'.format(i) for i in range(1,6+1)]
         self.file_out = open(self.pyposmat_filename_out,'w')
+        
+        str_out = ",".join(
+            ['sim_id']\
+            +self.parameter_names\
+            +self.qoi_names)
+        self.file_out.write(str_out+"\n")
+
+        str_out = ",".join(
+            ['sim_id']\
+            +len(self.parameter_names)*['param']\
+            +len(self.qoi_names)*['qoi'])
+        self.file_out.write(str_out+"\n")
+
         for idx,row in _parameter_df.iterrows():
             parameters = OrderedDict([(col,row[col]) for col in _columns])
             self.evaluate_parameter_set(parameters)
             for task_name,task in self.tasks.items():
-                str_out = ",".join([str(v) for k,v in task.results.items()]) + "\n"
+                #sim_id self.pyposmat_filename_in.df.loc[idx,'sim_id']]\
+                sim_id = idx
+                str_out = ",".join(
+                        [str(sim_id)]\
+                        +[str(v) for k,v in parameters.items()]\
+                        +[str(v) for k,v in task.results.items()])+"\n"
                 self.file_out.write(str_out)
         self.file_out.close()
     def run(self):

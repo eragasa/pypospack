@@ -2,6 +2,22 @@ from pypospack.task.lammps import LammpsSimulation
 
 class LammpsSinglePointCalculation(LammpsSimulation):
 
+    def __init__(self,
+            task_name,
+            task_directory,
+            structure_filename,
+            restart=False,
+            fullauto=False):
+
+        _task_type = 'lmps_min_none'
+        LammpsSimulation.__init__(self,
+                task_name=task_name,
+                task_directory=task_directory,
+                task_type=_task_type,
+                structure_filename=structure_filename,
+                restart=restart,
+                fullauto=fullauto)
+
     def _lammps_input_run_minimization(self):
         str_out = (
             '# ---- define settings\n'

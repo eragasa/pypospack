@@ -21,7 +21,7 @@ import pypospack.potential as potential
 import pypospack.io.vasp as vasp
 import pypospack.io.lammps as lammps
 from pypospack.task import Task
-
+from pypospack.eamtools import EamSetflFile
 atom_style_list = ['charge','atomic']
 
 
@@ -37,7 +37,10 @@ lammps_simulation_map = {\
             'class':'LammpsSinglePointCalculation'},
         'elastic':{
             'module':'pypospack.task.lammps',
-            'class':'LammpsElasticCalculation'}
+            'class':'LammpsElasticCalculation'},
+        'npt':{
+            'module':'pypospack.task.lammps',
+            'class':'LammpsNptSimulation'}
         }
 
 class LammpsSimulationError(Exception):
@@ -207,11 +210,7 @@ class LammpsSimulation(Task):
             elif all([self.potential.obj_pair is not None,
                       self.potential.obj_density is not None,
                       self.potential.obj_embedding is not None]):
-                _eam_setfl_filename_dst = os.path.join(
-                        self.task_directory,
-                        self.eam_setfl_filename)
-                self.write_potential_mod(
-                        filename=_eam_setfl_filename)
+                pass
             else:
                 msg_err = (
                     "EamPotential must be either be parameterized by setting "
@@ -240,6 +239,13 @@ class LammpsSimulation(Task):
         self.write_lammps_input_file()
         self.write_potential_file()
         self.write_structure_file()
+        if isinstance(self.potential,potential.EamPotential):
+            if self.potential.setfl_filename_src is None:
+                _eam_setfl_filename_dst = os.path.join(
+                        self.task_directory,
+                        self.lammps_setfl_filename)
+                self.write_eam_setfl_file(
+                        filename=_eam_setfl_filename_dst)
         self.run()
 
         self.update_status()
@@ -322,11 +328,13 @@ class LammpsSimulation(Task):
         cmd_str = '{} -i lammps.in > lammps.out'.format(_lammps_bin)
 
         # change context directory
+        _cwd = os.getcwd()
         os.chdir(self.task_directory)
         self.process = subprocess.Popen(
                 cmd_str,
                 shell=True,
                 cwd=self.task_directory)
+        os.chdir(_cwd)
 
     def post(self):
         lammps_result_names = ['tot_energy','num_atoms',
@@ -370,6 +378,37 @@ class LammpsSimulation(Task):
                         print('line:{}'.format(line.strip()))
                         raise
 
+    def write_eam_setfl_file(self,filename):
+        _setfl_dst_filename = filename
+        _Nr = self.configuration['potential']['N_r']
+        _Nrho = self.configuration['potential']['N_rho']
+        _rmax = self.configuration['potential']['r_max']
+        _rhomax = self.configuration['potential']['rho_max']
+        _rcut = self.configuration['potential']['r_cut']
+
+        _r = _rmax * np.linspace(1,_Nr,_Nr)/_Nr
+        _dr = _r[1] - _r[0]
+
+        _rho = _rhomax * np.linspace(1,_Nrho,_Nrho)/_Nrho
+        _drho = _rho[1] - _rho[0]
+
+        self.potential.evaluate(
+                r=_r,
+                rho=_rho,
+                rcut=_rcut,
+                parameters=self.configuration['parameters'])
+                
+        setfl_file = EamSetflFile()
+        setfl_file.N_r = _Nr 
+        setfl_file.N_rho = _Nrho
+        setfl_file.rmax = _rmax
+        setfl_file.dr = _dr
+        setfl_file.drho = _drho
+        setfl_file.pair = self.potential.pair
+        setfl_file.density = self.potential.density
+        setfl_file.embedding = self.potential.embedding
+        setfl_file.write(_setfl_dst_filename)
+
     def write_potential_file(self):
         if self.potential is None:
             return
@@ -381,7 +420,7 @@ class LammpsSimulation(Task):
                     "{}.eam.alloy".format("".join(self.potential.symbols)))
             _str_out = self.potential.lammps_potential_section_to_string(
                 setfl_dst_filename=_setfl_dst_filename)
-        #default behavior
+        
         else:
             _str_out = self.potential.lammps_potential_section_to_string()
 
@@ -459,10 +498,12 @@ class LammpsSimulation(Task):
             return
 
         _potential_type = self.configuration['potential']['potential_type']
-
         if _potential_type is 'eam':
+            if 'setfl_filename' not in self.configuration['potential']:
+                self.configuration['potential']['setfl_filename'] = None
+
             # configure the eam potential using an external file
-            if 'setfl_filename' in self.configuration['potential']:
+            if self.configuration['potential']['setfl_filename'] is not None:
                 _module_name,_class_name = potential.PotentialObjectMap(
                         potential_type=_potential_type)
                 _symbols = self.configuration['potential']['symbols']
@@ -475,7 +516,7 @@ class LammpsSimulation(Task):
                             filename=_setfl_filename)
                 except:
                     raise
-            # configure the eam potential using parameters
+                # configure the eam potential using parameters
             else:
                 # get information from the configuration dictionary
                 _module_name,_class_name = potential.PotentialObjectMap(
@@ -608,3 +649,5 @@ from pypospack.task.tasks_lammps.structural_minimization \
         import LammpsStructuralMinimization
 from pypospack.task.tasks_lammps.elastic_calculation \
         import LammpsElasticCalculation
+from pypospack.task.tasks_lammps.lammps_npt_simulation \
+        import LammpsNptSimulation

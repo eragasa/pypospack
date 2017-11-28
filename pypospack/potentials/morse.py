@@ -36,37 +36,58 @@ class MorsePotential(PairPotential):
             self.parameters[v] = None
 
     # this method overrides the parent stub
-    def evaluate(self,r,parameters,r_cut=False):
+    def evaluate(self,r,parameters,r_cut=None):
         """
+
+        This method implements the parent method.
         Args:
             r(numpy.ndarray): A numpy array of interatomic distances which to 
                 evaluate.
-            param_dict(list): A dictionary of parameters on which to evaluate
+            parameters(OrderedDict): A dictionary of parameters on which to evaluate
                 the interatomic potential.
         """
+        # <----------------------------check arguments are correct
+        assert isinstance(r,np.ndarray)
+        assert isinstance(parameters,OrderedDict)
+        assert type(r_cut) in [int,float,type(None)]
 
-        self.potential_evaluations = OrderedDict()
-
+        # <----------------------------copy a local of the parameters 
         for k in self.parameters:
             self.parameters[k] = parameters[k]
 
-        self.potential = OrderedDict()
+        # <----------------------------evaluate the parameters now
+        self.potential_evaluations = OrderedDict()
         for s in self.symbol_pairs:
+            # <------------------------extract the paramters for symbol pair
             D0 = self.parameters['{}{}_D0'.format(s[0],s[1])]
             a  = self.parameters['{}{}_a'.format(s[0],s[1])]
             r0 = self.parameters['{}{}_r0'.format(s[0],s[1])]
+            
+            # <------------------------embedded morse function
+            def func_morse(r,D0,a,r0):
+                return D0 * ((1-np.exp(-a*(r-r0)))**2-1)
 
-            if r_cut is False:
-                self.potential['{}{}'.format(s[0],s[1])] \
-                        = D0 * ((1-np.exp(-a*(r-r0)))**2-1)
+            _pair_name = '{}{}'.format(s[0],s[1])
+            if r_cut is None:
+                _V = func_morse(r,D0,a,r0)
+                self.potential_evaluations[_pair_name] = copy.deepcopy(_V)
             else:
-                idx = rcut_idx = max(np.where(r<=r_cut)[0])
-                _V = D0 * ((1-np.exp(-a*(r-r0)))**2-1)
-                _dr = r[1] - r[0]
-                _dVdr = (_V[idx]-_V[idx-1])/_dr
-                self.potential['{}{}'.format(s[0],s[1])] \
-                        = _V - _dVdr*(r-r-cut)
-                
+                _rcut = np.max(r[np.where(r < r_cut)])
+                _h = r[1] - r[0]
+                _V_rc = func_morse(_rcut,D0,a,r0)
+                _V_rc_p1 = func_morse(_rcut+_h,D0,a,r0)
+                _V_rc_m1 = func_morse(_rcut-_h,D0,a,r0)
+                _dVdr_at_rc = (_V_rc_p1-_V_rc)/_h
+
+                # <----- calculate morse with cutoff
+                _V = func_morse(r,D0,a,r0)
+                # <----- apply the cutoff
+                _V= _V - _V_rc - _dVdr_at_rc * (r-_rcut)
+                # <----- V=0, where r <= _rcut
+                _V[np.where(r>=_rcut)] = 0.0
+        
+                self.potential_evaluations[_pair_name] = copy.deepcopy(_V)
+        
         return copy.deepcopy(self.potential_evaluations)
     
     # same as parent class

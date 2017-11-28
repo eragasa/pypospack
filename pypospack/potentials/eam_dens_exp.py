@@ -3,6 +3,8 @@ __copyright__ = "Copyright (C) 2017"
 __license__ = "Simplified BSD License"
 __version__ = 20171102
 
+import copy
+import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamDensityFunction
 
@@ -31,6 +33,7 @@ class ExponentialDensityFunction(EamDensityFunction):
                 symbols=symbols,
                 potential_type='eamdens_exp')
 
+        
     def _init_parameter_names(self):
         self.parameter_names = []
         for s in self.symbols:
@@ -62,27 +65,47 @@ class ExponentialDensityFunction(EamDensityFunction):
                 density so the a r_cut has no physical meaning.  Any 
                 variable passed into r_cut will be ignored.
         """
-
+        assert isinstance(r,np.ndarray)
+        assert isinstance(parameters,OrderedDict)
+        assert type(r_cut) in [int,float,type(None)]
         # attribute.parameters[p] <--- arg:parameters[p]
         for s in self.symbols:
             for p in self.density_func_parameters:
                 pn = "{}_{}".format(s,p)
-                self.parameters[pn] = parameters[p]
+                self.parameters[pn] = parameters[pn]
 
         # cannot evaluate because
         for pn,pv in self.parameters.items():
             if pv == None:
                 return False
 
-        self.density = OrderedDict()
+        
+        def func_dens_exp(r, rho0, beta,r0):
+            return rho0 * np.exp(-beta*(r/r0-1))
+        
+        self.density_evaluations = OrderedDict()
         for s in self.symbols:
-            F0 = self.parameters['{}_rho'.format(s)]
+            rho0 = self.parameters['{}_rho0'.format(s)]
             beta = self.parameters['{}_beta'.format(s)]
             r0 = self.parameters['{}_r0'.format(s)]
-            self.density[s] \
-                    = rho0 * np.exp(-beta*(r/r0-1))
-        
-        return copy.deepcopy(self.density)
+            
+            if r_cut is None:
+                _rho = func_dens_exp(r,rho0,beta,r0)
+                self.density_evaluations[s] = copy.deepcopy(_rho)
+            else:
+                _rho = func_dens_exp(r,rho0,beta,r0)
+                _rcut = np.max(r[np.where(r<r_cut)])
+                _h = r[1] - r[0]
+                _rho_rc = func_dens_exp(_rcut,rho0,beta,r0)
+                _rho_rc_p1 = func_dens_exp(_rcut+_h,rho0,beta,r0)
+                _rho_rc_m1 = func_dens_exp(_rcut-_h,rho0,beta,r0)
+                _drhodr_at_rc = (_rho_rc_p1 - _rho_rc)/_h
+
+                _rho = _rho - _rho_rc -_drhodr_at_rc * (r-_rcut)
+                _rho[np.where(r>=_rcut)] = 0
+                self.density_evaluations[s] = copy.deepcopy(_rho)
+              
+        return copy.deepcopy(self.density_evaluations)
 
 
 

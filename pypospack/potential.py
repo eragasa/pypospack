@@ -11,6 +11,17 @@ import numpy as np
 import pypospack.potentials
 from pypospack.eamtools import EamSetflFile
 
+class BadParameterException(Exception):
+    def __init__(self,
+            code,
+            parameter_name,
+            parameter_value,
+            parameters):
+        self.code = code
+        self.parameter_name = parameter_name
+        self.parameter_value = parameter_value
+        self.parameters = parameters
+
 def determine_symbol_pairs(symbols):
     if not isinstance(symbols,list):
         raise ValueError("symbols must be a list")
@@ -104,6 +115,8 @@ class PairPotential(Potential):
                 potential_type=potential_type,
                 is_charge=is_charge)
 
+        self.pair_evaluations = None
+        
 from pypospack.potentials.morse import MorsePotential
 from pypospack.potentials.buckingham import BuckinghamPotential
 #-----------------------------------------------------------------------------
@@ -117,7 +130,7 @@ class EamDensityFunction(Potential):
                 potential_type=potential_type,
                 is_charge=False)
 
-        self.density = None
+        self.density_evaluations = None
 from pypospack.potentials.eam_dens_exp import ExponentialDensityFunction
 
 #------------------------------------------------------------------------------
@@ -130,7 +143,8 @@ class EamEmbeddingFunction(Potential):
                 symbols=symbols,
                 potential_type=potential_type,
                 is_charge=False)
-        self.embedding = None
+
+        self.embedding_evaluations = None
 from pypospack.potentials.eam_embed_bjs import BjsEmbeddingFunction
 from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
 
@@ -162,6 +176,15 @@ class EamPotential(Potential):
         self.obj_embedding = None
 
         # these will be numpy arrays
+        self.N_r = None
+        self.r_max = None
+        self.r_cut = None
+
+        self.N_rho = None
+        self.rho_max = None
+
+        self.r = None
+        self.rho = None
         self.pair= None
         self.density = None
         self.embedding = None
@@ -226,13 +249,21 @@ class EamPotential(Potential):
         for p in self.parameter_names:
             self.parameters[p] = None
 
-    def evaluate(self,r,rho,parameters,rcut=None):
+    def evaluate(self,r,rho,rcut,parameters):
+        assert isinstance(r,np.ndarray)
+        assert isinstance(rho,np.ndarray)
+        assert type(rcut) in [float,int,type(None)]
+        assert type(parameters) in [OrderedDict,dict]
+
         for p in self.parameters:
             self.parameters[p] = parameters[p]
-
-        self.evaluate_pair()
-        self.evaluate_density()
-        self.evaluate_embedding()
+        
+        self.r_cut = rcut
+        self.r = copy.deepcopy(r)
+        self.rho = copy.deepcopy(rho)
+        self.evaluate_pair(r=r,rcut=rcut)
+        self.evaluate_density(r=r,rcut=rcut)
+        self.evaluate_embedding(rho)
     
     def set_obj_pair(self,func_pair):
         if func_pair == 'morse':
@@ -274,27 +305,33 @@ class EamPotential(Potential):
             msg_err = "func_embedding must be a EamEmbeddingFunction"
             raise ValueError(msg_err)
 
-    def evaluate_pair(self,r=None,parameters=None,rcut=None):
+    def evaluate_pair(self,r,parameters=None,rcut=None): 
+        assert isinstance(r,np.ndarray)
+
         if parameters is not None:
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
 
-        if r is not None:
-            if not isinstance(r,np.ndarray):
-                raise ValueError("r must be a numpy.ndarray")
-
+        # pair potential parameters are prepended with 'p_'
         p_params = [p for p in self.parameters if p.startswith('p_')]
-        p_params = [s.partition('_')[2] for s in p_params]
-        self.obj_pairs.evaluate(
+        
+        # subselect the parameters required for the pair potential
+        _parameters = OrderedDict()
+        for p in p_params:
+            _parameter_name = p.partition('_')[2]
+            _parameters[_parameter_name] = self.parameters[p]
+
+        self.obj_pair.evaluate(
                 r=r,
-                parameters=p_params,
-                r_cut=r_cut)
-        self.pairpotential = copy.deepcopy(self.obj_pairs.potential)
+                parameters=_parameters,
+                r_cut=rcut)
+        
+        self.pair = copy.deepcopy(self.obj_pair.potential_evaluations)
  
     def evaluate_density(self,
-            rho=None,
-            parameters=None,
-            rcut=None):
+            r,
+            rcut=None,
+            parameters=None):
         
         #<--- check arguments of the function
         if parameters is not None:
@@ -302,51 +339,53 @@ class EamPotential(Potential):
                 raise ValueError("parameters must be a dict")
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
-        if rho is not None:
-            if not isinstance(rho,np.ndarray):
+        if r is not None:
+            if not isinstance(r,np.ndarray):
                 raise ValueError("rho must be an numpy.ndarray")
 
         #<--- grab the parameters of the density function
         d_params = [p for p in self.parameters if p.startswith('d_')]
-        d_params = [s.partition('_')[2] for s in d_params]
+
+        _parameters = OrderedDict()
+        for p in d_params:
+            _parameter_name = p.partition('_')[2]
+            _parameters[_parameter_name] = self.parameters[p]
+        
         self.obj_density.evaluate(
-                rho=rho,
-                parameters=d_params,
-                rho_cut=rho_cut)
+                r=r,
+                parameters=_parameters,
+                r_cut=rcut)
 
         #<--- set the internal attribute
-        self.density = copy.deepcopy(self.obj_density.density)
+        self.density = copy.deepcopy(self.obj_density.density_evaluations)
 
     def evaluate_embedding(self,
             rho=None,
-            parameters=None,
-            rho_cut=None):
-
+            parameters=None):
         #<--- check arguments of the function
         if parameters is not None:
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
         if rho is not None:
-            if isinstance(r,np.ndarray):
+            if isinstance(rho,np.ndarray):
                 self.rho = np.copy(rho)
             else:
                 raise ValueError("r must be a numpy.ndarray")
             self.rho = np.copy(rho)
-        if rho_cut is not None:
-            if type(rho_cut) in [float,int]:
-                self.rho_cut = rho_cut
-            else:
-                raise ValueError("rho_cut must be a numeric variable")
         #<--- grab the parameters for the embedding function
         e_params = [p for p in self.parameters if p.startswith('e_')]
-        e_params = [s.partition('_')[2] for s in e_params]
+        
+        _parameters = OrderedDict()
+        for p in e_params:
+            _parameter_name = p.partition('_')[2]
+            _parameters[_parameter_name] = self.parameters[p]
+        
         self.obj_embedding.evaluate(
                 rho=self.rho,
-                parameters=e_params,
-                rho_cut=self.rho_cut)
+                parameters=_parameters)
         
         #<--- set the internal attribute
-        self.embedding = copy.deepcopy(self.obj_embedding.embedding)
+        self.embedding = copy.deepcopy(self.obj_embedding.embedding_evaluations)
     
 def PotentialObjectMap(potential_type):
     potential_map = OrderedDict()

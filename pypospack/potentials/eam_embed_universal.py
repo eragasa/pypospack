@@ -4,6 +4,7 @@ __license__ = "Simplified BSD License"
 __version__ = 20171102
 
 import copy
+import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamEmbeddingFunction
 
@@ -43,7 +44,7 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
         for p in self.parameter_names:
             self.parameters[p] = None
 
-    def evaluate(self,rho,parameters,r_cut=None):
+    def evaluate(self,rho,parameters):
         """
 
         Given a vector of electron densities, rho, passed in as variable
@@ -57,25 +58,22 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
                 of the embedding function for each atom.  The key is a
                 string containing the ISO chemical symbol of the element.
                 The value should be a numeric value.
-            r_cut(float): This would be the density cutoff.  However the
-                embedding energy is increasing with increasing electron
-                density so the a r_cut has no physical meaning.  Any 
-                variable passed into r_cut will be ignored.
         """
-
+        assert isinstance(rho,np.ndarray)
+        assert type(parameters) in [dict,OrderedDict]
         # attribute.parameters[p] <--- arg:parameters[p]
         for s in self.symbols:
             for p in self.embedding_func_parameters:
                 pn = "{}_{}".format(s,p)
-                self.parameters[pn] = parameters[p]
+                self.parameters[pn] = parameters[pn]
 
-        self.embedding = OrderedDict()
+        self.embedding_evaluations = OrderedDict()
         for s in self.symbols:
             F0 = self.parameters['{}_F0'.format(s)]
             q = self.parameters['{}_q'.format(s)]
             p = self.parameters['{}_p'.format(s)]
             F1 = self.parameters['{}_F1'.format(s)]
-            self.embedding[s] \
+            self.embedding_evaluations[s] \
                     = F0*(q/(q-p)*rho**p-p/(q-p)*rho**q)+F1*rho
-        return copy.deepcopy(self.embedding)
+        return copy.deepcopy(self.embedding_evaluations)
 

@@ -7,6 +7,11 @@ import pypospack.crystal as crystal
 import pypospack.potential as potential
 import pypospack.qoi as qoi
 
+LAMMPS_ERROR_STR = {
+        'error0':'Substitution for illegal variable',
+        'error_bad_velocity_command':'Illegal velocity create command'
+        }
+
 def make_lammps_structure_file(structure, fname_out, sym_order):
     structure_file = StructureFile()
     structure_file.structure = structure

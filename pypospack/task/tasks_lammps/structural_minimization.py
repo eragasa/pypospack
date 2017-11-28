@@ -1,6 +1,5 @@
 from pypospack.task.lammps import LammpsSimulation
 
-
 class LammpsStructuralMinimization(LammpsSimulation):
     """ Class for LAMMPS structural minimization
 

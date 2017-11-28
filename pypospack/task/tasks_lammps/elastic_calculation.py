@@ -1,4 +1,6 @@
+import os
 from pypospack.task.lammps import LammpsSimulation
+import pypospack.potential as potential
 
 class LammpsElasticCalculation(LammpsSimulation):
     """ Class for LAMMPS elastic calculation
@@ -27,7 +29,7 @@ class LammpsElasticCalculation(LammpsSimulation):
                 task_directory=task_directory,
                 task_type=_task_type,
                 structure_filename=structure_filename,
-                restart=fullauto,
+                restart=restart,
                 fullauto=fullauto)
         
         self.lammps_results_names = [
@@ -47,25 +49,46 @@ class LammpsElasticCalculation(LammpsSimulation):
         if self.is_fullauto:
             self.on_update_status()
     
-    def write_potential_file(self,param_dict=None,filename='potential.mod'):
-        LammpsSimulation.write_potential_files(\
-                self,
-                param_dict,
-                filename=filename)
+    def write_potential_file(self):
+        if self.potential is None:
+            return
+        
+        _setfl_dst_filename = None
+        if isinstance(self.potential,potential.EamPotential):
+            _setfl_dst_filename = os.path.join(
+                    self.task_directory,
+                    "{}.eam.alloy".format("".join(self.potential.symbols)))
+            _str_out = self.potential.lammps_potential_section_to_string(
+                setfl_dst_filename=_setfl_dst_filename)
+        #default behavior
+        else:
+            _str_out = self.potential.lammps_potential_section_to_string()
 
-        str_out = (\
-                "# setup minimization style\n"
-                "min_style cg\n"
-                "min_modify dmax ${dmax} line quadratic\n"
-                "# setup output\n"
-                "thermo 1\n"
-                "thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol\n"
-                "thermo_modify norm no\n")
-        filename = os.path.join(self.task_directory,filename)
-        with open(filename,'a') as f:
-            f.write(str_out)
+        _str_out += "\n"
+        
+        # coulumbic charge summation         
+        if self.potential.is_charge:
+            _str_out += "kspace_style pppm 1.0e-5\n"
+            _str_out += "\n"
+        
+        # neighborlists
+        _str_out += "neighbor 1.0 bin\n"
+        _str_out += "neigh_modify every 1 delay 0 check yes\n"
 
-    def write_lammps_input_file(self,filename='lammps.in'):
+        # Setup output
+        _str_out += "\n".join([
+                "thermo	1",
+                "thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol",
+                "thermo_modify norm no\n"])
+        
+        _lammps_potentialmod_filename = os.path.join(
+                self.task_directory,
+                self.lammps_potentialmod_filename)
+        
+        with open(_lammps_potentialmod_filename,'w') as f:
+            f.write(_str_out)
+
+    def write_lammps_input_file(self):
         """ writes LAMMPS input file
 
         This method is modified from the LammpsSimulation template due to 
@@ -79,7 +102,8 @@ class LammpsElasticCalculation(LammpsSimulation):
         """
 
         str_out = self.lammps_input_file_to_string()
-        filename = os.path.join(self.task_directory,filename)
+        filename = os.path.join(self.task_directory,
+                self.lammps_input_filename)
         with open(filename,'w') as f:
             f.write(str_out)
 
@@ -206,11 +230,12 @@ class LammpsElasticCalculation(LammpsSimulation):
         return str_out
 
     def lammps_init_mod_to_string(self):
-        atom_style = None
         if self.potential.is_charge:
-            atom_style = 'charge'
+            _atom_style = 'charge'
         else:
-            atom_style = 'atomic'
+            _atom_style = 'atomic'
+        _structure_file = self.lammps_structure_filename
+        
         str_out = (\
                 "# ---- init.mod file\n"
                 "variable up equal 1.0e-6\n"
@@ -228,9 +253,10 @@ class LammpsElasticCalculation(LammpsSimulation):
                 "variable maxeval equal 1000\n"
                 "variable dmax equal 1.0e-2\n"
                 "# --- read data structure\n"
-                "read_data structure.dat\n"
+                "read_data {structure_file}\n"
             ).format(\
-                atom_style=atom_style
+                atom_style=_atom_style,
+                structure_file=_structure_file
             )
         return str_out
 
