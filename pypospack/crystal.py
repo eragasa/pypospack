@@ -526,16 +526,16 @@ def make_super_cell(structure, sc):
             directions
     """
 
-    supercell = Structure()
+    supercell = SimulationCell()
     supercell.structure_comment = "{}x{}x{}".format(sc[0],sc[1],sc[2])
 
     # set lattice parameter
     supercell.a0 = structure.a0 
 
     # set h_matrix
-    h = np.zeros(shape=[3,3])
+    H = np.zeros(shape=[3,3])
     for i in range(3):
-        h[i,:] = structure.h_matrix[i,:] * sc[i]
+        H[i,:] = structure.H[i,:] * sc[i]
     supercell.H = H.copy()
 
     # add supercell atoms
