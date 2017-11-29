@@ -293,7 +293,7 @@ class EamSetflFile(object):
         assert type(density) in [dict,OrderedDict]
         assert all([isinstance(pv,np.ndarray) for pn,pv in pair.items()])
         assert all([isinstance(ev,np.ndarray) for en,ev in embedding.items()])
-        assert all([isinstance(dv,np.ndarray) for dn,ev in density.items()])
+        assert all([isinstance(dv,np.ndarray) for dn,dv in density.items()])
         assert all([pv.shape == r.shape for pn,pv in pair.items()])
         assert all([ev.shape == rho.shape for en,ev in embedding.items()])
         assert all([dv.shape == r.shape for dn,dv in density.items()])
@@ -333,20 +333,20 @@ class EamSetflFile(object):
 
     def get_str_setfl_header_section__comments(self,comments=None):
         assert type(comments) in [list,type(None)]
-        assert all([type(c) is str for c in comments])
 
         if comments is not None:
             self.comments = comments
+        assert all([type(c) is str for c in self.comments])
         
         _str_out = "\n".join(self.comments)
 
-        return str_out
+        return _str_out
     
     def get_str_setfl_header_section__n_symbols_line(self,symbols=None):
         assert type(symbols) in [list,type(None)]
-        assert all([type(s) is str for s in symbols])
         
         if symbols is not None: self.symbols = symbols
+        assert all([type(s) is str for s in self.symbols])
 
         line_args = [str(self.n_symbols)] + self.symbols
         str_out = " ".join(line_args) + "\n"
@@ -367,10 +367,10 @@ class EamSetflFile(object):
         if r_cut is not None: self.r_cut = r_cut
 
         assert type(self.N_rho) == int
-        assert type(self.d_rho) == float
+        assert isinstance(self.d_rho,float)
         assert type(self.N_r) == int
-        assert type(self.d_r) == float
-        assert type(self.r_cut) == float
+        assert isinstance(self.d_r,float)
+        assert isinstance(self.r_cut, float)
 
         #"{0:5d}{1:24.16e}{2:5d}{3:24.16e}{4:24.16f}"
         str_out = "{}{}{}{}{}\n".format(
@@ -387,12 +387,12 @@ class EamSetflFile(object):
         _list_str = []
         for s in self.symbols:
             _list_str.append(self.get_str_setfl__atomic_description(s))
-            _list_str.append(self.get_str_setfl__embeddding_function(s))
+            _list_str.append(self.get_str_setfl__embedding_function(s))
             _list_str.append(self.get_str_setfl__density_function(s))
         _str_out = "\n".join(_list_str)
         return _str_out
 
-    def get_str_setfl__atomic_descriptions(self,symbol):
+    def get_str_setfl__atomic_description(self,symbol):
         _atomic_information = OrderedDict()        
         if symbol == 'Ni':
             _atomic_information['an'] = 28   
@@ -402,16 +402,18 @@ class EamSetflFile(object):
         else:
             raise ValueError("symbol not in database")
         
-        str_out = "".format([
+        _str_out = "".format([
                 self.SETFL_INT_FORMAT.format(_atomic_information['an']),
                 self.SETFL_NUM_FORMAT.format(_atomic_information['amu']),
                 self.SETFL_NUM_FORMAT.format(_atomic_information['a0']),
-                " " + _atomic_information['fcc'],"\n"
+                "{:10s}" + _atomic_information['latt_type'],
+                "\n"
                 ])
-    
+
+        return _str_out
     def get_str_setfl__embedding_function(self,symbol):
 
-        _embed = self.embedding[s]
+        _embed = self.embedding[symbol]
         _sz = _embed.size
         _n = self.N_VALUES_PER_LINE_RHO
         
@@ -423,7 +425,7 @@ class EamSetflFile(object):
 
     def get_str_setfl__density_function(self,symbol):
         
-        _dens = self.density[s]
+        _dens = self.density[symbol]
         _sz = _dens.size
         _n = self.N_VALUES_PER_LINE_R
         
@@ -435,22 +437,24 @@ class EamSetflFile(object):
 
     def get_str_setfl_pairpotential_section(self):
         _str_out = ""
-        for i1,s1 in self.symbols:
-            for i2,s2 in self.symbols:
+        for i1,s1 in enumerate(self.symbols):
+            for i2,s2 in enumerate(self.symbols):
                 if i1 <= i2:
-                    _str_out += get_str_setfl__pair_function(s1,s2)
+                    _str_out += self.get_str_setfl__pair_function(s1,s2)
         return _str_out
 
     def get_str_setfl__pair_function(self,symbol1,symbol2):
         pn = "{}{}".format(symbol1,symbol2)
         _pair = self.pair[pn] * self.r
-        _sz = _dens.size
+        _sz = _pair.size
         _n = self.N_VALUES_PER_LINE_R
         
         _format = _n*self.SETFL_NUM_FORMAT + "\n"
         _lines = [_format.format(*_pair[i:i+5]) for i in range(0,_sz,_n)]
         _str_out = "".join(_lines)
-    
+   
+        return _str_out
+
     def read(self,
             filename=None,
             autoprocess=True):

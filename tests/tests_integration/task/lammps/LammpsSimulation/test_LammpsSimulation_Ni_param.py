@@ -6,6 +6,11 @@ import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 import pypospack.potential as potential
 
+Ni_task_information = OrderedDict()
+Ni_task_information['task_name'] = 'Ni_fcc_unit.E_min_all'
+Ni_task_information['task_directory'] = 'Ni_fcc_unit.E_min_all'
+Ni_task_information['task_type'] = 'lammps_relax_none'
+
 Ni_eam_potential_definition = OrderedDict()
 Ni_eam_potential_definition['potential_type'] = 'eam'
 Ni_eam_potential_definition['setfl_filename']=None

@@ -148,6 +148,7 @@ class EamEmbeddingFunction(Potential):
 from pypospack.potentials.eam_embed_bjs import BjsEmbeddingFunction
 from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
 
+from pypospack.eamtools import EamSetflFile
 class EamPotential(Potential):
     """
     Args:
@@ -248,6 +249,37 @@ class EamPotential(Potential):
         self.parameters = OrderedDict()
         for p in self.parameter_names:
             self.parameters[p] = None
+
+    def write_setfl_file(self,filename,symbols,
+            Nr,rmax,rcut,
+            Nrho,rhomax,
+            parameters):
+        assert type(filename) is str
+        assert type(Nr) is int
+        assert type(rmax) in [int,float]
+        assert type(rcut) in [int,float]
+        assert type(Nrho) is int
+        assert type(rhomax) in [int,float]
+
+        r = rmax * np.linspace(1,Nr,Nr)/Nr
+        rho = rhomax * np.linspace(1,Nrho,Nrho)/Nrho
+
+        self.evaluate(
+                r=r,
+                rho=rho,
+                rcut=rcut,
+                parameters=parameters)
+
+        setfl_file = EamSetflFile()
+        setfl_file.write(
+                filename=filename,
+                symbols=symbols,
+                r=self.r,
+                rho=self.rho,
+                rcut=self.r_cut,
+                pair=self.pair,
+                density=self.density,
+                embedding=self.embedding)
 
     def evaluate(self,r,rho,rcut,parameters):
         assert isinstance(r,np.ndarray)
