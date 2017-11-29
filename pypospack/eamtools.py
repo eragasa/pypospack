@@ -133,8 +133,8 @@ class EamSetflFile(object):
         # these attributes shoulde be treated as public
         self._comments = [
                 "file automatically written by pypospack",
-                "",
-                ""]
+                "--- this line empty ---",
+                "--- this line empty ---"]
 
         self.filename = None
         self._symbols = None
@@ -314,22 +314,22 @@ class EamSetflFile(object):
         self.d_rho = rho[1] - rho[0]
         self.N_rho = rho.size
 
-        _str_out = "".join([
-            self.get_str_setfl_header_section(),
-            self.get_str_setfl_atomic_section(),
-            self.get_str_setfl_pairpotential_section()
+        _str_out = "\n".join([
+            self.get_str_setfl_header_section().strip(),
+            self.get_str_setfl_atomic_section().strip(),
+            self.get_str_setfl_pairpotential_section().strip()
             ])
 
         with open(self.filename,'w') as f:
             f.write(_str_out)
 
     def get_str_setfl_header_section(self):
-        s = "".join([
+        _str_out = "\n".join([
             self.get_str_setfl_header_section__comments(),
             self.get_str_setfl_header_section__n_symbols_line(),
             self.get_str_setfl_header_section__nargs_line()
             ])
-        return s
+        return _str_out
 
     def get_str_setfl_header_section__comments(self,comments=None):
         assert type(comments) in [list,type(None)]
@@ -349,9 +349,9 @@ class EamSetflFile(object):
         assert all([type(s) is str for s in self.symbols])
 
         line_args = [str(self.n_symbols)] + self.symbols
-        str_out = " ".join(line_args) + "\n"
+        _str_out = " ".join(line_args)
 
-        return str_out
+        return _str_out
     
     def get_str_setfl_header_section__nargs_line(self,
             N_rho=None,
@@ -373,15 +373,14 @@ class EamSetflFile(object):
         assert isinstance(self.r_cut, float)
 
         #"{0:5d}{1:24.16e}{2:5d}{3:24.16e}{4:24.16f}"
-        str_out = "{}{}{}{}{}\n".format(
-                self.SETFL_INT_FORMAT,self.SETFL_NUM_FORMAT,
-                self.SETFL_INT_FORMAT,self.SETFL_NUM_FORMAT,
-                self.SETFL_NUM_FORMAT).format(
-                    self.N_rho,self.d_rho,
-                    self.N_r,self.d_r,
-                    self.r_cut)
+        _str_out = "".join([
+                self.SETFL_INT_FORMAT.format(self.N_rho),
+                self.SETFL_NUM_FORMAT.format(self.d_rho),
+                self.SETFL_INT_FORMAT.format(self.N_r),
+                self.SETFL_NUM_FORMAT.format(self.d_r),
+                self.SETFL_NUM_FORMAT.format(self.r_cut)])
 
-        return str_out
+        return _str_out
 
     def get_str_setfl_atomic_section(self):
         _list_str = []
