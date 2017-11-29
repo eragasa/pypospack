@@ -47,9 +47,8 @@ class EamCurveFitter(object):
             self.pair_potentials['{}{}'.format(el_i,el_j)] = []
 
 class EamFuncflFile(object):
-    """
-    """
     pass
+
 class EamSetflFile(object):
     """
 
@@ -240,45 +239,218 @@ class EamSetflFile(object):
 
         self._N_r = nr
     
+    @property
+    def comments(self):
+        return self._comments
+
+    @comments.setter
+    def comments(self,value):
+        if isinstance(value,list):
+            _comments = list(value)
+        else:
+            raise ValueError("comments must be list of length 3")
+        
+        if len(_comments) != 3:
+            raise ValueError("comments must be a list of length 3")
+
+        # if any comment is not a string then cast into string
+        for i,c in enumerate(_comments):
+            if not isinstance(c,str):
+                _comments[i] = str(c)
+
+        self._comments = list(_comments)
+    
     def write(self,
             filename,
+            symbols,
             r,
             rcut,
             rho,
             pair,
             embedding,
             density):
+        """
+        write a setfl file
+
+        Args:
+            filename(str)
+            symbols(list)
+            r(np.ndarray)
+            rcut(numpy.ndarray)
+            rho(numpy.ndarray)
+            pair(collections.OrderedDict)
+            embedding(collections.OrderedDict)
+            density(collections.OrderedDict)
+        """
         assert isinstance(filename,str)
+        assert type(symbols) is list
+        assert all([type(s) is str for s in symbols])
         assert isinstance(r,np.ndarray)
         assert isinstance(rcut,float)
         assert isinstance(rho,np.ndarray)
         assert type(pair) in [dict,OrderedDict]
         assert type(embedding) in [dict,OrderedDict]
         assert type(density) in [dict,OrderedDict]
-
-        for pn,pv in pair:
-            assert isinstance(pv,np.ndarray)
-        for en,ev in embedding:
-            assert isinstance(ev,np.ndarray)
-        for dn,dv in density:
-            assert isinstance(dv,np.ndarray)
+        assert all([isinstance(pv,np.ndarray) for pn,pv in pair.items()])
+        assert all([isinstance(ev,np.ndarray) for en,ev in embedding.items()])
+        assert all([isinstance(dv,np.ndarray) for dn,ev in density.items()])
+        assert all([pv.shape == r.shape for pn,pv in pair.items()])
+        assert all([ev.shape == rho.shape for en,ev in embedding.items()])
+        assert all([dv.shape == r.shape for dn,dv in density.items()])
 
         if filename is not None:
             self.filename = filename
-        
-        self.get_str_setfl_header_section()
-        self.get_str_setfl_atomic_section()
-        self.get_str_setfl_pairpotential_section()
+
+        self.symbols = symbols
+        self.r = r
+        self.rho = rho
+        self.pair = pair
+        self.embedding = embedding
+        self.density = density
+
+        self.r_cut = rcut
+        self.d_r = r[1] - r[0]
+        self.N_r = r.size
+        self.d_rho = rho[1] - rho[0]
+        self.N_rho = rho.size
+
+        _str_out = "".join([
+            self.get_str_setfl_header_section(),
+            self.get_str_setfl_atomic_section(),
+            self.get_str_setfl_pairpotential_section()
+            ])
+
+        with open(self.filename,'w') as f:
+            f.write(_str_out)
 
     def get_str_setfl_header_section(self):
-        raise NotImplementedError
+        s = "".join([
+            self.get_str_setfl_header_section__comments(),
+            self.get_str_setfl_header_section__n_symbols_line(),
+            self.get_str_setfl_header_section__nargs_line()
+            ])
+        return s
+
+    def get_str_setfl_header_section__comments(self,comments=None):
+        assert type(comments) in [list,type(None)]
+        assert all([type(c) is str for c in comments])
+
+        if comments is not None:
+            self.comments = comments
+        
+        _str_out = "\n".join(self.comments)
+
+        return str_out
+    
+    def get_str_setfl_header_section__n_symbols_line(self,symbols=None):
+        assert type(symbols) in [list,type(None)]
+        assert all([type(s) is str for s in symbols])
+        
+        if symbols is not None: self.symbols = symbols
+
+        line_args = [str(self.n_symbols)] + self.symbols
+        str_out = " ".join(line_args) + "\n"
+
+        return str_out
+    
+    def get_str_setfl_header_section__nargs_line(self,
+            N_rho=None,
+            d_rho=None,
+            N_r=None,
+            d_r=None,
+            r_cut=None):
+
+        if N_rho is not None: self.N_rho = N_rho
+        if d_rho is not None: self.d_rho = d_rho
+        if N_r is not None: self.N_r = N_r
+        if d_r is not None: self.d_r = d_r
+        if r_cut is not None: self.r_cut = r_cut
+
+        assert type(self.N_rho) == int
+        assert type(self.d_rho) == float
+        assert type(self.N_r) == int
+        assert type(self.d_r) == float
+        assert type(self.r_cut) == float
+
+        #"{0:5d}{1:24.16e}{2:5d}{3:24.16e}{4:24.16f}"
+        str_out = "{}{}{}{}{}\n".format(
+                self.SETFL_INT_FORMAT,self.SETFL_NUM_FORMAT,
+                self.SETFL_INT_FORMAT,self.SETFL_NUM_FORMAT,
+                self.SETFL_NUM_FORMAT).format(
+                    self.N_rho,self.d_rho,
+                    self.N_r,self.d_r,
+                    self.r_cut)
+
+        return str_out
 
     def get_str_setfl_atomic_section(self):
-        raise NotImplementedError
+        _list_str = []
+        for s in self.symbols:
+            _list_str.append(self.get_str_setfl__atomic_description(s))
+            _list_str.append(self.get_str_setfl__embeddding_function(s))
+            _list_str.append(self.get_str_setfl__density_function(s))
+        _str_out = "\n".join(_list_str)
+        return _str_out
+
+    def get_str_setfl__atomic_descriptions(self,symbol):
+        _atomic_information = OrderedDict()        
+        if symbol == 'Ni':
+            _atomic_information['an'] = 28   
+            _atomic_information['amu'] = 5.871
+            _atomic_information['a0'] =  3.518121
+            _atomic_information['latt_type'] = 'fcc'
+        else:
+            raise ValueError("symbol not in database")
+        
+        str_out = "".format([
+                self.SETFL_INT_FORMAT.format(_atomic_information['an']),
+                self.SETFL_NUM_FORMAT.format(_atomic_information['amu']),
+                self.SETFL_NUM_FORMAT.format(_atomic_information['a0']),
+                " " + _atomic_information['fcc'],"\n"
+                ])
+    
+    def get_str_setfl__embedding_function(self,symbol):
+
+        _embed = self.embedding[s]
+        _sz = _embed.size
+        _n = self.N_VALUES_PER_LINE_RHO
+        
+        _format = _n*self.SETFL_NUM_FORMAT + "\n"
+        _lines = [_format.format(*_embed[i:i+5]) for i in range(0,_sz,_n)]
+        _str_out = "".join(_lines)
+
+        return _str_out
+
+    def get_str_setfl__density_function(self,symbol):
+        
+        _dens = self.density[s]
+        _sz = _dens.size
+        _n = self.N_VALUES_PER_LINE_R
+        
+        _format = _n*self.SETFL_NUM_FORMAT + "\n"
+        _lines = [_format.format(*_dens[i:i+5]) for i in range(0,_sz,_n)]
+        _str_out = "".join(_lines)
+
+        return _str_out
 
     def get_str_setfl_pairpotential_section(self):
-        raise NotImplementedError
+        _str_out = ""
+        for i1,s1 in self.symbols:
+            for i2,s2 in self.symbols:
+                if i1 <= i2:
+                    _str_out += get_str_setfl__pair_function(s1,s2)
+        return _str_out
 
+    def get_str_setfl__pair_function(self,symbol1,symbol2):
+        pn = "{}{}".format(symbol1,symbol2)
+        _pair = self.pair[pn] * self.r
+        _sz = _dens.size
+        _n = self.N_VALUES_PER_LINE_R
+        
+        _format = _n*self.SETFL_NUM_FORMAT + "\n"
+        _lines = [_format.format(*_pair[i:i+5]) for i in range(0,_sz,_n)]
+        _str_out = "".join(_lines)
+    
     def read(self,
             filename=None,
             autoprocess=True):
@@ -534,6 +706,7 @@ class EamSetflFile(object):
                         + self.N_r / self.N_LINES_PER_LINE_R)
 
         return N_lines_atomic_section
+
     def calc_N_lines_potential_section(self,
             N_symbols=None,
             N_r=None):
@@ -561,26 +734,6 @@ class EamSetflFile(object):
                 N_pairs * (self.N_r /self.N_LINES_PER_LINE_R)
 
         return N_lines_potential_section
-    @property
-    def comments(self):
-        return self._comments
-
-    @comments.setter
-    def comments(self,value):
-        if isinstance(value,list):
-            _comments = list(value)
-        else:
-            raise ValueError("comments must be list of length 3")
-        
-        if len(_comments) != 3:
-            raise ValueError("comments must be a list of length 3")
-
-        # if any comment is not a string then cast into string
-        for i,c in enumerate(_comments):
-            if not isinstance(c,str):
-                _comments[i] = str(c)
-
-        self._comments = list(_comments)
 
     def get_setfl_head(self):
         s  = self.get_comments_as_string()
@@ -588,13 +741,6 @@ class EamSetflFile(object):
         s += self.get_setfl_nargs_as_string()
         return s
 
-    def get_comments_as_string(self,comments=None):
-        if comments is not None:
-            self.comments = comments
-
-        str_out = "\n".join(self.comments)
-
-        return str_out
 
     def get_n_symbols_line_as_string(self,symbols=None):
         if symbols is not None:
@@ -775,7 +921,7 @@ class EamFile2(object):
     def rcut_global(self, rcut_g):
         self._rcut_g = rcut_g
 
-    def write(self,filetype = 'setfl'):
+    def write(self,filename,filetype = 'setfl'):
         if filetype == 'setfl':
             self._write_setfl()
 
