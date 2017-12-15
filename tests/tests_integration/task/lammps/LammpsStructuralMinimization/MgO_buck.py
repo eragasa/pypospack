@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+# This is the structure database
 MgO_structures = OrderedDict()
 MgO_structures['structure_db_dir'] = 'test_LammpsStructuralMinimization'
 MgO_structures['MgO_NaCl_unit'] = OrderedDict()
@@ -13,10 +14,12 @@ MgO_structures['MgO_NaCl_sh']['filename'] = 'MgO_NaCl_sh.gga.relax.vasp'
 MgO_structures['MgO_NaCl_001s'] = OrderedDict()
 MgO_structures['MgO_NaCl_001s']['filename'] = 'MgO_NaCl_001s.gga.relax.vasp'
 
+# This is the potential section which defines the formalism of a potential
 MgO_LewisCatlow = OrderedDict()
 MgO_LewisCatlow['potential'] = OrderedDict()
 MgO_LewisCatlow['potential']['potential_type'] = 'buckingham'
 MgO_LewisCatlow['potential']['symbols'] = ['Mg','O']
+
 
 MgO_LewisCatlow['parameters'] = OrderedDict()
 # Charge potentials are expected in the order in ['potential']['symbols']

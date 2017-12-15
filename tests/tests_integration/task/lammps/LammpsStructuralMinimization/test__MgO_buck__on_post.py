@@ -1,25 +1,23 @@
 import pytest
-import os,shutil
+import os,shutil,time
 from collections import OrderedDict
 import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 from pypospack.potential import Potential
 
 from MgO_buck import MgO_LewisCatlow
-
-MgO_structures = OrderedDict()
-MgO_structures['name'] = 'MgO_NaCl_unit'
-MgO_structures['filename'] = os.path.join(
-        'test_LammpsStructuralMinimization',
-        'MgO_NaCl_unit.gga.relax.vasp')
+from MgO_buck import MgO_structures
 
 MgO_LC_configuration = OrderedDict()
 MgO_LC_configuration['task'] = OrderedDict()
 MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.lmps_min_all'
 MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.lmps_min_all'
+MgO_LC_configuration['task']['structure_filename'] = os.path.join(
+        MgO_structures['structure_db_dir'],
+        MgO_structures['MgO_NaCl_unit']['filename'])
+
 MgO_LC_configuration['potential'] = MgO_LewisCatlow['potential']
 MgO_LC_configuration['parameters'] = MgO_LewisCatlow['parameters']
-MgO_LC_configuration['structure'] = MgO_structures
 
 MgO_LC_configuration['expected'] = OrderedDict()
 MgO_LC_configuration['expected']['task_type'] = 'lmps_min_all'
@@ -36,7 +34,7 @@ def test__import__from_pypospack_task_lammps():
 def test____init___():
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
-    structure_filename = configuration['structure']['filename']
+    structure_filename = configuration['task']['structure_filename']
     restart=False
     fullauto=False
 
@@ -72,7 +70,7 @@ def test____init___():
 def test__on_init():
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
-    structure_filename = configuration['structure']['filename']
+    structure_filename = configuration['task']['structure_filename']
     restart=False
     fullauto=False
 
@@ -114,7 +112,7 @@ def test__on_init():
 def test__on_ready():
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
-    structure_filename = configuration['structure']['filename']
+    structure_filename = configuration['task']['structure_filename']
     restart=False
     fullauto=False
 
@@ -159,4 +157,27 @@ def test__on_ready():
     #    assert lammps_task.status == 'READY'
     #else:
     #    assert lammps_task.status == 'CONFIG'
+
+def test__on_post():
+    task_name = configuration['task']['task_name']
+    task_directory = configuration['task']['task_directory']
+    structure_filename = configuration['task']['structure_filename']
+    restart=False
+    fullauto=False
+
+    cleanup(task_directory)
+    #<--- code setup
+    from pypospack.task.lammps import LammpsStructuralMinimization
+    lammps_task = LammpsStructuralMinimization(
+            task_name = task_name,
+            task_directory = task_directory,
+            structure_filename = structure_filename)
+    lammps_task.on_init(configuration)
+    lammps_task.on_config(configuration)
+    lammps_task.on_ready(configuration)
+    while lammps_task.status != 'POST':
+        lammps_task.update_status()
+        time.sleep(0.1)
+    lammps_task.on_post(configuration)
+    assert isinstance(lammps_task.results,OrderedDict)
 
