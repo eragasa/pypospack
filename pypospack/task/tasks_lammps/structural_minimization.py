@@ -1,3 +1,5 @@
+import os,copy
+from collections import OrderedDict
 from pypospack.task.lammps import LammpsSimulation
 
 class LammpsStructuralMinimization(LammpsSimulation):
@@ -15,8 +17,20 @@ class LammpsStructuralMinimization(LammpsSimulation):
         config
         config_map
     """
-    def __init__(self,task_name,task_directory):
-        LammpsSimulation.__init__(self,task_name,task_directory)
+    def __init__(self,
+            task_name,
+            task_directory,
+            structure_filename,
+            restart=False,
+            fullauto=False):
+
+        _task_type = 'lmps_min_all'
+        LammpsSimulation.__init__(self,
+                task_name=task_name,
+                task_directory=task_directory,
+                structure_filename=structure_filename,
+                restart=restart,
+                fullauto=fullauto)
 
     def postprocess(self):
         LammpsSimulation.postprocess(self)
@@ -29,6 +43,57 @@ class LammpsStructuralMinimization(LammpsSimulation):
                 self._lammps_input_run_minimization(),
                 self._lammps_input_out_section()])
         return(str_out)
+
+    def on_post(self,configuration=None):
+        self.__get_results_from_lammps_outputfile()
+        LammpsSimulation.on_post(self,configuration=configuration)
+    
+    def __get_results_from_lammps_outputfile(self):
+        _filename = os.path.join(
+                self.task_directory,
+                'lammps.out')
+        with open(_filename,'r') as f:
+            lines = f.readlines()
+        
+        _variables = [
+                'tot_energy',
+                'num_atoms',
+                'xx','yy','zz','xy','xz','yz',
+                'tot_press',
+                'pxx', 'pyy', 'pzz', 'pxy', 'pxz', 'pyz',
+                ]
+        _results = OrderedDict()
+        
+        for i,line in enumerate(lines):
+            for name in _variables:
+                if line.startswith('{} = '.format(name)):
+                    _results[name] = float(line.split('=')[1].strip())
+
+                if line.startswith('ERROR:'):
+                    print('name:{}'.format(name))
+                    print('line:{}'.format(line.strip))
+                    raise NotImplementedError
+      
+        self.results = OrderedDict()
+        self.results['toten'] = _results['tot_energy']
+        self.results['natoms'] = _results['num_atoms']
+        # this only works for orthogonal cells
+        self.results['a11'] = _results['xx']
+        self.results['a12'] = 0
+        self.results['a13'] = 0
+        self.results['a21'] = 0
+        self.results['a22'] = _results['yy']
+        self.results['a23'] = 0
+        self.results['a31'] = 0
+        self.results['a32'] = 0
+        self.results['a33'] = _results['zz']
+        self.results['totpress'] = _results['tot_press']
+        self.results['p11'] = _results['pxx']
+        self.results['p22'] = _results['pyy']
+        self.results['p33'] = _results['pzz']
+        self.results['p12'] = self.results['p21'] = _results['pxy']
+        self.results['p13'] = self.results['p31'] = _results['pxz']
+        self.results['p23'] = self.results['p32'] = _results['pyz']
 
     def _lammps_input_run_minimization(self):
         str_out = (

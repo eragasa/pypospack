@@ -17,11 +17,14 @@ Todo:
 import os, copy, shutil,importlib, subprocess
 from collections import OrderedDict
 import numpy as np
-import pypospack.potential as potential
+# import pypospack.potential as potential
 import pypospack.io.vasp as vasp
 import pypospack.io.lammps as lammps
 from pypospack.task import Task
 from pypospack.eamtools import EamSetflFile
+from pypospack.potential import Potential,EamPotential,PotentialObjectMap
+
+
 atom_style_list = ['charge','atomic']
 
 
@@ -120,6 +123,7 @@ class LammpsSimulation(Task):
         self.results_filename = 'pypospack.{}.out'.format(task_name)
 
         self.process = None
+        self.results_processed = None
         # configuration
         self.configuration = OrderedDict()
         self.task_type = task_type
@@ -166,7 +170,7 @@ class LammpsSimulation(Task):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
        
-        self.configure_potential()
+        self.configure_potential(potential=self.configuration['potential'])
         self.set_potential_parameters()
         if self.configuration['parameters'] is not None:
             self.parameters = self.configuration['parameters']
@@ -186,12 +190,12 @@ class LammpsSimulation(Task):
 
         self.configure_potential()
         if 'parameters' in self.configuration:
-            if isinstance(self.potential,potential.Potential):
+            if isinstance(self.potential,Potential):
                 _parameters = self.configuration['parameters']
                 self.potential.parameters = _parameters
         
         # writing eam potential files
-        if type(self.potential) is potential.EamPotential:
+        if type(self.potential) is EamPotential:
             if self.lammps_setfl_filename is None:
                 self.lammps_setfl_filename = "{}.eam.alloy".format(
                         "".join(self.potential.symbols))
@@ -239,7 +243,7 @@ class LammpsSimulation(Task):
         self.write_lammps_input_file()
         self.write_potential_file()
         self.write_structure_file()
-        if isinstance(self.potential,potential.EamPotential):
+        if isinstance(self.potential,EamPotential):
             if self.potential.setfl_filename_src is None:
                 _eam_setfl_filename_dst = os.path.join(
                         self.task_directory,
@@ -258,6 +262,7 @@ class LammpsSimulation(Task):
             self.on_update_status()
    
     def on_post(self,configuration=None):
+        self.results_processed = True
         self.update_status()
         if self.is_fullauto:
             self.on_update_status()
@@ -274,9 +279,9 @@ class LammpsSimulation(Task):
     def get_conditions_config(self):
         self.conditions_CONFIG = OrderedDict()
         self.conditions_CONFIG['potential_initialized']\
-                = isinstance(self.potential, potential.Potential)
+                = isinstance(self.potential, Potential)
 
-        if type(self.potential) is potential.EamPotential \
+        if type(self.potential) is EamPotential \
                 and self.potential.obj_pair is None \
                 and self.potential.obj_density is None \
                 and self.potential.obj_embedding is None \
@@ -295,8 +300,7 @@ class LammpsSimulation(Task):
     
     def get_conditions_running(self):
         self.conditions_RUNNING = OrderedDict()
-        self.conditions_RUNNING['process_initialized'] \
-                = self.process is not None
+        self.conditions_RUNNING['process_initialized'] = self.process is not None
    
     def get_conditions_post(self):
         self.conditions_POST = OrderedDict()
@@ -304,18 +308,18 @@ class LammpsSimulation(Task):
         if self.process is None:
             _process_finished = False
         else:
-            if self.process.poll() is not None:
+            _poll_result = self.process.poll()
+            if _poll_result is None:
+                _process_finished = False
+            elif _poll_result == 0:
                 _process_finished = True
             else:
-                _process_finished = False
+                raise ValueError("Lammps Exited with status {}".format(self.process.poll()))
         self.conditions_POST['process_finished'] = _process_finished
 
     def get_conditions_finished(self):
         self.conditions_FINISHED = OrderedDict()
-        self.conditions_FINISHED['is_results_exists'] \
-                = os.path.isfile(os.path.join(
-                    self.task_directory,
-                    self.results_filename))
+        self.conditions_FINISHED['is_processed'] = self.results_processed  
     def get_conditions_error(self):
         self.conditions_ERROR = OrderedDict()
 
@@ -334,6 +338,7 @@ class LammpsSimulation(Task):
                 cmd_str,
                 shell=True,
                 cwd=self.task_directory)
+        self.process_info = OrderedDict()
         os.chdir(_cwd)
 
     def post(self):
@@ -385,36 +390,24 @@ class LammpsSimulation(Task):
         _rmax = self.configuration['potential']['r_max']
         _rhomax = self.configuration['potential']['rho_max']
         _rcut = self.configuration['potential']['r_cut']
+        _parameters = self.configuration['parameters']
 
-        _r = _rmax * np.linspace(1,_Nr,_Nr)/_Nr
-        _dr = _r[1] - _r[0]
-
-        _rho = _rhomax * np.linspace(1,_Nrho,_Nrho)/_Nrho
-        _drho = _rho[1] - _rho[0]
-
-        self.potential.evaluate(
-                r=_r,
-                rho=_rho,
+        self.potential.write_setfl_file(
+                filename=_setfl_dst_filename,
+                symbols=self.potential.symbols,
+                Nr=_Nr,
+                rmax=_rmax,
                 rcut=_rcut,
-                parameters=self.configuration['parameters'])
-                
-        setfl_file = EamSetflFile()
-        setfl_file.N_r = _Nr 
-        setfl_file.N_rho = _Nrho
-        setfl_file.rmax = _rmax
-        setfl_file.dr = _dr
-        setfl_file.drho = _drho
-        setfl_file.pair = self.potential.pair
-        setfl_file.density = self.potential.density
-        setfl_file.embedding = self.potential.embedding
-        setfl_file.write(_setfl_dst_filename)
+                Nrho=_Nrho,
+                rhomax=_rhomax,
+                parameters=_parameters)
 
     def write_potential_file(self):
         if self.potential is None:
             return
         
         _setfl_dst_filename = None
-        if isinstance(self.potential,potential.EamPotential):
+        if isinstance(self.potential,EamPotential):
             _setfl_dst_filename = os.path.join(
                     self.task_directory,
                     "{}.eam.alloy".format("".join(self.potential.symbols)))
@@ -452,11 +445,7 @@ class LammpsSimulation(Task):
         str_out = self.lammps_input_file_to_string()
         filename = os.path.join(self.task_directory,filename)
         with open(filename,'w') as f:
-            try:
-                f.write(str_out)
-            except:
-                print('str_out:{}'.format(str_out))
-                raise
+            f.write(str_out)
 
     def lammps_input_file_to_string(self):
         """ string for the LAMMPS input file """
@@ -493,21 +482,49 @@ class LammpsSimulation(Task):
 
     def modify_structure(self):pass
 
-    def configure_potential(self):
-        if isinstance(self.potential,potential.Potential):
-            return
+    def configure_potential(self,potential=None):
+        """
+            Args:
+                potential(OrdereDict): potential is a dictionary which has the
+                    necessary keywords to configure the object.
 
-        _potential_type = self.configuration['potential']['potential_type']
+            Notes:
+                For buckingham potential,
+                    potential[potential_type] = 'buck'
+                    potential['symbols'] = ['Mg','O']
+                    potential['global_cutoff'] = [10.0]
+                For eam potentials,
+                    potential['potential_type'] = 'eam'
+                    potential['pair_type'] = 'morse'
+                    potential['density_type'] = 'eam_exp_dens'
+                    potential['embedding_type'] = 'eam_universal_embedding'
+        """
+        assert isinstance(potential,OrderedDict) or potential is None
+
+        _potential = None
+        if isinstance(potential,OrderedDict):
+            self.configuration['potential']=copy.deepcopy(potential)
+            _potential = self.configuration['potential']
+        elif potential is None:
+            if isinstance(self.potential,Potential):
+                return
+            else:
+                _potential = self.configuration['potential']
+
+        _potential_type = _potential['potential_type']
+        
+        # <-------- Deal wit the case the potential might be an EAM potential first
         if _potential_type is 'eam':
-            if 'setfl_filename' not in self.configuration['potential']:
+            if 'setfl_filename' not in _potential:
+                _potential['setfl_filename'] = None
                 self.configuration['potential']['setfl_filename'] = None
 
             # configure the eam potential using an external file
-            if self.configuration['potential']['setfl_filename'] is not None:
-                _module_name,_class_name = potential.PotentialObjectMap(
+            if _potential['setfl_filename'] is not None:
+                _module_name,_class_name = PotentialObjectMap(
                         potential_type=_potential_type)
                 _symbols = self.configuration['potential']['symbols']
-                _setfl_filename = self.configuration['potential']['setfl_filename']
+                _setfl_filename = _potential['setfl_filename']
                 try:
                     _module = importlib.import_module(_module_name)
                     _class = getattr(_module,_class_name)
@@ -516,16 +533,15 @@ class LammpsSimulation(Task):
                             filename=_setfl_filename)
                 except:
                     raise
-                # configure the eam potential using parameters
+            # configure the eam potential using parameters
             else:
                 # get information from the configuration dictionary
-                _module_name,_class_name = potential.PotentialObjectMap(
+                _module_name,_class_name = PotentialObjectMap(
                         potential_type=_potential_type)
                 _symbols = self.configuration['potential']['symbols']
-                _setfl_filename = self.configuration['potential']['setfl_filename']
-                _pair_type = self.configuration['potential']['pair_type']
-                _embedding_type = self.configuration['potential']['embedding_type']
-                _density_type = self.configuration['potential']['density_type']
+                _pair_type = _potential['pair_type']
+                _embedding_type = _potential['embedding_type']
+                _density_type = _potential['density_type']
                 try:
                     _module = importlib.import_module(_module_name)
                     _class = getattr(_module,_class_name)
@@ -536,8 +552,10 @@ class LammpsSimulation(Task):
                             func_density=_density_type)
                 except:
                     raise
+        # <-------- parameterized classes which don't have stupid tabularized
+        #           methods for representing potentials, like EAM.
         else:
-            _module_name,_class_name = potential.PotentialObjectMap(
+            _module_name,_class_name = PotentialObjectMap(
                     potential_type=_potential_type)
             _symbols = self.configuration['potential']['symbols']
             # all other potentials are parameterized
