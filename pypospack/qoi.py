@@ -1,24 +1,39 @@
-import copy, yaml
+import copy, yaml, importlib
+from collections import OrderedDict
 import numpy as np
-
-import copy, importlib
 
 def get_qoi_map():
     qoi_map = {
-            'energy':{
-                'qoi':['E_coh_sp',
-                       'p_xx_sp','p_xy_sp','p_xz_sp',
-                       'p_yx_sp','p_yy_sp','p_yz_sp',
-                       'p_zx_sp','p_zy_sp','p_zz_sp'],
+            'gulp_opti_calc':{
+                'qoi':['Ecoh_min_all_g',
+                       'a11_min_all_g', 'a12_min_all_g','a13_min_all_g',
+                       'a21_min_all_g', 'a22_min_all_g','a23_min_all_g',
+                       'a31_min_all_g', 'a32_min_all_g','a33_min_all_g',
+                       ],
+                'module':'pypospack.qoi',
+                'class':'GulpOptiCalculations'},
+            'min_none':{
+                'qoi':[
+                    'Ecoh_min_none',
+                    'a1_min_none','a2_min_none','a3_min_none',
+                    'a11_min_none','a12_min_none','a13_min_none',
+                    'a21_min_none','a22_min_none','a23_min_none',
+                    'a31_min_none','a32_min_none','a33_min_none',
+                    'p_11_min_none','p_12_min_none','p_13_min_none',
+                    'p_21_min_none','p_22_min_none','p_23_min_none',
+                    'p_31_min_none','p_32_min_none','P_33_min_none',
+                      ],
                 'module':'pypospack.qoi',
                 'class':'SinglePointCalculation'},
-            'crystal':{
-                'qoi':['E_coh',
-                       'a11','a12','a13',
-                       'a21','a22','a23',
-                       'a31','a32','a33'],
+            'lmps_min_all':{
+                'qoi':['Ecoh_min_all',
+                       'a1_min_all', 'a2_min_all', 'a3_min_all',
+                       'a11_min_all', 'a12_min_all','a13_min_all',
+                       'a21_min_all', 'a22_min_all','a23_min_all',
+                       'a31_min_all', 'a32_min_all','a33_min_all',
+                      ],
                 'module':'pypospack.qoi',
-                'class':'CrystalStructureGeometry'},
+                'class':'RelaxedStructureCalculations'},
             'elastic':{
                 'qoi':['c11','c12','c13','c22','c23',
                        'c33','c44','c55','c66',
@@ -69,16 +84,25 @@ class Qoi:
         results(dict): these are the results after aggregating the values
             from the different simulations and making some calculations.
     """
-    def __init__(self, qoi_name, qoi_type, structure_names):
+    def __init__(self, qoi_name, qoi_type, structures):
+        assert isinstance(qoi_name,str)
+        assert isinstance(qoi_type,str)
+        assert any([
+            isinstance(structures,dict),
+            isinstance(structures,list),
+            isinstance(structures,str),
+            ])
+        #assert all([isinstance(k,str) for k,v in structures.items()])
+        #assert all([isinstance(v,str) for k,v in structures.items()])
+
         self.qoi_name = qoi_name
         self.qoi_type = qoi_type
-        self.structure_names = list(structure_names)
-        
-        self.reference_values = None
-        self.task_definitions = None
-        self.task_dependencies = None
-        self.results = None
-
+        self.structures = copy.deepcopy(structures)
+        self.tasks = None
+    
+    def determine_tasks(self):
+        raise NotImplementedError
+    
     def calculate_qoi(self):
         raise NotImplementedError
 
@@ -98,8 +122,20 @@ class Qoi:
     @predicted_value.setter
     def predicted_value(self, qhat):
         self._predicted_value = qhat
-    def set_variable(self, v_name, v_value):
-        self._req_vars[v_name] = v_value
+
+    def add_task(self,task_type,task_name,task_structure):
+        if self.tasks is None:
+            self.tasks = OrderedDict()
+
+        self.tasks[task_name] = OrderedDict()
+        self.tasks[task_name]['task_type'] = task_type
+        self.tasks[task_name]['task_structure'] = task_structure
+
+    def process_task_results(self,task_results):
+        assert isinstance(task_results,dict)
+        
+        if self.task_results is None:
+            self.task_results = OrderedDict()
 
     def add_required_simulation(self,structure,simulation_type):
         simulation_name = '{}.{}'.format(structure,simulation_type)
@@ -163,8 +199,11 @@ class Qoi:
             self.determine_required_simulations()
         return copy.deepcopy(self.required_simulations)
 
-from pypospack.qois.crystalstructuregeometry import CrystalStructureGeometry
+from pypospack.qois.crystalstructuregeometry import RelaxedStructureCalculations
+from pypospack.qois.crystalstructuregeometry import RelaxedPositionCalculations
+from pypospack.qois.crystalstructuregeometry import StaticStructureCalculations
 
+# -----------------------------------------------------------------------------
 class QoiManager(object):
     """ Manager of Quantities of Interest 
     
@@ -186,59 +225,111 @@ class QoiManager(object):
         qoi_errors (dict): key is the qoi_name, value is the error
         qoi_dict (dict): 
     """ 
-    def __init__(self,qoi_info = None):
-        self.qoi_map = get_qoi_map()
-        self.supported_qois = get_supported_qois()
+    def __init__(self,qoi_database= None,fullauto=True):
+        assert any([
+            isinstance(qoi_database,QoiDatabase),
+            type(qoi_database) is type(None),
+            type(qoi_database) is OrderedDict,
+            type(qoi_database) is str,
+            ])
 
-        self.qoi_info = None
-        self.qoi_names = []
-        self.obj_qois = {}
-         
-        if isinstance(qoi_info,QoiDatabase):
-            self.qoi_info = qoi_info
-            self._config_from_qoi_info()
-        elif qoi_info is None:
-            pass
-        elif isinstance(qoi_info,str):
-            self.qoi_info = QoiDatabase(qoi_info)
+        #<--------- initialize attributes
+        self.qoidb = None
+        self.obj_Qoi = None
+        self.obj_QoiMap = None
+        self.tasks = None
+
+        if isinstance(qoi_database,QoiDatabase):
+            self.__init_QoiDatabase_from_QoiDatabase(
+                    obj_QoiDatabase=qoi_database)
+        elif isinstance(qoi_database,str):
+            self.__init_QoiDatabase_from_file(
+                    qoi_database_filename=qoi_database)
+        elif isinstance(qoi_database,OrderedDict):
+            self.__init_QoiDatabase_from_OrderedDict(
+                    qoi_database_OrderedDict=qoi_database)
+        elif qoi_database is None:
+            self.__init_QoiDatabase_from_None()
         else:
-            print('qoi_info:',qoi_info,type(qoi_info))
-            raise ValueError('qoi_info must be None,QoiDatabase,or string')
+            msg_err = (
+                "qoi_database argument must be None,QoiDatabase, or str"
+                )
+            raise ValueError(msg_err)
+  
+        if fullauto:
+            self.configure()
+            self.determine_tasks()
 
-    def _config_from_qoi_info(self,qoi_info = None):
-        """ configure qoi from QoiInformation object
+    @property
+    def qoi_names(self):
+        return self.qoidb.qoi_names
 
-        """
+    def configure(self):
+        self.configure__get_QoiMap()
+        self.configure__obj_Qoi()
 
-        if qoi_info is not None:
-            assert isinstance(potfit.QoiDatabase,qoi_info)
-            self.qoi_info = copy.deepcopy(qoi_info)
+    def configure__get_QoiMap(self):
+        self.obj_QoiMap = get_qoi_map()
 
-        self.obj_qois = {}
-        self.qoi_names = self.qoi_info.qoi_names
+    def configure__obj_Qoi(self):
+        self.obj_qoi = OrderedDict()
 
-        for qoi, qoi_info in self.qoi_info.qois.items():
-            # iterate over items in the qoi configuration dictionary
-            for map_qoi, map_info in self.qoi_map.items():
-                 # iterate over items in the qoi map dictionary
-                 if qoi_info['qoi'] in map_info['qoi']:
-                     try:
-                         qoi_name = '{}.{}'.format(
-                                 qoi_info['structures'][0],
-                                 map_qoi)
-                     except KeyError as e:
-                         print('qoi_info:',qoi_info)
-                         raise
-                     module_name = map_info['module']
-                     class_name = map_info['class']
-                     structures = list(qoi_info['structures'])
-                     self._add_qoi_to_obj_dict(
-                             qoi_name = qoi_name,
-                             module_name = module_name,
-                             class_name = class_name,
-                             structures = structures)
+        for qoik,qoiv in self.qoidb.qois.items():
+            for qoimapk,qoimapv in self.obj_QoiMap.items():
+                if qoiv['qoi_type'] in qoimapv['qoi']:
+                    _structures = None
+                    _qoi_simulation_type = qoimapk
 
-    def _add_qoi_to_obj_dict(self,qoi_name,module_name,class_name,structures):
+                    if isinstance(
+                            qoiv['structures'],
+                            list):
+                        _structure = qoiv['structures'][0]
+                    elif isinstance(
+                            qoiv['structures'],
+                            dict):
+                        try:
+                            _structure = qoiv['structures']['defect']
+                        except KeyError:
+                            _structure = qoiv['structures']['ideal']
+                    elif isinstance(
+                            qoiv['structures'],
+                            str):
+                        _structure = qoiv['structures']
+                    else:
+                        msg_err = (
+                            "Cannot process the type for 'structures':{}"
+                            ).format(str(type(qoiv['structures'])))
+
+                    _qoiname = '{}.{}'.format(_structure,_qoi_simulation_type)
+                    _module = qoimapv['module']
+                    _class = qoimapv['class']
+                    _structures = qoiv['structures']
+                    self._add_obj_Qoi(
+                         qoi_name = _qoiname,
+                         module_name = _module,
+                         class_name = _class,
+                         structures = _structures)
+
+    def __init_QoiDatabase_from_None(self):
+        self.qoidb = QoiDatabase()
+
+    def __init_QoiDatabase_from_OrderedDict(self,orderdict_qoi_database):
+        raise NotImplementedError
+
+    def __init_QoiDatabase_from_file(self,qoi_database_filename):
+        assert isinstance(qoi_database_filename,str)
+        self.qoidb = QoiDatabase()
+        self.qoidb.read(filename=qoi_database_filename) 
+
+    def __init_QoiDatabase_from_QoiDatabase(self,obj_QoiDatabase):
+        assert isinstance(obj_QoiDatabase,QoiDatabase)
+        self.qoidb = copy.deepcopy(obj_QoiDatabase)
+
+    def __init_QoiDatabase_from_OrderedDict(self,qoi_database_OrderedDict):
+        assert isinstance(qoi_database_OrderedDict,OrderedDict)
+        self.qoidb = QoiDatabase(qoi_database_OrderedDict)
+
+    def _add_obj_Qoi(self,qoi_name,module_name,class_name,structures):
         """
 
         Args:
@@ -248,12 +339,14 @@ class QoiManager(object):
             structures(:obj:`list` of :obj:`str):
 
         """
-        if qoi_name not in self.obj_qois.keys():
+        if self.obj_Qoi is None: self.obj_Qoi = OrderedDict()
+
+        if qoi_name not in self.obj_Qoi.keys():
             try:
                 module = importlib.import_module(module_name)
-                klass = getattr(module,class_name)
+                cls = getattr(module,class_name)
 
-                self.obj_qois[qoi_name] = klass(
+                self.obj_Qoi[qoi_name] = cls(
                         qoi_name = qoi_name,
                         structures = structures)
             except:
@@ -263,13 +356,26 @@ class QoiManager(object):
                 print('structures(',type(structures),'):',structures)
                 raise
 
-    def get_required_simulations(self):
-        self.required_simulations = {}
-        for k,v in self.obj_qois.items():
-            for sim_name,sim_info in v.get_required_simulations().items():
-                if sim_name not in self.required_simulations.keys():
-                    self.required_simulations[sim_name] = copy.deepcopy(sim_info)
-        return copy.deepcopy(self.required_simulations)
+    def determine_tasks(self):
+        self.tasks = OrderedDict()
+
+        for k_qoi, v_qoi in self.obj_Qoi.items():
+            v_qoi.determine_tasks()
+
+        for k_qoi,v_qoi in self.obj_Qoi.items():
+            for k_task, v_task in v_qoi.tasks.items():
+                self.add_task(
+                        task_name = k_task,
+                        task_dict = v_task)
+
+        return copy.deepcopy(self.tasks)
+
+    def add_task(self,task_name,task_dict):
+        assert isinstance(task_name,str)
+        assert isinstance(task_dict,dict)
+
+        if task_name not in self.tasks:
+            self.tasks[task_name] = copy.deepcopy(task_dict)
 
     def calculate_qois(self,results):
         """
@@ -294,37 +400,46 @@ class QoiManager(object):
 
             print(k,v)
 
+#------------------------------------------------------------------------------
+from pypospack.io.filesystem import OrderedDictYAMLLoader 
 class QoiDatabase(object):
     """ Qoi Database 
-   
-        Contains methods for managing quantities of interests for a variety 
-        of tasks such as marshalling/unmarshalling objects to and from a
-        yaml file.  Also includes sanity tests.
-
-        Args:
-            filename(str): If this variable is set, this class will attempt to
-                unmarhsall the contents of the file into the class.  If this 
-                variable is set to None, then the class wil be initialized.
-                Default is None.
+    
         Attributes:
-            filename(str): file to read/write to yaml file.  By default this
-                attribute is set to 'pypospack.qoi.yaml'.
-            qois(dict): key is qoi name, value contains a variety of values
+            filename(str): file to read/write to yaml file
     """
         
-    def __init__(self, filename = None):
-        # initialize attributes
+    def __init__(self,qoidb_OrderedDict=None):
+        assert any([
+            isinstance(qoidb_OrderedDict,OrderedDict),
+            type(qoidb_OrderedDict) in [type(None)],
+            ])
+
         self.filename = 'pypospack.qoi.yaml'
-        self.qois = {}
+        self.qois = None
+        self.qoi_names = None
 
-        if filename is not None:
-            self.read(filename)
+        if qoidb_OrderedDict is not None:
+            self.__init_from_OrderedDict(qoidb=qoidb_OrderedDict)
 
-    @property
-    def qoi_names(self):
-        return list(self.qois.keys())
+    def __init_from_OrderedDict(self,qoidb):
+        for k_qoi,v_qoi in qoidb.items():
+            _qoi_name = k_qoi
+            _qoi_type = v_qoi['qoi_type']
+            _structures = v_qoi['structures']
+            _target = v_qoi['target']
 
-    def add_qoi(self,name,qoi,structures,target):
+            self.add_qoi(
+                    qoi_name=_qoi_name,
+                    qoi_type=_qoi_type,
+                    structures=_structures,
+                    target=_target)
+        
+    def add_qoi(self,
+            qoi_name,
+            qoi_type,
+            structures,
+            target):
         """ add a qoi
 
         Args:
@@ -332,38 +447,61 @@ class QoiDatabase(object):
             qoi(str): name of the qoi.
             structures(list): list of structures
         """
-
-        # make a copy of structures
+        assert isinstance(qoi_name,str)
+        assert isinstance(qoi_type,str)
+        assert any([
+            isinstance(structures,str),
+            isinstance(structures,list),
+            isinstance(structures,dict),
+            ])
+        assert isinstance(target,float)
+        
         _structures = None
-        if isinstance(structures,str):
-            _structures = [structures]
+        if isinstance(structures,list):
+            _structures = OrderedDict()
+            _structures['ideal'] = structures[0]
+        elif isinstance(structures,OrderedDict):
+            _structures = copy.deepcopy(structures)
         else:
-            _structures = list(structures)
+            raise ValueError
 
-        self.qois[name] = {\
-                'qoi':qoi,
-                'structures':copy.deepcopy(structures),
-                'target':target}
+        #<--------- initialize internal atributes if not already set
+        if self.qois is None: self.qois = OrderedDict()
+        if self.qoi_names is None: self.qoi_names = []
 
-    def read(self,fname=None): 
+        #<--------- create the dictionary entry for this qoi
+        self.qois[qoi_name] = OrderedDict()
+        self.qois[qoi_name]['qoi_type'] = qoi_type
+        self.qois[qoi_name]['structures'] = copy.deepcopy(_structures)
+        self.qois[qoi_name]['target'] = target
+        
+        #<--------- let's add the value for qoi names
+        self.qoi_names.append(qoi_name)
+
+    
+    def read(self,filename=None): 
         """ read qoi configuration from yaml file
-
         Args:
             fname(str): file to read yaml file from.  If no argument is passed
                 then use the filename attribute.  If the filename is set, then
                 the filename attribute is also set.
         """
+        assert isinstance(filename,str)
 
         # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
-
+        if filename is not None:
+            self.filename = filename
+        
         try:
-            self.qois = yaml.load(open(self.filename))
+            with open(self.filename,'r') as f:
+                self.qois = yaml.load(f, OrderedDictYAMLLoader)
         except:
             raise
 
-    def write(self,fname=None):
+        # <------------------ 
+        self.qoi_names = [k for k in self.qois]
+
+    def write(self,filename=None):
         """ write qoi configuration to yaml file
 
         Args:
@@ -373,122 +511,43 @@ class QoiDatabase(object):
         """
 
         # set the attribute if not none
-        if fname is not None:
-            self.filename = fname
+        if filename is not None:
+            self.filename = filename
 
         # marshall attributes into a dictionary
-        self.qoi_db = copy.deepcopy(self.qois)
+        _qoidb = copy.deepcopy(self.qois)
 
         # dump to yaml file
         with open(self.filename,'w') as f:
-            yaml.dump(self.qoi_db,f, default_flow_style=False)
-
-    def check(self):
-        """ perform sanity check on potential configuration
-        
-        does the following checks:
-        1.    check to see if the potential type is supported.
-
-        Raises:
-            ValueError: if the potential type is unsupported
-        # initialize variable, if a check fails the variable will be set to 
-        # false
-        """
-
-        passed_all_checks = True
-
-        for qoi_name,v in self.qois.items():
-            qoi_type = v['qoi']
-            if qoi_type not in get_supported_qois():
-                print("qoi_name:{}".format(qoi_name))
-                print("qoi_type:{}".format(qoi_type))
-                print("supported_qois:",get_supported_qois())
-                raise ValueError(\
-                    "unsupported qoi: {}:{}".format(
-                        qoi_name,qoi_type))
-
-    def get_required_structures(self):
-        """ get required structures """
-
-        required_structures = []
-        for qoi_name, qoi_info in self.qois.items():
-            structures = qoi_info['structures']
-            for s in structures:
-                if s not in required_structures:
-                    required_structures.append(s)
-
-        return required_structures
-
+            yaml.dump(_qoidb,f, default_flow_style=False)
+#------------------------------------------------------------------------------
 
 class ElasticTensor(Qoi):
     def __init__(self,qoi_name,structures):
         qoi_type = 'elastic_tensor'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.determine_required_simulations()
+        #self.determine_required_simulations()
         self.structure = self.structures[0]
 
-        required_variables = ['c11','sc12','c13','c22','c23','c33',
+        required_variables = ['c11','c12','c13','c22','c23','c33',
                               'c44']
-        self.required_variables = {}
-        for v in required_variables:
-            var_name = "{}.{}.{}".format(
-                    self.structure,
-                    self.qoi_type,
-                    v)
-            self.required_variables[var_name] = None
 
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-        self.required_simulations = {}
-        structure = self.structures[0]
-        self.add_required_simulation(structure,'elastic')
-
-class CohesiveEnergy(Qoi):
-    def __init__(self,qoi_name,structures):
-        qoi_type = 'E_coh'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-        self.required_simulations = {}
-        structure = self.structures[0]
-        self.add_required_simulation(structure,'E_min_all')
-
-class BulkModulus(Qoi):
-    def __init__(self,qoi_name, structures):
-        qoi_type = 'bulk_modulus'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.determine_required_simulations()
-
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-        self.required_simulations = {}
-        structure = self.structures[0]
-        self.add_required_simulation(structure,'elastic')
-
-class ShearModulus(Qoi):
-    def __init__(self,qoi_name, structures):
-        qoi_type = 'shear_modulus'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.determine_required_simulations()
-
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-        self.required_simulations = {}
-        structure = self.structures[0]
-        self.add_required_simulation(structure,'elastic')
+    #def determine_required_simulations(self):
+    #    if self.required_simulations is not None:
+    #        return
+    #    self.required_simulations = {}
+    #    structure = self.structures[0]
+    #    self.add_required_simulation(structure,'elastic')
 
 class DefectFormationEnergy(Qoi):
     def __init__(self,qoi_name, structures):
+        if isinstance(structures,list):
+            _structures = OrderedDict()
+            _structures['defect'] = structures[0]
+            _structures['ideal'] = structures[1]
         qoi_type = 'defect_energy'
         Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.defect_structure = self.structures[0]
-        self.ideal_structure = self.structures[1]
-        self.determine_required_simulations()
+        
 
     def determine_required_simulations(self):
         if self.required_simulations is not None:
@@ -531,38 +590,7 @@ class SurfaceEnergy(Qoi):
         Qoi.__init__(self,qoi_name,qoi_type,structures)
         self.surface_structure = self.structures[0]
         self.ideal_structure = self.structures[1]
-        self.determine_required_simulations()
-
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-
-        # adding the simulations
-        self.required_simulations = {}
-        ideal = self.add_required_simulation(self.ideal_structure,'E_min_all')
-        slab = self.add_required_simulation(self.surface_structure,'E_min_pos')
-
-        # define the required simulations
-        try:
-            self.required_simulations[slab]['precedent_tasks'] = {}
-        except KeyError as e:
-            s = str(e)
-            print(s)
-            print('\tslab:{}'.format(slab))
-            print('\trequired_simulations:')
-            for k,v in self.required_simulations.items():
-                print('\t\t',k,v)
-        precedent_tasks = {}
-        precedent_tasks[ideal] = {}
-        precedent_tasks[ideal]['variables'] = {
-                'a1': None,
-                'a2': None,
-                'a3': None,
-                'E_coh': None,
-                'n_atoms': []}
-
-        self.required_simulations[slab]['precedent_tasks'] = \
-                copy.deepcopy(precedent_tasks)
+        #self.determine_required_simulations()
 
     def calculate_qoi(self):
         s_name_slab = self._req_structure_names[0]

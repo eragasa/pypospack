@@ -525,6 +525,7 @@ def make_super_cell(structure, sc):
         sc (:obj:`list` of :obj:`int`): the number of repeat units in the h1, h2, and h3 
             directions
     """
+    assert isinstance(structure,SimulationCell)
 
     supercell = SimulationCell()
     supercell.structure_comment = "{}x{}x{}".format(sc[0],sc[1],sc[2])

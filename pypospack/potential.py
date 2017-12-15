@@ -148,6 +148,7 @@ class EamEmbeddingFunction(Potential):
 from pypospack.potentials.eam_embed_bjs import BjsEmbeddingFunction
 from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
 
+#------------------------------------------------------------------------------
 from pypospack.eamtools import EamSetflFile
 class EamPotential(Potential):
     """
@@ -364,16 +365,14 @@ class EamPotential(Potential):
             r,
             rcut=None,
             parameters=None):
-        
+        assert isinstance(r,np.ndarray) or isinstance(r,float) 
+        assert isinstance(rcut,float) or rcut is None
+        assert isinstance(parameters,dict) or parameters is None
+
         #<--- check arguments of the function
         if parameters is not None:
-            if not isinstance(parameters,dict):
-                raise ValueError("parameters must be a dict")
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
-        if r is not None:
-            if not isinstance(r,np.ndarray):
-                raise ValueError("rho must be an numpy.ndarray")
 
         #<--- grab the parameters of the density function
         d_params = [p for p in self.parameters if p.startswith('d_')]
@@ -383,13 +382,15 @@ class EamPotential(Potential):
             _parameter_name = p.partition('_')[2]
             _parameters[_parameter_name] = self.parameters[p]
         
-        self.obj_density.evaluate(
+        _dens_eval= self.obj_density.evaluate(
                 r=r,
                 parameters=_parameters,
                 r_cut=rcut)
 
         #<--- set the internal attribute
-        self.density = copy.deepcopy(self.obj_density.density_evaluations)
+        self.density = copy.deepcopy(_dens_eval)
+
+        return _dens_eval
 
     def evaluate_embedding(self,
             rho=None,
@@ -620,37 +621,6 @@ class PotentialInformation(object):
         potential_dict['params'] = None
         return copy.deepcopy(potential_dict)
 
-class CutoffFunction(object):
-    def __init__(self):
-        pass
-
-def cutoff_shifted_force(r,v,rcut):
-    """shift potential by force
-
-    Args:
-        r (numpy.array): array of distances
-        v (numpy.array): array of energies
-    Returns:
-        numpy.array: force shifted potential
-    """
-
-    return sv
-
-def cutoff_shifted_energy(r,v,rcut):
-    """shift potential by energy
-
-    Args:
-        r (numpy.array): array of distances
-        v (numpy.array): array of energies
-        rc (float): cutoff distance
-    Returns:
-        sv - (numpy.array) energy shifted potential
-    """
-    return sv
-
-class ShiftedForceCutoff(CutoffFunction):
-    def eval(self, r):
-        pass
 
 def func_cutoff(r,rcut,h):
     x = (r - rcut)/h

@@ -65,7 +65,7 @@ class ExponentialDensityFunction(EamDensityFunction):
                 density so the a r_cut has no physical meaning.  Any 
                 variable passed into r_cut will be ignored.
         """
-        assert isinstance(r,np.ndarray)
+        assert isinstance(r,np.ndarray) or isinstance(r,float)
         assert isinstance(parameters,OrderedDict)
         assert type(r_cut) in [int,float,type(None)]
         # attribute.parameters[p] <--- arg:parameters[p]
@@ -79,7 +79,6 @@ class ExponentialDensityFunction(EamDensityFunction):
             if pv == None:
                 return False
 
-        
         def func_dens_exp(r, rho0, beta,r0):
             return rho0 * np.exp(-beta*(r/r0-1))
         
