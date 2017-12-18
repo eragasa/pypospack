@@ -310,6 +310,9 @@ class QoiManager(object):
                          class_name = _class,
                          structures = _structures)
 
+    def calculate_qois(self,task_results):
+        assert isinstance(task_results,OrderedDict)
+
     def __init_QoiDatabase_from_None(self):
         self.qoidb = QoiDatabase()
 
@@ -377,15 +380,15 @@ class QoiManager(object):
         if task_name not in self.tasks:
             self.tasks[task_name] = copy.deepcopy(task_dict)
 
-    def calculate_qois(self,results):
+    def calculate_qois(self,task_results):
         """
 
         Args:
             results(dict)
         """
         # calculate the material properties from the Qoi objects
-        for qoi, obj_qoi in self.obj_qois.items():
-            for sim_name, sim_info in obj_qoi.get_required_variables().items():
+        for n_qoi, o_qoi in self.obj_Qoi.items():
+            for sim_name, sim_info in o_qoi.get_required_variables().items():
                 print(qoi,sim_name,sim_info)
         for qoi_name in self.qoi_names:
             print(qoi_name)
@@ -397,7 +400,6 @@ class QoiManager(object):
         for k,v in self.qoi_info.qois.items():
             print(k,v)
         for k,v in self.obj_qois.items():
-
             print(k,v)
 
 #------------------------------------------------------------------------------
