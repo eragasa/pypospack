@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 
 def fake_data(num_groups, shape):
     assert len(shape) == 2
@@ -48,22 +49,43 @@ def raw_to_pca(data_array, target_array, target_names):
     pca_array = pca.fit(data_array).transform(data_array)
     print('explained variance ratio: ' + str(pca.explained_variance_ratio_))
 
-    plt.figure()
+    # create a second data array which is just a transformed version of the first
+    # use to compare with non transformed separation
+    transformed_array = data_array*2
+    transformed_pca_array = pca.fit(transformed_array).transform(transformed_array)
+    print('explained variance ratio (transformed): ' + str(pca.explained_variance_ratio_))
 
-    colors = ['red', 'blue', 'green', 'black', 'brown', 'orange', 'yellow', 'purple']
+    colors = ['red', 'blue', 'purple', 'black', 'brown', 'yellow', 'orange', 'green']
     colors = colors[:len(target_names)]
+    kmeans = KMeans(n_clusters=len(target_names))
+
+    # create figure of the non transformed array
+    plt.figure()
+    kmeans = kmeans.fit(pca_array)
+    centroids = kmeans.cluster_centers_
     # plotting the first 2 dimensions
     for i, c, n in zip(range(len(target_names)), colors, target_names):
         plt.scatter(pca_array[target_array == i, 0], pca_array[target_array == i, 1], alpha=.8, color=c, label=n)
-
+        plt.scatter(centroids[i][0], centroids[i][1], color='black', label=n)
     plt.legend(loc='best', shadow=False, scatterpoints=1)
     plt.title('PCA Test')
 
+    # create figure of the transformed array
+    plt.figure()
+    kmeans = kmeans.fit(transformed_pca_array)
+    centroids = kmeans.cluster_centers_
+    # plotting the first 2 dimensions
+    for i, c, n in zip(range(len(target_names)), colors, target_names):
+        plt.scatter(transformed_pca_array[target_array == i, 0], transformed_pca_array[target_array == i, 1], alpha=.8, color=c, label=n)
+        plt.scatter(centroids[i][0], centroids[i][1], color='black', label=n)
+    plt.legend(loc='best', shadow=False, scatterpoints=1)
+    plt.title('Transformed PCA Test')
+
     plt.show()
 
+    # look for distributions to be the same in transformed and non transformed plots
 
 if __name__ == "__main__":
     # later pass in actual data from sims but now test with general data
-    test_data = fake_data(2, (500, 3))
+    test_data = fake_data(2, (100, 3))
     raw_to_pca(test_data['data'], test_data['target'], test_data['names'])
-
