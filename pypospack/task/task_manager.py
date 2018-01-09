@@ -48,6 +48,8 @@ class TaskManager(object):
             self.base_directory = os.getcwd()
         elif isinstance(base_directory,str):
             self.base_directory = base_directory
+            if not os.path.exists(self.base_directory):
+                os.mkdir(self.base_directory)
         if structures is not None:
             self.structures = copy.deepcopy(structures)
         if tasks is not None:
@@ -93,7 +95,6 @@ class TaskManager(object):
             for k_task,o_task in self.obj_Task.items():
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()
-                print(o_task.status)
                 if o_task.status == 'INIT':
                     o_task.on_init(configuration=_configuration)
                 elif o_task.status == 'CONFIG':
@@ -104,11 +105,10 @@ class TaskManager(object):
                     o_task.on_running()
                 elif o_task.status == 'POST':
                     o_task.on_post()
-                elif o_task.status == 'FINISHED':
                     _results = o_task.results
                     for k,v in o_task.results.items():
-                        _var_name = "{}.{}".format(k_task,k)
-                        self.results[_var_name] = v
+                        self.results[k] = v
+                elif o_task.status == 'FINISHED':
                     o_task.on_finished()
                 elif o_task.status == 'ERROR':
                     raise ValueError
