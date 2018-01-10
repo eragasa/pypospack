@@ -169,6 +169,7 @@ class PyposmatDataFile(object):
         self.df = pd.DataFrame(data=self.values,
                 columns=self.names,copy=True)
         self.df.set_index('sim_id')
+
         self.parameter_df = self.df[self.parameter_names] 
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
@@ -437,16 +438,28 @@ class PyposmatEngine(object):
         _task_results = self.task_manager.results
         self.qoi_manager.calculate_qois(
                 task_results=_task_results)
-        _qoi_results = self.qoi_manager.results
-        _error_results = self.qoi_manager.results
+       
+        # popular qoi values
+        _qoi_results = OrderedDict()
+        for k_qoi,v_qoi in self.qoi_manager.qois.items():
+            _qoi_val = v_qoi['qoi_val']
+            _qoi_results[k_qoi] = _qoi_val
+
+        # populate errors
+        _qoi_errors = OrderedDict()
+        for k_qoi,v_qoi in self.qoi_manager.qois.items():
+            _qoi_error_name = '{}.{}'.format(k_qoi,'err')
+            _qoi_error = v_qoi['qoi_err']
+            _qoi_errors[_qoi_error_name] = _qoi_error
 
         _results = OrderedDict()
         _results['parameters'] = copy.deepcopy(_parameters)
         _results['qois'] = copy.deepcopy(_qoi_results)
-        _results['errors'] = copy.deepcopy(_error_results)
+        _results['errors'] = copy.deepcopy(_qoi_errors)
 
         return _results
-
+# -----------------------------------------------------------------------------
+from pypospack.pyposmat_engines.mc_sampler import PyposmatMonteCarloSampler
 # -----------------------------------------------------------------------------
 import yaml
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
