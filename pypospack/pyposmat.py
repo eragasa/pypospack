@@ -511,6 +511,45 @@ class PyposmatConfigurationFile(object):
         self.configuration['potential'] = OrderedDict()
         self.configuration['potential'] = copy.deepcopy(potential)
 
+    @property
+    def mc_sampling_type(self):
+        return self.configuration['mc_sampling_type']
+
+    @mc_sampling_type.setter
+    def mc_sampling_type(self,mc_sampling_type):
+        MC_SAMPLING_TYPES = ['parametric','kde']
+        assert mc_sampling_type in MC_SAMPLING_TYPES
+        self.configuration['mc_sampling_type'] = mc_sampling_type
+
+    @property
+    def mc_seed(self):
+        return self.configuration['mc_seed']
+
+    @mc_seed.setter
+    def mc_seed(self,seed):
+        assert type(seed) is int
+        self.configuration['mc_seed'] = seed
+
+    @property
+    def parameter_distribution_definitions(self):
+        return self.configuration['param_dist_def']
+
+    @parameter_distribution_definitions.setter
+    def parameter_distribution_definitions(self,param_def):
+        assert isinstance(param_def,OrderedDict)
+        self.configuration['param_dist_def'] = OrderedDict()
+        self.configuration['param_dist_def'] = copy.deepcopy(param_def)
+
+    @property
+    def parameter_constraints(self):
+        return self.configuration['param_constraints']
+
+    @parameter_constraints.setter
+    def parameter_constraints(self,constraints):
+        assert isinstance(constraints,OrderedDict)
+        self.configuration['param_constraints'] = OrderedDict()
+        self.configuration['param_constraints'] = copy.deepcopy(constraints)
+
     def read(self,filename):
         self.filename_in = filename
         self.configuration = None
