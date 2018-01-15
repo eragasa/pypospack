@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import normalize
 
 def read_data_file(filename):
 
@@ -40,47 +41,141 @@ def read_data_file(filename):
            {'param_names': parameter_names, 'err_names': error_names, 'qoi_names': qoi_names}
 
 
-if __name__ == "__main__":
-    results = read_data_file(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
+def pca_transform(df, label):
 
-    # analyze paramaters
-    param_df = results[0]['param_df']
-    from sklearn.preprocessing import normalize
-    param_df = normalize(param_df)
+    df = normalize(df)
     obj_pca = PCA()
-    pca_param_np = obj_pca.fit_transform(param_df)
-    nrows, ncols = pca_param_np.shape
-    pca_param_names = ['param_pca_{}'.format(i) for i in range(ncols)]
-    pca_param_df = pd.DataFrame(data=pca_param_np, columns=pca_param_names)
+    pca_np = obj_pca.fit_transform(df)
+    nrows, ncols = pca_np.shape
+    pca_names = [label+'_pca_{}'.format(i) for i in range(ncols)]
+    pca_df = pd.DataFrame(data=pca_np, columns=pca_names)
 
     # create df of vectors and values to write excel file easily
     eigen_values = obj_pca.explained_variance_
     eigen_vectors = obj_pca.components_
-    eigen_df = pd.DataFrame(columns=pca_param_names)
+    eigen_df = pd.DataFrame(columns=pca_names)
     eigen_vectors = eigen_vectors.tolist()
-    for i, names in enumerate(pca_param_names):
+    for i, names in enumerate(pca_names):
         eigen_df[names] = eigen_vectors[i]
         if i == len(eigen_vectors) - 1:
             eigen_df.loc[i + 1] = eigen_values.tolist()
-    writer = pd.ExcelWriter('eigen_table.xlsx')
-    EIGEN_TABLE = eigen_df.to_excel(writer, 'Sheet 1')
+    writer = pd.ExcelWriter(label+'_eigen_table.xlsx')
+    eigen_df.to_excel(writer, label)
     writer.save()
 
-    # cluster the PCA transformed data
-    obj_kmeans = KMeans(n_clusters=5)
-    obj_kmeans = obj_kmeans.fit(pca_param_df)
-    labels = obj_kmeans.labels_
-    pca_param_df['cluster_id'] = labels
+    return pca_df
 
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    _clusterids = set(pca_param_df['cluster_id'])
-    # fig = plt.figure()
-    #ax = fig.add_subplot(111, projection='3d')
+
+def kmeans_cluster(num_clusters, df):
+    obj_kmeans = KMeans(n_clusters=num_clusters)
+    obj_kmeans = obj_kmeans.fit(df)
+    labels = obj_kmeans.labels_
+    # df['cluster_id'] = labels
+
+    return labels
+
+def plot_2d(label, df):
+    _clusterids = set(df['cluster_id'])
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
     for clusterid in _clusterids:
-        x = pca_param_df.loc[pca_param_df['cluster_id'] == clusterid]['param_pca_1']
-        y = pca_param_df.loc[pca_param_df['cluster_id'] == clusterid]['param_pca_2']
-        z = pca_param_df.loc[pca_param_df['cluster_id'] == clusterid]['param_pca_3']
-        plt.scatter(x,y,s=1)
+        x = df.loc[df['cluster_id'] == clusterid][label+'_pca_0']
+        y = df.loc[df['cluster_id'] == clusterid][label+'_pca_1']
+        ax.scatter(x, y, s=1)
+    plt.title(s=label+' PCA transformation')
     plt.show()
-    
+
+def plot_3d(label, df):
+    _clusterids = set(df['cluster_id'])
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    for clusterid in _clusterids:
+        x = df.loc[df['cluster_id'] == clusterid][label+'_pca_0']
+        y = df.loc[df['cluster_id'] == clusterid][label+'_pca_1']
+        z = df.loc[df['cluster_id'] == clusterid][label+'_pca_2']
+        ax.scatter(x, y, z, s=1)
+    plt.title(s=label + ' PCA transformation')
+    plt.show()
+
+
+class TransformPCA(object):
+
+    def __init__(self, num_clusters, param_df, err_df, qoi_df):
+        self.num_clusters = num_clusters
+        self.param_df = param_df
+        self.err_df = err_df
+        self.qoi_df = qoi_df
+        self.pca_df = pd.DataFrame()
+        self.normalize_and_transform()
+
+    def normalize_and_transform(self):
+        pca_df_collection = []
+        clusters = None
+        for df, label in zip([self.param_df, self.err_df, self.qoi_df], ['param', 'err', 'qoi']):
+            df = normalize(df)
+            obj_pca = PCA()
+            pca_np = obj_pca.fit_transform(df)
+            nrows, ncols = pca_np.shape
+            pca_names = [label + '_pca_{}'.format(i) for i in range(ncols)]
+            pca_df = pd.DataFrame(data=pca_np, columns=pca_names)
+            pca_df_collection.append(pca_df)
+            self.write_excel(obj_pca, pca_names, label)
+            # use the param data to define clusters
+            if label == 'param':
+                clusters = self.kmeans_cluster(pca_df)
+        self.pca_df = pd.concat(pca_df_collection, axis=1)
+        self.pca_df['cluster_id'] = clusters
+
+
+    def write_excel(self, obj_pca, pca_names, label):
+        # create df of vectors and values to write excel file easily
+        eigen_values = obj_pca.explained_variance_
+        eigen_vectors = obj_pca.components_
+        eigen_df = pd.DataFrame(columns=pca_names)
+        eigen_vectors = eigen_vectors.tolist()
+        for i, names in enumerate(pca_names):
+            eigen_df[names] = eigen_vectors[i]
+            if i == len(eigen_vectors) - 1:
+                eigen_df.loc[i + 1] = eigen_values.tolist()
+        writer = pd.ExcelWriter(label + '_eigen_table.xlsx')
+        eigen_df.to_excel(writer, label)
+        writer.save()
+
+    def kmeans_cluster(self, param_pca_df):
+        # do pca on only param and get cluster groupings for that
+        obj_kmeans = KMeans(n_clusters=self.num_clusters)
+        obj_kmeans = obj_kmeans.fit(param_pca_df)
+        labels = obj_kmeans.labels_
+        return labels
+
+    def plot_2d(self):
+        _clusterids = set(self.pca_df['cluster_id'])
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for label in ['param', 'err', 'qoi']:
+            for clusterid in _clusterids:
+                x = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid][label + '_pca_0']
+                y = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid][label + '_pca_1']
+                ax.scatter(x, y, s=1)
+            plt.title(s=label + ' PCA transformation')
+            plt.show()
+
+    def plot_3d(self):
+        _clusterids = set(self.pca_df['cluster_id'])
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        for label in ['param', 'err', 'qoi']:
+            for clusterid in _clusterids:
+                x = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid][label + '_pca_0']
+                y = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid][label + '_pca_1']
+                z = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid][label + '_pca_2']
+                ax.scatter(x, y, z, s=1)
+            plt.title(s=label + ' PCA transformation')
+            plt.show()
+
+
+if __name__ == "__main__":
+    results = read_data_file(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
+    tp = TransformPCA(num_clusters=3, param_df=results[0]['param_df'],
+                      err_df=results[0]['err_df'], qoi_df=results[0]['qoi_df'])
+    tp.plot_3d()
