@@ -1,0 +1,31 @@
+#!/bin/bash
+#$ -N MgO_neb
+#$ -cwd
+#$ -pe mpi 24
+#$ -S /bin/bash
+#$ -q all2.q
+#$ -q all.q
+#$ -q eight.q
+#$ -e $JOB_NAME.e$JOB_ID
+#$ -o $JOB_NAME.o$JOB_ID
+
+# this has to be an mpi version for neb calculations
+lammps_bin=/home/eugene/opt/lammps/bin/lmp_intel_cpu_intelmpi
+mpiexec=mpiexec.hydra
+
+source /share/apps/intel_2016/compilers_and_libraries_2016.3.210/linux/bin/compilervars.sh intel64
+
+echo "<--------- neb task 1: in.min"
+${mpiexec} $lammps_bin -in in.min
+mv log.lammps log.lammps.in.min
+
+echo "<-------- neb task 2: create neb file"
+python3 make_neb_file.py final.MgO_fr_a
+
+echo "<-------- neb task 3: in.neb"
+${mpiexec} -np 24 $lammps_bin -partition 24x1 -in in.neb
+
+echo "<------- neb task 4: output information"
+python3 process_neb_line.py 
+echo "<--End-->"
+

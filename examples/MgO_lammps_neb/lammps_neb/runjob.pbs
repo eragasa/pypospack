@@ -1,0 +1,23 @@
+#!/bin/bash
+#$ -N Si_neb
+#$ -cwd
+#$ -pe mpi 4
+#$ -S /bin/bash
+#$ -q all2.q
+#$ -q all.q
+#$ -q eight.q
+#$ -e $JOB_NAME.e$JOB_ID
+#$ -o $JOB_NAME.o$JOB_ID
+
+# this has to be an mpi version for neb calculations
+lammps_bin=/home/eugene/opt/lammps/bin/lmp_intel_cpu_intelmpi
+mpiexec=mpiexec.hydra
+
+source /share/apps/intel_2016/compilers_and_libraries_2016.3.210/linux/bin/compilervars.sh intel64
+
+echo neb task 1: in.min
+${mpiexec} $lammps_bin -in in.min
+echo neb task 1: in.neb
+${mpiexec} -np 4 $lammps_bin -partition 4x1 -in in.neb
+echo "<--End-->"
+

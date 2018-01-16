@@ -1,0 +1,29 @@
+#------------------------------------------------------------------------------
+# NEB CALCULATION
+#------------------------------------------------------------------------------
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style charge
+atom_modify map array
+
+# --- create atoms
+read_data init.MgO_fr_a
+include potential.mod
+include modify_atom_info.mod
+# set up neb run
+timestep 0.001
+
+thermo 5
+min_style quickmin
+minimize 1.0e-10 1.0e-10 2000 2000
+
+fix 1 all neb 1.0
+
+# variable u uloop 20
+# dump 1 all custom 10 *.${u}.dump id type x y z
+
+neb 0.0 0.1 10000 10000 10 final final.MgO_fr_a.neb
+#------------------------------------------------------------------------------
