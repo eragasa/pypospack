@@ -18,10 +18,10 @@ from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
 
 # <---------------- legacy imports
-import pyflamestk.lammps as lammps
-import pyflamestk.base as base
-import pyflamestk.qoi as qoi
-import pyflamestk.pareto as pareto
+#import pyflamestk.lammps as lammps
+#import pyflamestk.base as base
+#import pyflamestk.qoi as qoi
+#import pyflamestk.pareto as pareto
 
 def get_supported_qois():
     supported_qois = ['a0','a1','a2','a3',
@@ -192,6 +192,7 @@ class PyposmatDataFile(object):
         self.score_names.append('sum_b_lt_median')
         self.types.append('score')
         self.df['sum_b_lt_median'] = np.copy(_metric)
+
     def score_by_d_metric(
             self,
             error_df=None,
