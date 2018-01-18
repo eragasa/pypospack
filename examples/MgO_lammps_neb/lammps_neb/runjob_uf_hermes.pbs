@@ -8,24 +8,49 @@
 #$ -q eight.q
 #$ -e $JOB_NAME.e$JOB_ID
 #$ -o $JOB_NAME.o$JOB_ID
-
+source /home/eugene/.bashrc
+source /share/apps/intel_2016/compilers_and_libraries_2016.3.210/linux/bin/compilervars.sh intel64
+#PYTHONPATH=/home/eugene/repos/pypospack:$PYTHONPATH
+#PATH=/home/eugene/anaconda3/bin:$PATH
 # this has to be an mpi version for neb calculations
 lammps_bin=/home/eugene/opt/lammps/bin/lmp_intel_cpu_intelmpi
 mpiexec=mpiexec.hydra
+param_file=culled_009.out
+n_sim=10
 
-source /share/apps/intel_2016/compilers_and_libraries_2016.3.210/linux/bin/compilervars.sh intel64
+structure_dir=input
+lmps_script_template_dir=input
+lmps_structure_bulk=MgO_NaCl_333.structure
+lmps_structure_init=MgO_NaCl_333_fr_a_0.structure
+lmps_structure_final=MgO_NaCl_333_fr_a_1.structure
+pypospack_param_file=resources/subselect.d_metric.sum_b_lt_median.out
 
-echo "<--------- neb task 1: in.min"
-${mpiexec} $lammps_bin -in in.min
-mv log.lammps log.lammps.in.min
+cp $structure_dir/$lmps_structure_bulk ./
+cp $structure_dir/$lmps_structure_init ./
+cp $structure_dir/$lmps_structure_final ./
 
-echo "<-------- neb task 2: create neb file"
-python3 make_neb_file.py final.MgO_fr_a
+cp $lmps_script_template_dir/in.min ./
+cp $lmps_script_template_dir/in.neb ./
 
-echo "<-------- neb task 3: in.neb"
-${mpiexec} -np 24 $lammps_bin -partition 24x1 -in in.neb
+echo "PATH=$PATH"
+echo "PYTHONPATH=$PYTHONPATH"
+echo "PYTHONBIN=$(which python)"
 
-echo "<------- neb task 4: output information"
-python3 process_neb_line.py 
+python lammps_neb.py start 
+for (( i=0; i<$n_sim; i++))
+    do
+        # this command changes the potential.mod file
+        python lammps_neb.py next_param $i
+	echo "<--------- neb task $i: in.min"
+	${mpiexec} $lammps_bin -in in.min > neb.$i.min.out
+	mv log.lammps log.lammps.in.min
+	echo "<--------- neb task $i: create neb file"
+	python make_neb_file.py final.MgO_fr_a
+	echo "<--------- neb task $i: in.neb" 
+	${mpiexec} -np 24 $lammps_bin -partition 24x1 -in in.neb > neb.$i.neb.out
+	echo "<--------- neb task $i: output information"
+	python process_neb_line.py 
+    done
 echo "<--End-->"
+
 

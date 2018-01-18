@@ -11,7 +11,7 @@ atom_modify map array
 read_data MgO_NaCl_333.structure
 # ---- define interatomic potential
 include potential.mod
-include modify_atom_info.mod
+# include modify_atom_info.mod
 
 # ---- define settings
 compute eng all pe/atom
@@ -57,7 +57,7 @@ read_data MgO_NaCl_333_fr_a_0.structure
 change_box all x final 0 ${bulk_length_x} y final 0 ${bulk_length_y} z final 0 ${bulk_length_z} remap  
 # ---- define interatomic potential
 include potential.mod
-include modify_atom_info.mod
+# include modify_atom_info.mod
 
 # ---- define settings
 compute eng all pe/atom
@@ -106,7 +106,7 @@ change_box all x final 0 ${bulk_length_x} y final 0 ${bulk_length_y} z final 0 $
 
 # ---- define interatomic potential
 include potential.mod
-include modify_atom_info.mod
+# include modify_atom_info.mod
 # ---- define settings
 compute eng all pe/atom
 compute eatoms all reduce sum c_eng

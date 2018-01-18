@@ -1,8 +1,11 @@
 import re
 
-f = open('log.lammps','r')
-lines = f.readlines()
-f.close()
+lmps_log_file='log.lammps'
+
+lines=None
+with open(lmps_log_file,'r') as f:
+    lines=f.readlines()
+
 line = lines[len(lines)-1].strip()
 line = re.sub(' +',' ',line)
 line = [float(s) for s in line.split(" ")]
