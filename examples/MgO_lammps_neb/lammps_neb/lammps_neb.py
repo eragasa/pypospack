@@ -1,4 +1,4 @@
-import sys
+import sys, os, shutil, re
 from collections import OrderedDict
 
 #if neb_state in ['start']:
@@ -23,7 +23,7 @@ class WorkflowLammpsNebSimulation(object):
     def write_lammps_structure_files(self):
         for k,v in self.structures:
             if k.endswith('.vasp'):
-                import pypospack.vasp import Poscar
+                #import pypospack.vasp import Poscar
                 poscar = Poscar()
                 poscar.open(k)
 
@@ -75,26 +75,50 @@ def file_io__write_header(parameter_filename,filename,qoiname_neb):
     with open(filename,'w') as f:
         f.write(_strout)
 
-def file_io__write_result(filename,sim_id,parameters,neb_value):
-    assert type(filename) is str
-    assert type(parameters) is OrderedDict
-    assert type(neb_value) is float
+def file_io__write_result(
+        filename_out,
+        filename_params,
+        qoiname_neb,
+        neb_value,
+        i_sim):
+    print('filename_out:',filename_out)
+    print('filename_params:',filename_params)
+    print('qoiname_neb',qoiname_neb)
+    print('neb_value:',neb_value,type(neb_value))
+    print('i_sim',i_sim)
+    #assert type(filename_out) is str
+    #assert type(filename_params) is str
+    #assert type(qoiname_neb is str
+    #assert type(neb_value) is float
+    #assert type(i_sim) is int
 
-    values = []
-    values.append(sim_id)
-    for p in parameters:
-        values.append(parameters[p])
-    values.append(neb_value)
+    lines = None
+    with open(filename_params,'r') as f:
+        lines = f.readlines()
 
-    _strout = ",".join([str(v) for v in values]) + "\n"
+    names=[str(n.strip()) for n in lines[0].strip().split(',')]
+    types=[str(t.strip()) for t in lines[1].strip().split(',')]
+    
+    parameter_names=[names[i] for i,v in enumerate(types) if v == 'param']
+    qoi_names=[names[i] for i,v in enumerate(types) if v=='qoi']
+    values=[n.strip() for n in lines[2+i_sim].strip().split(',')]
 
-    with open(filename,'a') as f:
+    sim_id=values[types.index('sim_id')]
+    parameter_values=[values[names.index(p)] for p in parameter_names]
+    qoi_values=[neb_value]
+
+    if type(sim_id) is str:
+        _values = [sim_id] + [str(p) for p in parameter_names] + qoi_values
+    else:
+        _values = [str(sim_id)] + [str(p) for p in parameter_names] + qoi_values
+    _values = [str(v) for v in _values if type(v) is not str]
+    _strout = ",".join(_values) + "\n"
+
+    with open(filename_out,'a') as f:
         f.write(_strout)
 
-def process_neb_line():
+def process_neb_line(lmps_log_file='log.lammps'):
     import re
-
-    lmps_log_file='log.lammps'
 
     lines=None
     with open(lmps_log_file,'r') as f:
@@ -130,10 +154,12 @@ def process_neb_line():
     return (e_0,e_f,e_max,e_barrier)
 
 if __name__ == "__main__":
+    import os,shutil
     symbols=['Mg','O']
     rcut=10.0
+    print(sys.argv)
     neb_state=sys.argv[1]
-    i_sim=int(sys.argv[2]
+    i_sim=int(sys.argv[2])
 
     output_dir='output'
     lmps_script_dir='input'
@@ -141,11 +167,15 @@ if __name__ == "__main__":
     lmps_structure_bulk='MgO_NaCl_333.structure'
     lmps_structure_init='MgO_NaCl_333_fr_a_0.structure'
     lmps_structure_final='MgO_NaCl_333_fr_a_1.structure'
-    pypospack_param=os.path.join('input','subselect.d_metric.sub_b_lt_median.out')
-    pypospack_out=os.path.join('output',
-    qoiname_neb = 'MgO_fr_a.neb'
+    pypospack_param=os.path.join(
+            'input',
+            'subselect.d_metric.sum_b_lt_median.out')
+    pypospack_out=os.path.join(
+            'output',
+            'pypospack.neb.out')
+    qoiname_neb='MgO_fr_a.neb'
+    
     if neb_state=='start':
-        import os,shutil
 
         # create output directory
         if os.path.exists(output_dir):
@@ -200,11 +230,12 @@ if __name__ == "__main__":
         with open(_fname_out,'w') as f:
             f.write(_strout)
           
-    elif neb_stat=='post':
+    elif neb_state=='post':
         (e_0,e_f,e_max,e_barrier)=process_neb_line()
-        
+        print(e_0,e_f,e_max,e_barrier) 
         file_io__write_result(
-                filename_out,
-                filename_params
+                filename_out=pypospack_out,
+                filename_params=pypospack_param,
                 qoiname_neb=qoiname_neb,
-                neb_value=e_barrier)
+                neb_value=e_barrier,
+                i_sim=i_sim)
