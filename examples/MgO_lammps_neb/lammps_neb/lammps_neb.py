@@ -51,28 +51,37 @@ def get_parameter_set(parameter_filename,i_sim):
 
     return parameters
 
-def file_io__write_header(parameter_filename,filename,qoiname_neb):
-    assert type(filename) is str
-    assert type(parameter_names) is list
-    assert all([type(p) is str for p in parameter_names])
-    assert qoiname_neb
+def file_io__write_header(filename_out,filename_param,qoiname_neb):
+    assert type(filename_out) is str
+    assert type(filename_param) is str
+    assert type(qoiname_neb) is str
 
+    # read in parameter file
     lines=None
-    with open(parameter_filename,'r') as f:
+    with open(filename_param,'r') as f:
         lines = f.readlines()
 
+    # process the header lines: lines[0] and lines[1]
     names=[str(n.strip()) for n in lines[0].strip().split(',')]
     types=[str(t.strip()) for t in lines[1].strip().split(',')]
+
+    # process the parameter names
     parameter_names=[names[i] for i,v in enumerate(types) if v == 'param']
+    
+    # process the qoi names
     qoi_names=[names[i] for i,v in enumerate(types) if v=='qoi']
 
-    names = ['sim_id'] + parameter_names + [qoiname_neb]
-    types = ['sim_id'] + len(parameter_names)*['param'] + ['qoi']
+    # <------------ create header lines for the output file
+    _names_out = ['sim_id'] + parameter_names + [qoiname_neb]
+    _types_out = ['sim_id'] + len(parameter_names)*['param'] + ['qoi']
 
-    _strout = ",".join(names) + "\n"
-    _strout += ",".join(types) + "\n"
+    _strout = ",".join(_names_out) + "\n"
+    _strout += ",".join(_types_out) + "\n"
 
-    with open(filename,'w') as f:
+    print('pypospack outfile:{}'.format(filename_out))
+    print('header_lines:\n{}'.format(_strout))
+    
+    with open(filename_out,'w') as f:
         f.write(_strout)
 
 def file_io__write_result(
@@ -103,15 +112,20 @@ def file_io__write_result(
     qoi_names=[names[i] for i,v in enumerate(types) if v=='qoi']
     values=[n.strip() for n in lines[2+i_sim].strip().split(',')]
 
-    sim_id=values[types.index('sim_id')]
-    parameter_values=[values[names.index(p)] for p in parameter_names]
+    sim_id=values[names.index('sim_id')]
+    parameters=OrderedDict(
+            [(p,values[names.index(p)]) for p in parameter_names])
     qoi_values=[neb_value]
 
     if type(sim_id) is str:
-        _values = [sim_id] + [str(p) for p in parameter_names] + qoi_values
+        _values = [sim_id]\
+                + [str(v) for k,v in parameters.items()]\
+                + [str(v) for v in qoi_values]
     else:
-        _values = [str(sim_id)] + [str(p) for p in parameter_names] + qoi_values
-    _values = [str(v) for v in _values if type(v) is not str]
+        _values = [str(sim_id)] \
+                + [str(v) for k,v in parameters.items()]\
+                + [str(v) for v in qoi_values]
+    
     _strout = ",".join(_values) + "\n"
 
     with open(filename_out,'a') as f:
@@ -157,9 +171,6 @@ if __name__ == "__main__":
     import os,shutil
     symbols=['Mg','O']
     rcut=10.0
-    print(sys.argv)
-    neb_state=sys.argv[1]
-    i_sim=int(sys.argv[2])
 
     output_dir='output'
     lmps_script_dir='input'
@@ -175,6 +186,7 @@ if __name__ == "__main__":
             'pypospack.neb.out')
     qoiname_neb='MgO_fr_a.neb'
     
+    neb_state=sys.argv[1]
     if neb_state=='start':
 
         # create output directory
@@ -185,36 +197,36 @@ if __name__ == "__main__":
         # create lammps structure file: bulk unit cell
         shutil.copyfile(
             src=os.path.join(structure_dir,lmps_structure_bulk),
-            dst=os.path.join(os.cwd(),lmps_structure_bulk))
+            dst=os.path.join(os.getcwd(),lmps_structure_bulk))
         # create lammps structue file: neb initial image
         shutil.copyfile(
             src=os.path.join(structure_dir,lmps_structure_init),
-            dst=os.path.join(os.cwd(),lmps_structure_init))
+            dst=os.path.join(os.getcwd(),lmps_structure_init))
         # create lammps structure file: neb final image
         shutil.copyfile(
             src=os.path.join(structure_dir,lmps_structure_final),
-            dst=os.path.join(os.cwd(),lmps_structure_final))
+            dst=os.path.join(os.getcwd(),lmps_structure_final))
 
         # create lammps script, initial minimization: lmps_min
         shutil.copyfile(
-            src=os.path.join(lmps_structure_dir,'in.min'),
-            dst=os.path.join(os.cwd(),'in.min'))
+            src=os.path.join(structure_dir,'in.min'),
+            dst=os.path.join(os.getcwd(),'in.min'))
         # create lammps_script, neb calculation: in.neb
         shutil.copyfile(
-            src=os.path.join(lmps_structure_dir,'in.neb'),
-            dst=os.path.join(os.cwd(),'in.neb'))
+            src=os.path.join(structure_dir,'in.neb'),
+            dst=os.path.join(os.getcwd(),'in.neb'))
 
         # write header to the output file
         file_io__write_header(
             filename_out=pypospack_out,
             filename_param=pypospack_param,
-            qoiname_neb=qoi_name) 
+            qoiname_neb=qoiname_neb) 
 
     elif neb_state=='next_param':
+        i_sim=int(sys.argv[2])
 
         # write potential.mod
         parameters=get_parameter_set(pypospack_param,i_sim)
-        
         # potential section
         from pypospack.potential import BuckinghamPotential
         buck = BuckinghamPotential(symbols=symbols)
@@ -231,6 +243,7 @@ if __name__ == "__main__":
             f.write(_strout)
           
     elif neb_state=='post':
+        i_sim=int(sys.argv[2])
         (e_0,e_f,e_max,e_barrier)=process_neb_line()
         print(e_0,e_f,e_max,e_barrier) 
         file_io__write_result(
