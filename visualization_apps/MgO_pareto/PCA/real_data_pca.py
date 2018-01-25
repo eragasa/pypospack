@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
@@ -118,17 +119,18 @@ class TransformPCA(object):
         plt.show()
 
     def plot_hist(self):
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8,6))
         _clusterids = set(self.pca_df['cluster_id'])
-        for clusterid in _clusterids:
-            ax = fig.add_subplot(int(str(max(_clusterids)+1)+'1'+str(clusterid+1)))
-            vect1 = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['param_pca_0']
-            vect2 = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['param_pca_1']
-            vect3 = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['param_pca_2']
-            for v, c in zip([vect1, vect2, vect3], ['red', 'blue', 'black']):
-                ax.hist(v, color=c)
-            ax.set_title('Param Cluster '+str(clusterid))
-            ax.legend(['pca_0', 'pca_1', 'pca_2'], loc='best')
+        # make each axis a different subplot
+        # each group is represented on each subplot
+        for dim in range(3):    # pca0, pca1, pca2
+            ax = fig.add_subplot(int('31'+str(dim+1)))
+            for clusterid in _clusterids:   # group1, group2, group3
+                vect = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['param_pca_'+str(dim)]
+                ax.hist(vect, bins=25)
+                ax.set_title("PCA Axis "+str(dim), x=0)
+        fig.tight_layout(h_pad=1)
+        fig.suptitle(t="Param Cluster Distribution")
         plt.show()
 
 if __name__ == "__main__":
