@@ -273,20 +273,19 @@ class QoiManager(object):
 
     def configure__obj_Qoi(self):
         self.obj_qoi = OrderedDict()
-
+        self.qois = OrderedDict()
         for qoik,qoiv in self.qoidb.qois.items():
+            self.qois[qoik] = OrderedDict()
+            self.qois[qoik]['qoi_name'] = None
+            self.qois[qoik]['qoi_ref'] = qoiv['target']
             for qoimapk,qoimapv in self.obj_QoiMap.items():
                 if qoiv['qoi_type'] in qoimapv['qoi']:
                     _structures = None
                     _qoi_simulation_type = qoimapk
 
-                    if isinstance(
-                            qoiv['structures'],
-                            list):
+                    if isinstance(qoiv['structures'], list):
                         _structure = qoiv['structures'][0]
-                    elif isinstance(
-                            qoiv['structures'],
-                            dict):
+                    elif isinstance(qoiv['structures'],dict):
                         try:
                             _structure = qoiv['structures']['defect']
                         except KeyError:
@@ -301,6 +300,7 @@ class QoiManager(object):
                             ).format(str(type(qoiv['structures'])))
 
                     _qoiname = '{}.{}'.format(_structure,_qoi_simulation_type)
+                    _qoitype = qoiv['qoi_type']
                     _module = qoimapv['module']
                     _class = qoimapv['class']
                     _structures = qoiv['structures']
@@ -309,6 +309,46 @@ class QoiManager(object):
                          module_name = _module,
                          class_name = _class,
                          structures = _structures)
+                    self.qois[qoik]['qoi_name'] = '{}.{}'.format(_qoiname,_qoitype)
+    
+    #def configure__obj_Qoi(self):
+    #    self.obj_qoi = OrderedDict()
+    #    
+    #    for qoik,qoiv in self.qoidb.qois.items():
+    #        for qoimapk,qoimapv in self.obj_QoiMap.items():
+    #            if qoiv['qoi_type'] in qoimapv['qoi']:
+    #                _structures = None
+    #                _qoi_simulation_type = qoimapk
+
+     #               if isinstance(
+     #                       qoiv['structures'],
+     #                       list):
+     #                   _structure = qoiv['structures'][0]
+     #               elif isinstance(
+     #                       qoiv['structures'],
+     #                       dict):
+     #                   try:
+     #                       _structure = qoiv['structures']['defect']
+     #                   except KeyError:
+     #                       _structure = qoiv['structures']['ideal']
+     #               elif isinstance(
+     #                       qoiv['structures'],
+     #                       str):
+     #                   _structure = qoiv['structures']
+     #               else:
+     #                   msg_err = (
+     #                       "Cannot process the type for 'structures':{}"
+     #                       ).format(str(type(qoiv['structures'])))
+
+     #               _qoiname = '{}.{}'.format(_structure,_qoi_simulation_type)
+     #               _module = qoimapv['module']
+     #               _class = qoimapv['class']
+     #               _structures = qoiv['structures']
+     #               self._add_obj_Qoi(
+     #                    qoi_name = _qoiname,
+     #                    module_name = _module,
+     #                    class_name = _class,
+     #                    structures = _structures)
 
     def calculate_qois(self,task_results):
         assert isinstance(task_results,OrderedDict)
@@ -386,21 +426,31 @@ class QoiManager(object):
         Args:
             results(dict)
         """
-        # calculate the material properties from the Qoi objects
         for n_qoi, o_qoi in self.obj_Qoi.items():
-            for sim_name, sim_info in o_qoi.get_required_variables().items():
-                print(qoi,sim_name,sim_info)
-        for qoi_name in self.qoi_names:
-            print(qoi_name)
-            print(self.qoi_info.qois[qoi_name])
-        print(80*'-')
-        print('required simulations')
-        for k,v, in self.required_simulations.items():
-            print(k,v)
-        for k,v in self.qoi_info.qois.items():
-            print(k,v)
-        for k,v in self.obj_qois.items():
-            print(k,v)
+            o_qoi.calculate_qois(task_results=task_results)
+
+        for k_qoi in self.qois:
+            _qoi_id = self.qois[k_qoi]['qoi_name']
+            _obj_qoi_id = _qoi_id[:_qoi_id.rindex('.')]
+            _qoi_val = self.obj_Qoi[_obj_qoi_id].qois[_qoi_id]
+            _qoi_ref = self.qois[k_qoi]['qoi_ref']
+            self.qois[k_qoi]['qoi_val'] = _qoi_val
+            self.qois[k_qoi]['qoi_err'] = abs(_qoi_val-_qoi_ref)
+        # calculate the material properties from the Qoi objects
+        #for n_qoi, o_qoi in self.obj_Qoi.items():
+        #    for sim_name, sim_info in o_qoi.get_required_variables().items():
+        #        print(qoi,sim_name,sim_info)
+        #for qoi_name in self.qoi_names:
+        #    print(qoi_name)
+        #    print(self.qoi_info.qois[qoi_name])
+        #print(80*'-')
+        #print('required simulations')
+        #for k,v, in self.required_simulations.items():
+        #    print(k,v)
+        #for k,v in self.qoi_info.qois.items():
+        #    print(k,v)
+        #for k,v in self.obj_qois.items():
+        #    print(k,v)
 
 #------------------------------------------------------------------------------
 from pypospack.io.filesystem import OrderedDictYAMLLoader 

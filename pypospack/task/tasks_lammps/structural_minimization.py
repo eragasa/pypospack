@@ -74,26 +74,50 @@ class LammpsStructuralMinimization(LammpsSimulation):
                     print('line:{}'.format(line.strip))
                     raise NotImplementedError
       
+        _task_name = self.task_name
         self.results = OrderedDict()
-        self.results['toten'] = _results['tot_energy']
-        self.results['natoms'] = _results['num_atoms']
+        self.results['{}.{}'.format(_task_name,'toten')] = _results['tot_energy']
+        self.results['{}.{}'.format(_task_name,'natoms')] = _results['num_atoms']
         # this only works for orthogonal cells
-        self.results['a11'] = _results['xx']
-        self.results['a12'] = 0
-        self.results['a13'] = 0
-        self.results['a21'] = 0
-        self.results['a22'] = _results['yy']
-        self.results['a23'] = 0
-        self.results['a31'] = 0
-        self.results['a32'] = 0
-        self.results['a33'] = _results['zz']
-        self.results['totpress'] = _results['tot_press']
-        self.results['p11'] = _results['pxx']
-        self.results['p22'] = _results['pyy']
-        self.results['p33'] = _results['pzz']
-        self.results['p12'] = self.results['p21'] = _results['pxy']
-        self.results['p13'] = self.results['p31'] = _results['pxz']
-        self.results['p23'] = self.results['p32'] = _results['pyz']
+        self.results['{}.{}'.format(_task_name,'a11')] = _results['xx']
+        self.results['{}.{}'.format(_task_name,'a12')] = 0
+        self.results['{}.{}'.format(_task_name,'a13')] = 0
+        self.results['{}.{}'.format(_task_name,'a21')] = 0
+        self.results['{}.{}'.format(_task_name,'a22')] = _results['yy']
+        self.results['{}.{}'.format(_task_name,'a23')] = 0
+        self.results['{}.{}'.format(_task_name,'a31')] = 0
+        self.results['{}.{}'.format(_task_name,'a32')] = 0
+        self.results['{}.{}'.format(_task_name,'a33')] = _results['zz']
+        self.results['{}.{}'.format(_task_name,'totpress')] = _results['tot_press']
+        self.results['{}.{}'.format(_task_name,'p11')] = _results['pxx']
+        self.results['{}.{}'.format(_task_name,'p12')] = _results['pxy']
+        self.results['{}.{}'.format(_task_name,'p13')] = _results['pxz']
+        self.results['{}.{}'.format(_task_name,'p21')] = _results['pxy']
+        self.results['{}.{}'.format(_task_name,'p22')] = _results['pyy']
+        self.results['{}.{}'.format(_task_name,'p23')] = _results['pyz'] #pyz=pzy
+        self.results['{}.{}'.format(_task_name,'p31')] = _results['pxz'] #pxz=pzx
+        self.results['{}.{}'.format(_task_name,'p32')] = _results['pyz']
+        self.results['{}.{}'.format(_task_name,'p33')] = _results['pzz']
+        #self.results = OrderedDict()
+        #self.results['toten'] = _results['tot_energy']
+        #self.results['natoms'] = _results['num_atoms']
+        # this only works for orthogonal cells
+        #self.results['a11'] = _results['xx']
+        #self.results['a12'] = 0
+        #self.results['a13'] = 0
+        #self.results['a21'] = 0
+        #self.results['a22'] = _results['yy']
+        #self.results['a23'] = 0
+        #self.results['a31'] = 0
+        #self.results['a32'] = 0
+        #self.results['a33'] = _results['zz']
+        #self.results['totpress'] = _results['tot_press']
+        #self.results['p11'] = _results['pxx']
+        #self.results['p22'] = _results['pyy']
+        #self.results['p33'] = _results['pzz']
+        #self.results['p12'] = self.results['p21'] = _results['pxy']
+        #self.results['p13'] = self.results['p31'] = _results['pxz']
+        #self.results['p23'] = self.results['p32'] = _results['pyz']
 
     def _lammps_input_run_minimization(self):
         str_out = (

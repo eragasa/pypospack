@@ -44,6 +44,45 @@ class RelaxedStructureCalculations(Qoi):
                 task_type=_task_type,
                 task_name=_task_name,
                 task_structure=_structure_ideal_name)
+
+    def calculate_qois(self,task_results):
+        _prefix = '{}.{}'.format(
+                self.structures['ideal'],
+                'lmps_min_all')
+
+        _e_min_all = task_results['{}.{}'.format(_prefix,'toten')]
+        _n_atoms = task_results['{}.{}'.format(_prefix,'natoms')]
+        _p_tot = task_results['{}.{}'.format(_prefix,'totpress')]
+        _a11 = task_results['{}.{}'.format(_prefix,'a11')]
+        _a12 = task_results['{}.{}'.format(_prefix,'a12')]
+        _a13 = task_results['{}.{}'.format(_prefix,'a13')]
+        _a21 = task_results['{}.{}'.format(_prefix,'a21')]
+        _a22 = task_results['{}.{}'.format(_prefix,'a22')]
+        _a23 = task_results['{}.{}'.format(_prefix,'a23')]
+        _a31 = task_results['{}.{}'.format(_prefix,'a31')]
+        _a32 = task_results['{}.{}'.format(_prefix,'a32')]
+        _a33 = task_results['{}.{}'.format(_prefix,'a33')]
+        _p11 = task_results['{}.{}'.format(_prefix,'p11')]
+        _p12 = task_results['{}.{}'.format(_prefix,'p12')]
+        _p13 = task_results['{}.{}'.format(_prefix,'p13')]
+        _p21 = task_results['{}.{}'.format(_prefix,'p21')]
+        _p22 = task_results['{}.{}'.format(_prefix,'p22')]
+        _p23 = task_results['{}.{}'.format(_prefix,'p23')]
+        _p31 = task_results['{}.{}'.format(_prefix,'p31')]
+        _p32 = task_results['{}.{}'.format(_prefix,'p32')]
+        _p33 = task_results['{}.{}'.format(_prefix,'p33')]
+
+        self.qois = OrderedDict()
+        self.qois['{}.Ecoh_min_all'.format(_prefix)] = _e_min_all / _n_atoms
+        self.qois['{}.a11_min_all'.format(_prefix)] = _a11
+        self.qois['{}.a12_min_all'.format(_prefix)] = _a12
+        self.qois['{}.a13_min_all'.format(_prefix)] = _a13
+        self.qois['{}.a21_min_all'.format(_prefix)] = _a21
+        self.qois['{}.a22_min_all'.format(_prefix)] = _a22
+        self.qois['{}.a23_min_all'.format(_prefix)] = _a23
+        self.qois['{}.a31_min_all'.format(_prefix)] = _a31
+        self.qois['{}.a32_min_all'.format(_prefix)] = _a32
+        self.qois['{}.a33_min_all'.format(_prefix)] = _a33
     
     def get_required_variables(self):
         return list(self.variables.keys())

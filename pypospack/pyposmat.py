@@ -430,7 +430,7 @@ class PyposmatEngine(object):
                 structures = _structures)
         
     def evaluate_parameter_set(self,parameters):
-
+        self.configure_task_manager()
         _parameters = copy.deepcopy(parameters)
         _potential = copy.deepcopy(self.configuration.potential)
         self.task_manager.evaluate_tasks(
@@ -459,6 +459,8 @@ class PyposmatEngine(object):
         _results['errors'] = copy.deepcopy(_qoi_errors)
 
         return _results
+
+   
 # -----------------------------------------------------------------------------
 from pypospack.pyposmat_engines.mc_sampler import PyposmatMonteCarloSampler
 # -----------------------------------------------------------------------------

@@ -200,6 +200,7 @@ for p in free_parameter_names:
         pass
 
 for i_sample in range(n_samples):
+    print(i_sample)
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
     for p in free_parameter_names:

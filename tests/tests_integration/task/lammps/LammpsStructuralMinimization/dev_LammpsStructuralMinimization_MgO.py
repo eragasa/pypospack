@@ -25,13 +25,13 @@ MgO_LC_parameters['OO_C']     = 27.88
 MgO_structure_definition = OrderedDict()
 MgO_structure_definition['name'] = 'MgO_NaCl_unit'
 MgO_structure_definition['filename'] = os.path.join(
-        'test_LammpsSinglePointCalculation',
+        'test_LammpsStructuralMinimization',
         'MgO_NaCl_unit.gga.relax.vasp')
 
 MgO_LC_configuration = OrderedDict()
 MgO_LC_configuration['task'] = OrderedDict()
-MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_sp'
+MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.lmps_min_all'
+MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.lmps_min_all'
 MgO_LC_configuration['task_type'] = 'min_none'
 MgO_LC_configuration['potential'] = MgO_buck_potential_definition
 MgO_LC_configuration['parameters'] = MgO_LC_parameters
@@ -45,8 +45,8 @@ structure_filename = configuration['structure']['filename']
 restart=False
 fullauto=False
 
-from pypospack.task.lammps import LammpsSinglePointCalculation
-lammps_task = LammpsSinglePointCalculation(
+from pypospack.task.lammps import LammpsStructuralMinimization
+lammps_task = LammpsStructuralMinimization(
         task_name = task_name,
         task_directory = task_directory,
         structure_filename = structure_filename)
@@ -55,3 +55,5 @@ lammps_task.on_config(configuration)
 lammps_task.on_ready(configuration)
 lammps_task.on_running(configuration)
 lammps_task.on_post(configuration)
+
+print(lammps_task.results)
