@@ -6,7 +6,8 @@ import pandas as pd
 #from pyposmat.pypospack import PyposmatDataFile
 
 data_directory = os.path.join(
-        '../../../test_data/test_PyposmatData',
+        '../../../data_test',
+        'test_PyposmatData',
         'data',
         'output')
 pypospack_data_filename = os.path.join(

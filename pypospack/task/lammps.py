@@ -27,7 +27,6 @@ from pypospack.potential import Potential,EamPotential,PotentialObjectMap
 
 atom_style_list = ['charge','atomic']
 
-
 lammps_simulation_map = {\
         'min_all':{
             'module':'pypospack.task.lammps',
