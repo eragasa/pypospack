@@ -9,6 +9,7 @@ MgO_buck_potential_definition = OrderedDict()
 MgO_buck_potential_definition['potential_type'] = 'buckingham'
 MgO_buck_potential_definition['symbols'] = ['Mg','O']
 
+# define parameter set
 MgO_LC_parameters = OrderedDict()
 MgO_LC_parameters['chrg_Mg'] = +2.0
 MgO_LC_parameters['chrg_O']  = -2.0
@@ -25,14 +26,14 @@ MgO_LC_parameters['OO_C']     = 27.88
 MgO_structure_definition = OrderedDict()
 MgO_structure_definition['name'] = 'MgO_NaCl_unit'
 MgO_structure_definition['filename'] = os.path.join(
-        'test_LammpsSimulation',
+        'test_LammpsElasticCalculation',
         'MgO_NaCl_unit.gga.relax.vasp')
 
 MgO_LC_configuration = OrderedDict()
 MgO_LC_configuration['task'] = OrderedDict()
-MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task_type'] = 'min_none'
+MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.lmps_elastic'
+MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.lmps_elastic'
+MgO_LC_configuration['task_type'] = 'lmps_elastic'
 MgO_LC_configuration['potential'] = MgO_buck_potential_definition
 MgO_LC_configuration['parameters'] = MgO_LC_parameters
 MgO_LC_configuration['structure'] = MgO_structure_definition
@@ -54,4 +55,8 @@ lammps_task.on_init(configuration)
 lammps_task.on_config(configuration)
 lammps_task.on_ready(configuration)
 lammps_task.on_running(configuration)
+while lammps_task.status != 'POST':
+    lammps_task.update_status()
 lammps_task.on_post(configuration)
+
+print(lammps_task.results)

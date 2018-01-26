@@ -200,7 +200,6 @@ for p in free_parameter_names:
         pass
 
 for i_sample in range(n_samples):
-    print(i_sample)
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
     for p in free_parameter_names:
@@ -217,6 +216,15 @@ for i_sample in range(n_samples):
 
     #_parameters = MgO.MgO_LewisCatlow['parameters']
     _results = engine.evaluate_parameter_set(parameters=_parameters)
-    print(i_sample,_results)
-
     
+    _strout = str(i_sample) + ","\
+            + ",".join([str(v) for k,v in _results['parameters'].items()]) + ","\
+            + ",".join([str(v) for k,v in _results['qois'].items()]) + ","\
+            + ",".join([str(v) for k,v in _results['errors'].items()])
+    #print(_strout)
+    print(i_sample)
+    print(_results)
+    print(_results['parameters'])
+    print(_results['qois'])
+    print(_results['errors'])
+    print(_results['parameters']['MgMg_A'])

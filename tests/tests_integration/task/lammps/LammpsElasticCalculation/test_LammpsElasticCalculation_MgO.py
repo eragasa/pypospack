@@ -132,6 +132,7 @@ def test__on_init():
         assert lammps_task.status == 'READY'
     else:
         assert lammps_task.status == 'CONFIG'
+
 def test__on_ready():
     task_name = configuration['task']['task_name']
     task_directory = configuration['task']['task_directory']
@@ -176,4 +177,50 @@ def test__on_ready():
     assert all([v for k,v in lammps_task.conditions_POST.items()]) == False
     assert all([v for k,v in lammps_task.conditions_FINISHED.items()]) == False
 
+def test__on_post():
+    task_name = configuration['task']['task_name']
+    task_directory = configuration['task']['task_directory']
+    structure_filename = configuration['structure']['filename']
+    restart=False
+    fullauto=False
+
+    cleanup(task_directory)
+    assert not os.path.exists(task_directory)
+    assert 'potential' in configuration
+    assert 'parameters' in configuration
+    #<--- code setup
+    from pypospack.task.lammps import LammpsElasticCalculation
+    lammps_task = LammpsElasticCalculation(
+            task_name = task_name,
+            task_directory = task_directory,
+            structure_filename = structure_filename)
+    lammps_task.on_init(configuration)
+    lammps_task.on_config(configuration)
+    lammps_task.on_ready(configuration)
+    #<--- code being testing
+    while lammps_task.status != 'POST':
+        lammps_task.update_status()
+    lammps_task.on_post(configuration)
+    #<--- test setup
+    assert os.path.exists(task_directory)
+    assert lammps_task.status == 'READY'
+
+    assert type(lammps_task.conditions_INIT) == OrderedDict
+    assert type(lammps_task.conditions_CONFIG) == OrderedDict
+    assert type(lammps_task.conditions_READY) == OrderedDict
+    assert type(lammps_task.conditions_RUNNING) == OrderedDict
+    assert type(lammps_task.conditions_POST) == OrderedDict
+    assert type(lammps_task.conditions_FINISHED) == OrderedDict
+
+    assert lammps_task.conditions_INIT['task_directory_created']
+    assert all([v for k,v in lammps_task.conditions_INIT.items()]) == True
+    assert lammps_task.conditions_CONFIG['potential_initialized'] == True
+    assert lammps_task.conditions_CONFIG['parameters_processed'] == True
+    assert all([v for k,v in lammps_task.conditions_CONFIG.items()]) == True
+    assert all([v for k,v in lammps_task.conditions_READY.items()]) == True
+    assert lammps_task.conditions_RUNNING['process_initialized']== True
+    assert all([v for k,v in lammps_task.conditions_RUNNING.items()]) == True
+    assert lammps_task.conditions_POST['process_finished'] == False
+    assert all([v for k,v in lammps_task.conditions_POST.items()]) == False
+    assert all([v for k,v in lammps_task.conditions_FINISHED.items()]) == False
 

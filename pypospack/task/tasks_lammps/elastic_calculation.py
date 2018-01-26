@@ -1,4 +1,5 @@
 import os
+from collections import OrderedDict
 from pypospack.task.lammps import LammpsSimulation
 import pypospack.potential as potential
 
@@ -19,7 +20,7 @@ class LammpsElasticCalculation(LammpsSimulation):
     def __init__(self,
             task_name,
             task_directory,
-            structure_filename='POSCAR',
+            structure_filename,
             restart=False,
             fullauto=False):
 
@@ -40,15 +41,14 @@ class LammpsElasticCalculation(LammpsSimulation):
                 'c55','c56',
                 'c66']
 
-    def on_post(self):
-        _lammps_results_names = self.lammps_results_names
-        self.get_variables_from_lammps_output(
-                variables = lammps_results_names)
+    def postprocess(self):
+        LammpsSimulation.postprocess(self)
 
-        self.update_status()
-        if self.is_fullauto:
-            self.on_update_status()
-    
+    def on_post(self,configuration=None):
+        #self.__get_results_from_lammps_outputfile()
+        self.get_elastic_tensor()
+        LammpsSimulation.on_post(self,configuration=configuration)
+
     def write_potential_file(self):
         if self.potential is None:
             return
@@ -116,12 +116,6 @@ class LammpsElasticCalculation(LammpsSimulation):
         filename = os.path.join(self.task_directory,'displace.mod')
         with open(filename,'w') as f:
             f.write(str_out)
-
-    def on_post(self):
-        self.get_elastic_tensor()
-        self.update_status()
-        if self.is_fullauto:
-            self.on_update_status()
 
 
     def lammps_input_file_to_string(self):
@@ -397,7 +391,6 @@ class LammpsElasticCalculation(LammpsSimulation):
             "variable dir delete\n")
         return str_out
 
-
     def get_elastic_tensor(self):
         filename = os.path.join(self.task_directory,'lammps.out')
         with open(filename,'r') as f:
@@ -405,24 +398,15 @@ class LammpsElasticCalculation(LammpsSimulation):
 
         _lammps_results_names = self.lammps_results_names
 
-        self.results = {}
-        for i,line in enumerate(lines):
-            for name in lammps_results_names:
-                if '{} = '.format(name) in line:
-                    try:
-                        self.results[name] = \
-                                float(line.split('=')[1].split()[0].strip())
-                    except:
-                        print('name:{}'.format(name))
-                        print('line:{}'.format(line.strip()))
-                        raise
+        self.results = OrderedDict()
 
-        self.results['elastic_tensor'] = np.zeros((6,6))
-        for i in range(6):
-            for j in range(6):
-                if i <= j:
-                    self.results['elastic_tensor'][i,j] = \
-                            self.results['c{}{}'.format(i+1,j+1)]
-                else:
-                    self.results['elastic_tensor'][i,j] = \
-                            self.results['c{}{}'.format(j+1,i+1)]
+        _task_name = self.task_name
+        for i,line in enumerate(lines):
+            for name in _lammps_results_names:
+                if line.startswith('{} = '.format(name)):
+                    self.results['{}.{}'.format(_task_name,name)] = \
+                            float(line.split('=')[1].split()[0].strip())
+                elif line.startswith('ERROR'):
+                    print('name:{}'.format(name))
+                    print('line:{}'.format(line.strip))
+                    raise NotImplementedError
