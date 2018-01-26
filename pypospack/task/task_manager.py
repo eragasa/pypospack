@@ -12,8 +12,14 @@ TaskToClassMap['lmps_min_none'] = OrderedDict()
 TaskToClassMap['lmps_min_none']['module'] = 'pypospack.task.lammps'
 TaskToClassMap['lmps_min_none']['class'] = 'LammpsSinglePointCalculation'
 TaskToClassMap['lmps_elastic'] = OrderedDict()
-TaskToClassMap['lmps_elastic']['module'] = 'pypopsack.task.lammps'
+TaskToClassMap['lmps_elastic']['module'] = 'pypospack.task.lammps'
 TaskToClassMap['lmps_elastic']['class'] = 'LammpsElasticCalculation'
+TaskToClassMap['lmps_npt'] = OrderedDict()
+TaskToClassMap['lmps_npt']['module'] = 'pypospack.task.lammps'
+TaskToClassMap['lmps_npt']['class']= 'LammpsNptSimulation'
+TaskToClassMap['lmps_neb'] = OrderedDict()
+TaskToClassMap['lmps_neb']['module'] = 'pypospack.task.lammps'
+TaskToClassMap['lmps_neb']['class'] = 'LammpsNebCalculation'
 
 class TaskManager(object):
     """

@@ -35,7 +35,7 @@ class LammpsElasticCalculation(LammpsSimulation):
         
         self.lammps_results_names = [
                 'c11','c12','c13',
-                'c22','c23','c24','c25','c26'
+                'c22','c23','c24','c25','c26',
                 'c33','c34','c35','c36',
                 'c44','c45','c46',
                 'c55','c56',
@@ -49,6 +49,7 @@ class LammpsElasticCalculation(LammpsSimulation):
         self.get_elastic_tensor()
         LammpsSimulation.on_post(self,configuration=configuration)
 
+    def on_finished(self,configuration=None): pass
     def write_potential_file(self):
         if self.potential is None:
             return
@@ -404,9 +405,21 @@ class LammpsElasticCalculation(LammpsSimulation):
         for i,line in enumerate(lines):
             for name in _lammps_results_names:
                 if line.startswith('{} = '.format(name)):
-                    self.results['{}.{}'.format(_task_name,name)] = \
-                            float(line.split('=')[1].split()[0].strip())
+                    # get the result name and result value from the file
+                    # _rk = key to store result
+                    # _rv = value to store
+                    _rk = '{}.{}'.format(_task_name,name)
+                    _rv = float(line.split('=')[1].split()[0].strip())
+
+                    self.results[_rk] = _rv
                 elif line.startswith('ERROR'):
                     print('name:{}'.format(name))
                     print('line:{}'.format(line.strip))
                     raise NotImplementedError
+        
+        #_all_components_exist = all([n in self.results for n in _lammps_results_names])
+        #if not _all_components_exist:
+        #    for n in _lammps_results_names:
+        #        print(n,n in self.results.keys())
+
+

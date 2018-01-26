@@ -202,7 +202,7 @@ class Qoi:
 from pypospack.qois.crystalstructuregeometry import RelaxedStructureCalculations
 from pypospack.qois.crystalstructuregeometry import RelaxedPositionCalculations
 from pypospack.qois.crystalstructuregeometry import StaticStructureCalculations
-from pypospack.qois.lammps_elastic_properties import ElasticPropertyCalculation
+from pypospack.qois.lammps_elastic_properties import ElasticPropertyCalculations
 # -----------------------------------------------------------------------------
 class QoiManager(object):
     """ Manager of Quantities of Interest 

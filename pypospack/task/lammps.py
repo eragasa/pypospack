@@ -266,6 +266,12 @@ class LammpsSimulation(Task):
         if self.is_fullauto:
             self.on_update_status()
 
+    def on_finished(self,configuration=None):
+        # doing nothing here
+        self.update_status()
+        if self.is_fullauto:
+            self.on_update_status()
+
     def on_error(self,configuration=None):
         pass
 
