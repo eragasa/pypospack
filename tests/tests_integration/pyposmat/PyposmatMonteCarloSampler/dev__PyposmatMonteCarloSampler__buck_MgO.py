@@ -17,11 +17,11 @@ MgO_qoi_db.add_qoi(
         qoi_type='a11_min_all',
         structures=OrderedDict([('ideal','MgO_NaCl')]),
         target=4.246)
-#MgO_qoi_db.add_qoi(
-#        qoi_name='MgO_NaCl.c11',
-#        qoi_type='c11',
-#        structures=OrderedDict([('ideal','MgO_NaCl')]),
-#        target=277.00)
+MgO_qoi_db.add_qoi(
+        qoi_name='MgO_NaCl.c11',
+        qoi_type='c11',
+        structures=OrderedDict([('ideal','MgO_NaCl')]),
+        target=277.00)
 #MgO_qoi_db.add_qoi(
 #        qoi_name='MgO_NaCl.c12',
 #        qoi_type='c12',

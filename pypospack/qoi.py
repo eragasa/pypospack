@@ -40,7 +40,7 @@ def get_qoi_map():
                        'bulk_modulus',
                        'shear_modulus'],
                 'module':'pypospack.qoi',
-                'class':'ElasticTensor'},
+                'class':'ElasticPropertyCalculations'},
             'defect_energy':{
                 'qoi':['defect_energy'],
                 'module':'pypospack.qoi',
@@ -202,7 +202,7 @@ class Qoi:
 from pypospack.qois.crystalstructuregeometry import RelaxedStructureCalculations
 from pypospack.qois.crystalstructuregeometry import RelaxedPositionCalculations
 from pypospack.qois.crystalstructuregeometry import StaticStructureCalculations
-
+from pypospack.qois.lammps_elastic_properties import ElasticPropertyCalculation
 # -----------------------------------------------------------------------------
 class QoiManager(object):
     """ Manager of Quantities of Interest 
@@ -311,45 +311,6 @@ class QoiManager(object):
                          structures = _structures)
                     self.qois[qoik]['qoi_name'] = '{}.{}'.format(_qoiname,_qoitype)
     
-    #def configure__obj_Qoi(self):
-    #    self.obj_qoi = OrderedDict()
-    #    
-    #    for qoik,qoiv in self.qoidb.qois.items():
-    #        for qoimapk,qoimapv in self.obj_QoiMap.items():
-    #            if qoiv['qoi_type'] in qoimapv['qoi']:
-    #                _structures = None
-    #                _qoi_simulation_type = qoimapk
-
-     #               if isinstance(
-     #                       qoiv['structures'],
-     #                       list):
-     #                   _structure = qoiv['structures'][0]
-     #               elif isinstance(
-     #                       qoiv['structures'],
-     #                       dict):
-     #                   try:
-     #                       _structure = qoiv['structures']['defect']
-     #                   except KeyError:
-     #                       _structure = qoiv['structures']['ideal']
-     #               elif isinstance(
-     #                       qoiv['structures'],
-     #                       str):
-     #                   _structure = qoiv['structures']
-     #               else:
-     #                   msg_err = (
-     #                       "Cannot process the type for 'structures':{}"
-     #                       ).format(str(type(qoiv['structures'])))
-
-     #               _qoiname = '{}.{}'.format(_structure,_qoi_simulation_type)
-     #               _module = qoimapv['module']
-     #               _class = qoimapv['class']
-     #               _structures = qoiv['structures']
-     #               self._add_obj_Qoi(
-     #                    qoi_name = _qoiname,
-     #                    module_name = _module,
-     #                    class_name = _class,
-     #                    structures = _structures)
-
     def calculate_qois(self,task_results):
         assert isinstance(task_results,OrderedDict)
 
@@ -436,21 +397,6 @@ class QoiManager(object):
             _qoi_ref = self.qois[k_qoi]['qoi_ref']
             self.qois[k_qoi]['qoi_val'] = _qoi_val
             self.qois[k_qoi]['qoi_err'] = abs(_qoi_val-_qoi_ref)
-        # calculate the material properties from the Qoi objects
-        #for n_qoi, o_qoi in self.obj_Qoi.items():
-        #    for sim_name, sim_info in o_qoi.get_required_variables().items():
-        #        print(qoi,sim_name,sim_info)
-        #for qoi_name in self.qoi_names:
-        #    print(qoi_name)
-        #    print(self.qoi_info.qois[qoi_name])
-        #print(80*'-')
-        #print('required simulations')
-        #for k,v, in self.required_simulations.items():
-        #    print(k,v)
-        #for k,v in self.qoi_info.qois.items():
-        #    print(k,v)
-        #for k,v in self.obj_qois.items():
-        #    print(k,v)
 
 #------------------------------------------------------------------------------
 from pypospack.io.filesystem import OrderedDictYAMLLoader 
@@ -574,22 +520,6 @@ class QoiDatabase(object):
             yaml.dump(_qoidb,f, default_flow_style=False)
 #------------------------------------------------------------------------------
 
-class ElasticTensor(Qoi):
-    def __init__(self,qoi_name,structures):
-        qoi_type = 'elastic_tensor'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        #self.determine_required_simulations()
-        self.structure = self.structures[0]
-
-        required_variables = ['c11','c12','c13','c22','c23','c33',
-                              'c44']
-
-    #def determine_required_simulations(self):
-    #    if self.required_simulations is not None:
-    #        return
-    #    self.required_simulations = {}
-    #    structure = self.structures[0]
-    #    self.add_required_simulation(structure,'elastic')
 
 class DefectFormationEnergy(Qoi):
     def __init__(self,qoi_name, structures):
