@@ -666,7 +666,7 @@ class LammpsSimulation(Task):
 
 from pypospack.task.tasks_lammps.single_point_calc \
         import LammpsSinglePointCalculation
-from pypospack.task.tasks_lammps.position_minimization \
+from pypospack.task.tasks_lammps.lmps_min_pos \
         import LammpsPositionMinimization
 from pypospack.task.tasks_lammps.structural_minimization \
         import LammpsStructuralMinimization
