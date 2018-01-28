@@ -34,7 +34,7 @@ def get_qoi_map():
                       ],
                 'module':'pypospack.qoi',
                 'class':'RelaxedStructureCalculations'},
-            'elastic':{
+            'lmps_elastic':{
                 'qoi':['c11','c12','c13','c22','c23',
                        'c33','c44','c55','c66',
                        'bulk_modulus',
