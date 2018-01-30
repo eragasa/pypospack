@@ -6,6 +6,8 @@ import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 import pypospack.potential as potential
 
+structure_directory = 'test_LammpsPositionMinimization'
+
 MgO_buck_potential_definition = OrderedDict()
 MgO_buck_potential_definition['potential_type'] = 'buckingham'
 MgO_buck_potential_definition['symbols'] = ['Mg','O']
@@ -183,7 +185,7 @@ def test__on_ready():
     #<--- code being testing
     lammps_task.on_ready(configuration)
 
-    #<---
+    #<--- test
     assert os.getcwd() == cwd
 
     assert type(lammps_task.conditions_INIT) == OrderedDict

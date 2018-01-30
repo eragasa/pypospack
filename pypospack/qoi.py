@@ -41,8 +41,8 @@ def get_qoi_map():
                        'shear_modulus'],
                 'module':'pypospack.qoi',
                 'class':'ElasticPropertyCalculations'},
-            'defect_energy':{
-                'qoi':['defect_energy'],
+            'lmps_defect':{
+                'qoi':['E_formation'],
                 'module':'pypospack.qoi',
                 'class':'DefectFormationEnergy'},
             'surface_energy':{
@@ -123,14 +123,14 @@ class Qoi:
     def predicted_value(self, qhat):
         self._predicted_value = qhat
 
-    def add_task(self,task_type,task_name,task_structure):
+    def add_task(self,task_type,task_name,task_structure,task_requires=None):
         if self.tasks is None:
             self.tasks = OrderedDict()
 
         self.tasks[task_name] = OrderedDict()
         self.tasks[task_name]['task_type'] = task_type
         self.tasks[task_name]['task_structure'] = task_structure
-
+        self.tasks[task_name]['task_requires'] = copy.deepcopy(task_requires)
     def process_task_results(self,task_results):
         assert isinstance(task_results,dict)
         
@@ -203,6 +203,8 @@ from pypospack.qois.crystalstructuregeometry import RelaxedStructureCalculations
 from pypospack.qois.crystalstructuregeometry import RelaxedPositionCalculations
 from pypospack.qois.crystalstructuregeometry import StaticStructureCalculations
 from pypospack.qois.lammps_elastic_properties import ElasticPropertyCalculations
+from pypospack.qois.lammps_defect_formation_energy \
+        import DefectFormationEnergy
 # -----------------------------------------------------------------------------
 class QoiManager(object):
     """ Manager of Quantities of Interest 
@@ -519,52 +521,6 @@ class QoiDatabase(object):
         with open(self.filename,'w') as f:
             yaml.dump(_qoidb,f, default_flow_style=False)
 #------------------------------------------------------------------------------
-
-
-class DefectFormationEnergy(Qoi):
-    def __init__(self,qoi_name, structures):
-        if isinstance(structures,list):
-            _structures = OrderedDict()
-            _structures['defect'] = structures[0]
-            _structures['ideal'] = structures[1]
-        qoi_type = 'defect_energy'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        
-
-    def determine_required_simulations(self):
-        if self.required_simulations is not None:
-            return
-        self.required_simulations = {}
-        self.add_required_simulation(self.ideal_structure,'E_min_all')
-        self.add_required_simulation(self.defect_structure,'E_min_pos')
-
-        # simulation names
-        ideal = "{}.{}".format(self.ideal_structure, 'E_min_all')
-        defect = "{}.{}".format(self.defect_structure,'E_min_pos')
-
-        precedent_tasks = {}
-        precedent_tasks[ideal] = {}
-        precedent_tasks[ideal]['variables'] = {
-                'a1': None,
-                'a2': None,
-                'a3': None,
-                'E_coh': None,
-                'n_atoms': []}
-
-        self.required_simulations[defect]['precedent_tasks'] = \
-                copy.deepcopy(precedent_tasks)
-        
-    def calculate_qoi(self,variables):
-        s_name_defect = self.defect_structure
-        s_name_bulk   = self.bulk_structure
-
-        #e_defect = self._req_vars["{}.E_min_pos".format(s_name_defect)]
-        #e_bulk   = self._req_vars["{}.E_min".format(s_name_bulk)]
-        #n_atoms_defect = self._req_vars["{}.n_atoms".format(s_name_defect)]
-        #n_atoms_bulk   = self._req_vars["{}.n_atoms".format(s_name_bulk)]
-        #e_f = e_defect - n_atoms_defect/n_atoms_bulk*e_bulk
-        #self._predicted_value = e_f
-        #return self._predicted_value
 
 class SurfaceEnergy(Qoi):
     def __init__(self, qoi_name, structures):

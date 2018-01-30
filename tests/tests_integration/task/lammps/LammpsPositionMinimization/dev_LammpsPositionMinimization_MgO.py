@@ -4,6 +4,9 @@ from collections import OrderedDict
 import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
 import pypospack.potential as potential
+from pypospack.task.lammps import LammpsPositionMinimization
+
+structure_directory = 'test_LammpsPositionMinimization'
 
 MgO_buck_potential_definition = OrderedDict()
 MgO_buck_potential_definition['potential_type'] = 'buckingham'
@@ -25,14 +28,15 @@ MgO_LC_parameters['OO_C']     = 27.88
 MgO_structure_definition = OrderedDict()
 MgO_structure_definition['name'] = 'MgO_NaCl_unit'
 MgO_structure_definition['filename'] = os.path.join(
-        'test_LammpsSinglePointCalculation',
+        structure_directory,
         'MgO_NaCl_unit.gga.relax.vasp')
+MgO_structure_definition['bulk_prototype_structure'] = 'MgO_NaCl_unit'
 
 MgO_LC_configuration = OrderedDict()
 MgO_LC_configuration['task'] = OrderedDict()
-MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.E_sp'
-MgO_LC_configuration['task_type'] = 'min_none'
+MgO_LC_configuration['task']['task_name'] = 'MgO_NaCl.lmps_min_pos'
+MgO_LC_configuration['task']['task_directory'] = 'MgO_NaCl.lmps_min_pos'
+MgO_LC_configuration['task_type'] = 'lmps_min_pos'
 MgO_LC_configuration['potential'] = MgO_buck_potential_definition
 MgO_LC_configuration['parameters'] = MgO_LC_parameters
 MgO_LC_configuration['structure'] = MgO_structure_definition
@@ -45,8 +49,7 @@ structure_filename = configuration['structure']['filename']
 restart=False
 fullauto=False
 
-from pypospack.task.lammps import LammpsSinglePointCalculation
-lammps_task = LammpsSinglePointCalculation(
+lammps_task = LammpsPositionMinimization(
         task_name = task_name,
         task_directory = task_directory,
         structure_filename = structure_filename)
@@ -54,4 +57,17 @@ lammps_task.on_init(configuration)
 lammps_task.on_config(configuration)
 lammps_task.on_ready(configuration)
 lammps_task.on_running(configuration)
+while lammps_task.status != 'POST':
+    lammps_task.update_status()
 lammps_task.on_post(configuration)
+
+print(80*'-')
+print('{:^80}'.format('CONFIGURATION'))
+for k,v in configuration.items():
+    print(k,v)
+    #print('{:>20} {:<20}'.format(k,v))
+
+print(80*'-')
+print('{:^}'.format('RESULTS FROM TASK'))
+print(80*'-')
+print(lammps_task.results)

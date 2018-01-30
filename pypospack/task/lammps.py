@@ -97,6 +97,7 @@ class LammpsSimulation(Task):
             task_name,
             task_directory,
             task_type='single_point',
+            task_requires=None
             structure_filename='POSCAR',
             restart=False,
             fullauto=False):
@@ -131,6 +132,7 @@ class LammpsSimulation(Task):
                 task_name=task_name,
                 task_directory=task_directory,
                 restart=restart)
+        self.task_requires = copy.deepcopy(task_requires)
 
     @property
     def parameters(self):
