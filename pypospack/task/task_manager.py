@@ -154,7 +154,6 @@ class TaskManager(object):
         assert isinstance(task_name,str)
         assert isinstance(task_type,str)
         assert isinstance(task_structure,str)
-
         _base_directory = self.base_directory
         _task_name = task_name
         _task_type = task_type
