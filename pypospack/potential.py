@@ -106,7 +106,7 @@ class Potential(object):
             raise ValueError('element {} not in database'.format(element))
 
 from pypospack.potentials.tersoff import TersoffPotential
-
+from pypospack.potentials.stillingerweber import StillingerWeber
 #-----------------------------------------------------------------------------
 class PairPotential(Potential):
     def __init__(self,symbols,potential_type,is_charge):
