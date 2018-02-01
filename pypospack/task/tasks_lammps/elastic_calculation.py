@@ -61,6 +61,26 @@ class LammpsElasticCalculation(LammpsSimulation):
                     "{}.eam.alloy".format("".join(self.potential.symbols)))
             _str_out = self.potential.lammps_potential_section_to_string(
                 setfl_dst_filename=_setfl_dst_filename)
+        
+        # <-------- FOR STILLINGER WEBER POTENTIALS
+        elif isinstance(self.potential,potential.StillingerWeberPotential):
+            # define the filename --- SiO.parameters, Si.parameters
+            _symbols_str = "".join(self.potential.symbols)
+            _p_fname = "{}.parameters".format(_symbols_str)
+
+            # set the name of the output file
+            self.potential.lmps_parameter_filename = _p_fname
+            
+            # get the string of potential.mod
+            _str_out = self.potential.lammps_potential_section_to_string()
+
+            # write out the potential parameter file
+            _str_lmps_params = self.potential.lammps_parameter_file_to_string()
+            
+            _p_fname_dst = os.path.join(self.task_directory,_p_fname)
+            with open(_p_fname_dst,'w') as f:
+                f.write(_str_lmps_params)
+
         #default behavior
         else:
             _str_out = self.potential.lammps_potential_section_to_string()

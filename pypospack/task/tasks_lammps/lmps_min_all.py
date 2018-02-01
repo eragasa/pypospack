@@ -1,7 +1,7 @@
 import os,copy
 from collections import OrderedDict
 from pypospack.task.lammps import LammpsSimulation
-
+import pypospack.potenital as potential
 
 class LammpsStructuralMinimization(LammpsSimulation):
     """ Class for LAMMPS structural minimization

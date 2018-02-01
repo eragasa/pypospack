@@ -28,10 +28,11 @@ Si_sw_pizzagalli['SiSiSi_p']=3.5
 Si_sw_pizzagalli['SiSiSi_q']=0.5
 Si_sw_pizzagalli['SiSiSi_tol']=0
 
+src_structure_dir = 'test_LammpsElasticCalculation'
 Si_structure_definition = OrderedDict()
 Si_structure_definition['name'] = 'Si_sc'
 Si_structure_definition['filename'] = os.path.join(
-        'test_LammpsStructuralMinimization',
+        src_structure_dir,
         'Si_sc_unit.vasp')
 
 Si_configuration = OrderedDict()
@@ -51,8 +52,8 @@ structure_filename = configuration['structure']['filename']
 restart=False
 fullauto=False
 
-from pypospack.task.lammps import LammpsStructuralMinimization
-lammps_task = LammpsStructuralMinimization(
+from pypospack.task.lammps import LammpsElasticCalculation
+lammps_task = LammpsElasticCalculation(
         task_name = task_name,
         task_directory = task_directory,
         structure_filename = structure_filename)
@@ -60,7 +61,7 @@ lammps_task.on_init(configuration)
 lammps_task.on_config(configuration)
 lammps_task.on_ready(configuration)
 lammps_task.on_running(configuration)
-while lammps_task.status is not 'POST':
+while lammps_task.status != 'POST':
     lammps_task.update_status()
 lammps_task.on_post(configuration)
 
