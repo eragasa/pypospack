@@ -41,6 +41,7 @@ class Potential(object):
             is_charge=None):
         self.PYPOSPACK_CHRG_FORMAT = "chrg_{s}"
         self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
+        self.PYPOSPACK_3BODY_FORMAT = "{s1}{s2}{s3}_{p}"
 
         self.potential = None
         self.symbols = list(symbols)
@@ -106,7 +107,7 @@ class Potential(object):
             raise ValueError('element {} not in database'.format(element))
 
 from pypospack.potentials.tersoff import TersoffPotential
-from pypospack.potentials.stillingerweber import StillingerWeber
+from pypospack.potentials.stillingerweber import StillingerWeberPotential
 #-----------------------------------------------------------------------------
 class PairPotential(Potential):
     def __init__(self,symbols,potential_type,is_charge):

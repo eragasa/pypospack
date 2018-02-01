@@ -1,61 +1,118 @@
 # -*- coding: utf-8 -*-
 __author__ = "Eugene J. Ragasa"
-__copyright__ = "Copyright (C) 2017"
+__copyright__ = "Copyright (C) 2017,2018"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
+from collections import OrderedDict
 from pypospack.potential import Potential
 
-class StillingerWeber(Potential):
+class StillingerWeberPotential(Potential):
     def __init__(self,symbols):
-        Potential.__init__(self,symbols)
-        self._pot_type = 'stillingerweber'
-        self._determine_parameter_names()
-        self._fname_potential_file = 'potential.mod'
+        """
+        Args:
+            symbols: list of string
+        Attributes:
+            symbols
+            potential_type
+            is_charge
 
-    @property
-    def parameter_names(self):
-        return self._param_names
+        """
+        _potential_type = 'stillingerweber'
+        _is_charge = False
 
-    def _determine_parameter_names(self):
+        Potential.__init__(self,
+                symbols=symbols,
+                potential_type=_potential_type,
+                is_charge=_is_charge)
+
+    def _init_parameter_names(self):
         # TODO: This is only written for a single element potential
-        symbols = self._symbols
-        for i in range(n_symbols):
-            for j in range(n_symbols):
-                for k in range(n_symbols):
-                    el1 = symbols[i]
-                    el2 = symbols[j]
-                    el3 = symbols[k]
+        _symbols = self.symbols
+        _n_symbols = len(_symbols)
+        for i in range(_n_symbols):
+            for j in range(_n_symbols):
+                for k in range(_n_symbols):
+                    el1 = _symbols[i]
+                    el2 = _symbols[j]
+                    el3 = _symbols[k]
                     self._add_parameter_names(el1,el2,el3)
 
-    def _self_add_parameter_names(self,el1,el2,el3):
+    def _add_parameter_names(self,el1,el2,el3):
         s = "{}{}{}".format(el1,el2,el3)
-        tersoff_param_names = ['m','gamma','lambda3','c','d','costheta0','n','beta',
-                       'lambda2','B','R','D','lambda1','A']
-        for p in param_names:
-            self._param_names.append("{}_{}".format(s,p))
+        
+        sw_param_names = [
+                'epsilon',
+                'sigma',
+                'a',
+                'lambda',
+                'gamma',
+                'costheta0',
+                'A',
+                'B',
+                'p',
+                'q'
+            ]
+        
+        self.parameter_names = []
+        for p in sw_param_names:
+            self.parameter_names.append("{}_{}".format(s,p))
 
-    def write_lammps_potential_file(self):
-        fname_potential_mod = 'potential.mod'
-        fname_tersoff_file = 'potential.tersoff'
+    def _init_parameters(self):
+        self.parameters = OrderedDict()
+        for p in self.parameter_names:
+            self.parameters[p] = None
 
-        for i, el1 in enumerate(elements):
-            for j, el2 in enumerate(elements):
-                for k, el3 in enumerate(elements):
-                    s = '{}{}{}'.format(el1,el2,el3)
-                    m = self._param_dict['{}_m'.format(s)]
-                    str_pot += '{} {} {}'.format(el1,el2,el3)
-                    str_out += ' ' + self._param_dict['{}_gamma'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda3'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_c'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_d'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_costheta0'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_n'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_beta'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda2'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_B'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_R'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_D'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda1'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_A'.format(s)]
+    def lammps_potential_section_to_string(self,parameters=None):
+
+        if parameters is not None:
+            for p in self.parameters:
+                self.parameters[p] = parameters[p]
+
+        fname_sw_params = self.fname_sw_params
+
+        str_out = ''
+        for i,s in enumerate(self.symbols):
+            str_out += "mass {} {}\n".format(i+1,self._get_mass(s))
+        str_out += "\n"
+
+        for i,s in enumerate(self.symbols):
+            str_out += "group {} type {}\n".format(i+1,s)
+        str_out += "\n"
+
+        str_out += "pair_style sw\n"
+        for s in self.symbols:
+            str_out += "pair_coeff * * {} {}\n".format(fname_sw_params,s)
+        str_out += "\n"
+
+        str_out += "neighbor 1.0 bin\n"
+        str_out += "neigh_modify every 1 delay 0 check yes\n"
+
+        return str_out
+    
+    def lammps_sw_file_to_string(self,parameters):
+        if parameters is not None:
+            for p in self.parameters:
+                self.parameters[p] = parameters[p]
+        
+        str_out = ''
+        for i, s1 in enumerate(self.symbols):
+            for j, s2 in enumerate(self.symbols):
+                for k, s3 in enumerate(self.symbols):
+                    s = '{}{}{}'.format(s1,s2,s3)
+                    str_out += '{} {} {}'.format(s1,s2,s3)
+                    str_out += ' ' + str(self.parameters['{}_epsilon'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_sigma'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_a'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_lambda'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_gamma'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_costheta0'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_A'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_B'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_p'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_q'.format(s)])
                     str_out += '\n'
+
+        return str_out
+       
+
