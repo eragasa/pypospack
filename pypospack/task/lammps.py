@@ -23,7 +23,7 @@ import pypospack.io.lammps as lammps
 from pypospack.task import Task
 from pypospack.eamtools import EamSetflFile
 from pypospack.potential import Potential,EamPotential,PotentialObjectMap
-
+from pypospack.potential import StillingerWeberPotential
 
 atom_style_list = ['charge','atomic']
 
@@ -127,6 +127,14 @@ class LammpsSimulation(Task):
         # configuration
         self.configuration = OrderedDict()
         self.task_type = task_type
+        
+        self.conditions_INIT = None
+        self.conditions_CONFIG = None
+        self.conditions_READY = None
+        self.conditions_RUNNING = None
+        self.conditions_POST = None
+        self.conditions_FINISHED = None
+        self.conditions_ERROR = None
         Task.__init__(
                 self,
                 task_name=task_name,
@@ -134,6 +142,7 @@ class LammpsSimulation(Task):
                 restart=restart)
         self.task_requires = copy.deepcopy(task_requires)
 
+    
     @property
     def parameters(self):
         if self.potential is None:
@@ -275,7 +284,7 @@ class LammpsSimulation(Task):
             self.on_update_status()
 
     def on_error(self,configuration=None):
-        pass
+        raise ValueError
 
     def get_conditions_init(self):
         self.conditions_INIT = OrderedDict()
@@ -321,14 +330,23 @@ class LammpsSimulation(Task):
             elif _poll_result == 0:
                 _process_finished = True
             else:
-                raise ValueError("Lammps Exited with status {}".format(self.process.poll()))
+                if self.conditions_ERROR is None:
+                    self.conditions_ERROR= OrderedDict()
+
+                err_msg = 'Lammps exited with status {}'.format(_poll_result)
+                self.conditions_ERROR['lmps_bin_err'] =  err_msg
+                raise LammpsSimulationError(err_msg)
+        
         self.conditions_POST['process_finished'] = _process_finished
+
 
     def get_conditions_finished(self):
         self.conditions_FINISHED = OrderedDict()
         self.conditions_FINISHED['is_processed'] = self.results_processed  
+    
     def get_conditions_error(self):
-        self.conditions_ERROR = OrderedDict()
+        if self.conditions_ERROR is None:
+            self.conditions_ERROR = OrderedDict()
 
     def restart(self):
         raise NotImplementedError
@@ -421,24 +439,43 @@ class LammpsSimulation(Task):
             _str_out = self.potential.lammps_potential_section_to_string(
                 setfl_dst_filename=_setfl_dst_filename)
         
+        # <-------- FOR STILLINGER WEBER POTENTIALS
+        elif isinstance(self.potential,StillingerWeberPotential):
+            # define the filename --- SiO.parameters, Si.parameters
+            _symbols_str = "".join(self.potential.symbols)
+            _p_fname = "{}.parameters".format(_symbols_str)
+
+            # set the name of the output file
+            self.potential.lmps_parameter_filename = _p_fname
+            
+            # get the string of potential.mod
+            _str_out = self.potential.lammps_potential_section_to_string()
+
+            # write out the potential parameter file
+            _str_lmps_params = self.potential.lammps_parameter_file_to_string()
+            
+            _p_fname_dst = os.path.join(self.task_directory,_p_fname)
+            with open(_p_fname_dst,'w') as f:
+                f.write(_str_lmps_params)
+
         else:
             _str_out = self.potential.lammps_potential_section_to_string()
 
         _str_out += "\n"
         
-        # coulumbic charge summation         
+        # <-------- EWALD CHARGE SUMMATION METHOD 
         if self.potential.is_charge:
             _str_out += "kspace_style pppm 1.0e-5\n"
             _str_out += "\n"
         
-        # neighborlists
+        # <-------- TREATMENT OF NEAREST NEIGHBORS
         _str_out += "neighbor 1.0 bin\n"
         _str_out += "neigh_modify every 1 delay 0 check yes\n"
 
+        # <-------- WRITE POTENTIAL.MOD TO FILESYSTEM
         _lammps_potentialmod_filename = os.path.join(
                 self.task_directory,
                 self.lammps_potentialmod_filename)
-
         with open(_lammps_potentialmod_filename,'w') as f:
             f.write(_str_out)
     

@@ -439,6 +439,10 @@ def PotentialObjectMap(potential_type):
     potential_map['tersoff']['module'] = 'pypospack.potential'
     potential_map['tersoff']['class'] = 'TersoffPotential'
 
+    potential_map['stillingerweber'] = OrderedDict()
+    potential_map['stillingerweber']['module'] = 'pypospack.potential'
+    potential_map['stillingerweber']['class'] = 'StillingerWeberPotential'
+    
     potential_map['eam_dens_exp'] = OrderedDict()
     potential_map['eam_dens_exp']['module'] = 'pypospack.potential'
     potential_map['eam_dens_exp']['class'] = 'ExponentialDensityFunction'

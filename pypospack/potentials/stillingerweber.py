@@ -16,7 +16,8 @@ class StillingerWeberPotential(Potential):
             symbols
             potential_type
             is_charge
-
+        References:
+            http://lammps.sandia.gov/doc/pair_sw.html
         """
         _potential_type = 'stillingerweber'
         _is_charge = False
@@ -25,6 +26,8 @@ class StillingerWeberPotential(Potential):
                 symbols=symbols,
                 potential_type=_potential_type,
                 is_charge=_is_charge)
+
+        self.lmps_parameter_filename = "lmps_parameter_filename"
 
     def _init_parameter_names(self):
         # TODO: This is only written for a single element potential
@@ -51,7 +54,8 @@ class StillingerWeberPotential(Potential):
                 'A',
                 'B',
                 'p',
-                'q'
+                'q',
+                'tol'
             ]
         
         self.parameter_names = []
@@ -69,7 +73,7 @@ class StillingerWeberPotential(Potential):
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
 
-        fname_sw_params = self.fname_sw_params
+        fname_params= self.lmps_parameter_filename
 
         str_out = ''
         for i,s in enumerate(self.symbols):
@@ -77,20 +81,29 @@ class StillingerWeberPotential(Potential):
         str_out += "\n"
 
         for i,s in enumerate(self.symbols):
-            str_out += "group {} type {}\n".format(i+1,s)
+            str_out += "group {} type {}\n".format(s,i+1)
         str_out += "\n"
 
         str_out += "pair_style sw\n"
         for s in self.symbols:
-            str_out += "pair_coeff * * {} {}\n".format(fname_sw_params,s)
+            str_out += "pair_coeff * * {} {}\n".format(fname_params,s)
         str_out += "\n"
 
-        str_out += "neighbor 1.0 bin\n"
-        str_out += "neigh_modify every 1 delay 0 check yes\n"
+        #<--------- neighbor lists moved to pypospack.task.lammps.LammpsTask
+        #str_out += "neighbor 1.0 bin\n"
+        #str_out += "neigh_modify every 1 delay 0 check yes\n"
 
         return str_out
-    
-    def lammps_sw_file_to_string(self,parameters):
+   
+    def write_lammps_parameter_file(self,dst_dir,dst_filename):
+        assert isinstance(dst_dir,str)
+        assert isinstance(dst_filename,str)
+
+        _strout = self.lammps_paramfile_file_to_string()
+        with open(os.path.join(dst_dir,dst_filename)) as f:
+            f.write(_strout)
+
+    def lammps_parameter_file_to_string(self,parameters=None):
         if parameters is not None:
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
@@ -111,6 +124,7 @@ class StillingerWeberPotential(Potential):
                     str_out += ' ' + str(self.parameters['{}_B'.format(s)])
                     str_out += ' ' + str(self.parameters['{}_p'.format(s)])
                     str_out += ' ' + str(self.parameters['{}_q'.format(s)])
+                    str_out += ' ' + str(self.parameters['{}_tol'.format(s)])
                     str_out += '\n'
 
         return str_out

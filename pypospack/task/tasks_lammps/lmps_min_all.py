@@ -2,6 +2,7 @@ import os,copy
 from collections import OrderedDict
 from pypospack.task.lammps import LammpsSimulation
 
+
 class LammpsStructuralMinimization(LammpsSimulation):
     """ Class for LAMMPS structural minimization
 
@@ -73,7 +74,7 @@ class LammpsStructuralMinimization(LammpsSimulation):
                 if line.startswith('ERROR:'):
                     print('name:{}'.format(name))
                     print('line:{}'.format(line.strip))
-                    raise NotImplementedError
+                    raise LammpsSimulationError(line.strip)
       
         _task_name = self.task_name
         self.results = OrderedDict()
