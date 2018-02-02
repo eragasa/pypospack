@@ -47,6 +47,20 @@ qoi = DefectFormationEnergy(
         structures=_structures)
 qoi.determine_tasks()
 
+print(80*'-')
+print('{:^80}'.format('TASKS DATABASE'))
+print(80*'-')
+for k,v in qoi.tasks.items():
+    tsk_name = k
+    tsk_type = v['task_type']
+    tsk_structure = v['task_structure']
+    tsk_requires = v['task_requires']
+    
+    if v['task_requires'] is None:
+        tsk_requires = None
+    elif isinstance(v['task_requires'],list):
+        tsk_requires = ','.join(v['task_requires'])
+    print(tsk_name,tsk_type,tsk_structure,tsk_structure,tsk_requires)
 print(qoi.tasks)
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 from ase.lattice.cubic import FaceCenteredCubic
 import ase.build.bulk
 
-def make_fcc_bulk(name='Cu'):
+def make_fcc_bulk(name='Ni'):
     return ase.build.bulk(name,cubic=True)
 
 def make_fcc_111_slab(size=(2,2,3),symbol='Cu',pbc=(1,1,0)):
