@@ -82,7 +82,7 @@ if calc_elastic_properties:
 
 # <---------------- define potential formalism
 MgO_potential = OrderedDict()
-MgO_potential['potential_type'] = 'Stillinger Weber'
+MgO_potential['potential_type'] = 'stillingerweber'
 MgO_potential['symbol'] = ['Si']
 MgO_potential['cutoff_global'] = 10.0
 # <---------------- Define Sampling Requirements
