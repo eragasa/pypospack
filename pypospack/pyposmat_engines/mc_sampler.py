@@ -8,8 +8,18 @@ __version__ = "1.0"
 from pypospack.pyposmat import PyposmatEngine
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
-    pass    
-#    def __init__(self,
+    def __init__(self,
+            filename_in='pypospack.config.in',
+            filename_out='pypospack.results.out',
+            base_directory=None):
+        assert isinstance(filename_in,str)
+        assert isinstance(filename_out,str)
+        assert type(base_directory) in [str,type(None)]
+
+        PyposmatEngine.__init__(self,
+                filename_in=filename_in,filename_out=filename_out,base_directory=base_directory,fullauto=False)
+
+        #    def __init__(self,
 #            filename_in='pypospack.config.in',
 #            filename_out='pypospack.results.out',
 #            base_directory=None):

@@ -1,15 +1,13 @@
-import sys
-sys.path.append("/home/prathyusha/work/pypospack")
-
 import copy,yaml
 from collections import OrderedDict
 from pypospack.pyposmat import PyposmatMonteCarloSampler
 from pypospack.pyposmat import PyposmatDataFile
 from pypospack.pyposmat import PyposmatEngine
 from pypospack.pyposmat import PyposmatConfigurationFile
-from pypospack.pyposmat import QoiDatabase
+#from pypospack.pyposmat import QoiDatabase
 from pypospack.qoi import QoiDatabase
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
+
 import MgO
 
 calc_elastic_properties = False
@@ -17,38 +15,38 @@ calc_point_defects = True
 # <---------------- making a configuration file
 MgO_qoi_db = QoiDatabase()
 MgO_qoi_db.add_qoi(
-        qoi_name='Si.a0',
+        qoi_name='MgO_NaCl.a0',
         qoi_type='a11_min_all',
-        structures=OrderedDict([('ideal','Si')]),
-        target=5.431)
+        structures=OrderedDict([('ideal','MgO_NaCl')]),
+        target=4.246)
 
 # <----------------- ELASTIC PROPERTIES
 if calc_elastic_properties:
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.c11',
+            qoi_name='MgO_NaCl.c11',
             qoi_type='c11',
-            structures=OrderedDict([('ideal','Si')]),
-            target=151.00)
+            structures=OrderedDict([('ideal','MgO_NaCl')]),
+            target=277.00)
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.c12',
+            qoi_name='MgO_NaCl.c12',
             qoi_type='c12',
-            structures=OrderedDict([('ideal','Si')]),
-            target=75.00)
+            structures=OrderedDict([('ideal','MgO_NaCl')]),
+            target=91.67)
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.c44',
+            qoi_name='MgO_NaCl.c44',
             qoi_type='c44',
-            structures=OrderedDict([('ideal','Si')]),
-            target=56.00)
+            structures=OrderedDict([('ideal','MgO_NaCl')]),
+            target=144.01)
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.B',
+            qoi_name='MgO_NaCl.B',
             qoi_type='bulk_modulus',
-            structures=OrderedDict([('ideal','Si')]),
-            target=100.00)
-#   MgO_qoi_db.add_qoi(
-#            qoi_name='MgO_NaCl.G',
-#            qoi_type='shear_modulus',
-#            structures=OrderedDict([('ideal','MgO_NaCl')]),
-#            target=92.66)
+            structures=OrderedDict([('ideal','MgO_NaCl')]),
+            target=153.45)
+    MgO_qoi_db.add_qoi(
+            qoi_name='MgO_NaCl.G',
+            qoi_type='shear_modulus',
+            structures=OrderedDict([('ideal','MgO_NaCl')]),
+            target=92.66)
 
 #if calc_point_defects:
 #    MgO_qoi_db.add_qoi(
@@ -82,8 +80,8 @@ if calc_elastic_properties:
 
 # <---------------- define potential formalism
 MgO_potential = OrderedDict()
-MgO_potential['potential_type'] = 'Stillinger Weber'
-MgO_potential['symbol'] = ['Si']
+MgO_potential['potential_type'] = 'buckingham'
+MgO_potential['symbols'] = ['Mg','O']
 MgO_potential['cutoff_global'] = 10.0
 # <---------------- Define Sampling Requirements
 MgO_param_dist = OrderedDict()
@@ -98,6 +96,9 @@ for i in range(n_iterations):
     MgO_param_dist['mc_sampling'][i]['type'] = 'kde'
     MgO_param_dist['mc_sampling'][i]['n_samples'] = n_samples_per_iteration
 MgO_param_dist['mc_sampling'][0]['type'] = 'parametric'
+#----
+#MgO_param_dist['mc_sampling'][0]['type'] = 'kde'
+#MgO_param_dist['kde_samples_file'][0] = 'culled_009_part_1.dat'
 #<----------------- determine parameters
 MgO_param_dist['parameters'] = OrderedDict()
 #<----------------- free parameters
@@ -105,37 +106,30 @@ MgO_param_dist['parameters'] = OrderedDict()
 #     a = is the low of the rnage, 
 #     b = is the high of the
 #MgO_param_dist['parameters']['chrg_Mg'] = ['uniform',{'a':+1.5,  'b':+2.5}]
-#MgO_param_dist['parameters']['chrg_O']   = ['equals','-chrg_Mg']
-MgO_param_dist['parameters']['Si_epsilon']   = ['equals',2.1683]
-MgO_param_dist['parameters']['Si_sigma'] = ['equals',2.0951] 
-MgO_param_dist['parameters']['Si_a']    = ['equals',1.80]
-#MgO_param_dist['parameters']['Si_lambda']   = ['uniform',{'a':800.00,'b':1300.00}]
+MgO_param_dist['parameters']['chrg_O']   = ['equals','-chrg_Mg']
+MgO_param_dist['parameters']['MgMg_A']   = ['equals',0.000]
+MgO_param_dist['parameters']['MgMg_rho'] = ['equals',0.500] 
+MgO_param_dist['parameters']['MgMg_C']    = ['equals',0.000]
+#MgO_param_dist['parameters']['MgO_A']   = ['uniform',{'a':800.00,'b':1300.00}]
 #MgO_param_dist['parameters']['MgO_rho'] = ['uniform',{'a':0.2900,'b':0.3300}]
-MgO_param_dist['parameters']['Si_lambda']    = ['equals',21.0]
-MgO_param_dist['parameters']['Si_gamma']    = ['equals',1.20]
-MgO_param_dist['parameters']['Si_costheta']    = ['equals',-0.333333333333]
-MgO_param_dist['parameters']['Si_A']    = ['equals',7.049556277]
-MgO_param_dist['parameters']['Si_B']    = ['equals',0.6022245584]
-MgO_param_dist['parameters']['Si_p']    = ['equals',4.0]
-MgO_param_dist['parameters']['Si_q']    = ['equals',0.0]
-MgO_param_dist['parameters']['Si_tol']    = ['equals',0.0]
+MgO_param_dist['parameters']['MgO_C']    = ['equals',0.000]
 #MgO_param_dist['parameters']['OO_A']    = ['uniform',{'a':500.00,'b':25000.00}]
 #MgO_param_dist['parameters']['OO_rho']  = ['uniform',{'a':0.1000,'b':0.4000}]
 #MgO_param_dist['parameters']['OO_C']    = ['uniform',{'a':25.00, 'b':77.00}]
 #<----------------- constrained parameters
 #<----------------- parameter constriants
-#MgO_parameter_constraints = OrderedDict()
-#MgO_parameter_constraints['chrgMg_gt_0'] = ['chrg_Mg > 0']
-#MgO_parameter_constraints['chrgO_lt_0'] = ['chrg_O < 0']
-#MgO_parameter_constraints['MgMg_A_gt_0']  = ['MgMg_A > 0']
-#MgO_parameter_constraints['MgMg_rho_gt_0']  = ['MgMg_rho > 0']
-#MgO_parameter_constraints['MgMg_C_gt_0']  = ['MgMg_C > 0']
-#MgO_parameter_constraints['MgO_A_gt_0']  = ['MgO_A > 0']
-#MgO_parameter_constraints['MgO_rho_gt_0']  = ['MgO_rho > 0']
-#MgO_parameter_constraints['MgO_C_gt_0']  = ['MgO_C > 0']
-#MgO_parameter_constraints['OO_A_gt_0']  = ['OO_A > 0']
-#MgO_parameter_constraints['OO_rho_gt_0']  = ['OO_rho > 0']
-#MgO_parameter_constraints['OO_C_gt_0']  = ['OO_C > 0']
+MgO_parameter_constraints = OrderedDict()
+MgO_parameter_constraints['chrgMg_gt_0'] = ['chrg_Mg > 0']
+MgO_parameter_constraints['chrgO_lt_0'] = ['chrg_O < 0']
+MgO_parameter_constraints['MgMg_A_gt_0']  = ['MgMg_A > 0']
+MgO_parameter_constraints['MgMg_rho_gt_0']  = ['MgMg_rho > 0']
+MgO_parameter_constraints['MgMg_C_gt_0']  = ['MgMg_C > 0']
+MgO_parameter_constraints['MgO_A_gt_0']  = ['MgO_A > 0']
+MgO_parameter_constraints['MgO_rho_gt_0']  = ['MgO_rho > 0']
+MgO_parameter_constraints['MgO_C_gt_0']  = ['MgO_C > 0']
+MgO_parameter_constraints['OO_A_gt_0']  = ['OO_A > 0']
+MgO_parameter_constraints['OO_rho_gt_0']  = ['OO_rho > 0']
+MgO_parameter_constraints['OO_C_gt_0']  = ['OO_C > 0']
 #<----------------- qoi performance constraints
 MgO_qoi_constraints = OrderedDict()
 
@@ -155,11 +149,12 @@ for qoi_name, value in MgO_qoi_constraints.items():
 MgO_structures = OrderedDict()
 MgO_structures['structure_directory'] = 'test__PyposmatMonteCarloSampler'
 MgO_structures['structures'] = OrderedDict()
-MgO_structures['structures']['Si'] = 'Si_dia_unit.vasp'
+MgO_structures['structures']['MgO_NaCl'] = 'MgO_NaCl_unit.gga.relax.vasp'
 MgO_configuration = PyposmatConfigurationFile()
 MgO_configuration.qois = MgO_qoi_db.qois
 MgO_configuration.potential = MgO_potential
 MgO_configuration.structures = MgO_structures
+MgO_configuration.parameter_distribution_definitions = MgO_param_dist
 assert isinstance(MgO_configuration.configuration,OrderedDict)
 MgO_configuration.write(filename='pypospack.config.in')
 MgO_configuration.read(filename='pypospack.config.in')
@@ -184,11 +179,12 @@ engine.read_configuration_file()
 engine.configure_qoi_manager()
 engine.configure_task_manager()
 
-n_iterations = MgO_param_dist['mc_sampling']['n_iterations']
-n_samples = MgO_param_dist['mc_sampling'][0]['n_samples']
-param_dist_def = MgO_param_dist['parameters']
+n_iterations = engine.configuration.parameter_distribution_definitions['mc_sampling']['n_iterations']
+n_samples = engine.configuration.parameter_distribution_definitions['mc_sampling'][0]['n_samples']
+param_dist_def = engine.configuration.parameter_distribution_definitions['parameters']
 
 parameter_names = [p for p in param_dist_def]
+
 free_parameter_names = [k for k,v in param_dist_def.items() if v[0] != 'equals']
 for p in param_dist_def:
     if p in free_parameter_names:
@@ -204,7 +200,6 @@ for p in param_dist_def:
         print('{:^10} {:^10}'.format(p,str_free))
 import scipy.stats
 
-
 _rv_generators = OrderedDict()
 for p in free_parameter_names:
     if param_dist_def[p][0] == 'uniform':
@@ -213,66 +208,34 @@ for p in free_parameter_names:
         _loc = a
         _scale = b-a
         _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
+    # eugene added this broken code
+    elif param_dist_def[p][0] == 'kde':
+        #sub selection of pandas param dataframe on free parameter names
+        free_params = datas[:,self._kde_free_param_indx]
+        _kde_kernel = scipy.stats.gaussian_kde(free_params.transpose())
+        
     else:
         pass
-
-"""
-----Proposed Change Outline----
-
-# _parameters could be a property with getter that handles a 'kde', 'uniform' or other flag
-@property
-def _parameters():
-    return None
-
-@_parameters.getter
-def _parameters_getter():
-    _rv_generators = OrderedDict()
-    for p in free_parameter_names:
-        if param_dist_def[p][0] == 'uniform':
-            a = param_dist_def[p][1]['a']
-            b = param_dist_def[p][1]['b']
-            _loc = a
-            _scale = b-a
-            _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
-        elif param_dist_def[p][0] == 'kde':
-            # load data_file 
-            # 
-            obj_kd = scipy.stats.gaussian_kde()
-            obj_kde = obj_kd(data_file)
-            for i_sample in range(n_samples):
-                # generate parameter set
-                _parameters = OrderedDict([(p,None) for p in parameter_names])
-                for p in free_parameter_names:
-                    _rv_generators[p] = obj_kd.resample(size=1)
-        else:
-            pass
-
-    for i_sample in range(n_samples):
-        # generate parameter set
-        _parameters = OrderedDict([(p,None) for p in parameter_names])
-        for p in free_parameter_names:
-            try:
-                # the 'uniform' case
-                _parameters[p] = _rv_generators[p].rvs(size=1)[0]
-            except (some error about .rvs() not being a method of _rv_generators[p]):
-                # the 'kde' case
-                _parameters[p] = _rv_generators[p]
-            else:
-                # some error
-                _parameters[p] = None
-
-    return _parameters
-"""
 
 for i_sample in range(n_samples):
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
-    for p in free_parameter_names:
-        _parameters[p] = _rv_generators[p].rvs(size=1)[0]
+    if param_dist_def[p][0] == 'uniform':
+        for p in free_parameter_names:
+            # _rv_generators is listscypi.stats.uniform
+            _parameters[p] = _rv_generators[p].rvs(size=1)[0]
+    # EUGENE ADDED THIS AND IT'S PROBABLY BROKEN.
+    elif param_dist_def[p][0] == 'kde':
+        _free_parameters = _kde_kernel.resample(size=1)
+        for i,pn in enumerate(free_parameter_names):
+            param_dict[pn] = _free_parameters[i,0]
+    else:
+        raise ValueError("unkown parameter distribution type")
 
-    _constrained_parameters = [
+    # fill in param_dict for constrained values
+    _constrained_parameter_names = [
             p for p in _parameters if p not in free_parameter_names]
-    for p in _constrained_parameters:
+    for p in _constrained_parameter_names:
         _str_eval = str(param_dist_def[p][1])
         for fp in free_parameter_names:
             if fp in _str_eval:
@@ -292,4 +255,4 @@ for i_sample in range(n_samples):
     print(_results['parameters'])
     print(_results['qois'])
     print(_results['errors'])
-    print(_results['parameters']['Si_a'])
+    print(_results['parameters']['MgMg_A'])
