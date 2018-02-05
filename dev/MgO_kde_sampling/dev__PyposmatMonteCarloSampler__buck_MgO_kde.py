@@ -206,6 +206,54 @@ for p in free_parameter_names:
     else:
         pass
 
+"""
+----Proposed Change Outline----
+
+# _parameters could be a property with getter that handles a 'kde', 'uniform' or other flag
+@property
+def _parameters():
+    return None
+
+@_parameters.getter
+def _parameters_getter():
+    _rv_generators = OrderedDict()
+    for p in free_parameter_names:
+        if param_dist_def[p][0] == 'uniform':
+            a = param_dist_def[p][1]['a']
+            b = param_dist_def[p][1]['b']
+            _loc = a
+            _scale = b-a
+            _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
+        elif param_dist_def[p][0] == 'kde':
+            # load data_file 
+            # 
+            obj_kd = scipy.stats.gaussian_kde()
+            obj_kde = obj_kd(data_file)
+            for i_sample in range(n_samples):
+                # generate parameter set
+                _parameters = OrderedDict([(p,None) for p in parameter_names])
+                for p in free_parameter_names:
+                    _rv_generators[p] = obj_kd.resample(size=1)
+        else:
+            pass
+
+    for i_sample in range(n_samples):
+        # generate parameter set
+        _parameters = OrderedDict([(p,None) for p in parameter_names])
+        for p in free_parameter_names:
+            try:
+                # the 'uniform' case
+                _parameters[p] = _rv_generators[p].rvs(size=1)[0]
+            except (some error about .rvs() not being a method of _rv_generators[p]):
+                # the 'kde' case
+                _parameters[p] = _rv_generators[p]
+            else:
+                # some error
+                _parameters[p] = None
+
+    return _parameters
+"""
+
 for i_sample in range(n_samples):
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
