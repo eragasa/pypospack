@@ -96,23 +96,26 @@ for i in range(n_iterations):
     MgO_param_dist['mc_sampling'][i]['type'] = 'kde'
     MgO_param_dist['mc_sampling'][i]['n_samples'] = n_samples_per_iteration
 MgO_param_dist['mc_sampling'][0]['type'] = 'parametric'
+#----
+#MgO_param_dist['mc_sampling'][0]['type'] = 'kde'
+#MgO_param_dist['kde_samples_file'][0] = 'culled_009_part_1.dat'
 #<----------------- determine parameters
 MgO_param_dist['parameters'] = OrderedDict()
 #<----------------- free parameters
 # For uniform distributions, 
 #     a = is the low of the rnage, 
 #     b = is the high of the
-MgO_param_dist['parameters']['chrg_Mg'] = ['uniform',{'a':+1.5,  'b':+2.5}]
+#MgO_param_dist['parameters']['chrg_Mg'] = ['uniform',{'a':+1.5,  'b':+2.5}]
 MgO_param_dist['parameters']['chrg_O']   = ['equals','-chrg_Mg']
 MgO_param_dist['parameters']['MgMg_A']   = ['equals',0.000]
 MgO_param_dist['parameters']['MgMg_rho'] = ['equals',0.500] 
 MgO_param_dist['parameters']['MgMg_C']    = ['equals',0.000]
-MgO_param_dist['parameters']['MgO_A']   = ['uniform',{'a':800.00,'b':1300.00}]
-MgO_param_dist['parameters']['MgO_rho'] = ['uniform',{'a':0.2900,'b':0.3300}]
+#MgO_param_dist['parameters']['MgO_A']   = ['uniform',{'a':800.00,'b':1300.00}]
+#MgO_param_dist['parameters']['MgO_rho'] = ['uniform',{'a':0.2900,'b':0.3300}]
 MgO_param_dist['parameters']['MgO_C']    = ['equals',0.000]
-MgO_param_dist['parameters']['OO_A']    = ['uniform',{'a':500.00,'b':25000.00}]
-MgO_param_dist['parameters']['OO_rho']  = ['uniform',{'a':0.1000,'b':0.4000}]
-MgO_param_dist['parameters']['OO_C']    = ['uniform',{'a':25.00, 'b':77.00}]
+#MgO_param_dist['parameters']['OO_A']    = ['uniform',{'a':500.00,'b':25000.00}]
+#MgO_param_dist['parameters']['OO_rho']  = ['uniform',{'a':0.1000,'b':0.4000}]
+#MgO_param_dist['parameters']['OO_C']    = ['uniform',{'a':25.00, 'b':77.00}]
 #<----------------- constrained parameters
 #<----------------- parameter constriants
 MgO_parameter_constraints = OrderedDict()
@@ -151,6 +154,7 @@ MgO_configuration = PyposmatConfigurationFile()
 MgO_configuration.qois = MgO_qoi_db.qois
 MgO_configuration.potential = MgO_potential
 MgO_configuration.structures = MgO_structures
+MgO_configuration.parameter_distribution_definitions = MgO_param_dist
 assert isinstance(MgO_configuration.configuration,OrderedDict)
 MgO_configuration.write(filename='pypospack.config.in')
 MgO_configuration.read(filename='pypospack.config.in')
@@ -175,11 +179,12 @@ engine.read_configuration_file()
 engine.configure_qoi_manager()
 engine.configure_task_manager()
 
-n_iterations = MgO_param_dist['mc_sampling']['n_iterations']
-n_samples = MgO_param_dist['mc_sampling'][0]['n_samples']
-param_dist_def = MgO_param_dist['parameters']
+n_iterations = engine.configuration.parameter_distribution_definitions['mc_sampling']['n_iterations']
+n_samples = engine.configuration.parameter_distribution_definitions['mc_sampling'][0]['n_samples']
+param_dist_def = engine.configuration.parameter_distribution_definitions['parameters']
 
 parameter_names = [p for p in param_dist_def]
+
 free_parameter_names = [k for k,v in param_dist_def.items() if v[0] != 'equals']
 for p in param_dist_def:
     if p in free_parameter_names:
@@ -203,18 +208,34 @@ for p in free_parameter_names:
         _loc = a
         _scale = b-a
         _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
+    # eugene added this broken code
+    elif param_dist_def[p][0] == 'kde':
+        #sub selection of pandas param dataframe on free parameter names
+        free_params = datas[:,self._kde_free_param_indx]
+        _kde_kernel = scipy.stats.gaussian_kde(free_params.transpose())
+        
     else:
         pass
 
 for i_sample in range(n_samples):
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
-    for p in free_parameter_names:
-        _parameters[p] = _rv_generators[p].rvs(size=1)[0]
+    if param_dist_def[p][0] == 'uniform':
+        for p in free_parameter_names:
+            # _rv_generators is listscypi.stats.uniform
+            _parameters[p] = _rv_generators[p].rvs(size=1)[0]
+    # EUGENE ADDED THIS AND IT'S PROBABLY BROKEN.
+    elif param_dist_def[p][0] == 'kde':
+        _free_parameters = _kde_kernel.resample(size=1)
+        for i,pn in enumerate(free_parameter_names):
+            param_dict[pn] = _free_parameters[i,0]
+    else:
+        raise ValueError("unkown parameter distribution type")
 
-    _constrained_parameters = [
+    # fill in param_dict for constrained values
+    _constrained_parameter_names = [
             p for p in _parameters if p not in free_parameter_names]
-    for p in _constrained_parameters:
+    for p in _constrained_parameter_names:
         _str_eval = str(param_dist_def[p][1])
         for fp in free_parameter_names:
             if fp in _str_eval:
