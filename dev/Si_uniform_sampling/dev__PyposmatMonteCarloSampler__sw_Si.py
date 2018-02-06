@@ -10,7 +10,9 @@ from pypospack.io.filesystem import OrderedDictYAMLLoader
 
 import Si_sw
 
-calc_elastic_properties = False
+n_iterations=10
+n_samples_per_iteration = 100
+calc_elastic_properties = True
 calc_point_defects = True
 # <---------------- making a configuration file
 Si_sw_qoi_db = QoiDatabase()
@@ -43,45 +45,22 @@ Si_sw_potential = OrderedDict()
 Si_sw_potential['potential_type'] = 'stillingerweber'
 Si_sw_potential['symbols'] = ['Si']
 Si_sw_potential['cutoff_global'] = 10.0
-# <---------------- Define Sampling Requirements
+
 Si_sw_param_dist = OrderedDict()
 Si_sw_param_dist['mc_sampling'] = OrderedDict()
-Si_sw_param_dist['mc_sampling']['seed'] = 0
-Si_sw_param_dist['mc_sampling']['n_iterations'] = 10
-
-n_iterations = Si_sw_param_dist['mc_sampling']['n_iterations']
-n_samples_per_iteration = 100
-for i in range(n_iterations):
-    Si_sw_param_dist['mc_sampling'][i] = OrderedDict()
-    Si_sw_param_dist['mc_sampling'][i]['type'] = 'kde'
-    Si_sw_param_dist['mc_sampling'][i]['n_samples'] = n_samples_per_iteration
-    Si_sw_param_dist['mc_sampling'][0]['type'] = 'parametric'
-#<----------------- determine parameters
-Si_sw_param_dist['parameters'] = OrderedDict()
-# <---------------- define potential formalism
-Si_sw_potential = OrderedDict()
-Si_sw_potential['potential_type'] = 'stillingerweber'
-Si_sw_potential['symbols'] = ['Si']
-# <---------------- Define Sampling Requirements
-Si_sw_param_dist = OrderedDict()
-Si_sw_param_dist['mc_sampling'] = OrderedDict()
-Si_sw_param_dist['mc_sampling']['seed'] = 0
-Si_sw_param_dist['mc_sampling']['n_iterations'] = 10
-
-n_iterations = MgO_param_dist['mc_sampling']['n_iterations']
-n_samples_per_iteration = 100
-
+Si_sw_param_dist['mc_sampling']['n_iterations'] = n_iterations
 for i in range(n_iterations):
     Si_sw_param_dist['mc_sampling'][i] = OrderedDict()
     Si_sw_param_dist['mc_sampling'][i]['type'] = 'kde'
     Si_sw_param_dist['mc_sampling'][i]['n_samples'] = n_samples_per_iteration
 Si_sw_param_dist['mc_sampling'][0]['type'] = 'parametric'
 #<----------------- determine parameters
-Si_sw_param_dist['parameters'] = OrderedDict()
+
 #<----------------- free parameters
 # For uniform distributions, 
 #     a = is the low of the rnage, 
 #     b = is the high of the
+Si_sw_param_dist['parameters'] = OrderedDict()
 Si_sw_param_dist['parameters']['SiSiSi_epsilon']   = ['uniform',{'a': 2.1, 'b':2.2}]
 Si_sw_param_dist['parameters']['SiSiSi_sigma'] = ['uniform',{'a': 1.0, 'b':3.0}] 
 Si_sw_param_dist['parameters']['SiSiSi_a']    = ['uniform',{'a': 1.5, 'b':2.0}]
