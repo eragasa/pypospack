@@ -4,7 +4,12 @@ pyPOSpack
 
 This package as several directory.
 
-pypospack.  This is the software package you have been looking for.
+pypospack.  
+
+This is the software package you have been looking for.
+pyPOSpack has several requirements for installation.
+
+
 
 test
 -> test_acceptance_serial

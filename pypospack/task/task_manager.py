@@ -84,7 +84,6 @@ class TaskManager(object):
         _configuration = OrderedDict()
         _configuration['potential'] = potential
         _configuration['parameters'] = parameters
-
         def all_simulations_finished(obj_Task):
             _statuses = [o_task.status in ['FINISHED','ERROR']
                     for o_task in obj_Task.values()]
@@ -102,11 +101,14 @@ class TaskManager(object):
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()
                 if o_task.status == 'INIT':
-                    o_task.on_init(configuration=_configuration)
+                    _config = copy.deepcopy(_configuration)
+                    if 'bulk_structure' in self.tasks[k_task]:
+                        _config['bulk_structure'] = self.tasks[k_task]['bulk_structure']
+                    o_task.on_init(configuration=_config)
                 elif o_task.status == 'CONFIG':
                     o_task.on_config()
                 elif o_task.status == 'READY':
-                    o_task.on_ready()
+                    o_task.on_ready(results=self.results)
                 elif o_task.status == 'RUNNING':
                     o_task.on_running()
                 elif o_task.status == 'POST':

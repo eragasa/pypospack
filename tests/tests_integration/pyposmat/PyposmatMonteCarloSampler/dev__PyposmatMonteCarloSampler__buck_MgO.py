@@ -51,7 +51,7 @@ if calc_elastic_properties:
 if calc_point_defects:
     MgO_qoi_db.add_qoi(
             qoi_name='MgO_NaCl.fr_a',
-            qoi_type='point_defect',
+            qoi_type='E_formation_defect',
             structures=OrderedDict([
                 ('defect','MgO_NaCl_fr_a'),
                 ('ideal','MgO_NaCl')]),
@@ -147,6 +147,7 @@ MgO_structures = OrderedDict()
 MgO_structures['structure_directory'] = 'test__PyposmatMonteCarloSampler'
 MgO_structures['structures'] = OrderedDict()
 MgO_structures['structures']['MgO_NaCl'] = 'MgO_NaCl_unit.gga.relax.vasp'
+MgO_structures['structures']['MgO_NaCl_fr_a'] = 'MgO_NaCl_333_fr_a.vasp' 
 MgO_configuration = PyposmatConfigurationFile()
 MgO_configuration.qois = MgO_qoi_db.qois
 MgO_configuration.potential = MgO_potential

@@ -29,12 +29,12 @@ class DefectFormationEnergy(Qoi):
         _ideal_task_name = '{}.{}'.format(
                 _ideal_structure_name,
                 _ideal_task_type)
-        _ideal_task_requires = None
+        _bulk_structure_name = None
         self.add_task(
                 task_type=_ideal_task_type,
                 task_name=_ideal_task_name,
                 task_structure=_ideal_structure_name,
-                task_requires=_ideal_task_requires)
+                bulk_structure_name=_bulk_structure_name)
 
         # 2. position minimization of the defect structre
         # '{}.a11_min_all' is used as the length of the a1 vector
@@ -44,12 +44,12 @@ class DefectFormationEnergy(Qoi):
                 _defect_structure_name,
                 _defect_task_type)
         _a0_task_name = '{}.a11_min_all'.format(_ideal_task_name)
-        _defect_task_requires = [_a0_task_name]
+        _bulk_structure_name= self.structures['ideal']
         self.add_task(
                 task_type=_defect_task_type,
                 task_name=_defect_task_name,
                 task_structure=_defect_structure_name,
-                task_requires=_defect_task_requires)
+                bulk_structure_name=_bulk_structure_name)
 
     def calculate_qoi(self,variables):
         s_name_defect = self.defect_structure

@@ -413,7 +413,8 @@ class PyposmatEngine(object):
     def configure_qoi_manager(self,qois=None):
         if qois is None:
             _qois= self.configuration.qois
-            self.qoi_manager = QoiManager(qoi_database=_qois,fullauto=True)
+        
+        self.qoi_manager = QoiManager(qoi_database=_qois,fullauto=True)
     
 
     def configure_task_manager(self):

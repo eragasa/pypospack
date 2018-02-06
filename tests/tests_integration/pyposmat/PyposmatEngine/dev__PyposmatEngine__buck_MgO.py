@@ -57,6 +57,6 @@ engine.configure_qoi_manager()
 engine.configure_task_manager()
 # <
 _parameters = MgO.MgO_LewisCatlow['parameters']
-engine.evaluate_parameter_set(parameters=_parameters)
+results = engine.evaluate_parameter_set(parameters=_parameters)
 
-print(engine.results)
+print(results)
