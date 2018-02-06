@@ -1,5 +1,8 @@
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
+
+Si_sw_pizzagalli = OrderedDict()
+
 MgO_LewisCatlow = OrderedDict()
 MgO_LewisCatlow['potential'] = OrderedDict()
 MgO_LewisCatlow['potential']['potential_type'] = 'buckingham'

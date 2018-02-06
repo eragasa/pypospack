@@ -1,6 +1,3 @@
-import sys
-sys.path.append("/home/prathyusha/work/pypospack")
-
 import copy,yaml
 from collections import OrderedDict
 from pypospack.pyposmat import PyposmatMonteCarloSampler
@@ -12,30 +9,30 @@ from pypospack.qoi import QoiDatabase
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
 import MgO
 
-calc_elastic_properties = False
+calc_elastic_properties = True
 calc_point_defects = True
 # <---------------- making a configuration file
 MgO_qoi_db = QoiDatabase()
 MgO_qoi_db.add_qoi(
-        qoi_name='Si.a0',
+        qoi_name='Si_dia.a0',
         qoi_type='a11_min_all',
-        structures=OrderedDict([('ideal','Si')]),
+        structures=OrderedDict([('ideal','Si_dia')]),
         target=5.431)
 
 # <----------------- ELASTIC PROPERTIES
 if calc_elastic_properties:
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.c11',
+            qoi_name='Si_dia.c11',
             qoi_type='c11',
             structures=OrderedDict([('ideal','Si')]),
             target=151.00)
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.c12',
+            qoi_name='Si_dia.c12',
             qoi_type='c12',
             structures=OrderedDict([('ideal','Si')]),
             target=75.00)
     MgO_qoi_db.add_qoi(
-            qoi_name='Si.c44',
+            qoi_name='Si_dia.c44',
             qoi_type='c44',
             structures=OrderedDict([('ideal','Si')]),
             target=56.00)
@@ -84,7 +81,6 @@ if calc_elastic_properties:
 MgO_potential = OrderedDict()
 MgO_potential['potential_type'] = 'stillingerweber'
 MgO_potential['symbols'] = ['Si']
-MgO_potential['cutoff_global'] = 10.0
 # <---------------- Define Sampling Requirements
 MgO_param_dist = OrderedDict()
 MgO_param_dist['mc_sampling'] = OrderedDict()
@@ -155,7 +151,7 @@ for qoi_name, value in MgO_qoi_constraints.items():
 MgO_structures = OrderedDict()
 MgO_structures['structure_directory'] = 'test__PyposmatMonteCarloSampler'
 MgO_structures['structures'] = OrderedDict()
-MgO_structures['structures']['Si'] = 'Si_dia_unit.vasp'
+MgO_structures['structures']['Si_dia'] = 'Si_dia_unit.vasp'
 MgO_configuration = PyposmatConfigurationFile()
 MgO_configuration.qois = MgO_qoi_db.qois
 MgO_configuration.potential = MgO_potential
@@ -292,4 +288,4 @@ for i_sample in range(n_samples):
     print(_results['parameters'])
     print(_results['qois'])
     print(_results['errors'])
-    print(_results['parameters']['Si_a'])
+    print(_results['parameters']['SiSiSi_a'])
