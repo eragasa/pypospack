@@ -139,6 +139,38 @@ n_samples = Si_sw_param_dist['mc_sampling'][0]['n_samples']
 param_dist_def = Si_sw_param_dist['parameters']
 
 parameter_names = [p for p in param_dist_def]
+qoi_names = [k for k in engine.configuration.qois]
+error_names = ['{}.err'.format(k) for k in qoi_names]
+
+def output_write_header_lines(filename,parameter_names,qoi_names,error_names):
+    names = ['sim_id']\
+            + parameter_names\
+            + qoi_names\
+            + error_names
+    types = ['sim_id']\
+            + len(parameter_names) * ['param']\
+            + len(qoi_names)*['qoi']\
+            + len(error_names)*['err']
+
+    _header_str = ",".join(names) + "\n"
+    _header_str += ",".join(types) + "\n"
+
+    with open(filename,'w') as f:
+        f.write(_header_str)
+
+
+def output_write_simulation_results(filename,sim_id,results):
+    _sim_result = [str(sim_id)]
+    _sim_result += [str(v) for k,v in results['parameters'].items()]
+    _sim_result += [str(v) for k,v in results['qois'].items()]
+    _sim_result += [str(v) for k,v in results['errors'].items()]
+    
+    _str_sim_results = ",".join(_sim_result)
+
+    with open(filename,'a') as f:
+        f.write(_str_sim_results)
+
+
 free_parameter_names = [k for k,v in param_dist_def.items() if v[0] != 'equals']
 for p in param_dist_def:
     if p in free_parameter_names:
@@ -166,6 +198,13 @@ for p in free_parameter_names:
     else:
         pass
 
+filename_out='pypospack.results.out'
+output_write_header_lines(
+        filename=filename_out,
+        parameter_names=parameter_names,
+        qoi_names=qoi_names,
+        error_names=error_names)
+
 for i_sample in range(n_samples):
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
@@ -183,15 +222,8 @@ for i_sample in range(n_samples):
 
     #_parameters = Si.Si_dia_swpizzagalli['parameters']
     _results = engine.evaluate_parameter_set(parameters=_parameters)
-    
-    _strout = str(i_sample) + ","\
-            + ",".join([str(v) for k,v in _results['parameters'].items()]) + ","\
-            + ",".join([str(v) for k,v in _results['qois'].items()]) + ","\
-            + ",".join([str(v) for k,v in _results['errors'].items()])
-    #print(_strout)
-    print(i_sample)
-    print(_results)
-    print(_results['parameters'])
-    print(_results['qois'])
-    print(_results['errors'])
-    print(_results['parameters']['SiSiSi_a'])
+    print(i_sample,_results)
+    output_write_simulation_results(
+            filename=filename_out,
+            sim_id=i_sample,
+            results=_results)
