@@ -16,6 +16,13 @@ MgO_qoi_db.add_qoi(
         structures=OrderedDict([('ideal','MgO_NaCl')]),
         target=4.5
     )
+MgO_qoi_db.add_qoi(
+        qoi_name='MgO_NaCl.a0',
+        qoi_type='a11_min_all',
+        structures=OrderedDict([
+            ('ideal','MgO_NaCl')]),
+        target=4.5
+    )
 MgO_potential = OrderedDict()
 MgO_potential['potential_type'] = 'buckingham'
 MgO_potential['symbols'] = ['Mg','O']
@@ -50,5 +57,6 @@ engine.configure_qoi_manager()
 engine.configure_task_manager()
 # <
 _parameters = MgO.MgO_LewisCatlow['parameters']
-engine.evaluate_parameter_set(parameters=_parameters)
+results = engine.evaluate_parameter_set(parameters=_parameters)
 
+print(results)

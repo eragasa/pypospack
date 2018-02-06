@@ -42,7 +42,7 @@ def get_qoi_map():
                 'module':'pypospack.qoi',
                 'class':'ElasticPropertyCalculations'},
             'lmps_defect':{
-                'qoi':['E_formation'],
+                'qoi':['E_formation_defect'],
                 'module':'pypospack.qoi',
                 'class':'DefectFormationEnergy'},
             'surface_energy':{
@@ -123,14 +123,16 @@ class Qoi:
     def predicted_value(self, qhat):
         self._predicted_value = qhat
 
-    def add_task(self,task_type,task_name,task_structure,task_requires=None):
+    def add_task(self,task_type,task_name,task_structure,bulk_structure_name=None):
         if self.tasks is None:
             self.tasks = OrderedDict()
 
         self.tasks[task_name] = OrderedDict()
         self.tasks[task_name]['task_type'] = task_type
         self.tasks[task_name]['task_structure'] = task_structure
-        self.tasks[task_name]['task_requires'] = copy.deepcopy(task_requires)
+        if bulk_structure_name is not None:
+            self.tasks[task_name]['bulk_structure'] = bulk_structure_name
+    
     def process_task_results(self,task_results):
         assert isinstance(task_results,dict)
         
@@ -269,7 +271,7 @@ class QoiManager(object):
     def configure(self):
         self.configure__get_QoiMap()
         self.configure__obj_Qoi()
-
+    
     def configure__get_QoiMap(self):
         self.obj_QoiMap = get_qoi_map()
 
@@ -300,6 +302,7 @@ class QoiManager(object):
                         msg_err = (
                             "Cannot process the type for 'structures':{}"
                             ).format(str(type(qoiv['structures'])))
+                        raise ValueError(msg_err)
 
                     _qoiname = '{}.{}'.format(_structure,_qoi_simulation_type)
                     _qoitype = qoiv['qoi_type']

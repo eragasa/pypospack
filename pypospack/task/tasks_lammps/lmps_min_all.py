@@ -49,7 +49,12 @@ class LammpsStructuralMinimization(LammpsSimulation):
     def on_post(self,configuration=None):
         self.__get_results_from_lammps_outputfile()
         LammpsSimulation.on_post(self,configuration=configuration)
-    
+
+    def on_ready(self,configuration=None,results=None):
+        LammpsSimulation.on_ready(
+                configuration=configuration,
+                results=results)
+
     def __get_results_from_lammps_outputfile(self):
         _filename = os.path.join(
                 self.task_directory,

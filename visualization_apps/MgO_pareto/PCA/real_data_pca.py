@@ -6,10 +6,12 @@ from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import normalize
+from pypospack.pyposmat import PyposmatDataFile
+import os, sys, inspect
 
 """
 TODO:
-use abs value err for pca plot
+manifold learning
 """
 
 
@@ -57,19 +59,32 @@ class TransformPCA(object):
 
     def __init__(self, num_clusters, param_df, err_df, qoi_df, total_df):
         self.num_clusters = num_clusters
+        '''
+        change input method to only a filepath:
+        with open(filepath) as f:
+            # data file class must be modifed to accept this
+            data = PyposmatDataFile(f)
+        self._param_df = data.parameter_df
+        self._err_df = data.error_df
+        self._qoi_df = data.qoi_df
+        self._total_df = data.df
+        assert self._total_df is not None
+        '''
         self.param_df = param_df
         self.err_df = err_df
         self.qoi_df = qoi_df
         self.total_df = total_df
         self.pca_df = pd.DataFrame()
-        self.normalize_and_transform()
+        self._normalize_and_transform()
 
-    def normalize_and_transform(self):
+    def _normalize_and_transform(self):
         pca_df_collection = []
         clusters = None
         for df, label in zip([self.param_df, self.err_df, self.qoi_df], ['param', 'err', 'qoi']):
+            # temporary abs value test
             if label == 'err':
                 df = np.absolute(df)
+            # ------------------------
             df = normalize(df)
             obj_pca = PCA()
             pca_np = obj_pca.fit_transform(df)
@@ -77,41 +92,41 @@ class TransformPCA(object):
             pca_names = [label + '_pca_{}'.format(i) for i in range(ncols)]
             pca_df = pd.DataFrame(data=pca_np, columns=pca_names)
             pca_df_collection.append(pca_df)
-            self.write_excel(obj_pca, pca_names, label)
+            self._write_excel(obj_pca, pca_names, label)
             # use the param data to define clusters
             if label == 'param':
-                clusters = self.kmeans_cluster(pca_df)
+                clusters = self._kmeans_cluster(pca_df)
         self.pca_df = pd.DataFrame(pd.concat(pca_df_collection, axis=1))
         self.pca_df['cluster_id'] = clusters
 
-    def write_excel(self, obj_pca, pca_names, label):
-        # create df of vectors and values to write excel file easily
+    def _write_excel(self, obj_pca, pca_names, label):
         # !!! The labels this function produces are wrong !!!
         # be sure to correct by hand for now
         eigen_values = obj_pca.explained_variance_
         eigen_vectors = obj_pca.components_
         eigen_df = pd.DataFrame(columns=pca_names)
         eigen_vectors = np.transpose(eigen_vectors)
-        eigen_vectors = eigen_vectors.tolist()
+        # .tolist() actually returns iterable class not list class
+        eigen_vectors = list(eigen_vectors.tolist())
         eigen_df['eigen_values'] = eigen_values
         for i, names in enumerate(pca_names):
             eigen_df[names] = eigen_vectors[i]
-            '''
-            if i == len(eigen_vectors) - 1:
-                eigen_df.loc[i + 1] = eigen_values.tolist()
-            '''
         writer = pd.ExcelWriter(label + '_eigen_table.xlsx')
         eigen_df.to_excel(writer, label)
         writer.save()
 
-    def kmeans_cluster(self, param_pca_df):
+    def _kmeans_cluster(self, param_pca_df):
         # do pca on only param and get cluster groupings for that
         obj_kmeans = KMeans(n_clusters=self.num_clusters)
         obj_kmeans = obj_kmeans.fit(param_pca_df)
         labels = obj_kmeans.labels_
         return labels
 
+# ^^^-------- Private methods to do stuff
+# vvv-------- Public methods to visualize
+
     def plot_kde_2d(self, dtype):
+        fig = plt.figure(figsize=(8,6))
         _clusterids = set(self.pca_df['cluster_id'])
         for clusterid in _clusterids:
             vect0 = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid][dtype+'_pca_0']
@@ -126,20 +141,18 @@ class TransformPCA(object):
             kernel = stats.gaussian_kde(values)
             f = np.reshape(kernel(positions).T, xx.shape)
 
-            fig = plt.figure()
-            ax = fig.gca()
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
+            ax = fig.add_subplot(311+clusterid)
             # Contourf plot
             ax.contourf(xx, yy, f, cmap='Blues')
             # Contour plot
             cset = ax.contour(xx, yy, f, colors='k')
             # Label plot
             ax.clabel(cset, inline=1, fontsize=10)
-            ax.set_xlabel('PCA_0')
-            ax.set_ylabel('PCA_1')
-            plt.title(s=dtype+' Group '+str(clusterid)+' Distribution')
-            plt.show()
+            ax.set_xlabel('PCA 0')
+            ax.set_ylabel('PCA 1')
+            ax.set_title(label=dtype+' Group '+str(clusterid)+' Distribution')
+        plt.subplots_adjust(hspace=1.0)
+        plt.show()
 
     def plot_2d(self, dtype):
         _clusterids = set(self.pca_df['cluster_id'])
@@ -182,9 +195,18 @@ class TransformPCA(object):
         plt.show()
 
 if __name__ == "__main__":
+    # fix filepath issue
+    # maybe pass filepath into this class, use it to open file, pass open file to DataFile class to avoid path confusion
+    # data = PyposmatDataFile(filename='')
+    #_param_df = data.parameter_df
+    #_err_df = data.error_df
+    #_qoi_df = data.qoi_df
+    #_total_df = data.df
+    # tp = TransformPCA(num_clusters=3, param_df=_param_df, err_df=_err_df, qoi_df=_qoi_df, total_df=_total_df)
+
     results = read_data_file(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
     tp = TransformPCA(num_clusters=3, param_df=results[0]['param_df'],
                       err_df=results[0]['err_df'], qoi_df=results[0]['qoi_df'],
                       total_df=results[0]['total_df'])
     # dtype must be 'param', 'err', or 'qoi'
-    tp.plot_kde_2d(dtype='param')
+    tp.plot_kde_2d(dtype='err')

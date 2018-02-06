@@ -45,18 +45,26 @@ class LammpsPositionMinimization(LammpsSimulation):
                 self._lammps_input_out_section()])
         return(str_out)
 
-    def on_ready(self,configuration=None):
+    def on_init(self,configuration=None,results=None):
+        LammpsSimulation.on_init(self,configuration=configuration)
+        self.bulk_structure_name = configuration['bulk_structure']
+
+    def on_ready(self,configuration=None,results=None):
         #_ideal_structure_name = self.ideal_structure_name
-        _structure_parameters = OrderedDict()
-        self__modify_structure(structure_parameters=_structure_parameters)
-        LammpsSimulation.on_read(self,configuration=configuration)
+        print(results)
+        self.__modify_structure(results=results)
+        LammpsSimulation.on_ready(self,configuration=configuration)
 
-    def __modify_structure(self,structure_parameters):
-        assert isinstance(structure_parameters,dict)
+    def __modify_structure(self,results=None):
+        assert isinstance(results,dict)
 
-        _a0,_a11,_a22,_a33 = None
+        _a0 = _a11 = _a22 = _a33 = None
         _bulk_structure_name = self.bulk_structure_name
 
+        for rn in ['a11_min_all','a22_min_all','a33_min_all']:
+            print('{}.{}'.format(_bulk_structure_name,rn))
+        print(results)
+        
     def on_post(self,configuration=None):
         self.__get_results_from_lammps_outputfile()
         LammpsSimulation.on_post(self,configuration=configuration)

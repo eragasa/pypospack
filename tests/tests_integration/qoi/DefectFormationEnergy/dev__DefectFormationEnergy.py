@@ -61,7 +61,6 @@ for k,v in qoi.tasks.items():
     elif isinstance(v['task_requires'],list):
         tsk_requires = ','.join(v['task_requires'])
     print(tsk_name,tsk_type,tsk_structure,tsk_structure,tsk_requires)
-print(qoi.tasks)
 
 if __name__ == '__main__':
     pass
