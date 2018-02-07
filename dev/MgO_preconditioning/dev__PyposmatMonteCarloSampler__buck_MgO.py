@@ -14,48 +14,48 @@ calc_elastic_properties = False
 calc_point_defects = True
 # <---------------- making a configuration file
 MgO_qoi_db = QoiDatabase()
-#MgO_qoi_db.add_qoi(
-#        qoi_name='MgO_NaCl.a0',
-#        qoi_type='a11_min_all',
-#        structures=OrderedDict([('ideal','MgO_NaCl')]),
-#        target=4.246)
+MgO_qoi_db.add_qoi(
+        qoi_name='MgO_NaCl.a0',
+        qoi_type='a11_min_all',
+        structures=OrderedDict([('ideal','MgO_NaCl')]),
+        target=4.246)
 
 # <----------------- ELASTIC PROPERTIES
-if calc_elastic_properties:
-    MgO_qoi_db.add_qoi(
-            qoi_name='MgO_NaCl.c11',
-            qoi_type='c11',
-            structures=OrderedDict([('ideal','MgO_NaCl')]),
-            target=277.00)
-    MgO_qoi_db.add_qoi(
-            qoi_name='MgO_NaCl.c12',
-            qoi_type='c12',
-            structures=OrderedDict([('ideal','MgO_NaCl')]),
-            target=91.67)
-    MgO_qoi_db.add_qoi(
-            qoi_name='MgO_NaCl.c44',
-            qoi_type='c44',
-            structures=OrderedDict([('ideal','MgO_NaCl')]),
-            target=144.01)
-    MgO_qoi_db.add_qoi(
-            qoi_name='MgO_NaCl.B',
-            qoi_type='bulk_modulus',
-            structures=OrderedDict([('ideal','MgO_NaCl')]),
-            target=153.45)
-    MgO_qoi_db.add_qoi(
-            qoi_name='MgO_NaCl.G',
-            qoi_type='shear_modulus',
-            structures=OrderedDict([('ideal','MgO_NaCl')]),
-            target=92.66)
+#if calc_elastic_properties:
+#    MgO_qoi_db.add_qoi(
+#            qoi_name='MgO_NaCl.c11',
+#            qoi_type='c11',
+#            structures=OrderedDict([('ideal','MgO_NaCl')]),
+#            target=277.00)
+#    MgO_qoi_db.add_qoi(
+#            qoi_name='MgO_NaCl.c12',
+#            qoi_type='c12',
+#            structures=OrderedDict([('ideal','MgO_NaCl')]),
+#            target=91.67)
+#    MgO_qoi_db.add_qoi(
+#            qoi_name='MgO_NaCl.c44',
+#            qoi_type='c44',
+#            structures=OrderedDict([('ideal','MgO_NaCl')]),
+#            target=144.01)
+#    MgO_qoi_db.add_qoi(
+#            qoi_name='MgO_NaCl.B',
+#            qoi_type='bulk_modulus',
+#            structures=OrderedDict([('ideal','MgO_NaCl')]),
+#            target=153.45)
+#    MgO_qoi_db.add_qoi(
+#            qoi_name='MgO_NaCl.G',
+#            qoi_type='shear_modulus',
+#            structures=OrderedDict([('ideal','MgO_NaCl')]),
+#            target=92.66)
 
-if calc_point_defects:
-    MgO_qoi_db.add_qoi(
-            qoi_name='MgO_NaCl.fr_a',
-            qoi_type='E_formation_defect',
-            structures=OrderedDict([
-                ('defect','MgO_NaCl_fr_a'),
-                ('ideal','MgO_NaCl')]),
-            target=10.978)
+#if calc_point_defects:
+#    MgO_qoi_db.add_qoi(
+#            qoi_name='MgO_NaCl.fr_a',
+#            qoi_type='E_formation_defect',
+#            structures=OrderedDict([
+#                ('defect','MgO_NaCl_fr_a'),
+#                ('ideal','MgO_NaCl')]),
+#            target=10.978)
 #MgO_qoi_db.add_qoi(
 #        qoi_name='MgO_NaCl.fr_c',
 #        qoi_type='point_defect',
