@@ -171,24 +171,23 @@ for i in range(_n_iterations):
     print('{:^10} {:^10} {:^20}'.format(i,_n_samples,_sample_type))
 
 #param_dist_def = Si_sw_param_dist['parameters']
-print(engine.configuration.configuration)
 parameter_names = [p for p in engine.configuration.sampling_distribution]
 qoi_names = [k for k in engine.configuration.qois]
 error_names = ['{}.err'.format(k) for k in qoi_names]
 
 pyposmat_data_file = PyposmatDataFile(filename_out)
 
-
-free_parameter_names = [k for k,v in engine.configuration.sampling_distribution.items() if v[0] != 'equals']
-for p in param_dist_def:
+_param_dist_def = engine.configuration.sampling_distribution
+free_parameter_names = [k for k,v in _param_dist_def.items() if v[0] != 'equals']
+for p in engine.configuration.sampling_distribution:
     if p in free_parameter_names:
         str_free = 'free'
         print('{:^10} {:^10} {:^10} {:^10} {:^10}'.format(
             p,
             str_free,
-            param_dist_def[p][0],
-            param_dist_def[p][1]['a'],
-            param_dist_def[p][1]['b']))
+            _param_dist_def[p][0],
+            _param_dist_def[p][1]['a'],
+            _param_dist_def[p][1]['b']))
     else:
         str_free = 'not_free'
         print('{:^10} {:^10}'.format(p,str_free))
