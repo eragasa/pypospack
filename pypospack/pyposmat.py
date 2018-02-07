@@ -136,6 +136,54 @@ class PyposmatDataFile(object):
         self.sub_qoi_df = None
         self.sub_error_df = None
 
+    def write_header_section(self,
+            parameter_names,
+            qoi_names,
+            error_names,
+            filename=None):
+
+        if filename is not None:
+            assert isinstance(filename,str)
+            self.filename=filename
+ 
+        assert isinstance(parameter_names,list)
+        assert isinstance(qoi_names,list)
+        assert isinstance(error_names,list)
+
+        self.parameter_names = list(parameter_names)
+        self.qoi_names = list(qoi_names)
+        self.error_names = list(error_names)
+
+        self.names = ['sim_id']\
+                + list(parameter_names)\
+                + list(qoi_names)\
+                + list(error_names)
+        self.types = ['sim_id']\
+                + len(parameter_names) * ['param']\
+                + len(qoi_names) * ['qoi']\
+                + len(error_names) * ['err']\
+
+        _header_str = ",".join(self.names) + "\n"
+        _header_str += ",".join(self.types) + "\n"
+
+        with open(self.filename,'w') as f:
+            f.write(_header_str)
+
+    def write_simulation_results(self,
+            sim_id,
+            results,
+            filename=None):
+        _sim_result = [str(sim_id)]
+        _sim_result += [str(v) for k,v in results['parameters'].items()]
+        _sim_result += [str(v) for k,v in results['qois'].items()]
+        _sim_result += [str(v) for k,v in results['errors'].items()]
+        
+        _str_sim_results = ",".join(_sim_result)
+
+        with open(filename,'a') as f:
+            f.write(_str_sim_results)
+        
+
     def read(self,filename=None):
         if filename is not None:
             self.filename = filename
@@ -516,14 +564,21 @@ class PyposmatConfigurationFile(object):
         self.configuration['potential'] = copy.deepcopy(potential)
 
     @property
-    def mc_sampling_type(self):
-        return self.configuration['mc_sampling_type']
+    def sampling_type(self):
+        return self.configuration['sampling_type']
 
-    @mc_sampling_type.setter
-    def mc_sampling_type(self,mc_sampling_type):
-        MC_SAMPLING_TYPES = ['parametric','kde']
-        assert mc_sampling_type in MC_SAMPLING_TYPES
-        self.configuration['mc_sampling_type'] = mc_sampling_type
+    @sampling_type.setter
+    def sampling_type(self,sampling_type):
+        SAMPLING_TYPES = ['parametric','kde']
+        self.configuration['sampling_type'] = copy.deepcopy(sampling_type)
+
+    @property
+    def sampling_distribution(self):
+        return self.configuration['sampling_dist']
+
+    @sampling_distribution.setter
+    def sampling_distribution(self,distribution):
+        self.configuration['sampling_dist'] = copy.deepcopy(distribution)
 
     @property
     def mc_seed(self):
