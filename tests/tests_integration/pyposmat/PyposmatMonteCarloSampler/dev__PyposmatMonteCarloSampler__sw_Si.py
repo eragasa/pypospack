@@ -178,11 +178,15 @@ error_names = ['{}.err'.format(k) for k in qoi_names]
 pyposmat_data_file = PyposmatDataFile(filename_out)
 
 _param_dist_def = engine.configuration.sampling_distribution
+
 free_parameter_names = [k for k,v in _param_dist_def.items() if v[0] != 'equals']
-for p in engine.configuration.sampling_distribution:
+print(80*'-')
+print('{:80}'.format('INITIAL PARAMETER DISTRIBUTION'))
+print(80*'-')
+for p in _param_dist_def:
     if p in free_parameter_names:
         str_free = 'free'
-        print('{:^10} {:^10} {:^10} {:^10} {:^10}'.format(
+        print('{:^20} {:^10} {:^10} {:^10} {:^10}'.format(
             p,
             str_free,
             _param_dist_def[p][0],
@@ -190,19 +194,27 @@ for p in engine.configuration.sampling_distribution:
             _param_dist_def[p][1]['b']))
     else:
         str_free = 'not_free'
-        print('{:^10} {:^10}'.format(p,str_free))
+        print('{:^20} {:^10}'.format(p,str_free))
 
 
 _rv_generators = OrderedDict()
 for p in free_parameter_names:
-    if param_dist_def[p][0] == 'uniform':
-        a = param_dist_def[p][1]['a']
-        b = param_dist_def[p][1]['b']
+    if _param_dist_def[p][0] == 'uniform':
+        a = _param_dist_def[p][1]['a']
+        b = _param_dist_def[p][1]['b']
         _loc = a
         _scale = b-a
         _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
     else:
         pass
+
+i_iteration = 0
+print(80*'-')
+print('START SIMULATIONS')
+print(80*'-')
+print('ITERATION={}'.format(i_iteration))
+print(80*'-')
+
 
 pyposmat_data_file.write_header_section(
         filename=filename_out,
@@ -212,7 +224,8 @@ pyposmat_data_file.write_header_section(
 
 import time
 time_start = time.time()
-for i_sample in range(n_samples):
+_n_samples = engine.configuration.sampling_type[0]['n_samples']
+for i_sample in range(_n_samples):
     # generate parameter set
     _parameters = OrderedDict([(p,None) for p in parameter_names])
     for p in free_parameter_names:
@@ -221,7 +234,7 @@ for i_sample in range(n_samples):
     _constrained_parameters = [
             p for p in _parameters if p not in free_parameter_names]
     for p in _constrained_parameters:
-        _str_eval = str(param_dist_def[p][1])
+        _str_eval = str(_param_dist_def[p][1])
         for fp in free_parameter_names:
             if fp in _str_eval:
                 _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
