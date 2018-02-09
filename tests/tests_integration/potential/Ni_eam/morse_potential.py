@@ -52,5 +52,6 @@ ax.plot(r,morse_nocut_vals,color = 'b',label='nocut')
 ax.plot(r,morse_cut_vals, color='r',label='cut')
 ax.set_xlabel(r"interatomic separation $\AA$")
 ax.set_ylabel(r"interatomic energy eV")
+ax.legend()
 fig.savefig('morse_potential.png',dpi=800)   # save the figure to file
 plt.close(fig)

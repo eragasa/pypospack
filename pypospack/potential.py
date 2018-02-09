@@ -252,6 +252,24 @@ class EamPotential(Potential):
         for p in self.parameter_names:
             self.parameters[p] = None
 
+    def determine_rho_max(self):
+        _d_1NN = 0.7070 * _a0
+        _d_2NN = 1.0000 * _a0
+        _d_O = 0.866 * _a0
+        _d_T = 0.433 * _a0
+        _rcut = 0.5 * (_d_1NN +_d_2NN)
+
+        _natoms_1NN = 12
+        _natoms_2NN = 6
+        _natoms_O = 4
+        _natoms_T = 2
+        _rhomax = _natoms_1NN * self.potential.obj_density.evaluate(
+                        _d_1NN,_parameters)\
+                + _natoms_2NN * self.potential.obj_density.evaluate(_d_2NN)\
+                + _natoms_O * self.potential.obj_density.evaluate(_d_O)\
+                + _natoms_T * self.potential.obj_density.evaluate(_d_T)
+
+        return _rhomax
     def write_setfl_file(self,filename,symbols,
             Nr,rmax,rcut,
             Nrho,rhomax,

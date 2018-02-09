@@ -427,6 +427,10 @@ class LammpsSimulation(Task):
         _rcut = self.configuration['potential']['r_cut']
         _parameters = self.configuration['parameters']
 
+        _a0 = self.configuration['potential']['a0']
+        self.potential.determine_rho_max()
+
+
         self.potential.write_setfl_file(
                 filename=_setfl_dst_filename,
                 symbols=self.potential.symbols,
