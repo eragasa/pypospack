@@ -23,8 +23,8 @@ class VaspCalculateBulkProperties(object):
         self.sim_task_class_name['elas'] = ['pypospack.task.vasp', 'VaspCalculateElastic']
 
         # define dependency
-        self.sim_task_dependency = {}
-        self.sim_task_dependency['min'
+        # self.sim_task_dependency = {}
+        # elf.sim_task_dependency['min']
 
         self.min_0_dir = os.path.join(self.sim_dir,'min_0')
         self.conv_encut_dir = os.path.join(self.sim_dir,'conv_encut')
@@ -40,7 +40,6 @@ class VaspCalculateBulkProperties(object):
         
         else:
             os.mkdir(self.sim_dir)
-
 
         self.sims['min_0'] = VaspMinimizeStructure(\
                 sim_dir = self.min_0_dir,
@@ -213,6 +212,6 @@ if __name__ == '__main__':
         else:
             raise KeyError('sg is an unsupported space group, pass in {}'.format(sg))
 
-
-        VaspCalculateBulkProperties(sim_dir,obj_poscar)
+        
+        #VaspCalculateBulkProperties(sim_dir,obj_poscar)
 

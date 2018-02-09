@@ -32,5 +32,8 @@ def make_fcc_100_slab(size=(2,2,3),symbol='Cu',pbc=(1,1,0)):
 
 if __name__ == "__main__":
     make_fcc_bulk()
+    import pypospack.io.vasp as vasp
+    fcc_poscar = vasp.Poscar(make_fcc_bulk())
+    fcc_poscar.write('Ni_fcc.vasp')
     make_fcc_111_slab()
     make_fcc_100_slab()

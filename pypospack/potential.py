@@ -303,7 +303,8 @@ class EamPotential(Potential):
         if func_pair == 'morse':
             self.obj_pair = MorsePotential(symbols=self.symbols)
         else:
-            msg_err = "func_pair must be a PairPotential"
+            msg_err = ["func_pair must be a PairPotential"]
+            msg_err = ["type(func_pair)={}".format(str(type(func_pair)))]
             raise ValueError(msg_err)
         if not isinstance(self.obj_pair,PairPotential):
             msg_err = "func_pair must be a PairPotential"

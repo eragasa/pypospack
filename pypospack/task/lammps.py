@@ -180,7 +180,13 @@ class LammpsSimulation(Task):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
        
-        self.configure_potential(potential=self.configuration['potential'])
+        try:
+            self.configure_potential(potential=self.configuration['potential'])
+        except KeyError:
+            print("self.configuration:",type(self.configuration))
+            for k,v in self.configuration.items():
+                print(k,' = ',v)
+            raise
         self.set_potential_parameters()
         if self.configuration['parameters'] is not None:
             self.parameters = self.configuration['parameters']
@@ -256,6 +262,9 @@ class LammpsSimulation(Task):
         self.write_structure_file()
         if isinstance(self.potential,EamPotential):
             if self.potential.setfl_filename_src is None:
+                if self.lammps_setfl_filename is None:
+                    self.lammps_setfl_filename = '{}.eam.alloy'.format(
+                            "".join(self.potential.symbols))
                 _eam_setfl_filename_dst = os.path.join(
                         self.task_directory,
                         self.lammps_setfl_filename)
@@ -557,9 +566,8 @@ class LammpsSimulation(Task):
                 _potential = self.configuration['potential']
 
         _potential_type = _potential['potential_type']
-        
-        # <-------- Deal wit the case the potential might be an EAM potential first
-        if _potential_type is 'eam':
+        if _potential_type == 'eam':
+            
             if 'setfl_filename' not in _potential:
                 _potential['setfl_filename'] = None
                 self.configuration['potential']['setfl_filename'] = None

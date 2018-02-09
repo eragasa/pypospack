@@ -482,9 +482,22 @@ class PyposmatEngine(object):
         self.configure_task_manager()
         _parameters = copy.deepcopy(parameters)
         _potential = copy.deepcopy(self.configuration.potential)
-        self.task_manager.evaluate_tasks(
-                parameters=_parameters,
-                potential=_potential)
+        try:
+            self.task_manager.evaluate_tasks(
+                    parameters=_parameters,
+                    potential=_potential)
+        except:
+            print("--- FATAL ERROR ---")
+            print("self.configuration.potential:")
+            for k,v in self.configuration.potential.items():
+                print("\t",k,'=',v)
+            print("current_parameter_set:")
+            for k,v in _parameters.items():
+                print("\t",k,'=',v)
+            print("--- END ERROR INFO ---")
+          
+            print(type(self.configuration.potential))
+            raise
         _task_results = self.task_manager.results
         self.qoi_manager.calculate_qois(
                 task_results=_task_results)

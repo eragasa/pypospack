@@ -101,10 +101,13 @@ class TaskManager(object):
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()
                 if o_task.status == 'INIT':
-                    _config = copy.deepcopy(_configuration)
-                    if 'bulk_structure' in self.tasks[k_task]:
-                        _config['bulk_structure'] = self.tasks[k_task]['bulk_structure']
-                    o_task.on_init(configuration=_config)
+                    _configuration = OrderedDict()
+                    _configuration['potential'] = potential
+                    _configuration['parameters'] = parameters
+                    #_configuration['bulk_structure'] = \
+                    #        self.tasks[k_task]['bulk_structure']
+                    
+                    o_task.on_init(configuration=_configuration)
                 elif o_task.status == 'CONFIG':
                     o_task.on_config()
                 elif o_task.status == 'READY':
