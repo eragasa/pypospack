@@ -150,6 +150,7 @@ class PyposmatDataFile(object):
         assert isinstance(qoi_names,list)
         assert isinstance(error_names,list)
 
+        #_a0 = self.configuration['potential']['a0']
         self.parameter_names = list(parameter_names)
         self.qoi_names = list(qoi_names)
         self.error_names = list(error_names)

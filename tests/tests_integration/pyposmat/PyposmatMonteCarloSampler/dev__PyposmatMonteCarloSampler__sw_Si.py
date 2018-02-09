@@ -44,6 +44,7 @@ engine.create_base_directories()
 engine.read_configuration_file()
 engine.configure_qoi_manager()
 engine.configure_task_manager()
+engine.pyposmat_datafile_out = PyposmatDataFile(filename_out)
 
 _structure_directory = engine.configuration.structures['structure_directory']
 _n_iterations = engine.configuration.sampling_type['n_iterations']
@@ -121,7 +122,7 @@ print(80*'-')
 print('ITERATION={}'.format(i_iteration))
 print(80*'-')
 
-pyposmat_data_file.write_header_section(
+engine.pyposmat_datafile_out.write_header_section(
         filename=filename_out,
         parameter_names=parameter_names,
         qoi_names=qoi_names,
@@ -147,7 +148,7 @@ for i_sample in range(_n_samples):
 
     #_parameters = Si.Si_dia_swpizzagalli['parameters']
     _results = engine.evaluate_parameter_set(parameters=_parameters)
-    pyposmat_data_file.write_simulation_results(
+    engine.pyposmat_datafile_out.write_simulation_results(
             filename=filename_out,
             sim_id=i_sample,
             results=_results)
