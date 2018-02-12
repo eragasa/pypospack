@@ -178,7 +178,6 @@ class EamPotential(Potential):
         self.obj_density = None
         self.obj_embedding = None
 
-        # these will be numpy arrays
         self.N_r = None
         self.r_max = None
         self.r_cut = None
@@ -186,6 +185,7 @@ class EamPotential(Potential):
         self.N_rho = None
         self.rho_max = None
 
+        # these will be numpy arrays
         self.r = None
         self.rho = None
         self.pair= None
@@ -252,24 +252,47 @@ class EamPotential(Potential):
         for p in self.parameter_names:
             self.parameters[p] = None
 
-    def determine_rho_max(self):
-        _d_1NN = 0.7070 * _a0
-        _d_2NN = 1.0000 * _a0
-        _d_O = 0.866 * _a0
-        _d_T = 0.433 * _a0
-        _rcut = 0.5 * (_d_1NN +_d_2NN)
+    def determine_r_max(self,a0,latt_type):
+        _a0 = a0
 
-        _natoms_1NN = 12
-        _natoms_2NN = 6
-        _natoms_O = 4
-        _natoms_T = 2
-        _rhomax = _natoms_1NN * self.potential.obj_density.evaluate(
-                        _d_1NN,_parameters)\
-                + _natoms_2NN * self.potential.obj_density.evaluate(_d_2NN)\
-                + _natoms_O * self.potential.obj_density.evaluate(_d_O)\
-                + _natoms_T * self.potential.obj_density.evaluate(_d_T)
+        if latt_type == 'fcc':
+            _d_2NN = 1.000 * _a0
+            _d_3NN = 1.225 * _a0
 
-        return _rhomax
+        # r_max should be between the 2NN and 3NN
+        _rcut = 0.5 * (_d_2NN + _d_3NN)
+        return _rcut
+
+    def determine_rho_max(self,a0,latt_type):
+        _a0 = a0
+        
+        #extract parameters for the density function
+        _parameters = OrderedDict()
+        for k,v in self.parameters.items():
+            if k.startswith('d_'):
+                _parameter_name = k[2:]
+                _parameters[_parameter_name] = v
+
+        if latt_type == 'fcc':
+            _d_1NN = 0.707 * _a0
+            _d_2NN = 1.000 * _a0
+            _d_3NN = 1.225 * _a0
+            _d_O = 0.866 * _a0
+            _d_T = 0.433 * _a0
+
+            _natoms_1NN = 12
+            _natoms_2NN = 6
+            _natoms_O = 4
+            _natoms_T = 2
+        
+        s = 'Ni'
+        _rhomax = _natoms_1NN * self.obj_density.evaluate(_d_1NN,_parameters)[s]
+        _rhomax += _natoms_2NN * self.obj_density.evaluate(_d_2NN,_parameters)[s]
+        _rhomax += _natoms_O * self.obj_density.evaluate(_d_O,_parameters)[s]
+        _rhomax += _natoms_T * self.obj_density.evaluate(_d_T,_parameters)[s]
+
+        return float(_rhomax)
+    
     def write_setfl_file(self,filename,symbols,
             Nr,rmax,rcut,
             Nrho,rhomax,

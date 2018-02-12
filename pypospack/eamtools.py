@@ -372,7 +372,7 @@ class EamSetflFile(object):
         assert isinstance(self.r_cut, float)
 
         #"{0:5d}{1:24.16e}{2:5d}{3:24.16e}{4:24.16f}"
-        _str_out = "".join([
+        _str_out = " ".join([
                 self.SETFL_INT_FORMAT.format(self.N_rho),
                 self.SETFL_NUM_FORMAT.format(self.d_rho),
                 self.SETFL_INT_FORMAT.format(self.N_r),

@@ -21,6 +21,8 @@ TaskToClassMap['lmps_neb'] = OrderedDict()
 TaskToClassMap['lmps_neb']['module'] = 'pypospack.task.lammps'
 TaskToClassMap['lmps_neb']['class'] = 'LammpsNebCalculation'
 
+class PypospackTaskManagerError(Exception): pass
+
 class TaskManager(object):
     """
     Args:
@@ -89,6 +91,7 @@ class TaskManager(object):
                     for o_task in obj_Task.values()]
             return all(_statuses)
 
+        _start_time = time.time()
         while not all_simulations_finished(self.obj_Task):
             # iterate over each task, and try to progress the status
             # INIT -> CONFIG
@@ -96,7 +99,10 @@ class TaskManager(object):
             # READY -> RUNNING
             # RUNNING -> POST
             # POST -> FINISHED
-
+            _max_time_per_simulation = 20
+            _time_elapsed = time.time() - _start_time
+            if _time_elapsed > _max_time_per_simulation:
+                raise PypospackTaskManagerError('simulation time exceeded')
             for k_task,o_task in self.obj_Task.items():
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()

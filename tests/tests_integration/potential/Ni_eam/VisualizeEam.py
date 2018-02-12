@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import pypospack.potential as potential
 import numpy as np
 
 class EamPotentialFigure(object):
@@ -11,6 +12,10 @@ class EamPotentialFigure(object):
         self.pair_func = None
         self.embed_func = None
         self.elec_dens_func = None
+
+    def plot_eam_potential(self,o_eam_potential, parameters):
+
+    def create_figure(self):
 
 class EamPairPotentialPlot(object):
     pass

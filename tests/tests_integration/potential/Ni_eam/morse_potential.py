@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import pyflamestk.potential as potential
+import pypospack.potential as potential
 
 # ----- test for one symbol
 symbols = ['Ni']
@@ -28,14 +28,14 @@ param_dict['NiNi_r0'] = 3
 r_low = 0.5 # Angstom
 r_high = 10 # Angstrom
 N_r = 1000
-rcut = 8
+rcut = 3.5
 h = 1
 r = np.linspace(r_low, r_high, N_r)
 
 # ----- test with no cutoff function
 print("calculate without cutoff")
 morse_nocut = potential.MorsePotential(symbols)
-morse_nocut_vals = morse_nocut.evaluate(r=r,pair=pair,params=param_dict)
+morse_nocut_vals = morse_nocut.evaluate(r=r,params=param_dict)
 
 # ----- test without cutoff function
 print("calculate with cutoff")

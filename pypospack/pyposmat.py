@@ -16,7 +16,7 @@ import scipy.stats
 from pypospack.qoi import QoiDatabase
 from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
-
+from pypospack.task.lammps import LammpsSimulationError
 # <---------------- legacy imports
 #import pyflamestk.lammps as lammps
 #import pyflamestk.base as base
@@ -182,7 +182,7 @@ class PyposmatDataFile(object):
         _str_sim_results = ",".join(_sim_result)
 
         with open(filename,'a') as f:
-            f.write(_str_sim_results)
+            f.write(_str_sim_results+"\n")
         
 
     def read(self,filename=None):
@@ -487,6 +487,9 @@ class PyposmatEngine(object):
             self.task_manager.evaluate_tasks(
                     parameters=_parameters,
                     potential=_potential)
+        except LammpsSimulationError as e:
+            str_neighlist_overflow = 'Neighbor list overflow'
+            raise
         except:
             print("--- FATAL ERROR ---")
             print("self.configuration.potential:")
@@ -499,27 +502,28 @@ class PyposmatEngine(object):
           
             print(type(self.configuration.potential))
             raise
-        _task_results = self.task_manager.results
-        self.qoi_manager.calculate_qois(
-                task_results=_task_results)
+        else:
+            _task_results = self.task_manager.results
+            self.qoi_manager.calculate_qois(
+                    task_results=_task_results)
        
-        # popular qoi values
-        _qoi_results = OrderedDict()
-        for k_qoi,v_qoi in self.qoi_manager.qois.items():
-            _qoi_val = v_qoi['qoi_val']
-            _qoi_results[k_qoi] = _qoi_val
+            # popular qoi values
+            _qoi_results = OrderedDict()
+            for k_qoi,v_qoi in self.qoi_manager.qois.items():
+                _qoi_val = v_qoi['qoi_val']
+                _qoi_results[k_qoi] = _qoi_val
 
-        # populate errors
-        _qoi_errors = OrderedDict()
-        for k_qoi,v_qoi in self.qoi_manager.qois.items():
-            _qoi_error_name = '{}.{}'.format(k_qoi,'err')
-            _qoi_error = v_qoi['qoi_err']
-            _qoi_errors[_qoi_error_name] = _qoi_error
+            # populate errors
+            _qoi_errors = OrderedDict()
+            for k_qoi,v_qoi in self.qoi_manager.qois.items():
+                _qoi_error_name = '{}.{}'.format(k_qoi,'err')
+                _qoi_error = v_qoi['qoi_err']
+                _qoi_errors[_qoi_error_name] = _qoi_error
 
-        _results = OrderedDict()
-        _results['parameters'] = copy.deepcopy(_parameters)
-        _results['qois'] = copy.deepcopy(_qoi_results)
-        _results['errors'] = copy.deepcopy(_qoi_errors)
+            _results = OrderedDict()
+            _results['parameters'] = copy.deepcopy(_parameters)
+            _results['qois'] = copy.deepcopy(_qoi_results)
+            _results['errors'] = copy.deepcopy(_qoi_errors)
 
         return _results
 
