@@ -316,8 +316,6 @@ class QoiManager(object):
                          structures = _structures)
                     self.qois[qoik]['qoi_name'] = '{}.{}'.format(_qoiname,_qoitype)
     
-    def calculate_qois(self,task_results):
-        assert isinstance(task_results,OrderedDict)
 
     def __init_QoiDatabase_from_None(self):
         self.qoidb = QoiDatabase()
@@ -401,7 +399,7 @@ class QoiManager(object):
             _qoi_val = self.obj_Qoi[_obj_qoi_id].qois[_qoi_id]
             _qoi_ref = self.qois[k_qoi]['qoi_ref']
             self.qois[k_qoi]['qoi_val'] = _qoi_val
-            self.qois[k_qoi]['qoi_err'] = abs(_qoi_val-_qoi_ref)
+            self.qois[k_qoi]['qoi_err'] = _qoi_val-_qoi_ref
 
 #------------------------------------------------------------------------------
 from pypospack.io.filesystem import OrderedDictYAMLLoader 
