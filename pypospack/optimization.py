@@ -19,7 +19,8 @@ class MultiobjectiveParameterOptimization(object):
     pass
 
 class ParetoParameterOptimzation(MultiobjectiveParameterOptimization):
-    pass
+    def __init__(self):
+        pass
 
 class ConjugateGradientParameterOptimization(MultiobjectiveParameterOptimization):
     pass
