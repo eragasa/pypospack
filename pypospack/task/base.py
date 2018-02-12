@@ -166,7 +166,7 @@ class Task(object):
         
         #<--- we do this if the path already exists
         if os.path.exists(self.task_directory):
-            shutil.rmtree(self.task_directory,ignore_errors=True
+            shutil.rmtree(self.task_directory,ignore_errors=True)
             os.mkdir(self.task_directory)
             self.status = 'INIT'
         else:
