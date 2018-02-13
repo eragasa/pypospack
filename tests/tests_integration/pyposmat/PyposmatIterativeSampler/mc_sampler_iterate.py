@@ -20,11 +20,13 @@ class PyposmatIterativeSampler(object):
 
     def set_sampling_seed(self):
         pass
-if __name__ == '__main__':
 
+if __name__ == "__main__":
     from mpi4py import MPI
+    import numpy as np
 
     mpi_com = MPI.COMM_WORLD
     mpi_rank = mpi_com.Get_rank()
     mpi_nprocs = mpi_com.Get_size()
-    print('hello, from rank {} of {} processors'.format(mpi_rank,mpi_nprocs))
+   
+    print('hello, from rank {} of {} processors,'.format(mpi_rank,mpi_nprocs))
