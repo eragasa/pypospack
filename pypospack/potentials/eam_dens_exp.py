@@ -76,7 +76,7 @@ class ExponentialDensityFunction(EamDensityFunction):
 
         # cannot evaluate because
         for pn,pv in self.parameters.items():
-            if pv == None:
+            if pv is None:
                 return False
 
         def func_dens_exp(r, rho0, beta,r0):

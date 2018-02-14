@@ -367,12 +367,17 @@ class LammpsSimulation(Task):
         cmd_str = '{} -i lammps.in > lammps.out'.format(_lammps_bin)
 
         # change context directory
+        
         _cwd = os.getcwd()
         os.chdir(self.task_directory)
+        
+        # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
         self.process = subprocess.Popen(
                 cmd_str,
                 shell=True,
-                cwd=self.task_directory)
+                cwd=self.task_directory,
+                preexec_fn=os.getpgrp)
+                #preexec_fn=os.setsid)
         self.process_info = OrderedDict()
         os.chdir(_cwd)
 

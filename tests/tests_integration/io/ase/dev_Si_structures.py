@@ -7,7 +7,7 @@ import ase.build.bulk
 from pypospack.crystal import SimulationCell
 from pypospack.io.vasp import Poscar
 from pypospack.io.lammps import LammpsStructure
-
+import pypospack.crystal as crystal
 
 def make_Si_sc_bulk(name='Si'):
     name = 'Si'
@@ -51,10 +51,11 @@ if __name__ == "__main__":
     is_write_vasp_structures = True 
     dst_structure_dir = 'Si_structures'
     structures = OrderedDict()
-    structures['Si_sc_unit'] = OrderedDict()
-    structures['Si_sc_unit']['ase_obj'] = make_Si_sc_bulk()
-    structures['Si_sc_unit']['symbol_list'] = ['Si']
-    structures['Si_sc_unit']['lmps_atom_style'] = 'atomic'
+    structures['Si_dia_unit'] = OrderedDict()
+    structures['Si_dia_unit']['ase_obj'] = make_Si_sc_bulk()
+    structures['Si_dia_unit']['symbol_list'] = ['Si']
+    structures['Si_dia_unit']['lmps_atom_style'] = 'atomic'
+
 
     if os.path.exists(dst_structure_dir):
         print('dst_structure_dir exists...')
@@ -92,4 +93,38 @@ if __name__ == "__main__":
                 atom_style=v['lmps_atom_style']
             )
             print('{}->{}'.format(k,v['lammps_fname'])) 
+
+    structures['Si_dia_333'] = OrderedDict()
+    structures['Si_dia_333']['pypospack_obj'] = crystal.make_super_cell(
+            structure=structures['Si_dia_unit']['pypospack_obj'],
+            sc=[3,3,3])
+    poscar = Poscar(structures['Si_dia_333']['pypospack_obj'])
+    poscar.write(os.path.join(
+        dst_structure_dir,
+        'Si_dia_333.vasp'))
+    lammps_structure = LammpsStructure(structures['Si_dia_333']['pypospack_obj'])
+    lammps_structure.write(
+            filename=os.path.join(
+                dst_structure_dir,
+                'Si_dia_333.structure'),
+            symbol_list=['Si'],
+            atom_style='atomic')
+
+    structures['Si_dia_333_vac'] = OrderedDict()
+    structures['Si_dia_333_vac']['pypospack_obj'] = SimulationCell(
+            structures['Si_dia_333']['pypospack_obj'])
+    structures['Si_dia_333_vac']['pypospack_obj'].add_vacancy(
+            symbol = 'Si',
+            position = [0.0000,0.0000,0.0000])
+    poscar = Poscar(structures['Si_dia_333_vac']['pypospack_obj'])
+    poscar.write(os.path.join(
+        dst_structure_dir,
+        'Si_dia_333_vac.vasp'))
+    lammps_structure = LammpsStructure(structures['Si_dia_333']['pypospack_obj'])
+    lammps_structure.write(
+            filename=os.path.join(
+                dst_structure_dir,
+                'Si_dia_333_vac.structure'),
+            symbol_list=['Si'],
+            atom_style='atomic')
 

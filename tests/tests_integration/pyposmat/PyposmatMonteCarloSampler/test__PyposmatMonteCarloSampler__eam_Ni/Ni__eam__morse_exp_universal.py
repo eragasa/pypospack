@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
+a0 = 3.52
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -18,9 +19,10 @@ Ni_eam_potential_formalism['r_max'] = 10.0
 Ni_eam_potential_formalism['r_cut'] = 10.0
 Ni_eam_potential_formalism['N_rho'] = 10000
 Ni_eam_potential_formalism['rho_max'] = 1000.0
-Ni_eam_potential_formalism['a0'] = 3.52
+Ni_eam_potential_formalism['a0'] = a0
 Ni_eam_potential_formalism['lattice_type'] = 'fcc'
 
+r0 = Ni_eam_potential_formalism['a0']/(2**0.5)
 # <---------------- INITIAL PARAMETER DEFINITION
 # units need to be in metal units
 Ni_eam_parameter_distribution = OrderedDict()
@@ -33,21 +35,17 @@ Ni_eam_parameter_distribution['p_NiNi_a'] = [
             'a':1.000000,
             'b':4.000000}]
 Ni_eam_parameter_distribution['p_NiNi_r0'] = [
-        'uniform',{
-            'a':2.0,
-            'b':3.0}]
+        'equals',r0]
 Ni_eam_parameter_distribution['d_Ni_rho0'] = [
         'uniform',{
-            'a':0.0001,
-            'b':20.0000}]
+            'a':1.000000,
+            'b':['equilibrium_density',r0,'fcc']]
 Ni_eam_parameter_distribution['d_Ni_beta'] = [
         'uniform',{
-            'a':0.0001,
-            'b':20.0000}]
+            'a':5.0000,
+            'b':7.0000}]
 Ni_eam_parameter_distribution['d_Ni_r0'] = [
-        'uniform',{
-            'a':0.0001,
-            'b':10.0000}]
+        'equals',r0]
 Ni_eam_parameter_distribution['e_Ni_F0'] = [
         'uniform',{
             'a':0.1e-3,

@@ -52,6 +52,11 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 self.configuration.sampling_distribution
         self.free_parameter_names = [k for k,v in self.parameter_distribution_definition.items() if v[0] != 'equals']
 
+        self.constrained_parameter_names = []
+        for p in self.parameter_names:
+            if p not in self.free_parameter_names:
+                self.constrained_parameter_names.append(p)
+
     def run_simulations(self,i_iteration,n_samples=None,filename=None):
         i = i_iteration
         _sampling_type = self.configuration.sampling_type[i]['type']
@@ -90,24 +95,23 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         time_start = time.time()
         _n_errors = 0
 
-        _constrained_parameter_names = []
-        for p in self.parameter_names:
-            if p not in self.free_parameter_names:
-                _constrainted_parameter_names.append(p)
-
         for i_sample in range(n_samples):
             # generate parameter set
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
+            
+            # generate free parameters
             for p in self.free_parameter_names:
                 _parameters[p] = _rv_generators[p].rvs(size=1)[0]
 
-            for p in _constrained_parameter_names:
+            # determine constrained parameters
+            for p in self.constrained_parameter_names:
                 _str_eval = str(_param_dist_def[p][1])
                 for fp in free_parameter_names:
                     if fp in _str_eval:
                         _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
                 _parameters[p] = eval(_str_eval)
 
+            
             try:
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except LammpsSimulationError as e:
@@ -134,26 +138,78 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     print(_str_msg)
                     sys.stdout.flush()
 
-    def run_kde_sampling(self,n_samples,filename_in):    
-        _rv_generators = OrderedDict()
-        for p,definiton in self.free_parameter_names.items():
-            distribution_type = definition[0]
-            if distribution_type == 'uniform':
-                _a = definition[1]['a']
-                _b = definition[1]['a']
-                _loc = _a
-                _scale = _b-_a
-                _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
-            else:
-                raise ValueError('unknown distribution type: {}'.format(
-                    distribution_type))
+    def run_kde_sampling(self,n_samples,filename_in):
 
-        engine.pyposmat_datafile_out.write_header_section(
-                filename=filename_out,
-                parameter_names=parameter_names,
-                qoi_names=qoi_names,
-                error_names=error_names)
+        # configure random number generator
+        _datafile_in = PyposmatDataFile(filename=filename_in)
+        _datafile_in.read()
+        _rv_generator = scipy.stats.gaussian_kde(
+                _datafile_in.df[self.free_parameter_names].values.T)
+
+        self.pyposmat_datafile_out.write_header_section(
+                filename=self.pyposmat_data_out_filename,
+                parameter_names=self.parameter_names,
+                qoi_names=self.qoi_names,
+                error_names=self.error_names)
         
+        time_start = time.time()
+        _n_errors = 0
+        for i_sample in range(n_samples):
+            # generate parameter set
+            _parameters = OrderedDict([(p,None) for p in self.parameter_names])
+            _free_parameters = _rv_generator.resample(1)
+            for i,v in enumerate(self.free_parameter_names):
+                _parameters[v] = float(_free_parameters[i,0])
+
+            for p in self.constrained_parameter_names:
+                if self.parameter_distribution_definition[p][0] == 'equals':
+                    if type(self.parameter_distribution_definition[p][1]) is not list:
+                        _str_eval = str(self.parameter_distribution_definition[p][1])
+                        for fp in self.free_parameter_names:
+                            if fp in _str_eval:
+                                _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
+                        _parameters[p] = eval(_str_eval)
+            
+            for p in self.constrained_parameter_names:
+                if self.parameter_distribution_definition[p][0] == 'equals':
+                    if type(self.parameter_distribution_definition[p][1]) is list:
+                        if self.parameter_distribution_definition[p][1][0] == 'equilibrium_density':
+                            a0 = self.parameter_distribution_definition[p][1][1]
+                            latt = self.parameter_distribution_definition[p][1][2]
+                            _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
+            try:
+                _results = self.evaluate_parameter_set(parameters=_parameters)
+            except LammpsSimulationError as e:
+                _n_errors += 1
+            except PypospackTaskManagerError as e:
+                _n_errors += 1
+            else:
+                self.pyposmat_datafile_out.write_simulation_results(
+                        filename=self.pyposmat_data_out_filename,
+                        sim_id=i_sample,
+                        results=_results)
+            finally:
+                # print out summaries every 10 solutions
+                if (i_sample+1)%10 == 0:
+                    n_samples_completed = i_sample+1
+                    time_end = time.time()
+                    time_total = time_end-time_start
+                    avg_time = n_samples_completed/time_total
+                    _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
+                        n_samples_completed,
+                        time_total,
+                        avg_time,
+                        _n_errors)
+                    print(_str_msg)
+    def calculate_equilibrium_density(self,r0,latt,parameters):
+        _parameters = OrderedDict()
+        for k,v in parameters.items():
+            if k.startswith('d_'):
+                print(k[2:],v)
+
+        if latt == 'fcc':
+            rho_e = 0
+        exit()
     def print_structure_database(self):
         print(80*'-')
         print('{:^80}'.format('STRUCTURE DATABASE'))

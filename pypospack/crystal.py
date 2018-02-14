@@ -433,7 +433,8 @@ class SimulationCell(object):
             position (:obj:`list` of :obj:`float`): the position of the atom
 
         """
-        for i,a in enumerate(self._atoms):
+        self.ptol = 1e-4
+        for i,a in enumerate(self.atomic_basis):
             if (a.symbol == symbol):
                 diff = [abs(position[j]-a.position[j]) for j in range(3)]
                 is_atom = True
