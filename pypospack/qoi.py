@@ -12,7 +12,7 @@ def get_qoi_map():
                        ],
                 'module':'pypospack.qoi',
                 'class':'GulpOptiCalculations'},
-            'min_none':{
+            'lmps_min_none':{
                 'qoi':[
                     'Ecoh_min_none',
                     'a1_min_none','a2_min_none','a3_min_none',
@@ -25,6 +25,15 @@ def get_qoi_map():
                       ],
                 'module':'pypospack.qoi',
                 'class':'SinglePointCalculation'},
+            'lmps_min_pos':{
+                'qoi':['Ecoh_min_pos',
+                       'a1_min_pos', 'a2_min_pos', 'a3_min_pos',
+                       'a11_min_pos', 'a12_min_pos','a13_min_pos',
+                       'a21_min_pos', 'a22_min_pos','a23_min_pos',
+                       'a31_min_pos', 'a32_min_pos','a33_min_pos',
+                      ],
+                'module':'pypospack.qoi',
+                'class':'RelaxedStructureCalculations'},
             'lmps_min_all':{
                 'qoi':['Ecoh_min_all',
                        'a1_min_all', 'a2_min_all', 'a3_min_all',
@@ -41,15 +50,19 @@ def get_qoi_map():
                        'shear_modulus'],
                 'module':'pypospack.qoi',
                 'class':'ElasticPropertyCalculations'},
+            'lmps_phase_order':{
+                'qoi':['phase_order'],
+                'module':'pypospack.qoi',
+                'class':'PhaseOrderCalculation'},
             'lmps_defect':{
                 'qoi':['E_formation_defect'],
                 'module':'pypospack.qoi',
                 'class':'DefectFormationEnergy'},
-            'surface_energy':{
+            'lmps_surface_energy':{
                 'qoi':['surface_energy'],
                 'module':'pypospack.qoi',
                 'class':'SurfaceEnergy'},
-            'stacking_fault_energy':{
+            'lmps_stacking_fault_energy':{
                 'qoi':['StackingFaultEnergy'],
                 'module':'pypospack.qoi',
                 'class':'StackingFaultEnergy'}}
@@ -205,6 +218,10 @@ from pypospack.qois.crystalstructuregeometry import RelaxedStructureCalculations
 from pypospack.qois.crystalstructuregeometry import RelaxedPositionCalculations
 from pypospack.qois.crystalstructuregeometry import StaticStructureCalculations
 from pypospack.qois.lammps_elastic_properties import ElasticPropertyCalculations
+from pypospack.qois.lammps_phase_order import PhaseOrderCalculation
+from pypospack.qois.lammps_surface_energy import SurfaceEnergyCalculation
+from pypospack.qois.lammps_stacking_fault \
+        import StackingFaultEnergyCalculation
 from pypospack.qois.lammps_defect_formation_energy \
         import DefectFormationEnergy
 # -----------------------------------------------------------------------------
@@ -523,32 +540,4 @@ class QoiDatabase(object):
             yaml.dump(_qoidb,f, default_flow_style=False)
 #------------------------------------------------------------------------------
 
-class SurfaceEnergy(Qoi):
-    def __init__(self, qoi_name, structures):
-        qoi_type = 'surface_energy'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.surface_structure = self.structures[0]
-        self.ideal_structure = self.structures[1]
-        #self.determine_required_simulations()
 
-    def calculate_qoi(self):
-        s_name_slab = self._req_structure_names[0]
-        s_name_bulk = self._req_structure_names[1]
-        e_slab = self._req_vars["{}.E_min_pos".format(s_name_slab)]
-        e_bulk = self._req_vars["{}.E_min".format(s_name_bulk)]
-        n_atoms_slab = self._req_vars["{}.n_atoms".format(s_name_slab)]
-        n_atoms_bulk = self._req_vars["{}.n_atoms".format(s_name_bulk)]
-        a1 = self._req_vars["{}.a1_min_pos".format(s_name_slab)]
-        a2 = self._req_vars["{}.a2_min_pos".format(s_name_slab)]
-        e_surf = (e_slab - n_atoms_slab/n_atoms_bulk*e_bulk)/(2*a1*a2)
-        self._predicted_value = e_surf
-        return self._predicted_value
-
-class StackingFaultEnergy(Qoi):
-    def __init__(self, qoi_name, structures):
-        qoi_type = "stacking_fault_energy"
-        Qoi.__init__(self.qoi_name,qoi_type,structures)
-        self._req_var_names = []
-        self._req_var_names.append("{}.{}".format(structures[0],'E_min'))
-        self._req_var_names.append("{}.{}".format(structures[0],'n_atoms'))
-        self._req_var_names.append("{}.{}".format(structures[1],'a1'))

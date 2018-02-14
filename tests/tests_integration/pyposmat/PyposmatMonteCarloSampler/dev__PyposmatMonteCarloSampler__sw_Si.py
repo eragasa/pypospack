@@ -40,8 +40,8 @@ print('output_filename:{}'.format(engine.pyposmat_filename_out))
 #                   this is the step which configures the object from the
 #                   configuration file
 # engine.configure()
-engine.create_base_directories()
 engine.read_configuration_file()
+engine.create_base_directories()
 engine.configure_qoi_manager()
 engine.configure_task_manager()
 engine.pyposmat_datafile_out = PyposmatDataFile(filename_out)

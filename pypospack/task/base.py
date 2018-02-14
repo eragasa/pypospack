@@ -165,13 +165,23 @@ class Task(object):
         self.task_directory = os.path.abspath(task_directory) 
         
         #<--- we do this if the path already exists
-        if os.path.exists(self.task_directory):
+        if os.path.isdir(self.task_directory):
             shutil.rmtree(self.task_directory,ignore_errors=True)
-            os.mkdir(self.task_directory)
-            self.status = 'INIT'
-        else:
-            os.mkdir(self.task_directory)
-            self.status = 'INIT'
+        
+        #<--- hack to deal with race condition
+        # https://stackoverflow.com/questions/12468022/python-fileexists-error-when-making-directory
+        while True:
+            try:
+                os.mkdir(self.task_directory)
+                break
+            except FileExistsError as e:
+                if os.path.isdir(self.task_directory):
+                    shutil.rmtree(self.task_directory,ignore_errors=True)
+                if e.errno != os.errno.EEXIST:
+                    raise
+                pass
+        
+        self.status = 'INIT'
     
     @property
     def task_name(self): 
