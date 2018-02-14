@@ -201,6 +201,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         avg_time,
                         _n_errors)
                     print(_str_msg)
+
     def calculate_equilibrium_density(self,r0,latt,parameters):
         _parameters = OrderedDict()
         for k,v in parameters.items():

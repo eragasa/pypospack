@@ -144,7 +144,7 @@ for qoi_name, value in MgO_qoi_constraints.items():
 
 
 MgO_structures = OrderedDict()
-MgO_structures['structure_directory'] = 'test__PyposmatMonteCarloSampler'
+MgO_structures['structure_directory'] = 'structure_db'
 MgO_structures['structures'] = OrderedDict()
 MgO_structures['structures']['MgO_NaCl'] = 'MgO_NaCl_unit.gga.relax.vasp'
 MgO_structures['structures']['MgO_NaCl_fr_a'] = 'MgO_NaCl_333_fr_a.vasp' 

@@ -55,12 +55,22 @@ class PyposmatIterativeSampler(object):
         self.pyposmat_mc_sampler = PyposmatMonteCarloSampler(
                 filename_in = _config_filename,
                 filename_out = _results_filename)
-        #self.pyposmat_mc_sampler.create_base_directories()
-        #self.pyposmat_mc_sampler.read_configuration_file()
-        #self.pyposmat_mc_sampler.configure_qoi_manager()
-        #self.pyposmat_mc_sampler.pyposmat_datafile_out = PyposmatDataFile(filename_out)
+        self.pyposmat_mc_sampler.create_base_directories()
+        self.pyposmat_mc_sampler.read_configuration_file()
+        self.pyposmat_mc_sampler.configure_qoi_manager()
+        self.pyposmat_mc_sampler.configure_task_manager()
+        self.pyposmat_mc_sampler.configure_pyposmat_datafile_out()
+        #pyposmat_datafile_out = PyposmatDataFile(filename_out)
 
+        if self.mpi_rank == 0:
+            self.pyposmat_mc_sampler.print_structure_database()
+            self.pyposmat_mc_sampler.print_sampling_configuration()
+            self.pyposmat_mc_sampler.print_initial_parameter_distribution()
+
+        for i in range(self.pyposmat_mc_sampler.n_iterations):
+            self.pyposmat_mc_sampler.run_simulations(i_iteration=i,n_samples=1000)
         os.chdir(self.root_directory)  
+    
     def setup_mpi_environment(self):
         self.mpi_comm = MPI.COMM_WORLD
         self.mpi_rank = self.mpi_comm.Get_rank()
