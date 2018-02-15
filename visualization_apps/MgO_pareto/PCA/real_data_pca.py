@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering, AffinityPropagation
 from sklearn.preprocessing import normalize
-from pypospack.pyposmat import PyposmatDataFile
+# from pypospack.pyposmat import PyposmatDataFile
 import os, sys, inspect
 
 """
@@ -57,8 +57,9 @@ def read_data_file(filename):
 
 class TransformPCA(object):
 
-    def __init__(self, num_clusters, param_df, err_df, qoi_df, total_df):
+    def __init__(self, num_clusters, param_df, err_df, qoi_df, total_df, cluster_by='kmeans'):
         self.num_clusters = num_clusters
+        self.cluster_by = cluster_by
         '''
         change input method to only a filepath:
         with open(filepath) as f:
@@ -95,7 +96,14 @@ class TransformPCA(object):
             self._write_excel(obj_pca, pca_names, label)
             # use the param data to define clusters
             if label == 'param':
-                clusters = self._kmeans_cluster(pca_df)
+                if self.cluster_by == 'dbscan':
+                    clusters = self._dbscan_cluster(pca_df)
+                elif self.cluster_by == 'agg':
+                    clusters = self._agglomerative_cluster(pca_df)
+                elif self.cluster_by == 'aff_pro':
+                    clusters = self._affinity_cluster(pca_df)
+                else:
+                    clusters = self._kmeans_cluster(pca_df)
         self.pca_df = pd.DataFrame(pd.concat(pca_df_collection, axis=1))
         self.pca_df['cluster_id'] = clusters
 
@@ -120,6 +128,24 @@ class TransformPCA(object):
         obj_kmeans = KMeans(n_clusters=self.num_clusters)
         obj_kmeans = obj_kmeans.fit(param_pca_df)
         labels = obj_kmeans.labels_
+        return labels
+
+    def _dbscan_cluster(self, param_pca_df):
+        obj_dbscan = DBSCAN(eps=0.3, min_samples=100)
+        obj_dbscan = obj_dbscan.fit(param_pca_df)
+        labels = obj_dbscan.labels_
+        return labels
+
+    def _agglomerative_cluster(self, param_pca_df):
+        obj_agg = AgglomerativeClustering(n_clusters=3)
+        obj_agg = obj_agg.fit(param_pca_df)
+        labels = obj_agg.labels_
+        return labels
+
+    def _affinity_cluster(self, param_pca_df):
+        obj_aff = AffinityPropagation(damping=0.8, convergence_iter=10)
+        obj_aff = obj_aff.fit(param_pca_df)
+        labels = obj_aff.labels_
         return labels
 
 # ^^^-------- Private methods to do stuff
@@ -204,9 +230,12 @@ if __name__ == "__main__":
     #_total_df = data.df
     # tp = TransformPCA(num_clusters=3, param_df=_param_df, err_df=_err_df, qoi_df=_qoi_df, total_df=_total_df)
 
-    results = read_data_file(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
+    # cluster_by kmeans, dbscan, agg, or aff_pro (kmeans default)
+    results = read_data_file(r'/home/seaton/repos/pypospack/visualization_apps/MgO_pareto/data/culled_009.out')
     tp = TransformPCA(num_clusters=3, param_df=results[0]['param_df'],
                       err_df=results[0]['err_df'], qoi_df=results[0]['qoi_df'],
-                      total_df=results[0]['total_df'])
+                      total_df=results[0]['total_df'],
+                      cluster_by='agg')
     # dtype must be 'param', 'err', or 'qoi'
-    tp.plot_kde_2d(dtype='err')
+    tp.plot_3d(dtype='param')
+    tp.plot_3d(dtype='err')
