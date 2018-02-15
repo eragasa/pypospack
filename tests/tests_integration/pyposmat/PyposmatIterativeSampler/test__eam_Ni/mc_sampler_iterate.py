@@ -3,6 +3,7 @@ import numpy as np
 from mpi4py import MPI
 from pypospack.pyposmat import PyposmatMonteCarloSampler
 from pypospack.pyposmat import PyposmatConfigurationFile
+from pypospack.pyposmat import PyposmatDataAnalyzer
 
 class PyposmatIterativeSampler(object):
     def __init__(self,
@@ -209,11 +210,25 @@ class PyposmatIterativeSampler(object):
             f_out.write("\n".join(str_list))
     
     def analyze_results(self,i_iteration):
-        _filename_out = os.path.join(\
+        pyposmat_data_filename = os.path.join(\
                 self.root_directory,
                 self.data_directory,
                 'pyposmat.results.{}.out'.format(i_iteration)
-        
+        pyposmat_configuration_filename = os.path.join(\
+                self.root_directory,
+                'pypospack.config.in'  
+        pyposmat_kde_filename = os.path.join(\
+                self.root_directory,
+                self.data_directory,
+                'pyposmat.kde.{}.out'.format(i_iteration+1)
+        data_analyzer = PyposmatDataAnalyzer()
+        data_analyzer.read_configuration_file(
+                filename=pyposmat_configuration_filename)
+        data_analyzer.read_data_file(
+                filename=pyposmat_data_filename)
+        data_analyzer.calculate_pareto_set()
+        data_analyzer.write_kde_file(
+                filename=pyposmat_kde_filename)
 
     def read_configuration_file(self,filename=None):
         assert isinstance(filename,str) or filename is None
