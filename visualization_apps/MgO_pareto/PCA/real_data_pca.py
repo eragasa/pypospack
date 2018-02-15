@@ -6,7 +6,7 @@ from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering, AffinityPropagation
 from sklearn.preprocessing import normalize
-# from pypospack.pyposmat import PyposmatDataFile
+from pypospack.pyposmat import PyposmatDataFile
 import os, sys, inspect
 
 """
@@ -137,7 +137,7 @@ class TransformPCA(object):
         return labels
 
     def _agglomerative_cluster(self, param_pca_df):
-        obj_agg = AgglomerativeClustering(n_clusters=3)
+        obj_agg = AgglomerativeClustering(n_clusters=self.num_clusters)
         obj_agg = obj_agg.fit(param_pca_df)
         labels = obj_agg.labels_
         return labels
@@ -222,13 +222,17 @@ class TransformPCA(object):
 
 if __name__ == "__main__":
     # fix filepath issue
-    # maybe pass filepath into this class, use it to open file, pass open file to DataFile class to avoid path confusion
-    # data = PyposmatDataFile(filename='')
-    #_param_df = data.parameter_df
-    #_err_df = data.error_df
-    #_qoi_df = data.qoi_df
-    #_total_df = data.df
-    # tp = TransformPCA(num_clusters=3, param_df=_param_df, err_df=_err_df, qoi_df=_qoi_df, total_df=_total_df)
+    '''
+    sys.path.append('../visualization_apps/MgO_pareto/')
+    data_folder = 'data'
+    filename = 'culled_009.out'
+    data = PyposmatDataFile(filename=os.path.join(data_folder, filename))
+    _param_df = data.parameter_df
+    _err_df = data.error_df
+    _qoi_df = data.qoi_df
+    _total_df = data.df
+    tp = TransformPCA(num_clusters=3, param_df=_param_df, err_df=_err_df, qoi_df=_qoi_df, total_df=_total_df)
+    '''
 
     # cluster_by kmeans, dbscan, agg, or aff_pro (kmeans default)
     results = read_data_file(r'/home/seaton/repos/pypospack/visualization_apps/MgO_pareto/data/culled_009.out')
