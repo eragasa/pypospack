@@ -8,9 +8,9 @@ from pypospack.pyposmat import QoiDatabase
 from pypospack.qoi import QoiDatabase
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
 
-import Si_sw
+#import Si_sw
 
-n_iterations=10
+n_iterations=10000
 n_samples_per_iteration = 100
 calc_elastic_properties = True
 calc_point_defects = True
@@ -46,6 +46,14 @@ Si_sw_potential['potential_type'] = 'stillingerweber'
 Si_sw_potential['symbols'] = ['Si']
 Si_sw_potential['cutoff_global'] = 10.0
 
+sampling = OrderedDict()
+sampling['n_iterations'] = 10
+sampling['mc_seed'] = 0
+for i in range(sampling['n_iterations']):
+    sampling[i] = OrderedDict()
+    sampling[i]['type'] = 'kde'
+    sampling[i]['n_samples'] = 1000
+sampling[i]['type'] =  'parametric'
 Si_sw_param_dist = OrderedDict()
 Si_sw_param_dist['mc_sampling'] = OrderedDict()
 Si_sw_param_dist['mc_sampling']['n_iterations'] = n_iterations
@@ -110,6 +118,8 @@ Si_sw_configuration = PyposmatConfigurationFile()
 Si_sw_configuration.qois = Si_sw_qoi_db.qois
 Si_sw_configuration.potential = Si_sw_potential
 Si_sw_configuration.structures = Si_sw_structures
+Si_sw_configuration.sampling_type  = sampling
+Si_sw_configuration.sampling_distribution = Si_sw_param_dist
 assert isinstance(Si_sw_configuration.configuration,OrderedDict)
 Si_sw_configuration.write(filename='pypospack.config.in')
 Si_sw_configuration.read(filename='pypospack.config.in')
@@ -128,7 +138,7 @@ print('output_filename:{}'.format(engine.pyposmat_filename_out))
 # <---------------- the steps of engine.configure() tested individually
 #                   this is the step which configures the object from the
 #                   configuration file
-# engine.configure()
+engine.configure()
 engine.create_base_directories()
 engine.read_configuration_file()
 engine.configure_qoi_manager()
