@@ -8,6 +8,7 @@ __version__ = "1.0"
 import time
 import copy, shutil, os.path
 import os, subprocess
+import yaml
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
@@ -17,6 +18,7 @@ from pypospack.qoi import QoiDatabase
 from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
 from pypospack.task.lammps import LammpsSimulationError
+from pypospack.io.filesystem import OrderedDictYAMLLoader  
 # <---------------- legacy imports
 #import pyflamestk.lammps as lammps
 #import pyflamestk.base as base
@@ -531,8 +533,6 @@ class PyposmatEngine(object):
 # -----------------------------------------------------------------------------
 from pypospack.pyposmat_engines.mc_sampler import PyposmatMonteCarloSampler
 # -----------------------------------------------------------------------------
-import yaml
-from pypospack.io.filesystem import OrderedDictYAMLLoader  
 class PyposmatConfigurationFile(object):
 
     def __init__(self,filename=None):
@@ -757,6 +757,8 @@ class PyposmatFileSampler(PyposmatEngine):
             for task_name,task in self.tasks.items():
                 self.tasks[task_name].configuration = self.configuration
                 self.tasks[task_name].on_update_status()
+
+from pypospack.pyposmat_engines.data_analyzer import PyposmatDataAnalyzer
 
 class PyPosmatEngine(object):
 

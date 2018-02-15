@@ -4,7 +4,6 @@ from mpi4py import MPI
 from pypospack.pyposmat import PyposmatMonteCarloSampler
 from pypospack.pyposmat import PyposmatConfigurationFile
 
-
 class PyposmatIterativeSampler(object):
     def __init__(self,
             configuration_filename):
@@ -28,6 +27,12 @@ class PyposmatIterativeSampler(object):
         self.determine_rv_seeds()
 
         for i in range(self.n_iterations):
+            if self.mpi_rank == 0:
+                print(80*'-')
+                print('{:80}'.format('BEGIN ITERATION {}/{}'.format(
+                    i,self.n_iterations))
+                print(80*'-')
+       
             self.run_simulations(i)
             MPI.COMM_WORLD.Barrier()
 
@@ -142,18 +147,66 @@ class PyposmatIterativeSampler(object):
         if self.mpi_rank == 0:
             self.print_random_seeds()
     
-    
     def merge_files(self,i_iteration):
-        _filename_out = os.path.join(
-                self.root_directory,
-                self.data_directory,
-                'pyposmat.results.{}.'.format(i_iteration))
+        n_ranks = self.mpi_size
 
-        print('merging results into {}'.format(_filename_out))
-        for i_rank in range(self.mpi_size):
-            _filename_in = os.path.join(
-                self.RANK_DIR_FORMAT.format(i_rank))
-            print('\t merging...{}'.format(_filename_in))
+        _data_directory = self.data_directory
+
+        # delete directory if directory exists, then create it
+        if i_iteration == 0:
+            if os.path.isdir(self.data_directory):
+                shutil.rmtree(self.data_directory)
+            os.mkdir(self.data_directory)
+
+        # gather all the lines into a list, then flush all at once
+        str_list = []
+
+        # grab the names, from the rank0 data file
+        i_rank == 0:
+        _rank_filename = os.path.join(
+            'rank_{}'.format(i_rank),
+            'pyposmat.results.out')
+        with open(_rank_filename,'r') as f:
+            lines = f.readlines()
+        names = [v for v in lines[0].strip().split(',')]
+        types = [v for v in lines[1].strip().split(',')]
+        str_list.append(",".join(names))
+        str_list.append(",".join(types))
+        
+        # first merge the kde file from the this iteration
+        if i_iteration > 0:
+            _filename_kde = os.path.join(
+                self.data_directory,
+                'pyposmat.kde.{}.out'.format(i_iteration))
+            with open(_filename_kde,'r') as f:
+                lines = f.readlines()
+            for k,line in enumerate(lines):
+                if k>1:
+                    line = [v for v in lines[0].strip().split(',')]
+                    str_list.append(",".join(line[len(names):]))
+        
+        # process all the results from this simulations
+        for i_rank in range(n_ranks):
+            # get the filename of the ith rank
+            _rank_filename = os.path.join(
+                'rank_{}'.format(i_rank),
+                'pyposmat.results.out')
+            print('...merging {}'.format(_rank_filename))
+
+            with open(_rank_filename,'r') as f:
+                lines = f.readlines()
+            lines = [line.strip().split(',') for line in lines]
+            for k,line in enumerate(lines):
+                if k>1:
+                    line[0] = '{}_{}_{}'.format(i_iteration,i_rank,line[0])
+                    str_list.append(",".join(line))
+
+        # write results to file
+        _filename_out = os.path.join(
+            self.data_directory,
+            'pyposmat.results.{}.out'.format(i_iteration))
+        with open(_filename_out,'w') as f_out:
+            f_out.write("\n".join(str_list))
     
     def analyze_results(self,i_iteration):
         _filename_out = os.path.join(\
@@ -176,6 +229,7 @@ class PyposmatIterativeSampler(object):
                 filename=_filename_in)
    
         self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
+
     def print_random_seeds(self):
             print(80*'-')
             print('{:^80}'.format('GENERATED RANDOM SEEDS'))

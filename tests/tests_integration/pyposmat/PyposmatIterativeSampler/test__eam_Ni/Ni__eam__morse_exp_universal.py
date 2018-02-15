@@ -92,7 +92,7 @@ Ni_qoi_db.add_qoi(
         qoi_name='Ni_fcc.E_coh',
         qoi_type='Ecoh_min_all',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=3.508)
+        target=-5.7771)
 Ni_qoi_db.add_qoi(
         qoi_name='Ni_fcc.a0',
         qoi_type='a11_min_all',
