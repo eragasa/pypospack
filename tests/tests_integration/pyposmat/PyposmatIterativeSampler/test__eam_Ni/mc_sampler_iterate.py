@@ -27,11 +27,16 @@ class PyposmatIterativeSampler(object):
         self.setup_mpi_environment()
         self.determine_rv_seeds()
 
+        if self.mpi_rank == 0:
+            if os.path.isdir(self.data_directory):
+                shutil.rmtree(self.data_directory)
+        MPI_COMM_WORLD.Barrier()
+
         for i in range(self.n_iterations):
             if self.mpi_rank == 0:
                 print(80*'-')
                 print('{:80}'.format('BEGIN ITERATION {}/{}'.format(
-                    i,self.n_iterations))
+                    i,self.n_iterations)))
                 print(80*'-')
        
             self.run_simulations(i)
@@ -41,6 +46,8 @@ class PyposmatIterativeSampler(object):
                 self.merge_files(i)
                 self.analyze_results(i)
             MPI.COMM_WORLD.Barrier()
+        print(80*'-')
+        print('JOBCOMPLETE')
     
     def run_simulations(self,i_iteration):
         self.rank_directory = self.RANK_DIR_FORMAT.format(
@@ -163,7 +170,7 @@ class PyposmatIterativeSampler(object):
         str_list = []
 
         # grab the names, from the rank0 data file
-        i_rank == 0:
+        i_rank = 0
         _rank_filename = os.path.join(
             'rank_{}'.format(i_rank),
             'pyposmat.results.out')
@@ -213,14 +220,14 @@ class PyposmatIterativeSampler(object):
         pyposmat_data_filename = os.path.join(\
                 self.root_directory,
                 self.data_directory,
-                'pyposmat.results.{}.out'.format(i_iteration)
+                'pyposmat.results.{}.out'.format(i_iteration))
         pyposmat_configuration_filename = os.path.join(\
                 self.root_directory,
-                'pypospack.config.in'  
+                'pypospack.config.in')
         pyposmat_kde_filename = os.path.join(\
                 self.root_directory,
                 self.data_directory,
-                'pyposmat.kde.{}.out'.format(i_iteration+1)
+                'pyposmat.kde.{}.out'.format(i_iteration+1))
         data_analyzer = PyposmatDataAnalyzer()
         data_analyzer.read_configuration_file(
                 filename=pyposmat_configuration_filename)
