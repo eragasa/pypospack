@@ -5,13 +5,15 @@ __copyright__ = "Copyright (C) 2016,2017,2018"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
-import time,sys
+import time,sys,os,copy,shutil,importlib
 from collections import OrderedDict
+import numpy as np
 import scipy.stats
 from pypospack.pyposmat import PyposmatEngine
 from pypospack.pyposmat import PyposmatDataFile
 from pypospack.task.lammps import LammpsSimulationError
 from pypospack.task.task_manager import PypospackTaskManagerError
+from pypospack.potential import PotentialObjectMap
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
@@ -102,14 +104,25 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             # generate free parameters
             for p in self.free_parameter_names:
                 _parameters[p] = _rv_generators[p].rvs(size=1)[0]
-
-            # determine constrained parameters
+            
+            # generate constrained parameters
             for p in self.constrained_parameter_names:
-                _str_eval = str(_param_dist_def[p][1])
-                for fp in free_parameter_names:
-                    if fp in _str_eval:
-                        _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
-                _parameters[p] = eval(_str_eval)
+                if self.parameter_distribution_definition[p][0] == 'equals':
+                    if type(self.parameter_distribution_definition[p][1]) is not list:
+                        _str_eval = str(self.parameter_distribution_definition[p][1])
+                        for fp in self.free_parameter_names:
+                            if fp in _str_eval:
+                                _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
+                        _parameters[p] = eval(_str_eval)
+            
+            # generate wierd things
+            for p in self.constrained_parameter_names:
+                if self.parameter_distribution_definition[p][0] == 'equals':
+                    if type(self.parameter_distribution_definition[p][1]) is list:
+                        if self.parameter_distribution_definition[p][1][0] == 'equilibrium_density':
+                            a0 = self.parameter_distribution_definition[p][1][1]
+                            latt = self.parameter_distribution_definition[p][1][2]
+                            _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
 
             
             try:
@@ -161,6 +174,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             for i,v in enumerate(self.free_parameter_names):
                 _parameters[v] = float(_free_parameters[i,0])
 
+            # generate constrained parameters
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is not list:
@@ -170,6 +184,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                                 _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
                         _parameters[p] = eval(_str_eval)
             
+            # generate wierd things
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is list:
@@ -202,15 +217,45 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         _n_errors)
                     print(_str_msg)
 
-    def calculate_equilibrium_density(self,r0,latt,parameters):
+    def calculate_equilibrium_density(self,a0,latt,parameters):
         _parameters = OrderedDict()
         for k,v in parameters.items():
             if k.startswith('d_'):
-                print(k[2:],v)
+                _parameters[k[2:]] = v
+            s = k[2:].split('_')[0]
+        _potential_type = self.configuration.potential['density_type']
+        _symbols = self.configuration.potential['symbols']
+        _module_name,_class_name = PotentialObjectMap(
+                potential_type=_potential_type)
+        try:
+            _module = importlib.import_module(_module_name)
+            _class = getattr(_module,_class_name)
+            _dens_potential = _class(symbols=_symbols)
+        except:
+            raise
 
         if latt == 'fcc':
+            d = OrderedDict([
+                ('1NN',0.707*a0),
+                ('2NN',1.000*a0),
+                ('3NN',1.225*a0)])
+            Z= OrderedDict([
+                ('1NN',12),
+                ('2NN',6),
+                ('3NN',24)])
+            rcut = (d['2NN']+d['3NN'])/2.
+
+            rmax = 10.
+            r = np.linspace(1,10,5000)*rmax/10
+            rho = _dens_potential.evaluate(r,_parameters,rcut)
+            
             rho_e = 0
-        exit()
+            for m in Z:
+                if d[m] < rcut:
+                    rho_e += Z['1NN']*np.interp(d['1NN'],r,rho[s])
+
+            return rho_e
+    
     def print_structure_database(self):
         print(80*'-')
         print('{:^80}'.format('STRUCTURE DATABASE'))

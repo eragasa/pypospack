@@ -27,7 +27,7 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
         rho(numpy.ndarray)
     """    
     def __init__(self,symbols):
-        self.embedding_func_parameters = ['F0','p','q','F1']
+        self.embedding_func_parameters = ['F0','p','q','F1','rho0']
         EamEmbeddingFunction.__init__(self,
                 symbols=symbols,
                 potential_type='eam_embed_univeral')
@@ -73,7 +73,8 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
             q = self.parameters['{}_q'.format(s)]
             p = self.parameters['{}_p'.format(s)]
             F1 = self.parameters['{}_F1'.format(s)]
+            rho0 = self.parameters['{}_rho0'.format(s)]
             self.embedding_evaluations[s] \
-                    = F0*(q/(q-p)*(rho**p)-p/(q-p)*(rho**q))+F1*rho
+                    = F0*(q/(q-p)*((rho/rho0)**p)-p/(q-p)*((rho/rho0)**q))+F1*rho
         return copy.deepcopy(self.embedding_evaluations)
 

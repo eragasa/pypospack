@@ -180,5 +180,5 @@ if __name__ == "__main__":
     print('n_results={}'.format(n_results))
     print('n_pareto={}'.format(n_pareto))
 
-    kde_parameters = df[df['is_pareto'] == 1][p_names]
+    kde_parameters = df[df['is_pareto'] == 1 & df['is_alive'] == 1][p_names]
     print(kde_parameters)

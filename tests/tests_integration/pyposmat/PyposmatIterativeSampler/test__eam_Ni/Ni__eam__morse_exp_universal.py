@@ -125,7 +125,7 @@ Ni_eam_sampling['mc_seed'] = 0
 for i in range(Ni_eam_sampling['n_iterations']):
     Ni_eam_sampling[i] = OrderedDict()
     Ni_eam_sampling[i]['type'] = 'kde'
-    Ni_eam_sampling[i]['n_samples'] = 10000
+    Ni_eam_sampling[i]['n_samples'] = 1000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 Ni_eam_sampling[0]['type'] = 'parametric'
 
