@@ -156,8 +156,10 @@ class PyposmatIterativeSampler(object):
             print('\t merging...{}'.format(_filename_in))
     
     def analyze_results(self,i_iteration):
-        _filename_out = 'pyposmat.results.{}.out'.format(
-                i_iterations)
+        _filename_out = os.path.join(\
+                self.root_directory,
+                self.data_directory,
+                'pyposmat.results.{}.out'.format(i_iteration)
         
 
     def read_configuration_file(self,filename=None):
