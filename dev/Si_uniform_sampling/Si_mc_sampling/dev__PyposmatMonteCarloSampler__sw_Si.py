@@ -8,78 +8,65 @@ from pypospack.pyposmat import QoiDatabase
 from pypospack.qoi import QoiDatabase
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
 
-#import Si_sw
+import Si_sw
+#-----------------------------------------------------------------------------
+# DEFINE POTENTIAL FORMALISM
+#-----------------------------------------------------------------------------
+Si_sw_potential = OrderedDict()
+Si_sw_potential['potential_type'] = 'stillingerweber'
+Si_sw_potential['symbols'] = ['Si']
+Si_sw_potential['cutoff_global'] = 10.0
 
-n_iterations=10000
-n_samples_per_iteration = 100
-calc_elastic_properties = True
-calc_point_defects = True
-# <---------------- making a configuration file
 Si_sw_qoi_db = QoiDatabase()
 Si_sw_qoi_db.add_qoi(
         qoi_name='Si_dia.a0',
         qoi_type='a11_min_all',
         structures=OrderedDict([('ideal','Si')]),
         target=5.431)
-
-# <----------------- ELASTIC PROPERTIES
-if calc_elastic_properties:
-    Si_sw_qoi_db.add_qoi(
-            qoi_name='Si_dia.c12',
-            qoi_type='c12',
-            structures=OrderedDict([('ideal','Si')]),
-            target=75.00)
-    Si_sw_qoi_db.add_qoi(
-            qoi_name='Si_dia.c44',
-            qoi_type='c44',
-            structures=OrderedDict([('ideal','Si')]),
-            target=56.00)
-    Si_sw_qoi_db.add_qoi(
-            qoi_name='Si_dia.B',
-            qoi_type='bulk_modulus',
-            structures=OrderedDict([('ideal','Si')]),
-            target=100.00)
-
-# <---------------- define potential formalism
-Si_sw_potential = OrderedDict()
-Si_sw_potential['potential_type'] = 'stillingerweber'
-Si_sw_potential['symbols'] = ['Si']
-Si_sw_potential['cutoff_global'] = 10.0
-
+Si_sw_qoi_db.add_qoi(
+        qoi_name='Si_dia.c12',
+        qoi_type='c12',
+        structures=OrderedDict([('ideal','Si')]),
+        target=75.00)
+Si_sw_qoi_db.add_qoi(
+        qoi_name='Si_dia.c44',
+        qoi_type='c44',
+        structures=OrderedDict([('ideal','Si')]),
+        target=56.00)
+Si_sw_qoi_db.add_qoi(
+        qoi_name='Si_dia.B',
+        qoi_type='bulk_modulus',
+        structures=OrderedDict([('ideal','Si')]),
+        target=100.00)
+# <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
 sampling['n_iterations'] = 10
 sampling['mc_seed'] = 0
+# <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 1000
-sampling[i]['type'] =  'parametric'
-Si_sw_param_dist = OrderedDict()
-Si_sw_param_dist['mc_sampling'] = OrderedDict()
-Si_sw_param_dist['mc_sampling']['n_iterations'] = n_iterations
-for i in range(n_iterations):
-    Si_sw_param_dist['mc_sampling'][i] = OrderedDict()
-    Si_sw_param_dist['mc_sampling'][i]['type'] = 'kde'
-    Si_sw_param_dist['mc_sampling'][i]['n_samples'] = n_samples_per_iteration
-Si_sw_param_dist['mc_sampling'][0]['type'] = 'parametric'
+    sampling[i]['n_samples'] = 10000
+# <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
+sampling[0]['type'] = 'parametric'
 #<----------------- determine parameters
 
 #<----------------- free parameters
 # For uniform distributions, 
 #     a = is the low of the rnage, 
 #     b = is the high of the
-Si_sw_param_dist['parameters'] = OrderedDict()
-Si_sw_param_dist['parameters']['SiSiSi_epsilon']   = ['uniform',{'a': 2.1, 'b':2.2}]
-Si_sw_param_dist['parameters']['SiSiSi_sigma'] = ['uniform',{'a': 1.0, 'b':3.0}] 
-Si_sw_param_dist['parameters']['SiSiSi_a']    = ['uniform',{'a': 1.5, 'b':2.0}]
-Si_sw_param_dist['parameters']['SiSiSi_lambda']    = ['uniform',{'a': 20.0, 'b':32}]
-Si_sw_param_dist['parameters']['SiSiSi_gamma']    = ['uniform',{'a': 1.0, 'b':2.0}]
-Si_sw_param_dist['parameters']['SiSiSi_costheta0']    = ['equals',-0.333333333333]
-Si_sw_param_dist['parameters']['SiSiSi_A']    = ['uniform',{'a': 6.0, 'b':20.0}]
-Si_sw_param_dist['parameters']['SiSiSi_B']    = ['uniform',{'a': 0.5, 'b':1.0}]
-Si_sw_param_dist['parameters']['SiSiSi_p']    = ['equals',4.0]
-Si_sw_param_dist['parameters']['SiSiSi_q']    = ['equals',0.0]
-Si_sw_param_dist['parameters']['SiSiSi_tol']    = ['equals',0.0]
+Si_sw_param_dist = OrderedDict()
+Si_sw_param_dist['SiSiSi_epsilon'] = ['uniform',{'a': 2.1, 'b':2.2}]
+Si_sw_param_dist['SiSiSi_sigma'] = ['uniform',{'a': 1.0, 'b':3.0}] 
+Si_sw_param_dist['SiSiSi_a'] = ['uniform',{'a': 1.5, 'b':2.0}]
+Si_sw_param_dist['SiSiSi_lambda'] = ['uniform',{'a': 20.0, 'b':32}]
+Si_sw_param_dist['SiSiSi_gamma'] = ['uniform',{'a': 1.0, 'b':2.0}]
+Si_sw_param_dist['SiSiSi_costheta0'] = ['equals',-1/3.]
+Si_sw_param_dist['SiSiSi_A'] = ['uniform',{'a': 6.0, 'b':20.0}]
+Si_sw_param_dist['SiSiSi_B'] = ['uniform',{'a': 0.5, 'b':1.0}]
+Si_sw_param_dist['SiSiSi_p'] = ['equals',4.0]
+Si_sw_param_dist['SiSiSi_q'] = ['equals',0.0]
+Si_sw_param_dist['SiSiSi_tol'] = ['equals',0.0]
 
 #<----------------- parameter constriants
 #MgO_parameter_constraints = OrderedDict()
@@ -114,13 +101,18 @@ Si_sw_structures = OrderedDict()
 Si_sw_structures['structure_directory'] = 'test__PyposmatMonteCarloSampler'
 Si_sw_structures['structures'] = OrderedDict()
 Si_sw_structures['structures']['Si'] = 'Si_dia_unit.vasp'
+
+
+
+#------------------------------------------------------------------------------
+# WRITE CONFIGURATION FILE
+#------------------------------------------------------------------------------
 Si_sw_configuration = PyposmatConfigurationFile()
 Si_sw_configuration.qois = Si_sw_qoi_db.qois
 Si_sw_configuration.potential = Si_sw_potential
 Si_sw_configuration.structures = Si_sw_structures
 Si_sw_configuration.sampling_type  = sampling
 Si_sw_configuration.sampling_distribution = Si_sw_param_dist
-assert isinstance(Si_sw_configuration.configuration,OrderedDict)
 Si_sw_configuration.write(filename='pypospack.config.in')
 Si_sw_configuration.read(filename='pypospack.config.in')
 # <---------------- end make configuration file
@@ -138,102 +130,17 @@ print('output_filename:{}'.format(engine.pyposmat_filename_out))
 # <---------------- the steps of engine.configure() tested individually
 #                   this is the step which configures the object from the
 #                   configuration file
-engine.configure()
 engine.create_base_directories()
 engine.read_configuration_file()
 engine.configure_qoi_manager()
 engine.configure_task_manager()
+engine.configure_pyposmat_datafile_out()
+#pyposmat_datafile_out = PyposmatDataFile(filename_out)
 
-n_iterations = Si_sw_param_dist['mc_sampling']['n_iterations']
-n_samples = Si_sw_param_dist['mc_sampling'][0]['n_samples']
-param_dist_def = Si_sw_param_dist['parameters']
+engine.print_structure_database()
+engine.print_sampling_configuration()
+engine.print_initial_parameter_distribution()
 
-parameter_names = [p for p in param_dist_def]
-qoi_names = [k for k in engine.configuration.qois]
-error_names = ['{}.err'.format(k) for k in qoi_names]
-
-def output_write_header_lines(filename,parameter_names,qoi_names,error_names):
-    names = ['sim_id']\
-            + parameter_names\
-            + qoi_names\
-            + error_names
-    types = ['sim_id']\
-            + len(parameter_names) * ['param']\
-            + len(qoi_names)*['qoi']\
-            + len(error_names)*['err']
-
-    _header_str = ",".join(names) + "\n"
-    _header_str += ",".join(types) + "\n"
-
-    with open(filename,'w') as f:
-        f.write(_header_str)
-
-
-def output_write_simulation_results(filename,sim_id,results):
-    _sim_result = [str(sim_id)]
-    _sim_result += [str(v) for k,v in results['parameters'].items()]
-    _sim_result += [str(v) for k,v in results['qois'].items()]
-    _sim_result += [str(v) for k,v in results['errors'].items()]
-    
-    _str_sim_results = ",".join(_sim_result)
-
-    with open(filename,'a') as f:
-        f.write(_str_sim_results)
-
-
-free_parameter_names = [k for k,v in param_dist_def.items() if v[0] != 'equals']
-for p in param_dist_def:
-    if p in free_parameter_names:
-        str_free = 'free'
-        print('{:^10} {:^10} {:^10} {:^10} {:^10}'.format(
-            p,
-            str_free,
-            param_dist_def[p][0],
-            param_dist_def[p][1]['a'],
-            param_dist_def[p][1]['b']))
-    else:
-        str_free = 'not_free'
-        print('{:^10} {:^10}'.format(p,str_free))
-import scipy.stats
-
-
-_rv_generators = OrderedDict()
-for p in free_parameter_names:
-    if param_dist_def[p][0] == 'uniform':
-        a = param_dist_def[p][1]['a']
-        b = param_dist_def[p][1]['b']
-        _loc = a
-        _scale = b-a
-        _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
-    else:
-        pass
-
-filename_out='pypospack.results.out'
-output_write_header_lines(
-        filename=filename_out,
-        parameter_names=parameter_names,
-        qoi_names=qoi_names,
-        error_names=error_names)
-
-for i_sample in range(n_samples):
-    # generate parameter set
-    _parameters = OrderedDict([(p,None) for p in parameter_names])
-    for p in free_parameter_names:
-        _parameters[p] = _rv_generators[p].rvs(size=1)[0]
-
-    _constrained_parameters = [
-            p for p in _parameters if p not in free_parameter_names]
-    for p in _constrained_parameters:
-        _str_eval = str(param_dist_def[p][1])
-        for fp in free_parameter_names:
-            if fp in _str_eval:
-                _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
-        _parameters[p] = eval(_str_eval)
-
-    #_parameters = Si.Si_dia_swpizzagalli['parameters']
-    _results = engine.evaluate_parameter_set(parameters=_parameters)
-    print(i_sample,_results)
-    output_write_simulation_results(
-            filename=filename_out,
-            sim_id=i_sample,
-            results=_results)
+for i in range(engine.n_iterations):
+    n_samples = 10000
+    engine.run_simulations(i,n_samples)

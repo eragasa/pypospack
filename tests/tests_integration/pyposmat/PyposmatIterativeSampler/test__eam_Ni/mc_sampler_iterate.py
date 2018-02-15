@@ -30,7 +30,7 @@ class PyposmatIterativeSampler(object):
         if self.mpi_rank == 0:
             if os.path.isdir(self.data_directory):
                 shutil.rmtree(self.data_directory)
-        MPI_COMM_WORLD.Barrier()
+        MPI.COMM_WORLD.Barrier()
 
         for i in range(self.n_iterations):
             if self.mpi_rank == 0:
