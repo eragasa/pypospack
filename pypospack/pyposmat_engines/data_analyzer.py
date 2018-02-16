@@ -6,6 +6,8 @@ __version__ = "1.0"
 
 import os, copy
 import numpy as np
+import pandas as pd
+from collections import OrderedDict
 from pypospack.pyposmat import PyposmatConfigurationFile
 from pypospack.pyposmat import PyposmatDataFile
 import pypospack.pareto as pareto
@@ -54,7 +56,7 @@ class PyposmatDataAnalyzer(object):
         _results = []
         for i_row, row in _df.iterrows():
             _results.append([
-                    int(row['sim_id']),
+                    i_row,
                     row[self.parameter_names].values.tolist(),
                     row[self.error_names].values.tolist()
                     ])

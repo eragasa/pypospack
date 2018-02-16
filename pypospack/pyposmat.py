@@ -193,17 +193,14 @@ class PyposmatDataFile(object):
 
         with open(self.filename,'r') as f:
             lines = f.readlines()
-
         self.names = [s.strip() for s in lines[0].strip().split(',')]
         self.types = [s.strip() for s in lines[1].strip().split(',')]
-        
-        self.values = []
-        for i in range(2,len(lines)):
-            line = lines[i].strip()
-            values = [float(s.strip()) for s in line.split(',')]
-            values[0] = int(values[0])
-            self.values.append(list(values))
-        self.values = np.array(self.values)
+        lines = [l.strip().split(',') for l in lines[2:]]
+
+        table = []
+        for line in lines[2:]:
+            values = [line[0]] + [float(x) for x in line[1:]]
+            table.append(values)
 
         self.parameter_names = [
                 n for i,n in enumerate(self.names) \
@@ -217,9 +214,8 @@ class PyposmatDataFile(object):
         self.score_names = [
                 n for i,n in enumerate(self.names) \
                         if self.types[i] == 'score']
-        self.df = pd.DataFrame(data=self.values,
+        self.df = pd.DataFrame(data=table,
                 columns=self.names,copy=True)
-        self.df.set_index('sim_id')
 
         self.parameter_df = self.df[self.parameter_names] 
         self.error_df = self.df[self.error_names]

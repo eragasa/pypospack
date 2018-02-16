@@ -107,12 +107,14 @@ class TaskManager(object):
                     # https://www.programcreek.com/python/example/11892/os.getpgid
                     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
                     # https://www.codeday.top/2017/06/28/25301.html
-                    pid = o_task.process.pid
-                    pgid = os.getpgid(pid)
-                    if pgid == pid:
-                        os.killpg(pgid,signal.SIGKILL)
-                    else:
-                        os.kill(pgid,signal.SIGKILL)
+                    try:
+                        pid = o_task.process.pid
+                        pgid = os.getpgid(pid)
+                        if pgid == pid:
+                            os.killpg(pgid,signal.SIGKILL)
+                        else:
+                            os.kill(pgid,signal.SIGKILL)
+                    except: pass
                 raise PypospackTaskManagerError('simulation time exceeded')
             for k_task,o_task in self.obj_Task.items():
                 assert isinstance(o_task.configuration,OrderedDict)

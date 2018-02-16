@@ -27,6 +27,7 @@ class PyposmatIterativeSampler(object):
         self.setup_mpi_environment()
         self.determine_rv_seeds()
 
+        print(self.mpi_rank)
         if self.mpi_rank == 0:
             if os.path.isdir(self.data_directory):
                 shutil.rmtree(self.data_directory)
@@ -36,7 +37,7 @@ class PyposmatIterativeSampler(object):
             if self.mpi_rank == 0:
                 print(80*'-')
                 print('{:80}'.format('BEGIN ITERATION {}/{}'.format(
-                    i,self.n_iterations)))
+                    i+1,self.n_iterations)))
                 print(80*'-')
        
             self.run_simulations(i)
@@ -91,6 +92,7 @@ class PyposmatIterativeSampler(object):
         if self.mpi_rank == 0:
             self.pyposmat_mc_sampler.print_structure_database()
             self.pyposmat_mc_sampler.print_sampling_configuration()
+        if self.mpi_rank == 0 and i_iteration == 0:
             self.pyposmat_mc_sampler.print_initial_parameter_distribution()
 
         _mc_config = self.pyposmat_mc_sampler.configuration.sampling_type[i_iteration]
@@ -160,6 +162,15 @@ class PyposmatIterativeSampler(object):
 
         _data_directory = self.data_directory
 
+        # filename of old kde file
+        _filename_kde = os.path.join(
+            self.data_directory,
+            'pyposmat.kde.{}.out'.format(i_iteration))
+        
+        # filename to send merge results too
+        _filename_out = os.path.join(
+            self.data_directory,
+            'pyposmat.results.{}.out'.format(i_iteration))
         # delete directory if directory exists, then create it
         if i_iteration == 0:
             if os.path.isdir(self.data_directory):
@@ -183,15 +194,13 @@ class PyposmatIterativeSampler(object):
         
         # first merge the kde file from the this iteration
         if i_iteration > 0:
-            _filename_kde = os.path.join(
-                self.data_directory,
-                'pyposmat.kde.{}.out'.format(i_iteration))
             with open(_filename_kde,'r') as f:
                 lines = f.readlines()
-            for k,line in enumerate(lines):
-                if k>1:
-                    line = [v for v in lines[0].strip().split(',')]
-                    str_list.append(",".join(line[len(names):]))
+            for line in lines[2:]:
+                line = [v.strip() for v in line.strip().split(',')]
+                line = [line[0]] + [float(s) for s in line[1:]]
+                line = [str(s) for i,s in enumerate(line) if i<len(names)]
+                str_list.append(",".join(line))
         
         # process all the results from this simulations
         for i_rank in range(n_ranks):
@@ -204,15 +213,10 @@ class PyposmatIterativeSampler(object):
             with open(_rank_filename,'r') as f:
                 lines = f.readlines()
             lines = [line.strip().split(',') for line in lines]
-            for k,line in enumerate(lines):
-                if k>1:
-                    line[0] = '{}_{}_{}'.format(i_iteration,i_rank,line[0])
-                    str_list.append(",".join(line))
+            for line in lines[2:]:
+                line[0] = '{}_{}_{}'.format(i_iteration,i_rank,line[0])
+                str_list.append(",".join(line))
 
-        # write results to file
-        _filename_out = os.path.join(
-            self.data_directory,
-            'pyposmat.results.{}.out'.format(i_iteration))
         with open(_filename_out,'w') as f_out:
             f_out.write("\n".join(str_list))
     
