@@ -36,9 +36,16 @@ print('len(dens):{}'.format(len(dens)))
 import matplotlib.pyplot as plt
 fig, axarr = plt.subplots(3,1)
 
-axarr[0].plot(r,pair)
+r_low = 1
+r_high = 10
+phi_low = pair.min()
+phi_high = 0.5
+axarr[0].plot(r,pair/r)
+axarr[0].set_xlim(r_low,r_high)
+axarr[0].set_ylim(phi_low,phi_high)
 axarr[1].plot(rho,embed)
 axarr[2].plot(r,dens)
-
+axarr[2].set_xlim(r_low,r_high)
+axarr[2].set_ylim(0,10)
 fig.savefig('eam.png')
 plt.close(fig)

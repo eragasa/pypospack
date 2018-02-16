@@ -21,7 +21,7 @@ import numpy as np
 import pypospack.io.vasp as vasp
 import pypospack.io.lammps as lammps
 from pypospack.task import Task
-from pypospack.eamtools import EamSetflFile
+from pypospack.io.eamtools import EamSetflFile
 from pypospack.potential import Potential,EamPotential,PotentialObjectMap
 from pypospack.potential import StillingerWeberPotential
 

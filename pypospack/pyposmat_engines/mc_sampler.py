@@ -236,7 +236,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
         if latt == 'fcc':
             d = OrderedDict([
-                ('1NN',0.707*a0),
+                ('1NN',2/(2**0.5)*a0),
                 ('2NN',1.000*a0),
                 ('3NN',1.225*a0)])
             Z= OrderedDict([
@@ -252,7 +252,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             rho_e = 0
             for m in Z:
                 if d[m] < rcut:
-                    rho_e += Z['1NN']*np.interp(d['1NN'],r,rho[s])
+                    rho_e += Z[m]*np.interp(d[m],r,rho[s])
 
             return rho_e
     

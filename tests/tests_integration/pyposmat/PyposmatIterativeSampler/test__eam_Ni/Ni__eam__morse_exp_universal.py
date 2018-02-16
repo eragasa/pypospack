@@ -22,7 +22,7 @@ Ni_eam_potential_formalism['rho_max'] = 1000.0
 Ni_eam_potential_formalism['a0'] = a0
 Ni_eam_potential_formalism['lattice_type'] = 'fcc'
 
-r0 = Ni_eam_potential_formalism['a0']/(2**0.5)
+r0 = a0*2/(2**0.5)
 # <---------------- INITIAL PARAMETER DEFINITION
 # units need to be in metal units
 Ni_eam_parameter_distribution = OrderedDict()
@@ -52,12 +52,12 @@ Ni_eam_parameter_distribution['e_Ni_F0'] = [
             'b':1.0e-2}]
 Ni_eam_parameter_distribution['e_Ni_p'] = [
         'uniform',{
-            'a':2.0e-1,
-            'b':2.0e+1}]
+            'a':1.0e-1,
+            'b':2.0e+0}]
 Ni_eam_parameter_distribution['e_Ni_q'] = [
         'uniform',{
-            'a':2.0e-1,
-            'b':2.0e+1}]
+            'a':1.0e-1,
+            'b':2.0e+0}]
 Ni_eam_parameter_distribution['e_Ni_F1'] = [
         'uniform',{
             'a':-5.,
@@ -119,13 +119,13 @@ Ni_qoi_db.add_qoi(
 
 # <---------------- SAMPLING CONFIGURATION
 Ni_eam_sampling = OrderedDict()
-Ni_eam_sampling['n_iterations'] = 30
-Ni_eam_sampling['mc_seed'] = 0
+Ni_eam_sampling['n_iterations'] = 10
+Ni_eam_sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(Ni_eam_sampling['n_iterations']):
     Ni_eam_sampling[i] = OrderedDict()
     Ni_eam_sampling[i]['type'] = 'kde'
-    Ni_eam_sampling[i]['n_samples'] = 30
+    Ni_eam_sampling[i]['n_samples'] = 1000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 Ni_eam_sampling[0]['type'] = 'parametric'
 
