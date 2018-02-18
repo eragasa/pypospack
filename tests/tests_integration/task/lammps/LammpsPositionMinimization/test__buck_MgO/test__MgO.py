@@ -26,9 +26,9 @@ MgO_LC_parameters['OO_rho']   = 0.1490
 MgO_LC_parameters['OO_C']     = 27.88
 
 MgO_structure_definition = OrderedDict()
-MgO_structure_definition['name'] = 'MgO_NaCl_unit'
+MgO_structure_definition['name'] = 'MgO_NaCl'
 MgO_structure_definition['filename'] = os.path.join(
-        'test_LammpsPositionMinimization',
+        'structure_db',
         'MgO_NaCl_unit.gga.relax.vasp')
 
 MgO_LC_configuration = OrderedDict()

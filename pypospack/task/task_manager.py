@@ -99,7 +99,7 @@ class TaskManager(object):
             # READY -> RUNNING
             # RUNNING -> POST
             # POST -> FINISHED
-            _max_time_per_simulation = 10
+            _max_time_per_simulation = 100
             _time_elapsed = time.time() - _start_time
             if _time_elapsed > _max_time_per_simulation:
                 for k_task,o_task in self.obj_Task.items():
@@ -123,12 +123,19 @@ class TaskManager(object):
                     _configuration = OrderedDict()
                     _configuration['potential'] = potential
                     _configuration['parameters'] = parameters
-                    #_configuration['bulk_structure'] = \
-                    #        self.tasks[k_task]['bulk_structure']
+                    if 'bulk_structure' in self.tasks[k_task]:
+                        _structure_name = self.tasks[k_task]['bulk_structure']
+                        _structure_filename = os.path.join(
+                                self.structures['structure_directory'],
+                                self.structures['structures'][_structure_name])
+                        _configuration['bulk_structure'] = _structure_name
+                        _configuration['bulk_structure_filename'] = _structure_filename
                     
                     o_task.on_init(configuration=_configuration)
                 elif o_task.status == 'CONFIG':
-                    o_task.on_config()
+                    o_task.on_config(
+                            configuration=_configuration,
+                            results=self.results)
                 elif o_task.status == 'READY':
                     o_task.on_ready(results=self.results)
                 elif o_task.status == 'RUNNING':

@@ -200,7 +200,7 @@ class LammpsSimulation(Task):
             self.on_update_status()
 
 
-    def on_config(self,configuration=None):
+    def on_config(self,configuration=None,results=None):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
 
@@ -247,7 +247,6 @@ class LammpsSimulation(Task):
                             obj_embedding=str(type(self.potential.obj_embedding)),
                             setfl_filename=str(self.potential.setfl_filename))
                 raise ValueError(msg_err)
-        print(configuration)
 
         self.update_status()
         if self.is_fullauto:

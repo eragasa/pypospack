@@ -51,16 +51,23 @@ class DefectFormationEnergy(Qoi):
                 task_structure=_defect_structure_name,
                 bulk_structure_name=_bulk_structure_name)
 
-    def calculate_qoi(self,variables):
-        s_name_defect = self.defect_structure
-        s_name_bulk   = self.bulk_structure
+    def calculate_qois(self,task_results):
+        _prefix = '{}.{}'.format(
+                self.structures['defect'],
+                self.qoi_type)
+        s_name_defect = self.structures['defect']
+        s_name_bulk   = self.structures['ideal']
 
-        #e_defect = self._req_vars["{}.E_min_pos".format(s_name_defect)]
-        #e_bulk   = self._req_vars["{}.E_min".format(s_name_bulk)]
-        #n_atoms_defect = self._req_vars["{}.n_atoms".format(s_name_defect)]
-        #n_atoms_bulk   = self._req_vars["{}.n_atoms".format(s_name_bulk)]
-        #e_f = e_defect - n_atoms_defect/n_atoms_bulk*e_bulk
-        #self._predicted_value = e_f
-        #return self._predicted_value
-
-
+        print(task_results)
+        e_defect = task_results[
+                "{}.lmps_min_pos.toten".format(s_name_defect)]
+        e_bulk = task_results[
+                "{}.lmps_min_all.toten".format(s_name_bulk)]
+        n_atoms_defect = task_results[
+                "{}.lmps_min_pos.natoms".format(s_name_defect)]
+        n_atoms_bulk = task_results[
+                "{}.lmps_min_all.natoms".format(s_name_bulk)]
+        e_f = e_defect - n_atoms_defect/n_atoms_bulk*e_bulk
+        
+        self.qois = OrderedDict()
+        self.qois['{}.E_formation_defect'.format(_prefix)]= e_f
