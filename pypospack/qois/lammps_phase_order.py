@@ -39,7 +39,7 @@ class PhaseOrderCalculation(Qoi):
         self.add_task(
                 task_type=_task_type,
                 task_name=_take_name,
-                task_structure=_structure_high_name)
+                task_structure,_structure_high_name)
 
     def calculate_qois(self,task_results):
         _low_prefix = '{}.{}'.format(

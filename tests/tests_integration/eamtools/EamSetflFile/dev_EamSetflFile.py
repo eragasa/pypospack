@@ -2,6 +2,7 @@ import os
 from collections import OrderedDict
 from pypospack.eamtools import EamSetflFile
 
+
 #setfl_filename = os.path.join(
 #        'test_EamSetflFile',
 #        'Ni.Zhou2004.set')

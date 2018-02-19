@@ -49,7 +49,7 @@ class PyposmatIterativeSampler(object):
             MPI.COMM_WORLD.Barrier()
         print(80*'-')
         print('JOBCOMPLETE')
-    
+   
     def run_simulations(self,i_iteration):
         self.rank_directory = self.RANK_DIR_FORMAT.format(
                 self.mpi_rank)
@@ -75,7 +75,8 @@ class PyposmatIterativeSampler(object):
 
         # set random seed
         np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
-        
+
+        # initialize()
         self.pyposmat_mc_sampler = PyposmatMonteCarloSampler(
                 filename_in = _config_filename,
                 filename_out = _results_filename)
