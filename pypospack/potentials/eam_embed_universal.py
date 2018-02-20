@@ -75,6 +75,9 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
             F1 = self.parameters['{}_F1'.format(s)]
             rho0 = self.parameters['{}_rho0'.format(s)]
             self.embedding_evaluations[s] \
-                    = F0*(q/(q-p)*((rho/rho0)**p)-p/(q-p)*((rho/rho0)**q))+F1*(rho/rho0)
+                    = F0*(
+                             (q/(q-p))*((rho/rho0)**p)
+                            -(p/(q-p))*((rho/rho0)**q)
+                      )+F1*(rho/rho0)
         return copy.deepcopy(self.embedding_evaluations)
 

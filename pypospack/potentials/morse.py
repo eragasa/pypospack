@@ -65,7 +65,7 @@ class MorsePotential(PairPotential):
             
             # <------------------------embedded morse function
             def func_morse(r,D0,a,r0):
-                return D0 * ((1-np.exp(-a*(r-r0)))**2-1)
+                return D0*(np.exp(-2*a*(r-r0))-2*np.exp(-a*(r-r0)))
 
             _pair_name = '{}{}'.format(s[0],s[1])
             if r_cut is None:
