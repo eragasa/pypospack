@@ -415,6 +415,16 @@ class PyposmatConfigurationFile(object):
         self.configuration['sampling_dist'] = copy.deepcopy(distribution)
 
     @property
+    def sampling_constraints(self):
+        if 'sampling_constraints' not in self.configuration:
+            self.configuration['sampling_constraints'] = None
+        return self.configuration['sampling_constraints']
+
+    @sampling_constraints.setter
+    def sampling_constraints(self,sampling_constraints):
+        self.configuration['sampling_constraints'] = copy.deepcopy(sampling_constraints)
+        
+    @property
     def mc_seed(self):
         return self.configuration['mc_seed']
 

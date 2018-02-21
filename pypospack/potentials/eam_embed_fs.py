@@ -8,7 +8,7 @@ import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamEmbeddingFunction
 
-class UniversalEmbeddingFunction(EamEmbeddingFunction):
+class FinnisSinclairEmbeddingFunction(EamEmbeddingFunction):
     """
     Args:
         symbols(list of str)
@@ -27,10 +27,10 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
         rho(numpy.ndarray)
     """    
     def __init__(self,symbols):
-        self.embedding_func_parameters = ['F0','rho','rho0']
+        self.embedding_func_parameters = ['F0']
         EamEmbeddingFunction.__init__(self,
                 symbols=symbols,
-                potential_type='eam_embed_univeral')
+                potential_type='eam_embed_fs')
 
     def _init_parameter_names(self):
         self.parameter_names = []
@@ -70,8 +70,7 @@ class UniversalEmbeddingFunction(EamEmbeddingFunction):
         self.embedding_evaluations = OrderedDict()
         for s in self.symbols:
             F0 = self.parameters['{}_F0'.format(s)]
-            rho0 = self.parameters['{}_rho0'.format(s)]
-            self.embedding_evaluations[s] \
-                    = F0*(rho/rho0)**0.5)
+            with np.errstate(all='raise'):
+                self.embedding_evaluations[s] = F0*(rho**0.5)
         return copy.deepcopy(self.embedding_evaluations)
 

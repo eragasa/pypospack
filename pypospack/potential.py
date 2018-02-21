@@ -148,7 +148,7 @@ class EamEmbeddingFunction(Potential):
         self.embedding_evaluations = None
 from pypospack.potentials.eam_embed_bjs import BjsEmbeddingFunction
 from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
-
+from pypospack.potentials.eam_embed_fs import FinnisSinclairEmbeddingFunction
 #------------------------------------------------------------------------------
 from pypospack.eamtools import EamSetflFile
 class EamPotential(Potential):
@@ -373,6 +373,8 @@ class EamPotential(Potential):
             self.obj_embedding = UniversalEmbeddingFunction(symbols=self.symbols)
         elif func_embedding == 'eam_embed_bjs':
             self.obj_embedding = BjsEmbeddingFunction(symbols=self.symbols)
+        elif func_embedding == 'eam_embed_fs':
+            self.obj_embedding = FinnisSinclairEmbeddingFunction(symbols=self.symbols)
         else:
             msg_err = "func_embedding must be a EamEmbeddingFunction"
             raise ValueError(msg_err)
@@ -496,6 +498,10 @@ def PotentialObjectMap(potential_type):
     potential_map['eam_embed_universal'] = OrderedDict()
     potential_map['eam_embed_universal']['module'] = 'pypospack.potential'
     potential_map['eam_embed_universal']['class'] = 'UniversalEmbeddingFunction'
+
+    potential_map['eam_embed_fs'] = OrderedDict()
+    potential_map['eam_embed_fs']['module'] = 'pypospack.potential'
+    potential_map['eam_embed_fs']['class'] = 'FinnisSinclairEmbeddingFunction'
 
     module_name = potential_map[potential_type]['module']
     class_name = potential_map[potential_type]['class']
