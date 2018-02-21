@@ -80,7 +80,7 @@ class ExponentialDensityFunction(EamDensityFunction):
                 return False
 
         def func_dens_exp(r, rho0, beta,r0):
-            return rho0 * np.exp(-beta*(r/r0-1))
+            return rho0 * np.exp(-beta*(r-r0))
         
         self.density_evaluations = OrderedDict()
         for s in self.symbols:
@@ -105,6 +105,4 @@ class ExponentialDensityFunction(EamDensityFunction):
                 self.density_evaluations[s] = copy.deepcopy(_rho)
               
         return copy.deepcopy(self.density_evaluations)
-
-
 

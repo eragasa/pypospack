@@ -30,18 +30,17 @@ lattice_info['Ni']['lattice_type'] = 'fcc'
 
 # create parameter diction
 parameters = OrderedDict()
-parameters['p_NiNi_D0'] = 2.
+parameters['p_NiNi_D0'] = 1.
 parameters['p_NiNi_a'] = 1
 parameters['p_NiNi_r0'] = 1
-parameters['d_Ni_rho0'] = 1
+parameters['d_Ni_rho0'] = 1. 
 parameters['d_Ni_beta'] = 1
 parameters['d_Ni_r0'] = 1
-parameters['e_Ni_F0'] = 1
+parameters['e_Ni_F0'] = -4.2
 parameters['e_Ni_p'] = 1/2   # this is equilvalent to FS 
 parameters['e_Ni_q'] = 1.00   # this is equilvalent to FS
-parameters['e_Ni_F1'] = 1
+parameters['e_Ni_F1'] = 2
 parameters['e_Ni_rho0'] = 1
-r_cutoffs = OrderedDict()
 
 fcc_NN_info = OrderedDict()
 fcc_NN_info['1NN'] = OrderedDict()
@@ -57,6 +56,7 @@ fcc_NN_info['3NN']['da'] = 1.225
 Nr = 5000
 Nrho = 5000
 
+r_cutoffs = OrderedDict()
 for s in symbols:
     if lattice_info[s]['lattice_type'] == 'fcc':
 
@@ -77,9 +77,11 @@ for s in symbols:
 parameters['p_NiNi_r0']= r0['Ni']
 parameters['d_Ni_r0'] = r0['Ni']
 
-#print(80*'-')
-#print('{:^80}'.format('RADIUS VECTOR'))
-#print(80*'-')
+print(80*'-')
+print('{:^80}'.format('RADIUS VECTOR'))
+print(80*'-')
+for s in symbols:
+    print('r0({})={}'.format(s,r0[s]))
 rmax = max([v for k,v in r_cutoffs.items()])
 r = rmax * np.linspace(1,Nr,Nr)/Nr
 dr = r[1]-r[0]
@@ -111,7 +113,7 @@ for s in symbols:
 print(80*'-')
 print('{:^80}'.format('DETERMINE MAXIMUM DENSITY'))
 print(80*'-')
-max_compression = 0.50
+max_compression = 0.20
 print('max_compression = {}'.format(max_compression))
 rhomax = OrderedDict()
 for s in symbols:
@@ -141,13 +143,43 @@ for k,v in parameters.items():
 # make the equilibrium value twice the value of the fcc lattice
 
 rho = rhomax * np.linspace(1,Nrho,Nrho)/Nrho
+eam_pot.evaluate_pair(r=r,parameters=parameters,rcut=r_cutoffs['Ni'])
 eam_pot.evaluate_embedding(rho=rho,parameters=parameters)
-embedding_fs = 2*parameters['e_Ni_F0']*np.sqrt(rho/parameters['e_Ni_rho0']) 
+eam_pot.evaluate_density(r=r,parameters=parameters,rcut=r_cutoffs['Ni'])
 
-#plt.plot(rho,eam_pot.embedding['Ni'])
-#plt.plot(rho,embedding_fs)
-#plt.savefig('eam_embedding.png')
-#exit()
+fig_1,ax_1 = plt.subplots(3)
+ax_1[0].plot(r/r0['Ni'],eam_pot.pair['NiNi'])
+ax_1[0].set_xlim(0.5,1.5)
+ax_1[0].set_ylim(
+        eam_pot.pair['NiNi'][
+                np.where((r/r0['Ni'] > 0.5) & (r/r0['Ni'] < 1.5))
+            ].min(),
+        eam_pot.pair['NiNi'][
+                np.where((r/r0['Ni'] > 0.5) & (r/r0['Ni'] < 1.5))
+            ].max()
+        )
+ax_1[1].plot(rho/rho0['Ni'],eam_pot.embedding['Ni'])
+if False:
+    ax_1[1].set_xlim(0.5,1.5)
+    ax_1[1].set_ylim(
+            eam_pot.embedding['Ni'][
+                    np.where((rho/rho0['Ni'] > 0.5) & (rho/rho0['Ni'] < 1.5))
+                ].min(),
+            eam_pot.embedding['Ni'][
+                    np.where((rho/rho0['Ni'] > 0.5) & (rho/rho0['Ni'] < 1.5))
+                ].max()
+            )
+ax_1[2].plot(r/r0['Ni'],eam_pot.density['Ni'])
+ax_1[2].set_xlim(0.5,1.5)
+ax_1[2].set_ylim(
+        eam_pot.density['Ni'][
+                np.where((r/r0['Ni'] > 0.5) & (r/r0['Ni'] < 1.5))
+            ].min(),
+        eam_pot.density['Ni'][
+                np.where((r/r0['Ni'] > 0.5) & (r/r0['Ni'] < 1.5))
+            ].max()
+        )
+fig_1.savefig('eam_potential.png')
 
 fcc_a0= lattice_info['Ni']['a0']
 fcc_a_min = 0.80 * fcc_a0
@@ -175,8 +207,7 @@ fcc_rho = np.array(fcc_rho)
 #plt.savefig('dens_fcc_a.png')
 #exit()
 import copy
-fcc_embed = np.interp(x=fcc_rho,xp=rho,fp=embedding_fs)
-eam_pot.evaluate_pair(r=r,parameters=parameters,rcut=r_cutoffs['Ni'])
+fcc_embed = np.interp(x=fcc_rho,xp=rho,fp=eam_pot.density['Ni'])
 fcc_phi = []
 for _a in fcc_a:
     _phi = 0
@@ -188,20 +219,26 @@ for _a in fcc_a:
     fcc_phi.append(_phi)
 fcc_phi = np.array(fcc_phi)
 
-f,ax = plt.subplots(2)
 phi_cut = copy.deepcopy(eam_pot.pair['NiNi'])
-eam_pot.evaluate_pair(r,parameters)
-phi_nocut = copy.deepcopy(eam_pot.pair['NiNi'])
-ax[0].plot(r,phi_cut)
-ax[0].plot(r,phi_nocut)
-ax[0].set_xlim(2.,r.max())
-ax[0].set_ylim( 
-        min(phi_cut.min(),phi_nocut.min()),
-        min(np.interp(2.,r,phi_cut),np.interp(2.,r,phi_nocut))
-    )
-ax[1].plot(fcc_a,fcc_phi)
-ax[1].plot(fcc_a,fcc_embed)
-ax[1].plot(fcc_a,fcc_phi+fcc_embed)
+f,ax = plt.subplots(3)
+ax[0].plot(fcc_a/fcc_a0,fcc_phi)
+#ax[0].set_xlim(0.5,1.5)
+#ax[0].set_ylim(
+#        fcc_phi[np.where(r/r0['Ni'] > 0.5)].min(),
+#        fcc_phi[np.where(r/r0['Ni'] > 0.5)].max()
+#    )
+#ax[1].plot(fcc_a/fcc_a0,phi_cut)
+ax[1].plot(fcc_a/fcc_a0,fcc_embed)
+ax[2].plot(fcc_a/fcc_a0,fcc_phi+fcc_embed)
+#ax[1].set_xlim(0.5,1.5)
+#ax[1].set_ylim( 
+#        min(fcc_phi[np.where(r/r0['Ni'] > 0.5)].min(),
+#            fcc_embed[np.where(r/r0['Ni'] > 0.5)].min(),
+#            (fcc_phi+fcc_embed)[np.where(r/r0['Ni'] > 0.5)].min()),
+#        max(fcc_phi[np.where(r/r0['Ni'] > 0.5)].max(),
+#            fcc_embed[np.where(r/r0['Ni'] > 0.5)].max(),
+#            (fcc_phi+fcc_embed)[np.where(r/r0['Ni'] > 0.5)].max())
+#    )
 f.savefig('eam_fcc.png')
 exit()
 #plt.plot(fcc_a,fcc_phi)

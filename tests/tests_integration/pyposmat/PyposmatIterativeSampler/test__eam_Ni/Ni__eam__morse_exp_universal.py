@@ -48,8 +48,8 @@ Ni_eam_parameter_distribution['d_Ni_r0'] = [
         'equals',r0]
 Ni_eam_parameter_distribution['e_Ni_F0'] = [
         'uniform',{
-            'a':0.1e-3,
-            'b':1.0e-2}]
+            'a':-5.0,
+            'b':5.0}]
 Ni_eam_parameter_distribution['e_Ni_p'] = [
         'uniform',{
             'a':1.0e-1,

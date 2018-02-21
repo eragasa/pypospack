@@ -1,0 +1,154 @@
+LAMMPS (10 Feb 2015)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style charge
+atom_modify map array
+# ---- create atoms
+read_data /Users/eugeneragasa/repos/pypospack/tests/tests_integration/task/TaskManager/base_test/MgO_NaCl.lmps_min_all/lammps.structure
+  triclinic box = (0 0 0) to (4.2565 4.2565 4.2565) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  8 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 24.305
+mass 2 15.999
+
+group Mg type 1
+4 atoms in group Mg
+group O type 2
+4 atoms in group O
+
+set group Mg charge 2.0
+  4 settings made for charge
+set group O charge -2.0
+  4 settings made for charge
+
+variable R_cut equal 10.0
+
+pair_style buck/coul/long ${R_cut}
+pair_style buck/coul/long 10
+pair_coeff 1 1 0.0 0.5 0.0 ${R_cut}
+pair_coeff 1 1 0.0 0.5 0.0 10
+pair_coeff 1 2 821.6 0.3242 0.0 ${R_cut}
+pair_coeff 1 2 821.6 0.3242 0.0 10
+pair_coeff 2 2 2274.0 0.149 27.88 ${R_cut}
+pair_coeff 2 2 2274.0 0.149 27.88 10
+
+kspace_style pppm 1.0e-5
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax iso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+PPPM initialization ...
+  G vector (1/distance) = 0.354854
+  grid = 8 8 8
+  stencil order = 5
+  estimated absolute RMS force accuracy = 5.34408e-05
+  estimated relative force accuracy = 3.71126e-06
+  using double precision FFTs
+  3d grid and FFT values/proc = 3375 512
+Neighbor list info ...
+  1 neighbor list requests
+  update every 1 steps, delay 0 steps, check yes
+  master list distance cutoff = 11
+Memory usage per processor = 4.06549 Mbytes
+Step PotEng Lx Ly Lz Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz eatoms 
+       0   -162.12848       4.2565       4.2565       4.2565            0            0            0    -64012.53    -64012.53    -64012.53    -64012.53 -3.8759874e-11 -1.4292379e-10 -3.6687737e-10   -162.12848 
+      10   -162.17871     4.213935     4.213935     4.213935            0            0            0   -4821.7526   -4821.7526   -4821.7526   -4821.7526 8.9106085e-11 8.5332225e-11 -4.2335946e-10   -162.17871 
+      14   -162.17896    4.2106915    4.2106915    4.2106915            0            0            0    -1.347652    -1.347652    -1.347652    -1.347652 2.5597609e-11 1.0162971e-11 2.8091283e-10   -162.17896 
+Loop time of 0.081147 on 1 procs for 14 steps with 8 atoms
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+        -162.128476026     -162.178964554     -162.178964554
+  Force two-norm initial, final = 9.24344 0.000276677
+  Force max component initial, final = 9.24344 0.000190436
+  Final line search alpha, max atom move = 0.125 2.38044e-05
+  Iterations, force evaluations = 14 33
+
+Pair  time (%) = 0.0673783 (83.0324)
+Kspce time (%) = 0.00321245 (3.95881)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 0.000576258 (0.710141)
+Outpt time (%) = 2.7895e-05 (0.0343759)
+Other time (%) = 0.00995207 (12.2643)
+
+Nlocal:    8 ave 8 max 8 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    2189 ave 2189 max 2189 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    2344 ave 2344 max 2344 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 2344
+Ave neighs/atom = 293
+Neighbor list builds = 0
+Dangerous builds = 0
+# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable length_x equal "lx"
+variable length_y equal "ly"
+variable length_z equal "lz"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "tot_energy = ${tot_energy}"
+tot_energy = -162.17896455406
+print "num_atoms = ${natoms}"
+num_atoms = 8
+print "xx = ${length_x}"
+xx = 4.21069146013408
+print "yy = ${length_y}"
+yy = 4.21069146013408
+print "zz = ${length_z}"
+zz = 4.21069146013408
+print "xy = ${tilt_xy}"
+xy = 0
+print "xz = ${tilt_xz}"
+xz = 0
+print "yz = ${tilt_yz}"
+yz = 0
+print "tot_press = ${tot_press}"
+tot_press = -1.34765197939399
+print "pxx = ${press_xx}"
+pxx = -1.34765197919426
+print "pyy = ${press_yy}"
+pyy = -1.3476519793348
+print "pzz = ${press_zz}"
+pzz = -1.34765197965291
+print "pxy = ${press_xy}"
+pxy = 2.55976090046832e-11
+print "pxz = ${press_xz}"
+pxz = 1.01629705561986e-11
+print "pyz = ${press_yz}"
+pyz = 2.80912827691917e-10
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
