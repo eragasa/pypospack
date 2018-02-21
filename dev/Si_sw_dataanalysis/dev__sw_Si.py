@@ -4,8 +4,7 @@ from mpi4py import MPI
 from pypospack.pyposmat import PyposmatMonteCarloSampler
 from pypospack.pyposmat import PyposmatConfigurationFile
 from pypospack.pyposmat import PyposmatDataAnalyzer
-#from pypospack.pyposmat import PyposmatIterativeSampler
-from mc_sampler_iterate import PyposmatIterativeSampler
+from pypospack.pyposmat import PyposmatIterativeSampler
 
 if __name__ == "__main__":
     import Si_sw
