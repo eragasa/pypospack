@@ -18,6 +18,7 @@ echo The location of mpi is $MPIRUN
 echo The python is $(which python)
 echo The pythonpath is $PYTHONPATH
 
-/usr/lib64/openmpi/bin/mpirun -np $NSLOTS python mc_sampler_iterate.py > log.out
+
+/usr/lib64/openmpi/bin/mpirun -np $NSLOTS python dev__eam_Ni.py > log.out
 
 echo stop_time:$(date)
