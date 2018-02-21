@@ -15,6 +15,8 @@ from pypospack.task.lammps import LammpsSimulationError
 from pypospack.task.task_manager import PypospackTaskManagerError
 from pypospack.potential import PotentialObjectMap
 
+class PyposmatBadParameterError(Exception): pass
+
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
             filename_in='pypospack.config.in',
@@ -53,6 +55,11 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.parameter_distribution_definition =\
                 self.configuration.sampling_distribution
         self.free_parameter_names = [k for k,v in self.parameter_distribution_definition.items() if v[0] != 'equals']
+
+        if self.configuration.sampling_constraints is not None:
+            self.parameter_constraints = copy.deepcopy(self.configuration.sampling_constraints)
+        else:
+            self.parameter_constraints = OrdereDict()
 
         self.constrained_parameter_names = []
         for p in self.parameter_names:
@@ -123,10 +130,19 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             a0 = self.parameter_distribution_definition[p][1][1]
                             latt = self.parameter_distribution_definition[p][1][2]
                             _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
-
-            
+           
             try:
+                # check constraints
+                for k,v in self.parameter_constraints.items():
+                    _eval_str = v
+                    for pn,pv in _parameters.items():
+                        _eval_str = _eval_str.replace(pn,str(pv))
+                    if eval(_eval_str) is False:
+                        raise PyposmatBadParameterError()  
+
                 _results = self.evaluate_parameter_set(parameters=_parameters)
+            except PyposmatBadParameterError as e:
+                _n_errors += 1
             except LammpsSimulationError as e:
                 _n_errors += 1
             except PypospackTaskManagerError as e:
@@ -193,7 +209,17 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             latt = self.parameter_distribution_definition[p][1][2]
                             _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
             try:
+                # check constraints
+                for k,v in self.parameter_constraints.items():
+                    _eval_str = v
+                    for pn,pv in _parameters.items():
+                        _eval_str = _eval_str.replace(pn,str(pv))
+                    if eval(_eval_str) is False:
+                        raise PyposmatBadParameterError()  
+                
                 _results = self.evaluate_parameter_set(parameters=_parameters)
+            except PyposmatBadParameterError as e:
+                _n_errors += 1
             except LammpsSimulationError as e:
                 _n_errors += 1
             except PypospackTaskManagerError as e:

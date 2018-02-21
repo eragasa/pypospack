@@ -65,6 +65,21 @@ class PyposmatDataAnalyzer(object):
         self._df['is_pareto'] = 0
         self._df.loc[is_pareto_idx,'is_pareto'] = 1
 
+    def filter_performance_requirements(self):
+        _df = copy.deepcopy(self.df)
+        _df[self.error_names] = self.df[self.error_names].abs()
+       
+        _qoi_constraints = copy.deepcopy(self.configuration.qoi_constriants)
+
+        is_survive_idx = []
+        for k,v in _qoi_constraints.items():
+            if k in self.error_names:
+                is_survive_idx.append(_df.index[_df[k] < v])
+
+        is_survive_idx = set.intersection(*[set(v) for v in is_survive_idx])
+        self._df['is_survive'] = 0
+        self._df[is_survive_idx,'is_survive'] = 1
+
     def write_kde_file(self,filename):
         kde_df = self.df[self.df['is_pareto'] == 1]
 
