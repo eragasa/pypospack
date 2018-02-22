@@ -78,9 +78,11 @@ class PyposmatDataAnalyzer(object):
             if k in self.error_names:
                 is_survive_idx.append(_df.index[_df[k] < v])
 
-        is_survive_idx = set.intersection(*[set(v) for v in is_survive_idx])
+        is_survive_sets = [set(v) for v in is_survive_idx]
+        is_survive_idx = set.intersection(*is_survive_sets)
         self._df['is_survive'] = 0
-        self._df[is_survive_idx,'is_survive'] = 1
+        if len(is_survive_idx) > 0: 
+            self._df[is_survive_idx,'is_survive'] = 1
 
     def write_kde_file(self,filename):
         kde_df = self.df[self.df['is_pareto'] == 1]
