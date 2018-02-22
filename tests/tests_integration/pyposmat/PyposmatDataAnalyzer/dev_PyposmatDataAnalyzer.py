@@ -13,8 +13,8 @@ import pypospack.pareto as pareto
 
 if __name__ == "__main__":
     
-    data_directory = 'data'
-    pyposmat_data_filename = 'pypospack.results.out'
+    data_directory = 'data__morse_exp_fs'
+    pyposmat_data_filename = 'pyposmat.results.4.out'
     pyposmat_configuration_filename = 'pypospack.config.in'  
     data_analyzer = PyposmatDataAnalyzer()
     data_analyzer.read_configuration_file(
@@ -24,9 +24,7 @@ if __name__ == "__main__":
                 data_directory,
                 pyposmat_data_filename))
     data_analyzer.calculate_pareto_set()
+    data_analyzer.filter_performance_requirements()
     data_analyzer.write_kde_file(
-            filename=os.path.join(
-                data_directory,
-                'pyposmat.kde.out'))
-
+            filename='pyposmat.kde.out')
     exit()

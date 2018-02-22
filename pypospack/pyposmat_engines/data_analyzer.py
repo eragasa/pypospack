@@ -18,11 +18,11 @@ class PyposmatDataAnalyzer(object):
 
     @property
     def pyposmat_configuration(self):
-        return self._pypospack_configuration
+        return self._pyposmat_configuration
 
     @pyposmat_configuration.setter
     def pypospack_configuration(self,configuration):
-        assert type(configuration) is PypospackConfigurationFile
+        assert type(configuration) is PyposmatConfigurationFile
 
     @property
     def parameter_names(self): 
@@ -69,7 +69,9 @@ class PyposmatDataAnalyzer(object):
         _df = copy.deepcopy(self.df)
         _df[self.error_names] = self.df[self.error_names].abs()
        
-        _qoi_constraints = copy.deepcopy(self.configuration.qoi_constriants)
+        _qoi_constraints = copy.deepcopy(
+                self.pyposmat_configuration.qoi_constraints
+            )
 
         is_survive_idx = []
         for k,v in _qoi_constraints.items():

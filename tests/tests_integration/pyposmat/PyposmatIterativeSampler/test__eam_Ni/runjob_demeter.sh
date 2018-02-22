@@ -3,7 +3,7 @@
 #$ -cwd
 #$ -pe mpi 8
 #$ -S /bin/bash
-#$ -q all.q
+#$ -q single.q
 #$ -e job.err
 #$ -o job.out
 
@@ -19,6 +19,6 @@ echo The python is $(which python)
 echo The pythonpath is $PYTHONPATH
 
 
-/usr/lib64/openmpi/bin/mpirun -np $NSLOTS python dev__eam_Ni.py > log.out
+/usr/lib64/openmpi/bin/mpirun -np $NSLOTS python dev__eam_Ni__morse_exp_fs.py > log.out
 
 echo stop_time:$(date)

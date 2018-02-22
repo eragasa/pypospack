@@ -111,10 +111,11 @@ class TaskManager(object):
                         pid = o_task.process.pid
                         pgid = os.getpgid(pid)
                         if pgid == pid:
-                            os.killpg(pgid,signal.SIGKILL)
+                            os.killpg(pgid,signal.SIGTERM)
                         else:
-                            os.kill(pgid,signal.SIGKILL)
-                    except: pass
+                            os.kill(pgid,signal.SIGTERM)
+                    except: 
+                        pass
                 raise PypospackTaskManagerError('simulation time exceeded')
             for k_task,o_task in self.obj_Task.items():
                 assert isinstance(o_task.configuration,OrderedDict)
