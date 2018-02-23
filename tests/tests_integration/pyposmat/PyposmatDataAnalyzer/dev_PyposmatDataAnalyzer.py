@@ -27,7 +27,7 @@ if __name__ == "__main__":
     
     
     data_directory = 'data__morse_exp_fs'
-    pyposmat_data_filename = 'pyposmat.results.4.out'
+    pyposmat_data_filename = 'pyposmat.results.9.out'
     pyposmat_configuration_filename = 'pypospack.config.in'  
     data_analyzer = PyposmatDataAnalyzer()
     data_analyzer.read_configuration_file(

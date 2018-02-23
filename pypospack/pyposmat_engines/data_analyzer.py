@@ -60,7 +60,6 @@ class PyposmatDataAnalyzer(object):
                     row[self.parameter_names].values.tolist(),
                     row[self.error_names].values.tolist()
                     ])
-
         is_pareto_idx = pareto.pareto(_results)    
         self._df['is_pareto'] = 0
         self._df.loc[is_pareto_idx,'is_pareto'] = 1
@@ -77,15 +76,22 @@ class PyposmatDataAnalyzer(object):
         for k,v in _qoi_constraints.items():
             if k in self.error_names:
                 is_survive_idx.append(_df.index[_df[k] < v])
-
+                print('{} < {}: {}'.format(
+                        k,
+                        v,
+                        len(_df.index[_df[k] < v])
+                    ))
         is_survive_sets = [set(v) for v in is_survive_idx]
-        is_survive_idx = set.intersection(*is_survive_sets)
+        is_survive_idx = list(set.intersection(*is_survive_sets))
+        print('total_remaining_after_qoi:{}'.format(
+                len(is_survive_idx)
+            ))
         self._df['is_survive'] = 0
         if len(is_survive_idx) > 0: 
-            self._df[is_survive_idx,'is_survive'] = 1
+            self._df.loc[is_survive_idx,'is_survive'] = 1
 
     def write_kde_file(self,filename):
-        kde_df = self.df[self.df['is_pareto'] == 1]
+        kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
 
         names = ['sim_id'] + self.parameter_names + self.qoi_names\
                 + self.error_names

@@ -3,9 +3,9 @@ import numpy as np
 from mpi4py import MPI
 from pypospack.pyposmat import PyposmatConfigurationFile
 from pypospack.pyposmat import PyposmatIterativeSampler
-
+from pypospack.pyposmat import PyposmatDataFile
 if __name__ == "__main__":
-    import Ni__eam__morse_exp_fs_2 as config
+    import Ni__eam__morse_exp_fs as config
 
     #------------------------------------------------------------------------------
     # WRITE CONFIGURATION FILE
@@ -21,9 +21,15 @@ if __name__ == "__main__":
     configuration.write(filename='pypospack.config.in')
     configuration.read(filename='pypospack.config.in')
     
-    pypospack_filename_in = 'pypospack.config.in'
-    pyposmat_app = PyposmatIterativeSampler(
-        configuration_filename = pypospack_filename_in)
-    pyposmat_app.read_configuration_file()
-    #pyposmat_app.read_configuration_file(filename=pyposmat_configuration_filename)
-    pyposmat_app.run_all()
+    import argparse
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument('-i','--input',type=str,
+            help="input file to be processed")
+    args = vars(arg_parser.parse_args())
+
+    filename = args['input']
+
+    datafile = PyposmatDataFile(filename=filename)
+    datafile.read()
+
+

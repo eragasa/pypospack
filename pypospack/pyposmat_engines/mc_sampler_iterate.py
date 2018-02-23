@@ -110,11 +110,14 @@ class PyposmatIterativeSampler(object):
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank)
         elif _mc_sample_type == 'kde':
-
-            _filename_in = os.path.join(
-                self.root_directory,
-                self.data_directory,
-                'pyposmat.kde.{}.out'.format(i_iteration))
+            _filename_in = ''
+            if 'file' in _mc_config:
+                _filename_in = _mc_config['file']
+            else:
+                _filename_in = os.path.join(
+                    self.root_directory,
+                    self.data_directory,
+                    'pyposmat.kde.{}.out'.format(i_iteration))
 
             self.pyposmat_mc_sampler.run_simulations(
                     i_iteration=i_iteration,
@@ -234,13 +237,11 @@ class PyposmatIterativeSampler(object):
                 self.data_directory,
                 'pyposmat.kde.{}.out'.format(i_iteration+1))
         data_analyzer = PyposmatDataAnalyzer()
-        data_analyzer.read_configuration_file(
-                filename=pyposmat_configuration_filename)
-        data_analyzer.read_data_file(
-                filename=pyposmat_data_filename)
+        data_analyzer.read_configuration_file(filename=pyposmat_configuration_filename)
+        data_analyzer.read_data_file(filename=pyposmat_data_filename)
+        data_analyzer.filter_performance_requirements()
         data_analyzer.calculate_pareto_set()
-        data_analyzer.write_kde_file(
-                filename=pyposmat_kde_filename)
+        data_analyzer.write_kde_file(filename=pyposmat_kde_filename)
 
     def read_configuration_file(self,filename=None):
         assert isinstance(filename,str) or filename is None

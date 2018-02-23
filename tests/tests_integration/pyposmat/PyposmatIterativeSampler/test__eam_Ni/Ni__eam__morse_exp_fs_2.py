@@ -1,3 +1,4 @@
+import os
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
@@ -134,5 +135,6 @@ for i in range(sampling['n_iterations']):
     sampling[i]['type'] = 'kde'
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
-sampling[0]['type'] = 'parametric'
+sampling[0]['type'] = 'kde'
+sampling[0]['file'] = os.path.join(os.getcwd(),'data__morse_exp_fs_2','pyposmat.kde.in')
 

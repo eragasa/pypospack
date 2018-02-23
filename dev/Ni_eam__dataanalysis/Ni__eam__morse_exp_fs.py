@@ -116,10 +116,6 @@ qoi_db.add_qoi(
 qoi_constraints = OrderedDict()
 for k,v in qoi_db.qois.items():
     qoi_constraints['{}.err'.format(k)] = 0.20 * abs(qoi_db.qois[k]['target']) 
-qoi_constraints['Ni_fcc.c11.err'] = 300
-qoi_constraints['Ni_fcc.c12.err'] = 300
-qoi_constraints['Ni_fcc.c44.err'] = 300
-qoi_constraints['Ni_fcc.E_coh.err'] = 10
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
@@ -132,7 +128,7 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10000
+    sampling[i]['n_samples'] = 1000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
 
