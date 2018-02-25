@@ -7,6 +7,7 @@ from pypospack.pyposmat import PyposmatIterativeSampler
 if __name__ == "__main__":
     import Ni__eam__morse_exp_fs_2 as config
 
+    pyposmat_filename_in = 'pyposmat.config.in'
     #------------------------------------------------------------------------------
     # WRITE CONFIGURATION FILE
     #------------------------------------------------------------------------------
@@ -18,12 +19,19 @@ if __name__ == "__main__":
     configuration.sampling_type = config.sampling
     configuration.sampling_distribution = config.parameter_distribution
     configuration.sampling_constraints = config.parameter_constraints
-    configuration.write(filename='pypospack.config.in')
-    configuration.read(filename='pypospack.config.in')
+    configuration.write(filename=pyposmat_filename_in)
+
+    #------------------------------------------------------------------------------
+    # CHECK TO SEE IF CONFIGURATION FILE IS READABLE
+    #------------------------------------------------------------------------------
+    configuration.read(filename=pyposmat_filename_in)
     
-    pypospack_filename_in = 'pypospack.config.in'
+ 
+    #------------------------------------------------------------------------------
+    # RUN PYPOSMAT 
+    #------------------------------------------------------------------------------
     pyposmat_app = PyposmatIterativeSampler(
-        configuration_filename = pypospack_filename_in)
+        configuration_filename = pyposmat_filename_in)
     pyposmat_app.read_configuration_file()
     #pyposmat_app.read_configuration_file(filename=pyposmat_configuration_filename)
     pyposmat_app.run_all()
