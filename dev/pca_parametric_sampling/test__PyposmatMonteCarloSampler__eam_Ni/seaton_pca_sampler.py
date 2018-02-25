@@ -51,7 +51,7 @@ def sample_by_pca(n_samples, params_in, n_clusters):
     '''cluster data by PCA, split clusters, do kde sampling in each cluster, return samples in real space'''
 
     # normalize and store norms
-    df, norms = normalize(params_in, return_norm=True)
+    df, norms = normalize(params_in, return_norm=True, axis=0)
 
     # convert to PCA space
     obj_pca = PCA()
@@ -89,9 +89,9 @@ def sample_by_pca(n_samples, params_in, n_clusters):
         resample_inv_df = pd.DataFrame(data=resample_inv_np, columns=resample_inv_names)
 
         # undo original normalization
-        for i, n in enumerate(norms.tolist()):
-            resample_inv_df.iloc[i] = resample_inv_df.iloc[i] * n
-        resampled_clusters['cluster_'+str(cluster_id)] = resample_inv_df
+        for c, n in zip(resample_inv_df.columns, norms):
+            resample_inv_df.loc[:, c] *= n
+        resampled_clusters['cluster_' + str(cluster_id)] = resample_inv_df
 
     return resampled_clusters
 
@@ -105,10 +105,10 @@ if __name__ == "__main__":
 
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
-    ax1.hist(data['param_df']['chrg_Mg'])
+    ax1.hist(data['param_df']['chrg_Mg'], bins=50)
     ax1.set_title('original distribution of chrg_Mg')
     ax2 = fig.add_subplot(212)
-    ax2.hist(new_samples['cluster_0']['resample_inv_0'])
+    ax2.hist(new_samples['cluster_0']['resample_inv_0'], bins=50)
     ax2.set_title('resampled distribution of chrg_Mg')
     fig.tight_layout(h_pad=1)
     plt.show()
