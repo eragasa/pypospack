@@ -1,3 +1,4 @@
+import copy
 from collections import OrderedDict
 
 class PyposmatDataFile(object):

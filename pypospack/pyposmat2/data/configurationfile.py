@@ -1,4 +1,9 @@
+import copy
 from collections import OrderedDict
+
+# required imports to read to and from YAML files
+import yaml
+from pypospack.io.filesystem import OrderedDictYAMLLoader  
 
 class PyposmatConfigurationFile(object):
 

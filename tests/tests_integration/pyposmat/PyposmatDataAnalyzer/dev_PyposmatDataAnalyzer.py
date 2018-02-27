@@ -6,14 +6,14 @@ __version__ = "1.0"
 
 import os, copy
 import numpy as np
-from pypospack.pyposmat import PyposmatConfigurationFile
-from pypospack.pyposmat import PyposmatDataFile
-from pypospack.pyposmat import PyposmatDataAnalyzer
+from pypospack.pyposmat2.data import PyposmatConfigurationFile
+from pypospack.pyposmat2.data import PyposmatDataFile
+from pypospack.pyposmat2.data import PyposmatDataAnalyzer
 import pypospack.pareto as pareto
 
 if __name__ == "__main__":
     
-    import Ni__eam__morse_exp_fs as config
+    import Ni__eam__morse_exp_fs_3 as config
     configuration = PyposmatConfigurationFile()
     configuration.qois = config.qoi_db.qois
     configuration.qoi_constraints = config.qoi_constraints
@@ -22,13 +22,13 @@ if __name__ == "__main__":
     configuration.sampling_type = config.sampling
     configuration.sampling_distribution = config.parameter_distribution
     configuration.sampling_constraints = config.parameter_constraints
-    configuration.write(filename='pypospack.config.in')
-    configuration.read(filename='pypospack.config.in')
+    configuration.write(filename='pyposmat.config.in')
+    configuration.read(filename='pyposmat.config.in')
     
     
-    data_directory = 'data__morse_exp_fs'
+    data_directory = '../PyposmatIterativeSampler/test__eam_Ni/data__morse_exp_fs_2/'
     pyposmat_data_filename = 'pyposmat.results.9.out'
-    pyposmat_configuration_filename = 'pypospack.config.in'  
+    pyposmat_configuration_filename = 'pyposmat.config.in'  
     data_analyzer = PyposmatDataAnalyzer()
     data_analyzer.read_configuration_file(
             filename=pyposmat_configuration_filename)
@@ -36,8 +36,8 @@ if __name__ == "__main__":
             filename=os.path.join(
                 data_directory,
                 pyposmat_data_filename))
-    data_analyzer.filter_performance_requirements()
-    data_analyzer.calculate_pareto_set()
+    #data_analyzer.filter_performance_requirements()
+    #data_analyzer.calculate_pareto_set()
     data_analyzer.write_kde_file(
             filename='pyposmat.kde.out')
     exit()

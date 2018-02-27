@@ -50,9 +50,13 @@ class PyposmatDataAnalyzer(object):
 
         self._df = copy.deepcopy(self._pyposmat_datafile.df)
 
-    def calculate_pareto_set(self):
-        _df = copy.deepcopy(self.df)
-        _df[self.error_names] = self.df[self.error_names].abs()
+    def calculate_pareto_set(self,df=None):
+        if df is None:
+            _df = copy.deepcopy(self.df)
+        else:
+            _df = copy.deepcopy(df)
+
+        _df[self.error_names] = _df[self.error_names].abs()
         _results = []
         for i_row, row in _df.iterrows():
             _results.append([
@@ -60,13 +64,25 @@ class PyposmatDataAnalyzer(object):
                     row[self.parameter_names].values.tolist(),
                     row[self.error_names].values.tolist()
                     ])
-        is_pareto_idx = pareto.pareto(_results)    
-        self._df['is_pareto'] = 0
-        self._df.loc[is_pareto_idx,'is_pareto'] = 1
-
-    def filter_performance_requirements(self):
-        _df = copy.deepcopy(self.df)
-        _df[self.error_names] = self.df[self.error_names].abs()
+        is_pareto_idx = pareto.pareto(_results)
+        print('n_pareto:{}'.format(len(is_pareto_idx)))
+        if df is None:
+            self._df['is_pareto'] = 0
+            self._df.loc[is_pareto_idx,'is_pareto'] = 1
+            return self._df
+        else:
+            _df = copy.deepcopy(df)
+            _df['is_pareto'] = 0
+            _df.loc[list(is_pareto_idx),'is_pareto'] = 1
+            return _df
+    
+    def filter_performance_requirements(self,df=None):
+        if df is None:
+            _df = copy.deepcopy(self.df)
+        else:
+            _df = copy.deepcopy(df)
+        
+        _df[self.error_names] = _df[self.error_names].abs()
        
         _qoi_constraints = copy.deepcopy(
                 self.pyposmat_configuration.qoi_constraints
@@ -83,16 +99,30 @@ class PyposmatDataAnalyzer(object):
                     ))
         is_survive_sets = [set(v) for v in is_survive_idx]
         is_survive_idx = list(set.intersection(*is_survive_sets))
-        print('total_remaining_after_qoi:{}'.format(
-                len(is_survive_idx)
-            ))
-        self._df['is_survive'] = 0
-        if len(is_survive_idx) > 0: 
-            self._df.loc[is_survive_idx,'is_survive'] = 1
-
+        print('n_survive:{}'.format(len(is_survive_idx)))
+        if df is None:
+            self._df['is_survive'] = 0
+            if len(is_survive_idx) > 0: 
+                self._df.loc[is_survive_idx,'is_survive'] = 1
+            return self._df
+        else:
+            _df = copy.deepcopy(df)
+            _df.reset_index(drop=True)
+            _df['is_survive'] = 0
+            if len(is_survive_idx) > 0: 
+                _df.loc[is_survive_idx,'is_survive'] = 1
+            return _df
     def write_kde_file(self,filename):
-        kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
+        #kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
+        # filter by performance requirements first
+        kde_df = self.filter_performance_requirements(self._df)
+        kde_df = kde_df.loc[kde_df['is_survive'] == 1]
+        kde_df = kde_df.reset_index(drop=True)
 
+        kde_df = self.calculate_pareto_set(df=kde_df)
+        (n_rows_kde,n_cols_kde) = kde_df.shape
+        print('n_samples_in_kde:{}'.format(n_rows_kde))
+        print(kde_df)
         names = ['sim_id'] + self.parameter_names + self.qoi_names\
                 + self.error_names
         types = ['sim_id'] \

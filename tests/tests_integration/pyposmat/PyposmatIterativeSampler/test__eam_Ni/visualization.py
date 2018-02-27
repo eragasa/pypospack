@@ -84,10 +84,15 @@ class PypospackVisualization(ParetoOptimizationVisualization):
         self.err_names = list(err_names)
 
 if __name__ == "__main__":
-    data_dir = 'data'
-    filename = os.path.join(data_dir,'pyposmat.kde.4.out')
+    data_dir = 'data__morse_exp_fs_2'
+    filename = os.path.join(data_dir,'pyposmat.results.9.out')
 
     vizdemo = PypospackVisualization()
     vizdemo.load_data_file(fname= filename)
+    print(80*'-')
+    print('{:^80}'.format('PARAMETERS'))
+    print(80*'-')
+    for v in vizdemo.param_names:
+        print(v)
     vizdemo.start_bokeh_server()
     vizdemo.setup_bokeh_frame()
