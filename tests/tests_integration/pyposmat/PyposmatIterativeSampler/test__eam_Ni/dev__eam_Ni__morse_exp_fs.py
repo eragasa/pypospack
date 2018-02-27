@@ -1,11 +1,11 @@
 import os,shutil,sys
 import numpy as np
 from mpi4py import MPI
-from pypospack.pyposmat import PyposmatConfigurationFile
-from pypospack.pyposmat import PyposmatIterativeSampler
+from pypospack.pyposmat2.data import PyposmatConfigurationFile
+from pypospack.pyposmat2.engines import PyposmatIterativeSampler
 
 if __name__ == "__main__":
-    import Ni__eam__morse_exp_fs_2 as config
+    import Ni__eam__morse_exp_fs_0 as config
 
     pyposmat_filename_in = 'pyposmat.config.in'
     #------------------------------------------------------------------------------
