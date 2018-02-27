@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from engine import PyposmatFileSampler
+from pypospack.pyposmat2.engines import PyposmatEngine
 
 class PyposmatFileSampler(PyposmatEngine):
 

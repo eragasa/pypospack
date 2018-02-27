@@ -8,8 +8,8 @@ import os, copy
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from pypospack.pyposmat import PyposmatConfigurationFile
-from pypospack.pyposmat import PyposmatDataFile
+from pypospack.pyposmat2.data import PyposmatConfigurationFile
+from pypospack.pyposmat2.data import PyposmatDataFile
 import pypospack.pareto as pareto
 
 class PyposmatDataAnalyzer(object):

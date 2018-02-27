@@ -38,6 +38,7 @@ if __name__ == "__main__":
                 pyposmat_data_filename))
     #data_analyzer.filter_performance_requirements()
     #data_analyzer.calculate_pareto_set()
+    
     data_analyzer.write_kde_file(
             filename='pyposmat.kde.out')
     exit()
