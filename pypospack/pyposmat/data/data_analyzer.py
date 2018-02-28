@@ -8,8 +8,8 @@ import os, copy
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from pypospack.pyposmat2.data import PyposmatConfigurationFile
-from pypospack.pyposmat2.data import PyposmatDataFile
+from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.pyposmat.data import PyposmatDataFile
 import pypospack.pareto as pareto
 
 class PyposmatDataAnalyzer(object):
@@ -25,7 +25,7 @@ class PyposmatDataAnalyzer(object):
         assert type(configuration) is PyposmatConfigurationFile
 
     @property
-    def parameter_names(self): 
+    def parameter_names(self):
         return self._pyposmat_datafile.parameter_names
 
     @property
@@ -75,15 +75,15 @@ class PyposmatDataAnalyzer(object):
             _df['is_pareto'] = 0
             _df.loc[list(is_pareto_idx),'is_pareto'] = 1
             return _df
-    
+
     def filter_performance_requirements(self,df=None):
         if df is None:
             _df = copy.deepcopy(self.df)
         else:
             _df = copy.deepcopy(df)
-        
+
         _df[self.error_names] = _df[self.error_names].abs()
-       
+
         _qoi_constraints = copy.deepcopy(
                 self.pyposmat_configuration.qoi_constraints
             )
@@ -102,18 +102,18 @@ class PyposmatDataAnalyzer(object):
         print('n_survive:{}'.format(len(is_survive_idx)))
         if df is None:
             self._df['is_survive'] = 0
-            if len(is_survive_idx) > 0: 
+            if len(is_survive_idx) > 0:
                 self._df.loc[is_survive_idx,'is_survive'] = 1
             return self._df
         else:
             _df = copy.deepcopy(df)
             _df.reset_index(drop=True)
             _df['is_survive'] = 0
-            if len(is_survive_idx) > 0: 
+            if len(is_survive_idx) > 0:
                 _df.loc[is_survive_idx,'is_survive'] = 1
             return _df
     def write_kde_file(self,filename):
-        
+
         # <------ BEGIN OLD WORKING CODE
         # kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
         # <------ END OF OLD WORKING CODE
@@ -126,7 +126,7 @@ class PyposmatDataAnalyzer(object):
             kde_df = kde_df.reset_index(drop=True)
         else:
             kde_df = copy.deepcopy(self._df)
-    
+
         kde_df = self.calculate_pareto_set(df=kde_df)
         (n_rows_kde,n_cols_kde) = kde_df.loc[kde_df['is_pareto'] == 1].shape
         print('n_samples_in_kde:{}'.format(n_rows_kde))
@@ -146,10 +146,10 @@ class PyposmatDataAnalyzer(object):
         with open(filename,'w') as f:
             f.write("\n".join(str_list))
 if __name__ == "__main__":
-    
+
     data_directory = 'data'
     pyposmat_data_filename = 'pypospack.results.out'
-    pyposmat_configuration_filename = 'pypospack.config.in'  
+    pyposmat_configuration_filename = 'pypospack.config.in'
     data_analyzer = PypospackDataAnalyzer()
     data_analyzer.read_configuration_file(
             filename=pyposmat_configuration_filename)
@@ -200,7 +200,7 @@ if __name__ == "__main__":
         print('idx:',idx)
         print('p:',p)
         print('v:',v)
-    
+
     is_pareto_idx = pareto.pareto([v for idx,p,v in values])
     df = copy.deepcopy(datafile.df)
     df['is_pareto'] = 0

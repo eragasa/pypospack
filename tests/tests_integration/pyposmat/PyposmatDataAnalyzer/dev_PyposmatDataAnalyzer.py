@@ -6,13 +6,13 @@ __version__ = "1.0"
 
 import os, copy
 import numpy as np
-from pypospack.pyposmat2.data import PyposmatConfigurationFile
-from pypospack.pyposmat2.data import PyposmatDataFile
-from pypospack.pyposmat2.data import PyposmatDataAnalyzer
+from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.pyposmat.data import PyposmatDataFile
+from pypospack.pyposmat.data import PyposmatDataAnalyzer
 import pypospack.pareto as pareto
 
 if __name__ == "__main__":
-    
+
     import Ni__eam__morse_exp_fs_0 as config
     configuration = PyposmatConfigurationFile()
     configuration.qois = config.qoi_db.qois
@@ -24,11 +24,11 @@ if __name__ == "__main__":
     configuration.sampling_constraints = config.parameter_constraints
     configuration.write(filename='pyposmat.config.in')
     configuration.read(filename='pyposmat.config.in')
-    
-    
+
+
     data_directory = 'data__preconditioning_00'
     pyposmat_data_filename = 'pyposmat.results.9.out'
-    pyposmat_configuration_filename = 'pyposmat.config.in'  
+    pyposmat_configuration_filename = 'pyposmat.config.in'
     data_analyzer = PyposmatDataAnalyzer()
     data_analyzer.read_configuration_file(
             filename=pyposmat_configuration_filename)
@@ -38,7 +38,7 @@ if __name__ == "__main__":
                 pyposmat_data_filename))
     #data_analyzer.filter_performance_requirements()
     #data_analyzer.calculate_pareto_set()
-    
+
     data_analyzer.write_kde_file(
             filename='pyposmat.kde.out')
     exit()

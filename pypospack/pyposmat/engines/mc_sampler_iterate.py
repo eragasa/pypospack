@@ -1,9 +1,9 @@
 import os,shutil,sys
 import numpy as np
 from mpi4py import MPI
-from pypospack.pyposmat2.data import PyposmatConfigurationFile
-from pypospack.pyposmat2.data import PyposmatDataAnalyzer
-from pypospack.pyposmat2.engines import PyposmatMonteCarloSampler
+from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.pyposmat.data import PyposmatDataAnalyzer
+from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
 
 class PyposmatIterativeSampler(object):
     def __init__(self,
@@ -39,7 +39,7 @@ class PyposmatIterativeSampler(object):
                 print('{:80}'.format('BEGIN ITERATION {}/{}'.format(
                     i+1,self.n_iterations)))
                 print(80*'-')
-       
+
             self.run_simulations(i)
             MPI.COMM_WORLD.Barrier()
 
@@ -49,16 +49,16 @@ class PyposmatIterativeSampler(object):
             MPI.COMM_WORLD.Barrier()
         print(80*'-')
         print('JOBCOMPLETE')
-   
+
     def run_simulations(self,i_iteration):
         self.rank_directory = self.RANK_DIR_FORMAT.format(
                 self.mpi_rank)
-        
+
         # if the directory exists delete it
         if os.path.isdir(self.rank_directory):
             shutil.rmtree(self.rank_directory)
         os.makedirs(self.rank_directory)
-        
+
         # change execution context for this rank
         # this provides a directory for each worker directory so that the
         # disk IO writes don't conflict
@@ -99,12 +99,12 @@ class PyposmatIterativeSampler(object):
         _mc_config = self.pyposmat_mc_sampler.configuration.sampling_type[i_iteration]
         _mc_sample_type = _mc_config['type']
         _mc_n_samples = _mc_config['n_samples']
-        
+
         # determine number of sims for this rank
         _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
         if _mc_n_samples%self.mpi_size > self.mpi_rank:
             _n_samples_per_rank += 1
-        
+
         if _mc_sample_type == 'parametric':
             self.pyposmat_mc_sampler.run_simulations(
                     i_iteration=i_iteration,
@@ -124,8 +124,8 @@ class PyposmatIterativeSampler(object):
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in)
         # return to root directory
-        os.chdir(self.root_directory)  
-    
+        os.chdir(self.root_directory)
+
     def setup_mpi_environment(self):
         self.mpi_comm = MPI.COMM_WORLD
         self.mpi_rank = self.mpi_comm.Get_rank()
@@ -139,7 +139,7 @@ class PyposmatIterativeSampler(object):
         print('{:^80}'.format('MPI COMMUNICATION INFORMATION'))
         print(80*'-')
         print('mpi_size={}'.format(self.mpi_size))
-    
+
     def determine_rv_seeds(self):
         _randint_low = 0
         _randint_high = 2147483647
@@ -160,7 +160,7 @@ class PyposmatIterativeSampler(object):
 
         if self.mpi_rank == 0:
             self.print_random_seeds()
-    
+
     def merge_files(self,i_iteration):
         n_ranks = self.mpi_size
 
@@ -170,7 +170,7 @@ class PyposmatIterativeSampler(object):
         _filename_kde = os.path.join(
             self.data_directory,
             'pyposmat.kde.{}.out'.format(i_iteration))
-        
+
         # filename to send merge results too
         _filename_out = os.path.join(
             self.data_directory,
@@ -195,7 +195,7 @@ class PyposmatIterativeSampler(object):
         types = [v for v in lines[1].strip().split(',')]
         str_list.append(",".join(names))
         str_list.append(",".join(types))
-        
+
         # first merge the kde file from the this iteration
         if i_iteration > 0:
             with open(_filename_kde,'r') as f:
@@ -205,7 +205,7 @@ class PyposmatIterativeSampler(object):
                 line = [line[0]] + [float(s) for s in line[1:]]
                 line = [str(s) for i,s in enumerate(line) if i<len(names)]
                 str_list.append(",".join(line))
-        
+
         # process all the results from this simulations
         for i_rank in range(n_ranks):
             # get the filename of the ith rank
@@ -223,7 +223,7 @@ class PyposmatIterativeSampler(object):
 
         with open(_filename_out,'w') as f_out:
             f_out.write("\n".join(str_list))
-    
+
     def analyze_results(self,i_iteration):
         pyposmat_data_filename = os.path.join(\
                 self.root_directory,
@@ -236,7 +236,7 @@ class PyposmatIterativeSampler(object):
                 self.root_directory,
                 self.data_directory,
                 'pyposmat.kde.{}.out'.format(i_iteration+1))
-        
+
         data_analyzer = PyposmatDataAnalyzer()
         data_analyzer.read_configuration_file(filename=pyposmat_configuration_filename)
         data_analyzer.read_data_file(filename=pyposmat_data_filename)
@@ -253,10 +253,10 @@ class PyposmatIterativeSampler(object):
         else:
             self.pyposmat_configuration_filename = filename
             _filename_in = filename
-        
+
         self.pyposmat_configuration = PyposmatConfigurationFile(
                 filename=_filename_in)
-   
+
         self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
 
     def print_random_seeds(self):
@@ -288,7 +288,7 @@ if __name__ == "__main__":
     Ni_eam_configuration.sampling_distribution =Ni_eam.Ni_eam_parameter_distribution
     Ni_eam_configuration.write(filename='pypospack.config.in')
     Ni_eam_configuration.read(filename='pypospack.config.in')
-    
+
     pypospack_filename_in = 'pypospack.config.in'
     pyposmat_app = PyposmatIterativeSampler(
         configuration_filename = pypospack_filename_in)

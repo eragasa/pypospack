@@ -1,6 +1,6 @@
 from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
-from pypospack.pyposmat2.data.configurationfile import PyposmatConfigurationFile
+from pypospack.pyposmat.data.configurationfile import PyposmatConfigurationFile
 
 class PyposmatEngine(object):
     """
@@ -9,15 +9,15 @@ class PyposmatEngine(object):
             filename_out(str):
             base_directory(str): This is the base directory from which the
                 PyposmatEngine will create and run simulations.  By default
-                this is set to None, which means it will use the current 
+                this is set to None, which means it will use the current
                 working directory as the base directory.
             fullauto(bool):
         Attributes:
             pyposmat_filename_in(str)
             pyposmat_filename_out(str)
             base_directory(str)
-            rank_directory(str): This reflect the MPI rank of the processsor 
-                that the PyposmatEngine is running on.  If there is no MPI 
+            rank_directory(str): This reflect the MPI rank of the processsor
+                that the PyposmatEngine is running on.  If there is no MPI
                 available, this is automatically set to rank0000.
             configuration(pypospack.pyposmat.PyposmatConfigurationFile)
             qoi_manager(pypospack.qoi.QoiManager)
@@ -38,7 +38,7 @@ class PyposmatEngine(object):
         self.configuration = None
         self.qoi_manager = None
         self.task_manager = None
-       
+
         if base_directory is None:
             self.base_directory = os.getcwd()
         elif isinstance(base_directory,str):
@@ -54,7 +54,7 @@ class PyposmatEngine(object):
     def structures(self):
         """(collections.OrderedDict)"""
         return self.configuration.structures
-   
+
     @property
     def potential(self):
         """(collections.OrderedDict)"""
@@ -63,14 +63,14 @@ class PyposmatEngine(object):
     def configure(self):
         """
 
-        When writing a new PypospackEngine this method will likely have 
+        When writing a new PypospackEngine this method will likely have
         to be modified
         """
         self.create_base_directories()
-        self.read_configuration_file() 
+        self.read_configuration_file()
         self.configure_qoi_manager()
         self.configure_task_manager()
-    
+
     def create_base_directories(self,base_directory=None):
         assert isinstance(base_directory,str) or base_directory is None
 
@@ -88,7 +88,7 @@ class PyposmatEngine(object):
         #           not exist
         if not os.path.exists(self.base_directory):
             os.mkdirs(self.base_directory)
-        
+
         # <-------- the rank directory is determined by the MPI rank
         #           this is not implemented yet
         if self.rank_directory is None:
@@ -106,29 +106,29 @@ class PyposmatEngine(object):
             _filename_in = self.pyposmat_filename_in
         else:
             _filename_in = filename
-        
+
         self.configuration = PyposmatConfigurationFile(filename=_filename_in)
 
     def configure_qoi_manager(self,qois=None):
         if qois is None:
             _qois= self.configuration.qois
-        
+
         self.qoi_manager = QoiManager(qoi_database=_qois,fullauto=True)
-    
+
 
     def configure_task_manager(self):
         # <-------- local variables
         _base_directory = self.base_directory
         _tasks = self.qoi_manager.tasks
         _structures = self.structures
-       
-        # <-------- configure task manager 
+
+        # <-------- configure task manager
         self.task_manager = TaskManager(
                 base_directory=_base_directory)
         self.task_manager.configure(
                 tasks = _tasks,
                 structures = _structures)
-        
+
     def evaluate_parameter_set(self,parameters):
         self.configure_task_manager()
         _parameters = copy.deepcopy(parameters)
@@ -149,14 +149,14 @@ class PyposmatEngine(object):
             for k,v in _parameters.items():
                 print("\t",k,'=',v)
             print("--- END ERROR INFO ---")
-          
+
             print(type(self.configuration.potential))
             raise
         else:
             _task_results = self.task_manager.results
             self.qoi_manager.calculate_qois(
                     task_results=_task_results)
-       
+
             # popular qoi values
             _qoi_results = OrderedDict()
             for k_qoi,v_qoi in self.qoi_manager.qois.items():
@@ -176,5 +176,3 @@ class PyposmatEngine(object):
             _results['errors'] = copy.deepcopy(_qoi_errors)
 
         return _results
-
-   

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from pypospack.pyposmat2.engines import PyposmatEngine
+from pypospack.pyposmat.engines import PyposmatEngine
 
 class PyposmatFileSampler(PyposmatEngine):
 
@@ -24,10 +24,10 @@ class PyposmatFileSampler(PyposmatEngine):
     def add_task(self,task_name,task_directory,structure_filename,task_type):
         if self.tasks is None:
             self.tasks = OrderedDict()
-        
+
         if task_type == 'gulp_phonon':
             from pypospack.task.gulp import GulpPhononCalculation
-            
+
             _task_name = task_name
             _task_directory = task_directory
             _structure_filename = structure_filename
@@ -72,7 +72,7 @@ class PyposmatFileSampler(PyposmatEngine):
         self.parameter_names = list(_columns)
         self.qoi_names = ['MgO_NaCl.ph_{}'.format(i) for i in range(1,6+1)]
         self.file_out = open(self.pyposmat_filename_out,'w')
-        
+
         str_out = ",".join(
             ['sim_id']\
             +self.parameter_names\
