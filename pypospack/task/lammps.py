@@ -454,10 +454,12 @@ class LammpsSimulation(Task):
             return
         
         _setfl_dst_filename = None
+
+        # <-------- FOR EAM POTENTIALS
         if isinstance(self.potential,EamPotential):
-            _setfl_dst_filename = os.path.join(
-                    self.task_directory,
-                    "{}.eam.alloy".format("".join(self.potential.symbols)))
+            _symbols = "".join(self.potential.symbols)
+            _filename = "{}.eam.alloy".format(_symbols)
+            _setfl_dst_filename = os.path.join(self.task_directory,_filename)
             _str_out = self.potential.lammps_potential_section_to_string(
                 setfl_dst_filename=_setfl_dst_filename)
         

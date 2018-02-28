@@ -160,11 +160,15 @@ class EamPotential(Potential):
        func_embedding(str):
        filename(str):
     Attributes:
-       symbols(list of str):
-
+       symbols(list of str): the list of symbols
        obj_pair(OrderedDict of PairPotential)
        obj_density(OrderedDict of EamDensityFunction)
        obj_embedding(OrderedDict of EamEmbeddingFunction)
+       N_r(int): number of radial points, the distance between two atoms
+       r_max(float): the maximum distance between two atoms
+       r_cut(float): the cutoff distance between two atoms
+       N_rho(int): the number of points in the electron density evaluation
+       rho_max(float): the maximum electron density
     """
     def __init__(self,
             symbols,

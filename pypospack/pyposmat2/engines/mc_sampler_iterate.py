@@ -1,9 +1,9 @@
 import os,shutil,sys
 import numpy as np
 from mpi4py import MPI
-from pypospack.pyposmat import PyposmatConfigurationFile
-from pypospack.pyposmat import PyposmatMonteCarloSampler
-from pypospack.pyposmat import PyposmatDataAnalyzer
+from pypospack.pyposmat2.data import PyposmatConfigurationFile
+from pypospack.pyposmat2.data import PyposmatDataAnalyzer
+from pypospack.pyposmat2.engines import PyposmatMonteCarloSampler
 
 class PyposmatIterativeSampler(object):
     def __init__(self,
@@ -236,11 +236,12 @@ class PyposmatIterativeSampler(object):
                 self.root_directory,
                 self.data_directory,
                 'pyposmat.kde.{}.out'.format(i_iteration+1))
+        
         data_analyzer = PyposmatDataAnalyzer()
         data_analyzer.read_configuration_file(filename=pyposmat_configuration_filename)
         data_analyzer.read_data_file(filename=pyposmat_data_filename)
-        data_analyzer.filter_performance_requirements()
-        data_analyzer.calculate_pareto_set()
+        #data_analyzer.filter_performance_requirements()
+        #data_analyzer.calculate_pareto_set()
         data_analyzer.write_kde_file(filename=pyposmat_kde_filename)
 
     def read_configuration_file(self,filename=None):

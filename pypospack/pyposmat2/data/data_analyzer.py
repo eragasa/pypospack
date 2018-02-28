@@ -113,12 +113,20 @@ class PyposmatDataAnalyzer(object):
                 _df.loc[is_survive_idx,'is_survive'] = 1
             return _df
     def write_kde_file(self,filename):
-        #kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
-        # filter by performance requirements first
-        kde_df = self.filter_performance_requirements(self._df)
-        kde_df = kde_df.loc[kde_df['is_survive'] == 1]
-        kde_df = kde_df.reset_index(drop=True)
+        
+        # <------ BEGIN OLD WORKING CODE
+        # kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
+        # <------ END OF OLD WORKING CODE
 
+        # filter by performance requirements first
+        kde_df = None
+        if len(self.pyposmat_configuration.qoi_constraints) > 0:
+            kde_df = self.filter_performance_requirements(self._df)
+            kde_df = kde_df.loc[kde_df['is_survive'] == 1]
+            kde_df = kde_df.reset_index(drop=True)
+        else:
+            kde_df = copy.deepcopy(self._df)
+    
         kde_df = self.calculate_pareto_set(df=kde_df)
         (n_rows_kde,n_cols_kde) = kde_df.shape
         print('n_samples_in_kde:{}'.format(n_rows_kde))
