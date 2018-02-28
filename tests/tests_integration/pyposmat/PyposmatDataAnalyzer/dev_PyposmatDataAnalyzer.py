@@ -13,7 +13,7 @@ import pypospack.pareto as pareto
 
 if __name__ == "__main__":
     
-    import Ni__eam__morse_exp_fs_3 as config
+    import Ni__eam__morse_exp_fs_0 as config
     configuration = PyposmatConfigurationFile()
     configuration.qois = config.qoi_db.qois
     configuration.qoi_constraints = config.qoi_constraints
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     configuration.read(filename='pyposmat.config.in')
     
     
-    data_directory = '../PyposmatIterativeSampler/test__eam_Ni/data__morse_exp_fs_2/'
+    data_directory = 'data__preconditioning_00'
     pyposmat_data_filename = 'pyposmat.results.9.out'
     pyposmat_configuration_filename = 'pyposmat.config.in'  
     data_analyzer = PyposmatDataAnalyzer()

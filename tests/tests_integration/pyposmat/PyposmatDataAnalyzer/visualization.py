@@ -84,7 +84,7 @@ class PypospackVisualization(ParetoOptimizationVisualization):
         self.err_names = list(err_names)
 
 if __name__ == "__main__":
-    data_dir = 'data__morse_exp_fs_2'
+    data_dir = 'data__preconditioning_00'
     filename = os.path.join(data_dir,'pyposmat.kde.10.out')
 
     vizdemo = PypospackVisualization()

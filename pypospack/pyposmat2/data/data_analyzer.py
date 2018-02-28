@@ -128,9 +128,8 @@ class PyposmatDataAnalyzer(object):
             kde_df = copy.deepcopy(self._df)
     
         kde_df = self.calculate_pareto_set(df=kde_df)
-        (n_rows_kde,n_cols_kde) = kde_df.shape
+        (n_rows_kde,n_cols_kde) = kde_df.loc[kde_df['is_pareto'] == 1].shape
         print('n_samples_in_kde:{}'.format(n_rows_kde))
-        print(kde_df)
         names = ['sim_id'] + self.parameter_names + self.qoi_names\
                 + self.error_names
         types = ['sim_id'] \
