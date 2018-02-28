@@ -9,8 +9,8 @@ import time,sys,os,copy,shutil,importlib
 from collections import OrderedDict
 import numpy as np
 import scipy.stats
-from pypospack.pyposmat import PyposmatEngine
-from pypospack.pyposmat import PyposmatDataFile
+from pypospack.pyposmat.engines import PyposmatEngine
+from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.task.lammps import LammpsSimulationError
 from pypospack.task.task_manager import PypospackTaskManagerError
 from pypospack.potential import PotentialObjectMap
@@ -59,7 +59,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         if self.configuration.sampling_constraints is not None:
             self.parameter_constraints = copy.deepcopy(self.configuration.sampling_constraints)
         else:
-            self.parameter_constraints = OrdereDict()
+            self.parameter_constraints = OrderedDict()
 
         self.constrained_parameter_names = []
         for p in self.parameter_names:
