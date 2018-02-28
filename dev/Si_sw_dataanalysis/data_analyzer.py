@@ -13,6 +13,7 @@ import pypospack.pareto as pareto
 
 if __name__ == "__main__":
 
+    _configuration_filename = 'pyposmat.config.in'
     #--------------------------------------------------------------------------
     # DEFINE CONFIGURATION FILED
     #--------------------------------------------------------------------------
@@ -26,12 +27,11 @@ if __name__ == "__main__":
     configuration.sampling_distribution = config.parameter_distribution
     configuration.sampling_constraints = config.parameter_constraints
     #<------------- write configuration file
-    configuration.write(filename='pyposmat.config.in')
+    configuration.write(filename=_configuration_filename)
     #--------------------------------------------------------------------------
     # TEST CONFIGURATION FILE
     #--------------------------------------------------------------------------
-    configuration.read(filename='pyposmat.config.in')
-
+    configuration.read(filename=_configuration_filename)
 
     #--------------------------------------------------------------------------
     # ANALYZE DATA 
