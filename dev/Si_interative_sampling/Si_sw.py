@@ -47,7 +47,7 @@ qoi_db.add_qoi(
 #<----------------- qoi performance constraints
 qoi_constraints = OrderedDict()
 for qoi_name, qoi_info in qoi_db.qois.items():
-    qoi_constraints[qoi_name] = qoi_info['target'] * 0.20
+    qoi_constraints[qoi_name] = abs(qoi_info['target']) * 0.20
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
 sampling['n_iterations'] = 10
