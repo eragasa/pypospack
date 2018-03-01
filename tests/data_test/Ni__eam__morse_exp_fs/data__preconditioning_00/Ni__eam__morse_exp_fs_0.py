@@ -39,12 +39,12 @@ parameter_distribution['p_NiNi_r0'] = [
             'b':4.0}]
 parameter_distribution['d_Ni_rho0'] = [
         'uniform',{
-            'a':1.0,
+            'a':0.1,
             'b':4.0}]
 parameter_distribution['d_Ni_beta'] = [
         'uniform',{
-            'a':5.0000,
-            'b':7.0000}]
+            'a':0.1,
+            'b':7.0}]
 parameter_distribution['d_Ni_r0'] = [
         'uniform',{
             'a':1.00,
@@ -52,7 +52,7 @@ parameter_distribution['d_Ni_r0'] = [
 parameter_distribution['e_Ni_F0'] = [
         'uniform',{
             'a':-5.00,
-            'b':+5.00}]
+            'b':-0.01}]
 
 #------------------------------------------------------------------------------
 # PARAMETER CONSTRAINTS
@@ -64,7 +64,7 @@ parameter_constraints['p_NiNi_r0 > 0'] = 'p_NiNi_r0 > 0.'
 parameter_constraints['d_Ni_rho0 > 0'] = 'd_Ni_rho0 > 0.'
 parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
 parameter_constraints['d_Ni_r0 > 0'] = 'd_Ni_r0 > 0.'
-#parameter_constraints['e_Ni_F0 > 0'] = 'e_Ni_F0 > 0.'
+parameter_constraints['e_Ni_F0 < 0'] = 'e_Ni_F0 < 0.'
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
@@ -118,8 +118,12 @@ qoi_db.add_qoi(
 #
 #------------------------------------------------------------------------------
 qoi_constraints = OrderedDict()
-#for k,v in qoi_db.qois.items():
-#    qoi_constraints['{}.err'.format(k)] = 0.20 * abs(qoi_db.qois[k]['target']) 
+for k,v in qoi_db.qois.items():
+    qoi_constraints['{}.err'.format(k)] = 1.00 * abs(qoi_db.qois[k]['target']) 
+qoi_constraints['Ni_fcc.a0.err'] = 3.508
+qoi_constraints['Ni_fcc.c11.err'] = 276.0
+qoi_constraints['Ni_fcc.c12.err'] = 159.0
+qoi_constraints['Ni_fcc.c44.err'] = 132.0
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
@@ -132,6 +136,6 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 1000
+    sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
