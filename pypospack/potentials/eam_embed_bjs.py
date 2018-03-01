@@ -4,6 +4,7 @@ __license__ = "Simplified BSD License"
 __version__ = 20171102
 
 import copy
+import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamEmbeddingFunction
 
@@ -63,18 +64,22 @@ class BjsEmbeddingFunction(EamEmbeddingFunction):
                 density so the a r_cut has no physical meaning.  Any 
                 variable passed into r_cut will be ignored.
         """
-
         # attribute.parameters[p] <--- arg:parameters[p]
         for s in self.symbols:
             for p in self.embedding_func_parameters:
                 pn = "{}_{}".format(s,p)
-                self.parameters[pn] = parameters[p]
+                self.parameters[pn] = parameters[pn]
 
-        self.embedding = OrderedDict()
+        self.embedding_evaluations = OrderedDict()
         for s in self.symbols:
+
+            # get parameters
             F0 = self.parameters['{}_F0'.format(s)]
             gamma = self.parameters['{}_gamma'.format(s)]
             F1 = self.parameters['{}_F1'.format(s)]
-            self.embedding[s]\
-                    = F0*(1-gamma*np.ln(rho))*rho**gamma + F1*gamma
-        return copy.deepcopy(self.embedding)
+            
+            with np.errstate(all='raise'):
+                self.embedding_evaluations[s] \
+                    = F0*(1-gamma*np.log(rho))*rho**gamma + F1*gamma
+        
+        return copy.deepcopy(self.embedding_evaluations)
