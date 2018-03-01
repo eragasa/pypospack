@@ -38,6 +38,12 @@ Si_sw_qoi_db.add_qoi(
         qoi_type='bulk_modulus',
         structures=OrderedDict([('ideal','Si')]),
         target=100.00)
+Si_sw_qoi_db.qoi_qoi(
+        qoi_name='Si_dia.vac',
+        qoi_type='defect_calculation',
+        structures=OrderedDict(
+            ['defect','Si_vac'],
+            ['ideal','Si']
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
 sampling['n_iterations'] = 10
@@ -101,7 +107,7 @@ Si_sw_structures = OrderedDict()
 Si_sw_structures['structure_directory'] = 'test__PyposmatMonteCarloSampler'
 Si_sw_structures['structures'] = OrderedDict()
 Si_sw_structures['structures']['Si'] = 'Si_dia_unit.vasp'
-
+Si_sw_structures['structures']['Si_vac'] = 'Si_vac_333.vasp'
 
 
 #------------------------------------------------------------------------------
