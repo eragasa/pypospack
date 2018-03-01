@@ -3,7 +3,7 @@ from collections import OrderedDict
 from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
 from pypospack.pyposmat.data.configurationfile import PyposmatConfigurationFile
-
+from pypospack.task.lammps import LammpsSimulationError
 class PyposmatEngine(object):
     """
         Args:

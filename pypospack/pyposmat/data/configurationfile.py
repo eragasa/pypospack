@@ -39,6 +39,7 @@ class PyposmatConfigurationFile(object):
         if self.configuration is None: self.configuration = OrdereDDict()
         self.configuration['qoi_constraints'] = OrderedDict()
         self.configuration['qoi_constraints'] = copy.deepcopy(qoi_constraints)
+    
     @property
     def structures(self):
         return self.configuration['structures']

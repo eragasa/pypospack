@@ -256,8 +256,10 @@ class PyposmatIterativeSampler(object):
 
         self.pyposmat_configuration = PyposmatConfigurationFile(
                 filename=_filename_in)
-
-        self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
+        try: 
+            self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
+        except:
+            raise
 
     def print_random_seeds(self):
             print(80*'-')
