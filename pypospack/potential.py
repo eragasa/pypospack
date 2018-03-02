@@ -120,6 +120,7 @@ class PairPotential(Potential):
         
 from pypospack.potentials.morse import MorsePotential
 from pypospack.potentials.buckingham import BuckinghamPotential
+from pypospack.potentials.bornmayer import BornMayerPotential
 #-----------------------------------------------------------------------------
 class EamDensityFunction(Potential):
     def __init__(self,
@@ -482,6 +483,10 @@ def PotentialObjectMap(potential_type):
     potential_map['morse'] = OrderedDict()
     potential_map['morse']['module'] = 'pypospack.potential'
     potential_map['morse']['class'] = 'MorsePotential'
+
+    potential_map['bornmayer'] = OrderedDict()
+    potential_map['bornmayer']['module'] = 'pypospack.potential'
+    potential_map['bornmayer']['class'] = 'BornMayerPotential'
 
     potential_map['tersoff'] = OrderedDict()
     potential_map['tersoff']['module'] = 'pypospack.potential'
