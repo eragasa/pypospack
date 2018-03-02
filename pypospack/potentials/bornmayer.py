@@ -9,7 +9,7 @@ from collections import OrderedDict
 from pypospack.potential import PairPotential
 from pypospack.potential import determine_symbol_pairs
 
-class BornMayerPotential(potential.PairPotential):
+class BornMayerPotential(PairPotential):
     """ Implementation of a Born-Mayer repulsive potential
 
     Args:
@@ -31,7 +31,7 @@ class BornMayerPotential(potential.PairPotential):
         for s in self.symbol_pairs:
             for p in self.pair_potential_parameters:
                 self.parameter_names.append(
-                        self.PYPOSPACK_PAIR_FORMAT.format(s1=s[0],s2=[s[1],p=p))
+                        self.PYPOSPACK_PAIR_FORMAT.format(s1=s[0],s2=s[1],p=p))
         return list(self.parameter_names)
 
     def _init_parameters(self):
@@ -55,8 +55,8 @@ class BornMayerPotential(potential.PairPotential):
         for s in self.symbol_pairs:
             # <------------------------extract the parameters for symbol pair
             phi0 = self.parameters['{}{}_phi0'.format(s[0],s[1])]
-            gamma  = self.parameters['{}{}_a'.format(s[0],s[1])]
-            r0 = self.parameters['{}{}_r0'.format(s[0].s[1])]
+            gamma  = self.parameters['{}{}_gamma'.format(s[0],s[1])]
+            r0 = self.parameters['{}{}_r0'.format(s[0],s[1])]
             # <------------------------embedded morse function
             def func_bornmayer(r,phi0,gamma,r0):
                 return phi0*np.exp(-gamma*(r-r0))

@@ -35,6 +35,9 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
 
+    def _log(self,str_msg):
+        print(str_msg)
+
     def configure_pyposmat_datafile_in(self,filename):
         self.pyposmat_data_in_filename = filename
         self.pyposmat_datafile_in = PyposmatDataFile(filename)
@@ -137,6 +140,18 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     _eval_str = v
                     for pn,pv in _parameters.items():
                         _eval_str = _eval_str.replace(pn,str(pv))
+                    
+                    try:
+                        _is_constraint_ok = eval(_eval_str)
+                    except NameError as e:
+                        _str = str(e)
+                        _regex_str = "name \'d_NiNi_r0\' is not defined"
+                        _err_msg = "BadQoiConstraint:\n"
+                        _err_msg += "\t{}".format(k)
+                        _err_msg += "\t{}".format(v)
+                        _err_msg += "\t{}".format(_eval_str)
+                        self._log(_err_msg)
+                        raise
                     if eval(_eval_str) is False:
                         raise PyposmatBadParameterError()  
 

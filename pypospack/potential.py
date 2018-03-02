@@ -348,6 +348,8 @@ class EamPotential(Potential):
     def set_obj_pair(self,func_pair):
         if func_pair == 'morse':
             self.obj_pair = MorsePotential(symbols=self.symbols)
+        elif func_pair == 'bornmayer':
+            self.obj_pair = BornMayerPotential(symbols=self.symbols)
         else:
             msg_err = ["func_pair must be a PairPotential"]
             msg_err = ["type(func_pair)={}".format(str(type(func_pair)))]
