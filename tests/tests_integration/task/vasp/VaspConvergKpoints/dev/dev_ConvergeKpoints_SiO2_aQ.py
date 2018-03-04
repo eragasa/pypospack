@@ -5,6 +5,7 @@ import pypospack.task.vasp as tsk_vasp
 import pypospack.io.vasp as vasp
 from collections import OrderedDict
 
+
 def cleanup(directory):
     shutil.rmtree(directory)
 
@@ -64,24 +65,25 @@ def kpoint_mesh_to_str(kpoint_mesh):
         kpoint_mesh[1],
         kpoint_mesh[2])
 
-old_kpoint_mesh = None
-new_kpoint_mesh = None
-
-kpoint_meshes = OrderedDict()
-for linear_kpoint_density in np.arange(1,10,0.1):
-    old_kpoint_mesh = copy.copy(new_kpoint_mesh)
-    new_kpoint_mesh = get_kpoint_mesh(
-        poscar,
-        linear_kpoint_density)
+def get_kpoint_meshes(simulation_cell,kp_density_low=1,kp_density_high=10,kp_density_delta=0.1):
+    old_kpoint_mesh = None
+    new_kpoint_mesh = None
+    kpoint_meshes = OrderedDict()
+    for kp_density in np.arange(kp_density_low,kp_density_high,kp_density_delta):
+        old_kpoint_mesh = copy.copy(new_kpoint_mesh)
+        new_kpoint_mesh = get_kpoint_mesh(
+	    simulation_cell=simulation_cell,
+	    linear_kpoint_density=kp_density)
     if old_kpoint_mesh is not None:
         kpoints_are_different = not all([
             old_kpoint_mesh[0] == new_kpoint_mesh[0],
             old_kpoint_mesh[1] == new_kpoint_mesh[1],
             old_kpoint_mesh[2] == new_kpoint_mesh[2]])
-        if kpoints_are_different:
-            key = kpoint_mesh_to_str(new_kpoint_mesh)
-            kpoint_meshes[key] = list(new_kpoint_mesh)
+	if kpoints_are_different:
+	    key = kpoint_mesh_to_str(new_kpoint_mesh)
+	    kpoint_meshes[key] = list(new_kpoint_mesh)
 
 # print kpoint_meshes
+kpoint_meshes = get_kpoint_meshes(simulation_cell=poscar)
 for k,v in kpoint_meshes.items():
     print(k,':',v)

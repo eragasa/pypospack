@@ -366,7 +366,7 @@ class SimulationCell(object):
     @property
     def n_atoms(self):
         """float: the number of atoms in the structure"""
-        n_atoms = len(self.atomic_basis) + len(self.interstitials)
+        n_atoms = len(self.atomic_basis)
         return n_atoms
 
     @property

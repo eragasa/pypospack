@@ -52,26 +52,26 @@ class VaspSimulation(Task):
         self.incar = vasp.Incar()
         self.potcar = vasp.Potcar()
         self.kpoints = vasp.Kpoints()
-        if self.status == 'INIT':
-
+        #if self.status == 'INIT':
+ 
             # additional items to add
-            additional_config_dict = {\
-                'incar':self.set_incar,
-                'poscar':self.set_poscar,
-                'kpoints':self.set_kpoints,
-                'xc':self.set_xc,
-                'encut':self.set_encut}
-            additional_ready_dict = {}
-            additional_run_dict = {}
-            additional_post_dict = {}
+            #additional_config_dict = {\
+            #    'incar':self.set_incar,
+            #    'poscar':self.set_poscar,
+            #    'kpoints':self.set_kpoints,
+            #    'xc':self.set_xc,
+            #    'encut':self.set_encut}
+            #additional_ready_dict = {}
+            #additional_run_dict = {}
+            #additional_post_dict = {}
             
             # update configuration dictionaries
-            self.config_dict.update(additional_config_dict)
-            self.ready_dict.update(additional_config_dict)
-            self.run_dict.update(additional_ready_dict)
-            self.post_dict.update(additional_post_dict)
+            #self.config_dict.update(additional_config_dict)
+            #self.ready_dict.update(additional_config_dict)
+            #self.run_dict.update(additional_ready_dict)
+            #self.post_dict.update(additional_post_dict)
             
-            self.status = 'INIT'
+            #self.status = 'INIT'
 
     def restart(self):
         """ overwrite original method """
@@ -89,12 +89,13 @@ class VaspSimulation(Task):
         elif os.path.exists(os.path.join(self.task_directory,'jobCompleted')):
             self.status = 'POST'
         elif os.path.exists(os.path.join(self.task_directory,'jobSubmitted')):
-            self.status = 'RUN'
+            self.status = 'RUNNING'
         elif poscar_exists and incar_exists and kpoints_exists and potcar_exists:
             self.status = 'CONFIG'
         else:
-            shutil.rmtree(self.task_directory)
-            os.mkdir(self.task_directory)
+            pathlib.Path(self.task_directory).mkdir(parents=True, exist_ok=True)  
+            #shutil.rmtree(self.task_directory)
+            #os.mkdir(self.task_directory)
             self.status = 'INIT'
 
     def config(self,poscar=None,incar=None,kpoints=None,xc='GGA'):
@@ -119,33 +120,31 @@ class VaspSimulation(Task):
     def run(self,job_type='slurm',exec_dict=[]):
         self.job_type = job_type
         if self.job_type == 'slurm':
-            fname = os.path.join(\
-                    self.task_directory,'jobSubmitted')
+            
+            # create file so we know that job is submitted
+            fname = os.path.join(self.task_directory,'jobSubmitted')
             with open(fname,'w') as f:
                 f.write('job started')
 
-            slurm.write_vasp_batch_script(
-                    filename=os.path.join(\
-                            self.task_directory,
-                            'runjob_hpg.slurm'),
-                    job_name=self.task_name,
-                    email=exec_dict['email'],
-                    qos=exec_dict['qos'],
-                    ntasks=exec_dict['ntasks'],
-                    time=exec_dict['time'])
+            # create the slurm submission script
+            _slurm_filename = os.path.join(
+                self.task_directory,'runjob_hpc.slurm')
+            _slurm_dict = copy.deepcopy(exec_dict)
+            slurm_job = slurm.SlurmSubmissionScript(_slurm_dict)
+            slurm_job.write(filename=_slurm_filename)
 
-            cmd = 'sbatch runjob_hpg.slurm'
-
-            old_wd = os.getcwd()
+            # submit job
+            cmd = 'sbatch runjob_hpc.slurm'
+            working_dir = os.getcwd()
             os.chdir(self.task_directory)
             subprocess.call(cmd,shell=True)
-            os.chdir(old_wd)
+            os.chdir(working_dir)
         else:
             msg = ('do not how to run the simulation using job_type'
                    '={}').format(job_type)
             raise VaspSimulationError
 
-        self.status = 'RUN'
+        self.status = 'RUNNING'
 
     def postprocess(self):
         """Some postprocess steps
@@ -206,9 +205,8 @@ class VaspSimulation(Task):
             raise KeyError
 
     def write_poscar(self):
-        self.poscar.write(\
-                os.path.join(\
-                    self.task_directory,'POSCAR'))
+        _poscar_filename = os.path.join(self.task_directory,'POSCAR')
+        self.poscar.write(_poscar_filename)
 
     def read_potcar(self):
         self.potcar.read(\
@@ -247,7 +245,11 @@ class VaspSimulation(Task):
             raise VaspSimulationError
 
     def config_incar(self):
-        pass
+        
+        # if spin-polarized calculations, then set magmom tag
+        if self.incar.ispin == 2:
+            _magmom_str = '{}*{}'.format(self.poscar.n_atoms,1.0)
+            self.incar.magmom = _magmom_str
         #potcar_encut_min = max(self.potcar.encut_min)
         #potcar_encut_max = 2*max(self.potcar.encut_max)
         #if self.incar.encut == 'Auto':
@@ -259,9 +261,8 @@ class VaspSimulation(Task):
 
     def write_incar(self):
         try:
-            self.incar.write(\
-                os.path.join(\
-                    self.task_directory,'INCAR'))
+            _filename = os.path.join(self.task_directory,'INCAR')
+            self.incar.write(_filename)
         except:
             raise
 
@@ -388,6 +389,7 @@ class VaspStructuralMinimization(VaspSimulation):
         if self.incar.ibrion not in [1,2]:
             self.incar.ibrion = 2 # set to conjugate gradient method
         self.incar.isif = 3 # relax everything
+        self.incar.nsw = 40
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
 class VaspPositionMinimization(VaspSimulation):
@@ -400,6 +402,7 @@ class VaspPositionMinimization(VaspSimulation):
         if self.incar.ibrion not in [1,2]:
             self.incar.ibrion = 2 # set to conjugate gradient method
         self.incar.isif = 2 # relax positions only
+        self.incar.nsw = 40
         self.incar.write(os.path.join(self.task_directory,'INCAR'))
 
 class VaspCalculatePhonons(VaspSimulation):
@@ -832,7 +835,7 @@ class VaspEncutConvergence(object):
     """
     def __init__(self,directory=None,structure='POSCAR',xc='GGA',
             encut_min=None,encut_max=None,encut_step=25,
-            incar_dict=None,slurm_dict=None,full_auto=True):
+            incar_dict=None,kpoints_dict=None,slurm_dict=None,full_auto=True):
         
         self.orig_directory = os.getcwd()
         self.filename_results = 'converg.encut.results'
@@ -919,12 +922,19 @@ class VaspEncutConvergence(object):
             self.encut_min = encut_min
             self.encut_max = encut_max
 
+        self.encut_min = (self.encut_min//encut_step)*encut_step
+        self.encut_max = ((self.encut_max//encut_step)+1)*encut_step
         self.encut_step = encut_step
 
         # set incut_dict
         if isinstance(incar_dict, dict):
             self.incar_dict = copy.deepcopy(incar_dict)
 
+        # set kpoints_dict
+        self.kpoints_dict = None
+        if isinstance(kpoints_dict, dict):
+            self.kpoints_dict = copy.deepcopy(kpoints_dict) 
+        
         # set slurm_dict
         if isinstance(slurm_dict, dict):
             self.slurm_dict = copy.deepcopy(slurm_dict)
@@ -1020,10 +1030,17 @@ class VaspEncutConvergence(object):
                         task_name=task_name,
                         task_directory=task_directory)
             try:
-                self.tasks[task_name].config(
-                        poscar=self.structure_filename,
-                        incar=incar_dict,
-                        xc=self.xc)
+                if self.kpoints_dict is None:
+                    self.tasks[task_name].config(
+                           poscar=self.structure_filename,
+                           incar=incar_dict,
+                           xc=self.xc)
+                else:
+                    _kpoints_dict = copy.deepcopy(self.kpoints_dict)
+                    self.tasks[task_name].config(
+                           poscar=self.structure_filename,
+                           incar=incar_dict,
+                           xc=self.xc)
             except AttributeError as e:
                 s = str(e)
                 print('debugging code')

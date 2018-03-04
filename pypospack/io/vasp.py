@@ -452,6 +452,8 @@ class Outcar(object):
     def __init__(self, filename="OUTCAR"):
         self.filename = filename
         self.total_energy = None
+        self.encut = None
+        self.entropy = None
         self.elastic_tensor = None
         self.phonon_eig_val = None # phonon eigenvalues
         self.phonon_eig_vec = None # phonon eigenvectors
@@ -470,14 +472,32 @@ class Outcar(object):
         with open(self.filename) as f:
             for line in f:
                 # check if free energy line
-                if "free  energy   TOTEN" in line:
-                    E = line.strip().split('=')[1].strip().split(' ')[0]
-                    E = float(E)
-                    self.total_energy = E
+                if "TOTEN" in line:
+                    try:
+                        E = line.strip().split('=')[1].strip().split(' ')[0]
+                        E = float(E)
+                        self.total_energy = E
+                    except ValueError as e:
+                        if type(self.total_energy) is not float: 
+                            pass
+                    except IndexError as e:
+                        if type(self.total_energy) is not float: 
+                            pass 
                 elif "ENCUT" in line:
                     E = line.strip().split('=')[1].strip().split(' ')[0]
                     E = float(E)
                     self.encut = E
+                elif "EENTRO" in line:
+                    try:
+                        E = line.strip().split('=')[1].strip()
+                        E = float(E)
+                        self.entropy = E
+                    except ValueError as e:
+                        if type(self.entropy) is not float:
+                            pass
+                    except IndexError as e:
+                        if type(self.entropy) is not float:
+                            pass
                 else:
                     pass
 
@@ -777,8 +797,12 @@ class Poscar(crystal.SimulationCell):
             line = f.readline()
             self.a0 = float(line)
         except ValueError as e:
-            print(type(line))
-            print(line)
+            msg_err = "Cannot read the lattice parameter from the POSCAR file\n"
+            msg_err += "filename:{}\n".format(self.filename)
+            msg_err += "line({}):\'{}\'".format(
+                str(type(line)),
+                line)
+            print(msg_err)
             raise ValueError(line)
 
         h_matrix = np.zeros(shape=[3,3])

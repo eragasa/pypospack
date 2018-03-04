@@ -25,7 +25,7 @@ class Task(object):
             restart=False):
         # supported status states
         self.status_states = self.get_status_states()
-        
+        self.supported_status_states = self.get_status_states()
         # private member varaibles
         self._is_restart = None
         self._task_name = None
