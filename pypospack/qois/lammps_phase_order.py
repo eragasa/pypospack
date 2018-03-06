@@ -61,7 +61,7 @@ class PhaseOrderCalculation(Qoi):
         _phase_order = _high_ecoh - _low_ecoh
 
         self.qois = OrderedDict()
-        self.qois['{}__{}.phase_order'.format(
+        self.qois['{}__{}.lmps_phase_order.phase_order'.format(
             self.structures['low'],
             self.structures['high'])] = _phase_order
 

@@ -117,6 +117,8 @@ class TaskManager(object):
                     except: 
                         pass
                 raise PypospackTaskManagerError('simulation time exceeded')
+            #for k_task,o_task in self.obj_Task.items():
+            #    print('{} {} {}'.format(k_task,o_task.status,_time_elapsed))
             for k_task,o_task in self.obj_Task.items():
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()

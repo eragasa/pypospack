@@ -35,34 +35,34 @@ class StackingFaultEnergyCalculation(Qoi):
         _defect_task_name = '{}.{}'.format(
                 _defect_structure_name,
                 _defect_task_type)
-        _bulk_structure_name=self.structures['defect']
+        _bulk_structure_name=self.structures['ideal']
         self.add_task(
                 task_type=_defect_task_type,
                 task_name=_defect_task_name,
                 task_structure=_defect_structure_name,
                 bulk_structure_name=_bulk_structure_name)
 
-    def calculate_qoi(self):
+    def calculate_qois(self,task_results):
         _prefix = '{}.{}'.format(
             self.structures['defect'],
             self.qoi_type)
         s_name_defect = self.structures['defect']
         s_name_bulk = self.structures['ideal']
         
-        e_slab = task_results[
+        e_defect = task_results[
             "{}.lmps_min_pos.toten".format(s_name_defect)]
         e_bulk = task_results[
             "{}.lmps_min_all.toten".format(s_name_bulk)]
-        n_atoms_slab = task_results[
+        n_atoms_defect = task_results[
             "{}.lmps_min_pos.natoms".format(s_name_defect)]
         n_atoms_bulk = task_results[
             "{}.lmps_min_all.natoms".format(s_name_bulk)]
         
         a1 = task_results[
-            "{}.a11_min_pos".format(s_name_defect)]
+            "{}.lmps_min_pos.a11".format(s_name_defect)]
         a2 = task_results[
-            "{}.a22_min_pos".format(s_name_defect)]
-        e_surf = (e_defect - n_atoms_defect/n_atoms_bulk*e_bulk)/(a1*a2)
+            "{}.lmps_min_pos.a22".format(s_name_defect)]
+        e_stack = (e_defect - n_atoms_defect/n_atoms_bulk*e_bulk)/(a1*a2)
         
         self.qois = OrderedDict()
-        self.qois['{}.E_stacking_fault'.format(_prefix)] = e_surf
+        self.qois['{}.E_stacking_fault'.format(_prefix)] = e_stack

@@ -62,7 +62,7 @@ def get_qoi_map():
                 'qoi':['E_surface'],
                 'module':'pypospack.qoi',
                 'class':'SurfaceEnergyCalculation'},
-            'lmps_stacking_fault_energy':{
+            'lmps_stacking_fault':{
                 'qoi':['E_stacking_fault'],
                 'module':'pypospack.qoi',
                 'class':'StackingFaultEnergyCalculation'}}
@@ -317,7 +317,7 @@ class QoiManager(object):
                         _qoiname = '{}.{}'.format(_s,_qoi_simulation_type)
                     elif _qoi_simulation_type in [
                             'lmps_defect',
-                            'lmps_stacking_fault_energy']:
+                            'lmps_stacking_fault']:
                         _s = qoiv['structures']['defect']
                         _qoiname = '{}.{}'.format(_s,_qoi_simulation_type)
                     elif _qoi_simulation_type in [
@@ -415,12 +415,21 @@ class QoiManager(object):
             results(dict)
         """
         for n_qoi, o_qoi in self.obj_Qoi.items():
-            o_qoi.calculate_qois(task_results=task_results)
-
+            try:
+                o_qoi.calculate_qois(task_results=task_results)
+            except TypeError as e:
+                msg_err = "Cannot calculate qoi for \'{}\'.".format(n_qoi)
+                raise ValueError(msg_err+str(e))
         for k_qoi in self.qois:
             _qoi_id = self.qois[k_qoi]['qoi_name']
             _obj_qoi_id = _qoi_id[:_qoi_id.rindex('.')]
-            _qoi_val = self.obj_Qoi[_obj_qoi_id].qois[_qoi_id]
+            try:
+                _qoi_val = self.obj_Qoi[_obj_qoi_id].qois[_qoi_id]
+            except KeyError as e:
+                print('obj_qoi_id:{}'.format(_obj_qoi_id))
+                print('qoi_id:{}'.format(_qoi_id))
+                print(self.obj_Qoi[_obj_qoi_id].qois)
+                raise
             _qoi_ref = self.qois[k_qoi]['qoi_ref']
             self.qois[k_qoi]['qoi_val'] = _qoi_val
             self.qois[k_qoi]['qoi_err'] = _qoi_val-_qoi_ref

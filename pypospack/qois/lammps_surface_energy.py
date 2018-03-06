@@ -40,9 +40,10 @@ class SurfaceEnergyCalculation(Qoi):
                 task_name=_slab_task_name,
                 task_structure=_slab_structure_name,
                 bulk_structure_name=_bulk_structure_name)
-    def calculate_qoi(self):
+    
+    def calculate_qois(self,task_results):
         _prefix = '{}.{}'.format(
-            self.structures['defect'],
+            self.structures['slab'],
             self.qoi_type)
         s_name_slab = self.structures['slab']
         s_name_bulk = self.structures['ideal']
@@ -54,12 +55,12 @@ class SurfaceEnergyCalculation(Qoi):
         n_atoms_slab = task_results[
             "{}.lmps_min_pos.natoms".format(s_name_slab)]
         n_atoms_bulk = task_results[
-            "'{}.lmps_min_all.natoms".format(s_name_bulk)]
+            "{}.lmps_min_all.natoms".format(s_name_bulk)]
         
         a1 = task_results[
-            "{}.a11_min_pos".format(s_name_slab)]
+            "{}.lmps_min_pos.a11".format(s_name_slab)]
         a2 = task_results[
-            "{}.a22_min_pos".format(s_name_slab)]
+            "{}.lmps_min_pos.a22".format(s_name_slab)]
         e_surf = (e_slab - n_atoms_slab/n_atoms_bulk*e_bulk)/(2*a1*a2)
         
         self.qois = OrderedDict()
