@@ -29,7 +29,8 @@ class SlurmSubmissionScript(object):
             self.configuration['error'] = 'job.err'
         if 'time' not in self.configuration:
             self.configuration['time'] = '1:00:00'
-
+        if 'memory' not in self.configuration:
+            self.configuration['memory'] = '4gb'
     def write(self,filename='runjob.slurm',job_name='default'):
         self.filename=filename
        
@@ -42,6 +43,7 @@ class SlurmSubmissionScript(object):
         _output = self.configuration['output']
         _error = self.configuration['error']
         _cmd = self.configuration['command']
+        _memory = self.configuration['memory']
 
         s = '#!/bin/bash\n'
         s += '#SBATCH --job-name={}\n'.format(_job_name)
@@ -50,6 +52,7 @@ class SlurmSubmissionScript(object):
         s += '#SBATCH --mail-user={}\n'.format(_email)
         s += '#SBATCH --ntasks={}\n'.format(_ntasks)
         s += '#SBATCH --distribution=cyclic:cyclic\n'
+        s += '#SBATCH --mem={}\n'.format(_memory)
         s += '#SBATCH --time={}\n'.format(_time)
         s += '#SBATCH --output={}\n'.format(_output)
         s += '#SBATCH --error={}\n'.format(_error)
