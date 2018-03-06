@@ -120,77 +120,77 @@ qoi_db.add_qoi(
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_bcc')]),
-        target=13)
+        target=0.09)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_sc',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_sc')]),
-        target=13)
+        target=0.71)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_dia',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_dia')]),
-        target=13)
+        target=1.53)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_vac',
-        qoi_type='defect_formation_energy',
+        qoi_name='Ni_fcc.vac',
+        qoi_type='E_formation',
         structures=OrderedDict([
                 ('defect','Ni_fcc_vac'),
                 ('ideal','Ni_fcc')]),
-        target)
+        target=1.6)
+#qoi_db.add_qoi(
+#        qoi_name='Ni_fcc.o_int',
+#        qoi_type='point_defect',
+#        structures=OrderedDict([
+#                ('defect','Ni_fcc_o_int'),
+#                ('ideal','Ni_fcc')]),
+#        target)
+#qoi_db.add_qoi(
+#        qoi_name='Ni_fcc.t_int',
+#        qoi_type='point_defect',
+#        structures=OrderedDict([
+#                ('defect','Ni_fcc_t_int'),
+#                ('ideal','Ni_fcc')]),
+#        target)  
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_o_int',
-        qoi_type='defect_formation_energy',
-        structures=OrderedDict([
-                ('defect','Ni_fcc_o_int'),
-                ('ideal','Ni_fcc')]),
-        target)
-qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_t_int',
-        qoi_type='defect_formation_energy',
-        structures=OrderedDict([
-                ('defect','Ni_fcc_t_int'),
-                ('ideal','Ni_fcc')]),
-        target)  
-qoi_db_add_qoi(
-        qoi_name='E_Ni_fcc_100s',
-        qoi_type='surface_energy',
+        qoi_name='Ni_fcc.100s',
+        qoi_type='E_surface',
         structures=OrderedDict([
                 ('slab','Ni_fcc_100_s'),
-                ('bulk','Ni_fcc_100_unit')]),
-        target)
+                ('ideal','Ni_fcc_100_unit')]),
+        target=1.51e-1)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_110s',
-        qoi_type='surface_energy',
+        qoi_name='Ni_fcc.110s',
+        qoi_type='E_surface',
         structures=OrderedDict([
                 ('slab','Ni_fcc_110_s'),
-                ('bulk','Ni_fcc_110_unit')]),
-        target)
+                ('ideal','Ni_fcc_110_unit')]),
+        target=1.48e-1)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_111s',
-        qoi_type='surface_energy',
+        qoi_name='Ni_fcc.111s',
+        qoi_type='E_surface',
         structures=OrderedDict([
                 ('slab','Ni_fcc_111_s'),
-                ('bulk','Ni_fcc_111_unit')]),
-        target)
+                ('ideal','Ni_fcc_111_unit')]),
+        target=1.25e-1)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_esf',
-        qoi_type='stacking_fault_energy',
+        qoi_name='Ni_fcc.esf',
+        qoi_type='E_stacking_fault',
         structures=OrderedDict([
-                ('stacking_fault','Ni_fcc_esf'),
-                ('bulk','Ni_fcc_111_unit')]),
-        target)
+                ('defect','Ni_fcc_esf'),
+                ('ideal','Ni_fcc_111_unit')]),
+        target=7.80e-3)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_isf',
-        qoi_type='stacking_fault_energy',
+        qoi_name='Ni_fcc.isf',
+        qoi_type='E_stacking_fault',
         structures=OrderedDict([
-                ('stacking_fault','Ni_fcc_isf'),
-                ('bulk','Ni_fcc_111_unit')]),
-        target)
+                ('defect','Ni_fcc_isf'),
+                ('ideal','Ni_fcc_111_unit')]),
+        target=1.45e-02)
 qoi_constraints = OrderedDict()
 for k,v in qoi_db.qois.items():
     qoi_constraints['{}.err'.format(k)] = 1.00 * abs(qoi_db.qois[k]['target']) 

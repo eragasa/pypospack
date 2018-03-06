@@ -58,7 +58,6 @@ class DefectFormationEnergy(Qoi):
         s_name_defect = self.structures['defect']
         s_name_bulk   = self.structures['ideal']
 
-        print(task_results)
         e_defect = task_results[
                 "{}.lmps_min_pos.toten".format(s_name_defect)]
         e_bulk = task_results[
@@ -70,4 +69,4 @@ class DefectFormationEnergy(Qoi):
         e_f = e_defect - n_atoms_defect/n_atoms_bulk*e_bulk
         
         self.qois = OrderedDict()
-        self.qois['{}.E_formation_defect'.format(_prefix)]= e_f
+        self.qois['{}.E_formation'.format(_prefix)]= e_f

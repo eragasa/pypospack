@@ -38,7 +38,7 @@ class PhaseOrderCalculation(Qoi):
         _task_requires = None
         self.add_task(
                 task_type=_task_type,
-                task_name=_take_name,
+                task_name=_task_name,
                 task_structure=_structure_high_name)
 
     def calculate_qois(self,task_results):
@@ -61,7 +61,7 @@ class PhaseOrderCalculation(Qoi):
         _phase_order = _high_ecoh - _low_ecoh
 
         self.qois = OrderedDict()
-        self.qois['{}.{}.phase_order'.format(
+        self.qois['{}__{}.phase_order'.format(
             self.structures['low'],
             self.structures['high'])] = _phase_order
 

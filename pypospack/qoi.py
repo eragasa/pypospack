@@ -55,17 +55,17 @@ def get_qoi_map():
                 'module':'pypospack.qoi',
                 'class':'PhaseOrderCalculation'},
             'lmps_defect':{
-                'qoi':['E_formation_defect'],
+                'qoi':['E_formation'],
                 'module':'pypospack.qoi',
                 'class':'DefectFormationEnergy'},
             'lmps_surface_energy':{
-                'qoi':['surface_energy'],
+                'qoi':['E_surface'],
                 'module':'pypospack.qoi',
-                'class':'SurfaceEnergy'},
+                'class':'SurfaceEnergyCalculation'},
             'lmps_stacking_fault_energy':{
-                'qoi':['StackingFaultEnergy'],
+                'qoi':['E_stacking_fault'],
                 'module':'pypospack.qoi',
-                'class':'StackingFaultEnergy'}}
+                'class':'StackingFaultEnergyCalculation'}}
     return copy.deepcopy(qoi_map)
 
 def get_supported_qois():
@@ -304,24 +304,31 @@ class QoiManager(object):
                     _structures = None
                     _qoi_simulation_type = qoimapk
 
-                    if isinstance(qoiv['structures'], list):
-                        _structure = qoiv['structures'][0]
-                    elif isinstance(qoiv['structures'],dict):
-                        try:
-                            _structure = qoiv['structures']['defect']
-                        except KeyError:
-                            _structure = qoiv['structures']['ideal']
-                    elif isinstance(
-                            qoiv['structures'],
-                            str):
-                        _structure = qoiv['structures']
+                    #! determine qoi name
+                    if _qoi_simulation_type == 'lmps_phase_order':
+                        _s1 = qoiv['structures']['low']
+                        _s2 = qoiv['structures']['high']
+                        _qoiname = '{}__{}.{}'.format(
+                            _s1,_s2,_qoi_simulation_type)
+                    elif _qoi_simulation_type in [
+                            'lmps_min_all',
+                            'lmps_elastic']:
+                        _s = qoiv['structures']['ideal']
+                        _qoiname = '{}.{}'.format(_s,_qoi_simulation_type)
+                    elif _qoi_simulation_type in [
+                            'lmps_defect',
+                            'lmps_stacking_fault_energy']:
+                        _s = qoiv['structures']['defect']
+                        _qoiname = '{}.{}'.format(_s,_qoi_simulation_type)
+                    elif _qoi_simulation_type in [
+                            'lmps_surface_energy']:
+                        _s = qoiv['structures']['slab']
+                        _qoiname = '{}.{}'.format(_s,_qoi_simulation_type)
                     else:
-                        msg_err = (
-                            "Cannot process the type for 'structures':{}"
-                            ).format(str(type(qoiv['structures'])))
+                        msg_err = 'Unknown qoi_simulation_type: {}'
+                        msg_err = msg_err.format(_qoi_simulation_type)
                         raise ValueError(msg_err)
 
-                    _qoiname = '{}.{}'.format(_structure,_qoi_simulation_type)
                     _qoitype = qoiv['qoi_type']
                     _module = qoimapv['module']
                     _class = qoimapv['class']

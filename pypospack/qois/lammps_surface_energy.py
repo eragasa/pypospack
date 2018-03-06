@@ -2,22 +2,65 @@ from collections import OrderedDict
 from pypospack.qoi import Qoi
 
 class SurfaceEnergyCalculation(Qoi):
+    qois_calculated = ['E_surface']
     def __init__(self, qoi_name, structures):
-        qoi_type = 'surface_energy'
-        Qoi.__init__(self,qoi_name,qoi_type,structures)
-        self.surface_structure = self.structures[0]
-        self.ideal_structure = self.structures[1]
-        #self.determine_required_simulations()
+        _qoi_name = qoi_name
+        _qoi_type = 'lmps_surface_energy'
 
+        _structures = OrderedDict()
+        _structures['ideal'] = structures['ideal']
+        _structures['slab'] = structures['slab']
+        
+        Qoi.__init__(self,
+                qoi_name=_qoi_name,
+                qoi_type=_qoi_type,
+                structures=_structures)
+
+    def determine_tasks(self):
+        _ideal_structure_name = self.structures['ideal']
+        _ideal_task_type = 'lmps_min_all'
+        _ideal_task_name = '{}.{}'.format(
+                _ideal_structure_name,
+                _ideal_task_type)
+        _bulk_structure_name= None
+        self.add_task(
+                task_type=_ideal_task_type,
+                task_name=_ideal_task_name,
+                task_structure=_ideal_structure_name,
+                bulk_structure_name=_bulk_structure_name)
+        
+        _slab_structure_name = self.structures['slab']
+        _slab_task_type = 'lmps_min_pos'
+        _slab_task_name = '{}.{}'.format(
+                _slab_structure_name,
+                _slab_task_type)
+        _bulk_structure_name=self.structures['ideal']
+        self.add_task(
+                task_type=_slab_task_type,
+                task_name=_slab_task_name,
+                task_structure=_slab_structure_name,
+                bulk_structure_name=_bulk_structure_name)
     def calculate_qoi(self):
-        s_name_slab = self._req_structure_names[0]
-        s_name_bulk = self._req_structure_names[1]
-        e_slab = self._req_vars["{}.E_min_pos".format(s_name_slab)]
-        e_bulk = self._req_vars["{}.E_min".format(s_name_bulk)]
-        n_atoms_slab = self._req_vars["{}.n_atoms".format(s_name_slab)]
-        n_atoms_bulk = self._req_vars["{}.n_atoms".format(s_name_bulk)]
-        a1 = self._req_vars["{}.a1_min_pos".format(s_name_slab)]
-        a2 = self._req_vars["{}.a2_min_pos".format(s_name_slab)]
+        _prefix = '{}.{}'.format(
+            self.structures['defect'],
+            self.qoi_type)
+        s_name_slab = self.structures['slab']
+        s_name_bulk = self.structures['ideal']
+        
+        e_slab = task_results[
+            "{}.lmps_min_pos.toten".format(s_name_slab)]
+        e_bulk = task_results[
+            "{}.lmps_min_all.toten".format(s_name_bulk)]
+        n_atoms_slab = task_results[
+            "{}.lmps_min_pos.natoms".format(s_name_slab)]
+        n_atoms_bulk = task_results[
+            "'{}.lmps_min_all.natoms".format(s_name_bulk)]
+        
+        a1 = task_results[
+            "{}.a11_min_pos".format(s_name_slab)]
+        a2 = task_results[
+            "{}.a22_min_pos".format(s_name_slab)]
         e_surf = (e_slab - n_atoms_slab/n_atoms_bulk*e_bulk)/(2*a1*a2)
-        self._predicted_value = e_surf
-        return self._predicted_value
+        
+        self.qois = OrderedDict()
+        self.qois['{}.E_surface'.format(_prefix)] = e_surf
