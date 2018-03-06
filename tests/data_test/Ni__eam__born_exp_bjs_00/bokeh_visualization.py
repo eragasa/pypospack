@@ -84,9 +84,9 @@ class PypospackVisualization(ParetoOptimizationVisualization):
         self.err_names = list(err_names)
 
 if __name__ == "__main__":
-    data_dir = 'data__morse_exp_fs_2'
-    filename = os.path.join(data_dir,'pyposmat.kde.10.out')
-
+    #data_dir = 'data'
+    #filename = os.path.join(data_dir,'pyposmat.kde.5.out')
+    filename='subselect.d_metric.out'
     vizdemo = PypospackVisualization()
     vizdemo.load_data_file(fname= filename)
     print(80*'-')

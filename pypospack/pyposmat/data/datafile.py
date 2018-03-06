@@ -1,7 +1,7 @@
 import copy
 from collections import OrderedDict
 import pandas as pd
-
+import numpy as np
 class PyposmatDataFile(object):
 
     def __init__(self,filename):
@@ -214,7 +214,11 @@ class PyposmatDataFile(object):
             err_msg = "the filename argument for this method must be a string"
             raise ValueError(err_msg)
 
+        if type(self.sub_df) is None:
+            err_msg="no subselection has been done on the data"
+            raise ValueError(err_msg)
         if not isinstance(self.sub_df,pd.DataFrame) :
+            print(type(self.sub_df))
             err_msg = "the sub_df attribute must be a pandas.DataFrame"
             raise ValueError(err_msg)
         
@@ -223,7 +227,10 @@ class PyposmatDataFile(object):
         str_out += ','.join([t for t in self.types]) + "\n"
         for row in self.sub_df.iterrows():
             _row = [a for i,a in enumerate(row[1])] #unpack tuple
-            _row[0] = int(_row[0]) # row[0] is the sim_id
+            try:
+                _row[0] = int(_row[0]) # row[0] is the sim_id
+            except ValueError as e:
+                pass
             str_out += ','.join([str(s) for s in _row]) + "\n"
 
         with open(_filename,'w') as f:
