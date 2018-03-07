@@ -313,7 +313,14 @@ class QoiManager(object):
                     elif _qoi_simulation_type in [
                             'lmps_min_all',
                             'lmps_elastic']:
-                        _s = qoiv['structures']['ideal']
+                        try:
+                            _s = qoiv['structures']['ideal']
+                        except KeyError as e:
+                            print('Qoi:{}'.format(_qoi_simulation_type))
+                            print('qoimapk:{}'.format(qoimapk))
+                            print('qoik:{}'.format(qoik))
+                            print(qoiv['structures'])
+                            raise
                         _qoiname = '{}.{}'.format(_s,_qoi_simulation_type)
                     elif _qoi_simulation_type in [
                             'lmps_defect',

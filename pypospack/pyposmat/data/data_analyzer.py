@@ -128,7 +128,7 @@ class PyposmatDataAnalyzer(object):
 
     def write_kde_file(self,filename):
         _qoi_constraints = self.configuration.qoi_constraints
-        kde_df = copy(self._df)
+        kde_df = copy.deepcopy(self._df)
         for k,v in _qoi_constraints.items():
             if k == 'filter_by_qoi_error':
                 kde_df = self.filter_performance_requirements(kde_df)
