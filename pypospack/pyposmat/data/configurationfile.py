@@ -21,7 +21,11 @@ class PyposmatConfigurationFile(object):
     @property
     def qois(self):
         return self.configuration['qois']
-    
+
+    @property
+    def qoi_targets(self):
+        return OrderedDict([(k,v['target']) for k,v in self.qois.items()])
+
     @qois.setter
     def qois(self,qois):
         assert isinstance(qois,OrderedDict)

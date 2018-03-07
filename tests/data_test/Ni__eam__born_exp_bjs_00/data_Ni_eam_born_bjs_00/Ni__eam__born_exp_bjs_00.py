@@ -170,7 +170,7 @@ qoi_constraints = OrderedDict()
 qoi_constraints['filter_by_qoi_error']=OrderedDict()
 for k,v in qoi_db.qois.items():
     qoi_constraints['filter_by_qoi_error']['{}.err'.format(k)] \
-         = 1.00 * abs(qoi_db.qois[k]['target']) 
+         = 3.00 * abs(qoi_db.qois[k]['target']) 
 qoi_constraints['filter_by_pareto'] = True
 qoi_constraints['filter_by_d_metric'] = [80,'pct']
 #------------------------------------------------------------------------------

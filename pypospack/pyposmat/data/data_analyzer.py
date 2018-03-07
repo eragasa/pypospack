@@ -150,7 +150,8 @@ class PyposmatDataAnalyzer(object):
                         n = min(v[0],nc)
 
                     kde_df = kdf_df.nsmallest(n,'d_metric')
-        
+            (nr,nc) = kde_df.shape
+            print('after {}: {} remainings'.format(k,nr))
         names = ['sim_id'] \
                 + self.parameter_names \
                 + self.qoi_names\

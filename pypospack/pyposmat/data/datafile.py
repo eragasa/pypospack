@@ -2,6 +2,7 @@ import copy
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
+
 class PyposmatDataFile(object):
 
     def __init__(self,filename):
