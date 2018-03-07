@@ -21,6 +21,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
             filename_in='pypospack.config.in',
             filename_out='pypospack.results.out',
+            mpi_rank=None
             base_directory=None):
         assert isinstance(filename_in,str)
         assert isinstance(filename_out,str)
@@ -31,17 +32,17 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 filename_out=filename_out,
                 base_directory=base_directory,
                 fullauto=False)
-
+        self.mpi_rank=None
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
-
+        self.pyposmat_data_out_filename = 'pypospack.results.bad'
     def _log(self,str_msg):
         print(str_msg)
 
     def configure_pyposmat_datafile_in(self,filename):
         self.pyposmat_data_in_filename = filename
         self.pyposmat_datafile_in = PyposmatDataFile(filename)
-    
+
     def configure_pyposmat_datafile_out(self,filename=None):
         if filename is not None:
             assert type(filename) is str
@@ -82,6 +83,10 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             if filename is None:
                 raise ValueError('cannot do kde sampling with out filename')
             self.run_kde_sampling(n_samples=_n_samples,filename_in=filename)
+        elif _sampling_file == 'file':
+            if filename is None:
+                raise ValueError('cannot do filesampling without file')
+            self.run_file_sampling(filename_in)
         print(i_iteration,_n_samples,_sampling_type)
 
     def run_parameteric_sampling(self,n_samples):
@@ -103,18 +108,18 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 parameter_names=self.parameter_names,
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
-        
+
         time_start = time.time()
         _n_errors = 0
 
         for i_sample in range(n_samples):
             # generate parameter set
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
-            
+
             # generate free parameters
             for p in self.free_parameter_names:
                 _parameters[p] = _rv_generators[p].rvs(size=1)[0]
-            
+
             # generate constrained parameters
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
@@ -124,7 +129,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             if fp in _str_eval:
                                 _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
                         _parameters[p] = eval(_str_eval)
-            
+
             # generate wierd things
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
@@ -133,14 +138,14 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             a0 = self.parameter_distribution_definition[p][1][1]
                             latt = self.parameter_distribution_definition[p][1][2]
                             _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
-           
+
             try:
                 # check constraints
                 for k,v in self.parameter_constraints.items():
                     _eval_str = v
                     for pn,pv in _parameters.items():
                         _eval_str = _eval_str.replace(pn,str(pv))
-                    
+
                     try:
                         _is_constraint_ok = eval(_eval_str)
                     except NameError as e:
@@ -153,7 +158,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         self._log(_err_msg)
                         raise
                     if eval(_eval_str) is False:
-                        raise PyposmatBadParameterError()  
+                        raise PyposmatBadParameterError()
 
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except PyposmatBadParameterError as e:
@@ -195,7 +200,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 parameter_names=self.parameter_names,
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
-        
+
         time_start = time.time()
         _n_errors = 0
         for i_sample in range(n_samples):
@@ -214,7 +219,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             if fp in _str_eval:
                                 _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
                         _parameters[p] = eval(_str_eval)
-            
+
             # generate wierd things
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
@@ -230,8 +235,75 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     for pn,pv in _parameters.items():
                         _eval_str = _eval_str.replace(pn,str(pv))
                     if eval(_eval_str) is False:
-                        raise PyposmatBadParameterError()  
-                
+                        raise PyposmatBadParameterError()
+
+                _results = self.evaluate_parameter_set(parameters=_parameters)
+            except PyposmatBadParameterError as e:
+                _n_errors += 1
+            except LammpsSimulationError as e:
+                _n_errors += 1
+            except PypospackTaskManagerError as e:
+                _n_errors += 1
+            else:
+                self.pyposmat_datafile_out.write_simulation_results(
+                        filename=self.pyposmat_data_out_filename,
+                        sim_id=i_sample,
+                        results=_results)
+            finally:
+                # print out summaries every 10 solutions
+                if (i_sample+1)%10 == 0:
+                    n_samples_completed = i_sample+1
+                    time_end = time.time()
+                    time_total = time_end-time_start
+                    avg_time = n_samples_completed/time_total
+                    _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
+                        n_samples_completed,
+                        time_total,
+                        avg_time,
+                        _n_errors)
+                    print(_str_msg)
+
+    def run_file_sampling(self,n_samples,filename_in):
+
+        _datafile_in = PyposmatDataFile(filename=filename_in)
+        _datafile_in.read()
+        # configure random number generator
+
+        self.pyposmat_datafile_out.write_header_section(
+                filename=self.pyposmat_data_out_filename,
+                parameter_names=self.parameter_names,
+                qoi_names=self.qoi_names,
+                error_names=self.error_names)
+
+        time_start = time.time()
+        if self.mpi_rank is None:
+            self.mpi_rank = 0
+        if self.mpi_size is None:
+            self.mpi_size = 1
+
+        _n_errors = 0
+        for row in _datafile_in.df.iterrows():
+            if self.mpi_rank != row[0]%self.mpi_size:
+                continue
+            _parameters = OrderedDict([(p,row[1][p]) for p in self.parameter_names])
+
+            # generate wierd things
+            for p in self.constrained_parameter_names:
+                if self.parameter_distribution_definition[p][0] == 'equals':
+                    if type(self.parameter_distribution_definition[p][1]) is list:
+                        if self.parameter_distribution_definition[p][1][0] == 'equilibrium_density':
+                            a0 = self.parameter_distribution_definition[p][1][1]
+                            latt = self.parameter_distribution_definition[p][1][2]
+                            _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
+            try:
+                # check constraints
+                for k,v in self.parameter_constraints.items():
+                    _eval_str = v
+                    for pn,pv in _parameters.items():
+                        _eval_str = _eval_str.replace(pn,str(pv))
+                    if eval(_eval_str) is False:
+                        raise PyposmatBadParameterError()
+
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except PyposmatBadParameterError as e:
                 _n_errors += 1
@@ -289,14 +361,14 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             rmax = 10.
             r = np.linspace(1,10,5000)*rmax/10
             rho = _dens_potential.evaluate(r,_parameters,rcut)
-            
+
             rho_e = 0
             for m in Z:
                 if d[m] < rcut:
                     rho_e += Z[m]*np.interp(d[m],r,rho[s])
 
             return rho_e
-    
+
     def print_structure_database(self):
         print(80*'-')
         print('{:^80}'.format('STRUCTURE DATABASE'))
@@ -339,4 +411,3 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             else:
                 str_free = 'not_free'
                 print('{:^20} {:^10}'.format(p,str_free))
-

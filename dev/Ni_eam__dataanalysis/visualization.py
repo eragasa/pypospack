@@ -12,8 +12,8 @@ probability density plot
 kernel density estimate
 -pyflames post module
 
-principal components analysis 
-clustering 
+principal components analysis
+clustering
 manifold learning T-sne
 '''
 import os
@@ -48,7 +48,7 @@ class PypospackVisualization(ParetoOptimizationVisualization):
                 for j in range(1,len(data_line)):
                     data_line[j] = float(data_line[j])
                 data.append(data_line)
-       
+
         #data = np.array(data)
 
         assert len(names) == len(name_types)
@@ -70,15 +70,15 @@ class PypospackVisualization(ParetoOptimizationVisualization):
                 err_names.append(names[i])
                 err_key_index.append(i)
 
-        
+
         self.df = pd.DataFrame(data,columns=names)
-       
+
         _names = [n for n in names if n is not 'sim_id']
         self.total_df = self.df[_names]
         self.param_df = self.df[param_names]
         self.qoi_df = self.df[qoi_names]
         self.err_df = self.df[err_names]
-        
+
         self.param_names = list(param_names)
         self.qoi_names = list(qoi_names)
         self.err_names = list(err_names)
@@ -86,10 +86,14 @@ class PypospackVisualization(ParetoOptimizationVisualization):
 if __name__ == "__main__":
     import argparse
 
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("-i","--input",type=str,help="input file to be displayed")
-    args = vars(arg_parser.parse_args())
-    filename = args['input']
+    #arg_parser = argparse.ArgumentParser()
+    #arg_parser.add_argument("-i","--input",type=str,help="input file to be displayed")
+    #args = vars(arg_parser.parse_args())
+    #filename = args['input']
+    filename = os.path.join(
+        'data_preconditioning_00',
+        'pyposmat.results.9.out'
+    )
 
     vizdemo = PypospackVisualization()
     vizdemo.load_data_file(fname= filename)
