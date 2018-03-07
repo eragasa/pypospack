@@ -21,7 +21,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
             filename_in='pypospack.config.in',
             filename_out='pypospack.results.out',
-            mpi_rank=None
+            mpi_rank=None,
             base_directory=None):
         assert isinstance(filename_in,str)
         assert isinstance(filename_out,str)

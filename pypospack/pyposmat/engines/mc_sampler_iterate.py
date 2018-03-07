@@ -79,8 +79,8 @@ class PyposmatIterativeSampler(object):
         # initialize()
         self.pyposmat_mc_sampler = PyposmatMonteCarloSampler(
                 filename_in = _config_filename,
-                filename_out = _results_filename
-                mpi_rank = self.mpi_rank
+                filename_out = _results_filename,
+                mpi_rank = self.mpi_rank,
                 mpi_size = self.mpi_size)
         self.pyposmat_mc_sampler.create_base_directories()
         self.pyposmat_mc_sampler.read_configuration_file()
@@ -125,10 +125,12 @@ class PyposmatIterativeSampler(object):
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in)
-        elif _mc_sample_type == 'from_file'
+
+        # get parameters from file
+        elif _mc_sample_type == 'from_file':
             _filename_in = mc_config['file']
             self.pyposmat_mc_sampler.run_simulations(
-                    i_iteration=i_teration,
+                    i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in
             )
