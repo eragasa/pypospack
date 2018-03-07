@@ -120,9 +120,10 @@ class PyposmatDataAnalyzer(object):
         for i,en in enumerate(self.error_names):
             qn = self.qoi_names[i]
             q_target = _qois[qn]['target']
-            _df[en] = np.square(_df[en].abs()/_q_target)
+            _df[en] = np.abs(_df[en]/q_target)
+            _df[en] = np.square(_df[en])
 
-        _df['d_metric'] = np.sqrt(df[_error_names].sum(axis=1))
+        _df['d_metric'] = np.sqrt(_df[_error_names].sum(axis=1))
         _df[_error_names] = df[_error_names]
         return _df
 
@@ -140,16 +141,18 @@ class PyposmatDataAnalyzer(object):
                     kde_df = kde_df.loc[kde_df['is_pareto'] == 1]
                     kde_df = kde_df.reset_index(drop=True)
             if k == 'filter_by_dmetric':
-                    kde_df = self.calculate_d_metric(df_kde_df)    
                     (nr,nc) = kde_df.shape
-                             
+                    kde_df = self.calculate_d_metric(kde_df)    
+                    (nr,nc) = kde_df.shape
                     if v[1] == 'pct':
                         pct_to_keep = v[0]/100
-                        n = (nc * pct_to_keep) //1
+                        n = int((nr * pct_to_keep) //1)
                     else:
-                        n = min(v[0],nc)
-
-                    kde_df = kdf_df.nsmallest(n,'d_metric')
+                        n = min(v[0],nr)
+                    kde_df = kde_df.nsmallest(n,'d_metric')
+                    for en in self.error_names:
+                        print(en,kde_df[en].max())
+                    (nr,nc) = kde_df.shape
             (nr,nc) = kde_df.shape
             print('after {}: {} remainings'.format(k,nr))
         names = ['sim_id'] \

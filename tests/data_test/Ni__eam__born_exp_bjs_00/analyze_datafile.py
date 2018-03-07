@@ -134,7 +134,6 @@ if __name__ == "__main__":
     analyze_pypospack_iterative_sampler(data_dir)
     exit()
      
-    
     _filename_pyposmat_data = 'data/pyposmat.kde.10.out'
     _n_potentials = 30
     datafile=PyposmatDataFile(filename=_filename_pyposmat_data)
