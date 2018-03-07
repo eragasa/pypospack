@@ -14,41 +14,41 @@ import pypospack.pareto as pareto
 
 class PyposmatDataAnalyzer(object):
     def __init__(self):
-        self._pyposmat_configuration = None
-
+        self._configuration = None
+        self._datafile = None
     @property
-    def pyposmat_configuration(self):
-        return self._pyposmat_configuration
+    def configuration(self):
+        return self._configuration
 
-    @pyposmat_configuration.setter
-    def pypospack_configuration(self,configuration):
+    @configuration.setter
+    def configuration(self,configuration):
         assert type(configuration) is PyposmatConfigurationFile
 
     @property
     def parameter_names(self):
-        return self._pyposmat_datafile.parameter_names
+        return self._datafile.parameter_names
 
     @property
     def qoi_names(self):
-        return self._pyposmat_datafile.qoi_names
+        return self._datafile.qoi_names
 
     @property
     def error_names(self):
-        return self._pyposmat_datafile.error_names
+        return self._datafile.error_names
 
     @property
     def df(self):
         return self._df
 
     def read_configuration_file(self,filename):
-        self._pyposmat_configuration = PyposmatConfigurationFile()
-        self._pyposmat_configuration.read(filename)
+        self._configuration = PyposmatConfigurationFile()
+        self._configuration.read(filename)
 
     def read_data_file(self,filename):
-        self._pyposmat_datafile = PyposmatDataFile(filename)
-        self._pyposmat_datafile.read()
+        self._datafile = PyposmatDataFile(filename)
+        self._datafile.read()
 
-        self._df = copy.deepcopy(self._pyposmat_datafile.df)
+        self._df = copy.deepcopy(self._datafile.df)
 
     def calculate_pareto_set(self,df=None):
         if df is None:
@@ -85,7 +85,7 @@ class PyposmatDataAnalyzer(object):
         _df[self.error_names] = _df[self.error_names].abs()
 
         _qoi_constraints = copy.deepcopy(
-                self.pyposmat_configuration.qoi_constraints
+                self.configuration.qoi_constraints['filter_by_qoi_error']
             )
 
         is_survive_idx = []
@@ -99,7 +99,6 @@ class PyposmatDataAnalyzer(object):
                     ))
         is_survive_sets = [set(v) for v in is_survive_idx]
         is_survive_idx = list(set.intersection(*is_survive_sets))
-        print('n_survive:{}'.format(len(is_survive_idx)))
         if df is None:
             self._df['is_survive'] = 0
             if len(is_survive_idx) > 0:
@@ -112,31 +111,54 @@ class PyposmatDataAnalyzer(object):
             if len(is_survive_idx) > 0:
                 _df.loc[is_survive_idx,'is_survive'] = 1
             return _df
+    
+    def calculate_d_metric(self,df):
+        _df = copy.deepcopy(df)
+
+        _qois = self.configuration.qois
+        _error_names = self.error_names
+        for i,en in enumerate(self.error_names):
+            qn = self.qoi_names[i]
+            q_target = _qois[qn]['target']
+            _df[en] = np.square(_df[en].abs()/_q_target)
+
+        _df['d_metric'] = np.sqrt(df[_error_names].sum(axis=1))
+        _df[_error_names] = df[_error_names]
+        return _df
+
     def write_kde_file(self,filename):
+        _qoi_constraints = self.configuration.qoi_constraints
+        kde_df = copy(self._df)
+        for k,v in _qoi_constraints.items():
+            if k == 'filter_by_qoi_error':
+                kde_df = self.filter_performance_requirements(kde_df)
+                kde_df = kde_df.loc[kde_df['is_survive'] == 1]
+                kde_df = kde_df.reset_index(drop=True)
+            if k == 'filter_by_pareto':
+                if v == True:
+                    kde_df = self.calculate_pareto_set(df=kde_df)
+                    kde_df = kde_df.loc[kde_df['is_pareto'] == 1]
+                    kde_df = kde_df.reset_index(drop=True)
+            if k == 'filter_by_dmetric':
+                    kde_df = self.calculate_d_metric(df_kde_df)    
+                    (nr,nc) = kde_df.shape
+                             
+                    if v[1] == 'pct':
+                        pct_to_keep = v[0]/100
+                        n = (nc * pct_to_keep) //1
+                    else:
+                        n = min(v[0],nc)
 
-        # <------ BEGIN OLD WORKING CODE
-        # kde_df = self._df.loc[(self._df['is_pareto'] == 1) & (self._df['is_survive'] == 1)]
-        # <------ END OF OLD WORKING CODE
-
-        # filter by performance requirements first
-        kde_df = None
-        if len(self.pyposmat_configuration.qoi_constraints) > 0:
-            kde_df = self.filter_performance_requirements(self._df)
-            kde_df = kde_df.loc[kde_df['is_survive'] == 1]
-            kde_df = kde_df.reset_index(drop=True)
-        else:
-            kde_df = copy.deepcopy(self._df)
-
-        kde_df = self.calculate_pareto_set(df=kde_df)
-        (n_rows_kde,n_cols_kde) = kde_df.loc[kde_df['is_pareto'] == 1].shape
-        print('n_samples_in_kde:{}'.format(n_rows_kde))
-        names = ['sim_id'] + self.parameter_names + self.qoi_names\
+                    kde_df = kdf_df.nsmallest(n,'d_metric')
+        
+        names = ['sim_id'] \
+                + self.parameter_names \
+                + self.qoi_names\
                 + self.error_names
         types = ['sim_id'] \
                 + len(self.parameter_names)*['param']\
                 + len(self.qoi_names)*['qoi']\
                 + len(self.error_names)*['err']
-
         str_list = []
         str_list.append(','.join(names))
         str_list.append(','.join(types))
@@ -149,10 +171,10 @@ if __name__ == "__main__":
 
     data_directory = 'data'
     pyposmat_data_filename = 'pypospack.results.out'
-    pyposmat_configuration_filename = 'pypospack.config.in'
+    configuration_filename = 'pypospack.config.in'
     data_analyzer = PypospackDataAnalyzer()
     data_analyzer.read_configuration_file(
-            filename=pyposmat_configuration_filename)
+            filename=configuration_filename)
     data_analyzer.read_data_file(
             filename=os.path.join(
                 data_directory,
