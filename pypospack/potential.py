@@ -209,8 +209,7 @@ class EamPotential(Potential):
             self.set_obj_density(func_density=func_density)
             self.set_obj_embedding(func_embedding=func_embedding)
         else:
-            self.setfl = EamSetflFile()
-            self.setfl.read(filename=self.setfl_filename_src)
+            pass
 
         Potential.__init__(self,
                 symbols=symbols,
