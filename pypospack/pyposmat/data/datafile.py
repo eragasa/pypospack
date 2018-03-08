@@ -112,6 +112,16 @@ class PyposmatDataFile(object):
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
 
+    def write(self,filename):
+        fn = filename
+
+        s =  [",".join(self.names)]
+        s += [",".join(self.types)]
+        s += [",".join([str(v) for v in k]) for k in self.df.values.tolist()]
+
+        with open (fn, 'w') as f:
+            f.write("\n".join(s))
+
     def score_by_sum_if_less_than_median(
             self,
             error_df=None,

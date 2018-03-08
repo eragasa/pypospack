@@ -57,7 +57,32 @@ def pareto_merge(lo, hi, i, dim):
 
     return lo + [hi[k] for k in survivors]
 
-def pareto(pts, indices = None, i = 0):
+def pareto(pts,chunk_sz=500):
+    idx = list(range(len(pts)))
+    sz = chunk_sz
+
+    old_len_idx = len(idx)
+    while True:
+        if len(idx) < sz:
+            break
+        print('total_idx {} > chunk_sz {}'.format(
+            len(idx),sz))
+        chunks=zip(*[iter(idx)]*sz)
+        idx= []
+        for i,c in enumerate(chunks):
+            print("\tworking on chunk {}".format(i))
+            idx += pareto_bruteforce(pts,c)
+
+        new_len_idx = len(idx)
+        if (old_len_idx == new_len_idx):
+            break
+        if (old_len_idx - new_len_idx) < sz:
+            sz = 2*sz
+        old_len_idx = new_len_idx
+    print("running final pareto calculation on {} points.".format(len(idx)))
+    return pareto_bruteforce(pts,idx)
+
+def pareto_lawrenceberkeley(pts, indices = None, i = 0):
     if indices is None:
         indices = list(range(len(pts)))
     l = len(indices)
@@ -86,9 +111,8 @@ def read_data(fn):
             line = line.split('|')
             line = [x.split() for x in line]
             values.append([
-                int(line[0][0]), 
-                [float(x) for x in line[0][1:]], 
+                int(line[0][0]),
+                [float(x) for x in line[0][1:]],
                 [float(x) for x in line[1]]])
 
         return names, values
-

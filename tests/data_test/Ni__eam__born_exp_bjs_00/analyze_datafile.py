@@ -33,7 +33,7 @@ def make_rug_plot(o_config,o_data,ax=None,fn='rugplot.png'):
         _yloc = [iq+1]
         ax.scatter(
             df["{}.nerr".format(qn)],
-            _nrows*[i_error+1],
+            _nrows*[iq+1],
             marker='|',
             s=100.,
             color='k'
@@ -52,8 +52,12 @@ if __name__ == "__main__":
     #parse_args = parser.parse_args()
 
     _n_potentials = 30
-    _data_fn = "data__Ni__eam__born_exp_bjs_00\pyposmat.kde.10.out"
-    _config_fn = "data__Ni__eam__born_exp_bjs_00\pyposmat.config.in"
+    _data_fn = "data__Ni__eam__born_exp_bjs_01\pyposmat.results.0.out"
+    #_data_fn = "results.temp.out"
+    _config_fn = "data__Ni__eam__born_exp_bjs_01\pyposmat.config.in"
+    _plot_fn = "rugplot.png"
+
+    make_rugplots = False
 
     print(80*'-')
     print("reading the configuration file {}...".format(_config_fn))
@@ -62,16 +66,40 @@ if __name__ == "__main__":
     qoi_targets=get_qoi_targets(config)
     print("reading the data file {}...".format(_data_fn))
     datafile=PyposmatDataFile()
-    datafile.read(filename=_config_fn)
-    datafile.qoi_references = OrderedDict()
-    datafile.qoi_references['TARGET'] = copy.deepcopy(qoi_targets)
-    datafile.score_by_d_metric(scaling_factors='TARGET')
-    datafile.subselect_by_score(
-            score_name='d_metric',
-            n=_n_potentials)
-    subselect_fn = datafile.write_subselect()
+    datafile.read(filename=_data_fn)
 
-    datafile=PyposmatDataFile()
-    datafile.read(filename=subselect_fn)
+    from pypospack.pareto import pareto
 
-    make_rug_plot(o_config=config,o_data=datafile)
+    df = copy.deepcopy(datafile.df)
+    nr,nc = df.shape
+    _nsimulations = OrderedDict()
+    _nsimulations['start'] = nr
+    abs_error_names = ["{}.abserr".format(q) for q in datafile.qoi_names]
+    for q in datafile.qoi_names:
+        qe = "{}.err".format(q)
+        qne = "{}.abserr".format(q)
+        df[qne] = df[qe].abs()
+    names = list(df.columns.values)
+    abs_err_idx = [names.index(n) for n in abs_error_names]
+    pareto_idx = pareto(df[abs_error_names].values.tolist())
+    datafile.df = df.loc[pareto_idx,datafile.names]
+    datafile.write("results.pareto.out")
+
+    #pareto_idx = pareto_bruteforce(df[abs_error_names].values.tolist())
+
+    #print(pareto_set)
+    if make_rugplots:
+        datafile = PyposmatDataFile()
+        datafile.read("results.pareto.out")
+        datafile.qoi_references = OrderedDict()
+        datafile.qoi_references['TARGET'] = copy.deepcopy(qoi_targets)
+        datafile.score_by_d_metric(scaling_factors='TARGET')
+        datafile.subselect_by_score(
+                score_name='d_metric',
+                n=_n_potentials)
+        subselect_fn = datafile.write_subselect()
+
+        datafile=PyposmatDataFile()
+        datafile.read(filename=_data_fn)
+        print(datafile.df[datafile.error_names])
+        make_rug_plot(o_config=config,o_data=datafile)
