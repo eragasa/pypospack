@@ -11,6 +11,7 @@ class PyposmatIterativeSampler(object):
         self.RANK_DIR_FORMAT = 'rank_{}'
         self.mpi_comm = None
         self.mpi_rank = None
+        self.mpi_size = None
         self.mpi_nprocs = None
         self.n_iterations = None
         self.rv_seed = None
@@ -128,7 +129,9 @@ class PyposmatIterativeSampler(object):
 
         # get parameters from file
         elif _mc_sample_type == 'from_file':
-            _filename_in = mc_config['file']
+            _filename_in = os.path.join(
+                self.root_directory,
+                _mc_config['file'])
             self.pyposmat_mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,

@@ -22,6 +22,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             filename_in='pypospack.config.in',
             filename_out='pypospack.results.out',
             mpi_rank=None,
+            mpi_size=None,
             base_directory=None):
         assert isinstance(filename_in,str)
         assert isinstance(filename_out,str)
@@ -32,10 +33,11 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 filename_out=filename_out,
                 base_directory=base_directory,
                 fullauto=False)
-        self.mpi_rank=None
+        self.mpi_rank=mpi_rank
+        self.mpi_size=mpi_size
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
-        self.pyposmat_data_out_filename = 'pypospack.results.bad'
+        self.pyposmat_data_bad_filename = 'pypospack.results.bad'
     def _log(self,str_msg):
         print(str_msg)
 
@@ -83,11 +85,12 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             if filename is None:
                 raise ValueError('cannot do kde sampling with out filename')
             self.run_kde_sampling(n_samples=_n_samples,filename_in=filename)
-        elif _sampling_file == 'file':
+        elif _sampling_type == 'from_file':
             if filename is None:
                 raise ValueError('cannot do filesampling without file')
-            self.run_file_sampling(filename_in)
-        print(i_iteration,_n_samples,_sampling_type)
+            self.run_file_sampling(filename)
+        if self.mpi_rank == 0:
+            print(i_iteration,_n_samples,_sampling_type)
 
     def run_parameteric_sampling(self,n_samples):
         _rv_generators = OrderedDict()
@@ -263,7 +266,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         _n_errors)
                     print(_str_msg)
 
-    def run_file_sampling(self,n_samples,filename_in):
+    def run_file_sampling(self,filename_in):
 
         _datafile_in = PyposmatDataFile(filename=filename_in)
         _datafile_in.read()
@@ -282,6 +285,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             self.mpi_size = 1
 
         _n_errors = 0
+        i_sample = 0
         for row in _datafile_in.df.iterrows():
             if self.mpi_rank != row[0]%self.mpi_size:
                 continue
@@ -318,8 +322,9 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         results=_results)
             finally:
                 # print out summaries every 10 solutions
-                if (i_sample+1)%10 == 0:
-                    n_samples_completed = i_sample+1
+                i_sample = i_sample+1
+                if (i_sample)%10 == 0:
+                    n_samples_completed = i_sample
                     time_end = time.time()
                     time_total = time_end-time_start
                     avg_time = n_samples_completed/time_total
@@ -328,7 +333,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         time_total,
                         avg_time,
                         _n_errors)
-                    print(_str_msg)
+                    print('rank{}:'.format(self.mpi_rank)+_str_msg)
 
     def calculate_equilibrium_density(self,a0,latt,parameters):
         _parameters = OrderedDict()
