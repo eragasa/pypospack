@@ -16,6 +16,7 @@ class PyposmatDataAnalyzer(object):
     def __init__(self):
         self._configuration = None
         self._datafile = None
+
     @property
     def configuration(self):
         return self._configuration
@@ -23,6 +24,7 @@ class PyposmatDataAnalyzer(object):
     @configuration.setter
     def configuration(self,configuration):
         assert type(configuration) is PyposmatConfigurationFile
+        self._configuration = configuration
 
     @property
     def parameter_names(self):
@@ -31,6 +33,10 @@ class PyposmatDataAnalyzer(object):
     @property
     def qoi_names(self):
         return self._datafile.qoi_names
+
+    @property
+    def qoi_targets(self):
+        return OrderedDict([(qn,qv['target'] )for qv,qv in self.configuration.qois.items()])
 
     @property
     def error_names(self):
@@ -111,16 +117,16 @@ class PyposmatDataAnalyzer(object):
             if len(is_survive_idx) > 0:
                 _df.loc[is_survive_idx,'is_survive'] = 1
             return _df
-    
+
     def calculate_d_metric(self,df):
         _df = copy.deepcopy(df)
 
         _qois = self.configuration.qois
         _error_names = self.error_names
         for i,en in enumerate(self.error_names):
-            qn = self.qoi_names[i]
-            q_target = _qois[qn]['target']
-            _df[en] = np.abs(_df[en]/q_target)
+            q= self.qoi_targets[self.qoi_names[i]]
+
+            _df[en] = np.abs(_df[en]/q)
             _df[en] = np.square(_df[en])
 
         _df['d_metric'] = np.sqrt(_df[_error_names].sum(axis=1))
@@ -142,7 +148,7 @@ class PyposmatDataAnalyzer(object):
                     kde_df = kde_df.reset_index(drop=True)
             if k == 'filter_by_dmetric':
                     (nr,nc) = kde_df.shape
-                    kde_df = self.calculate_d_metric(kde_df)    
+                    kde_df = self.calculate_d_metric(kde_df)
                     (nr,nc) = kde_df.shape
                     if v[1] == 'pct':
                         pct_to_keep = v[0]/100

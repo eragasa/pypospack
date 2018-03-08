@@ -5,7 +5,7 @@ import numpy as np
 
 class PyposmatDataFile(object):
 
-    def __init__(self,filename):
+    def __init__(self,filename=None):
         self.filename = filename
 
         self.names = None
@@ -14,7 +14,7 @@ class PyposmatDataFile(object):
         self.qoi_names = None
         self.error_names = None
         self.score_names = None
-
+        self.qoi_references = None
         self.scaling_factors = None
 
         self.df = None
@@ -22,7 +22,7 @@ class PyposmatDataFile(object):
         self.error_df = None
         self.qoi_df = None
         self.rescaled_error_df = None
-        
+
         self.sub_indices = None
         self.sub_df = None
         self.sub_parameter_df = None
@@ -38,7 +38,7 @@ class PyposmatDataFile(object):
         if filename is not None:
             assert isinstance(filename,str)
             self.filename=filename
- 
+
         assert isinstance(parameter_names,list)
         assert isinstance(qoi_names,list)
         assert isinstance(error_names,list)
@@ -71,12 +71,12 @@ class PyposmatDataFile(object):
         _sim_result += [str(v) for k,v in results['parameters'].items()]
         _sim_result += [str(v) for k,v in results['qois'].items()]
         _sim_result += [str(v) for k,v in results['errors'].items()]
-        
+
         _str_sim_results = ",".join(_sim_result)
 
         with open(filename,'a') as f:
             f.write(_str_sim_results+"\n")
-        
+
 
     def read(self,filename=None):
         if filename is not None:
@@ -108,7 +108,7 @@ class PyposmatDataFile(object):
         self.df = pd.DataFrame(data=table,
                 columns=self.names,copy=True)
 
-        self.parameter_df = self.df[self.parameter_names] 
+        self.parameter_df = self.df[self.parameter_names]
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
 
@@ -124,7 +124,7 @@ class PyposmatDataFile(object):
         _scores[_scores > 0] = 0 # no points if greater than median
         _scores[_scores < 0 ] = 1 # one point if less than median
         _metric = _scores.sum(axis=1)
-        
+
         # calculate the metric
         self.names.append('sum_b_lt_median')
         self.score_names.append('sum_b_lt_median')
@@ -136,7 +136,7 @@ class PyposmatDataFile(object):
             error_df=None,
             scaling_factors='DFT',
             err_type='abs'):
-        
+
         _sf = 'd_metric'
         if type(scaling_factors) == str:
             _qoi_ref = scaling_factors
@@ -174,18 +174,18 @@ class PyposmatDataFile(object):
         self.score_names.append('d_metric')
         self.types.append('score')
         self.df['d_metric'] = np.copy(_d_metric)
-         
+
     def subselect_by_score(
             self,
             score_name,
             n=1000):
         """
             Args:
-                scaling_factors(dict): the key is the error name, the value 
-                    is a scalar vaue from which the errors will be divided for 
+                scaling_factors(dict): the key is the error name, the value
+                    is a scalar vaue from which the errors will be divided for
                     the purposes of scaling.
                 n(int): the number of points to return
-                result(str): should be either results, pareto or culled.  
+                result(str): should be either results, pareto or culled.
                     Default is culled.
         """
 
@@ -198,7 +198,7 @@ class PyposmatDataFile(object):
             err_msg = "{score_name} is not a valid score_name".format(
                     score_name=score_name)
             raise ValueError(err_msg)
-        
+
         self.sub_df = self.df.loc[self.sub_indices]
         self.sub_error_df = self.error_df.loc[self.sub_indices]
         self.sub_parameter_df = self.parameter_df.loc[self.sub_indices]
@@ -222,7 +222,7 @@ class PyposmatDataFile(object):
             print(type(self.sub_df))
             err_msg = "the sub_df attribute must be a pandas.DataFrame"
             raise ValueError(err_msg)
-        
+
         # build the string
         str_out  = ','.join([n for n in self.names]) + "\n"
         str_out += ','.join([t for t in self.types]) + "\n"
