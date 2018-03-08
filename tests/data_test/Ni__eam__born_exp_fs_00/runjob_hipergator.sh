@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH --job-name=Ni_eam             # Job name
+#SBATCH --job-name=Ni_fs              # Job name
 #SBATCH --mail-type=NONE              # Mail events (NONE, BEGIN, END, FAIL)
 #SBATCH --ntasks=16                   # Number of MPI ranks
 #SBATCH --cpus-per-task=1             # Number of cores per MPI rank 
