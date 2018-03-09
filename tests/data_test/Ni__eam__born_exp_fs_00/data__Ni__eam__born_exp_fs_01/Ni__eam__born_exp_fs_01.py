@@ -99,71 +99,56 @@ structure_db['structures']['Ni_fcc_isf'] = 'Ni_fcc_isf.vasp'
 structure_db['structures']['Ni_fcc_esf'] = 'Ni_fcc_esf.vasp'
 structure_db['structures']['Ni_fcc_vac'] = 'Ni_fcc_sc_333_vac.vasp'
 structure_db['structures']['Ni_fcc_o_int'] = 'Ni_fcc_sc_333_o_int.vasp'
-structure_db['structures']['Ni_fcc_i_int'] = 'Ni_fcc_sc_333_t_int.vasp' 
+structure_db['structures']['Ni_fcc_i_int'] = 'Ni_fcc_sc_333_t_int.vasp'
 #------------------------------------------------------------------------------
-# FITTING DATABASE 
+# FITTING DATABASE
 #------------------------------------------------------------------------------
 qoi_db = QoiDatabase()
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.E_coh',
         qoi_type='Ecoh_min_all',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=-5.7771)
+        target=-4.45)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.a0',
         qoi_type='a11_min_all',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=3.508)
+        target=3.52)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.c11',
         qoi_type='c11',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=276.)
+        target=261.)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.c12',
         qoi_type='c12',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=159.)
+        target=151.)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.c44',
         qoi_type='c44',
         structures=OrderedDict([('ideal','Ni_fcc')]),
         target=132.)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_bcc',
-        qoi_type='phase_order',
-        structures=OrderedDict([
-                ('low','Ni_fcc'),
-                ('high','Ni_bcc')]),
-        target=0.12)
+        qoi_name='Ni_fcc.B',
+        qoi_type='bulk_modulus',
+        structures=OrderedDict([('ideal','Ni_fcc')]),
+        target=188.)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_sc',
-        qoi_type='phase_order',
-        structures=OrderedDict([
-                ('low','Ni_fcc'),
-                ('high','Ni_sc')]),
-        target=0.60)
-qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_dia',
-        qoi_type='phase_order',
-        structures=OrderedDict([
-                ('low','Ni_fcc'),
-                ('high','Ni_dia')]),
-        target=1.27)
+        qoi_name='Ni_fcc.G',
+        qoi_type='shear_modulus',
+        structures=OrderedDict([('ideal','Ni_fcc')]),
+        target=101.)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.vac',
         qoi_type='E_formation',
-        structures=OrderedDict([
+        structures=OrderedDict(
+            [
                 ('defect','Ni_fcc_vac'),
-                ('ideal','Ni_fcc')]),
+                ('ideal','Ni_fcc')
+            ]
+        ),
         target=1.6)
-qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_hcp',
-        qoi_type='phase_order',
-        structures=OrderedDict([
-                ('low','Ni_fcc'),
-                ('high','Ni_hcp')]),
-        target=0.03)
 #qoi_db.add_qoi(
 #        qoi_name='Ni_fcc.o_int',
 #        qoi_type='point_defect',
@@ -177,27 +162,36 @@ qoi_db.add_qoi(
 #        structures=OrderedDict([
 #                ('defect','Ni_fcc_t_int'),
 #                ('ideal','Ni_fcc')]),
-#        target)  
+#        target)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.100s',
         qoi_type='E_surface',
-        structures=OrderedDict([
+        structures=OrderedDict(
+            [
                 ('slab','Ni_fcc_100_s'),
-                ('ideal','Ni_fcc_100_unit')]),
+                ('ideal','Ni_fcc_100_unit')
+            ]
+        ),
         target=1.51e-1)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.110s',
         qoi_type='E_surface',
-        structures=OrderedDict([
+        structures=OrderedDict(
+            [
                 ('slab','Ni_fcc_110_s'),
-                ('ideal','Ni_fcc_110_unit')]),
+                ('ideal','Ni_fcc_110_unit')
+            ]
+        ),
         target=1.48e-1)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.111s',
         qoi_type='E_surface',
-        structures=OrderedDict([
+        structures=OrderedDict(
+            [
                 ('slab','Ni_fcc_111_s'),
-                ('ideal','Ni_fcc_111_unit')]),
+                ('ideal','Ni_fcc_111_unit')
+            ]
+        ),
         target=1.25e-1)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.esf',
@@ -213,6 +207,34 @@ qoi_db.add_qoi(
                 ('defect','Ni_fcc_isf'),
                 ('ideal','Ni_fcc_111_unit')]),
         target=1.45e-02)
+qoi_db.add_qoi(
+        qoi_name='E_Ni_fcc_hcp',
+        qoi_type='phase_order',
+        structures=OrderedDict([
+                ('low','Ni_fcc'),
+                ('high','Ni_hcp')]),
+        target=0.024)
+qoi_db.add_qoi(
+        qoi_name='E_Ni_fcc_bcc',
+        qoi_type='phase_order',
+        structures=OrderedDict([
+                ('low','Ni_fcc'),
+                ('high','Ni_bcc')]),
+        target=0.092)
+qoi_db.add_qoi(
+        qoi_name='E_Ni_fcc_sc',
+        qoi_type='phase_order',
+        structures=OrderedDict([
+                ('low','Ni_fcc'),
+                ('high','Ni_sc')]),
+        target=0.600)
+qoi_db.add_qoi(
+        qoi_name='E_Ni_fcc_dia',
+        qoi_type='phase_order',
+        structures=OrderedDict([
+                ('low','Ni_fcc'),
+                ('high','Ni_dia')]),
+        target=1.27)
 #------------------------------------------------------------------------------
 # QOI CONSTRAINTS
 # QOI constraints are performed in the order they are iterated through in
@@ -227,20 +249,28 @@ qoi_db.add_qoi(
 #          filters out dominated points if set to True
 #------------------------------------------------------------------------------
 qoi_constraints = OrderedDict()
-qoi_constraints['filter_by_qoi_error']=OrderedDict()
-for k,v in qoi_db.qois.items():
-    qoi_constraints['filter_by_qoi_error']['{}.err'.format(k)] \
-         = 1.00 * abs(qoi_db.qois[k]['target']) 
-qoi_constraints['filter_by_pareto'] = True
-qoi_constraints['filter_by_d_metric'] = [80,'pct']
-
-#------------------------------------------------------------------------------
-# WRITE CONFIGURATION FILE
-# this is currently creating a race condition, where the file is being written
-# by multiple ranks to the same location.
-#------------------------------------------------------------------------------
+qoi_constraints['qoi_constraints']=OrderedDict()
+qoi_constraints['qoi_constraints']['Ni_fcc.E_coh.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.E_coh']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.a0.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.a0']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.c11.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.c12.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.c44.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c44']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.B.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.G.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.vac'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.110s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.110s']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.100s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.100s']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.111s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.111s']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.esf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.esf']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.isf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.isf']['target'])]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
+qoi_constraints['select_pareto_only'] = True
+#qoi_constraints['filter_by_percentile'] = [80,'pct']
 if __name__ == '__main__':
-    from pypospack.pyposmat.data import PyposmatConfigurationFile 
+    from pypospack.pyposmat.data import PyposmatConfigurationFile
     pyposmat_filename_in = 'pyposmat.config.in'
     configuration = PyposmatConfigurationFile()
     configuration.qois = qoi_db.qois
