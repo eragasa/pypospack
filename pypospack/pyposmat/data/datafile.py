@@ -1,4 +1,4 @@
-import copy
+import os,copy
 from collections import OrderedDict
 import pandas as pd
 import numpy as np
@@ -82,8 +82,14 @@ class PyposmatDataFile(object):
         if filename is not None:
             self.filename = filename
 
-        with open(self.filename,'r') as f:
-            lines = f.readlines()
+        try:
+            with open(self.filename,'r') as f:
+                lines = f.readlines()
+        except FileNotFoundError as e:
+            print("cannot find file: {}".format(self.filename))
+            print("current_working_dir: {}".format(os.getcwd()))
+            raise
+
         self.names = [s.strip() for s in lines[0].strip().split(',')]
         self.types = [s.strip() for s in lines[1].strip().split(',')]
         lines = [l.strip().split(',') for l in lines[2:]]

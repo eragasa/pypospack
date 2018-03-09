@@ -28,7 +28,6 @@ class PyposmatIterativeSampler(object):
         self.setup_mpi_environment()
         self.determine_rv_seeds()
 
-        print(self.mpi_rank)
         if self.mpi_rank == 0:
             if os.path.isdir(self.data_directory):
                 shutil.rmtree(self.data_directory)
@@ -40,6 +39,7 @@ class PyposmatIterativeSampler(object):
                 print('{:80}'.format('BEGIN ITERATION {}/{}'.format(
                     i+1,self.n_iterations)))
                 print(80*'-')
+            MPI.COMM_WORLD.Barrier()
 
             self.run_simulations(i)
             MPI.COMM_WORLD.Barrier()
@@ -98,7 +98,10 @@ class PyposmatIterativeSampler(object):
             self.pyposmat_mc_sampler.print_sampling_configuration()
         if self.mpi_rank == 0 and i_iteration == 0:
             self.pyposmat_mc_sampler.print_initial_parameter_distribution()
-
+        if self.mpi_rank == 0:
+            print(80*'-')
+        MPI.COMM_WORLD.Barrier()
+   
         _mc_config = self.pyposmat_mc_sampler.configuration.sampling_type[i_iteration]
         _mc_sample_type = _mc_config['type']
         _mc_n_samples = _mc_config['n_samples']
@@ -115,7 +118,10 @@ class PyposmatIterativeSampler(object):
         elif _mc_sample_type == 'kde':
             _filename_in = ''
             if 'file' in _mc_config:
-                _filename_in = _mc_config['file']
+                _filename_in = os.path.join(
+                    self.root_directory,
+                    _mc_config['file']
+                )
             else:
                 _filename_in = os.path.join(
                     self.root_directory,

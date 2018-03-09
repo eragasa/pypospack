@@ -181,7 +181,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     n_samples_completed = i_sample+1
                     time_end = time.time()
                     time_total = time_end-time_start
-                    avg_time = n_samples_completed/time_total
+                    avg_time = time_total/n_samples_completed
                     _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
                         n_samples_completed,
                         time_total,
@@ -258,7 +258,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     n_samples_completed = i_sample+1
                     time_end = time.time()
                     time_total = time_end-time_start
-                    avg_time = n_samples_completed/time_total
+                    avg_time = time_total/n_samples_completed
                     _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
                         n_samples_completed,
                         time_total,
@@ -327,7 +327,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     n_samples_completed = i_sample
                     time_end = time.time()
                     time_total = time_end-time_start
-                    avg_time = n_samples_completed/time_total
+                    avg_time = time_total/n_samples_completed
                     _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
                         n_samples_completed,
                         time_total,
