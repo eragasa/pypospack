@@ -42,6 +42,10 @@ class PyposmatDatafileVisualization(object):
         error_df(self)
         return self._error_df
 
+    def read_configuration(self,filename):
+        self.configuration = PyposmatConfigurationFile()
+        self.configuration.read(filename=filename)
+    
     def read_datafile(self,filename):
         self.datafile = PyposmatDataFile()
         self.datafile.read(filename=filename)
@@ -59,6 +63,3 @@ class PyposmatDatafileVisualization(object):
             en = "{}.err".format(q)
             self._df[aen] = self._df[en].abs()
 
-    def read_configuration(self,filename):
-        self.configuration = PyposmatConfigurationFile()
-        self.configuration.read(filename=filename)
