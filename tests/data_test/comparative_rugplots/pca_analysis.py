@@ -8,20 +8,19 @@ from pypospack.pyposmat.data import PyposmatDataFile
 
 class PcaAnalysis(object):
 
-    def __init__(self,filename):
-        self.filename = filename
+    def __init__(self,df):
+        self.df = copy.deepcopy(self.df)
 
         self.data=PyposmatDataFile(self.filename)
         self.data.read()
 
-        self.p_scaler = StandardScaler()
-        self.p_scaler.fit(self.parameter_df)
-        self.parameter_normed_df = pd.Dataframe(
-                self.p._scaler.transform(self.parameter_df)
+        self.obj_scaler = StandardScaler().fit(self.df)
+        self.normed_df = pd.Dataframe(
+                self.scaler.transform(self.parameter_df)
                 columns=self.parameter_names)
 
-        self.p_pca = PCA(n_components='mle',svd_solver='full')
-        self.p_pca.fit_transform(
+        self.pca = PCA(n_components='mle',svd_solver='full')
+        self.pca.fit_transform(
 
     @property
     def parameter_names(self): return self.data.parameter_names

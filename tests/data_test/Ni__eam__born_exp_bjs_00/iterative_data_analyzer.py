@@ -98,8 +98,10 @@ class PyposmatIterativeDataAnalyzer(object):
             print('reading {}...'.format(fn))
             self.iteration[i]['results']=PyposmatDataAnalyzer()
             self.iteration[i]['results'].read_configuration_file(filename=self.fn_config)
-            self.iteration[i]['results'].read_data_file(filename=fn)
-
+            try:
+                self.iteration[i]['results'].read_data_file(filename=fn)
+            except FileNotFoundError as e:
+                self.iteration[i]['results'] = None
     def __load_kde_files(self,src_dir):
         PYPOSPACK_KDE_FN_FMT="pyposmat.kde.{}.out"
         for i in range(self.n_iterations):
@@ -127,11 +129,11 @@ class PyposmatIterativeDataAnalyzer(object):
     def print__simulation_information(self):
 
         n_simulation_info = OrderedDict()
-        for i in range(n_iterations):
-            _total=configuration.sampling_type[i]['n_samples']
+        for i in range(self.n_iterations):
+            _total=self.configuration.sampling_type[i]['n_samples']
             try:
-                _results,ncols=data_results[i].df.shape
-                _kde,ncols=data_kde[i].df.shape
+                _results,ncols=self.iteration[i]['results'].df.shape
+                _kde,ncols=self.iteration[i]['kde'].df.shape
             except AttributeError as e:
                 _kde=0
 
@@ -145,7 +147,7 @@ class PyposmatIterativeDataAnalyzer(object):
             'i','total','results','kde'))
         s.append('{:^5} {:^10} {:^10} {:^10}'.format(
             5*'-',10*'-',10*'-',10*'-'))
-        for i in range(n_iterations):
+        for i in range(self.n_iterations):
             s.append('{:^5} {:>10} {:>10} {:>10}'.format(
                 i,
                 n_simulation_info[i]['total'],
@@ -163,6 +165,6 @@ if __name__ == "__main__":
     #        help="location of the data directory")
     #parse_args = parser.parse_args()
 
-    src_dir = "data__Ni__eam__born_exp_bjs_00"
+    src_dir = "data__Ni__eam__born_exp_bjs_01"
     a = PyposmatIterativeDataAnalyzer(src_dir)
     exit()

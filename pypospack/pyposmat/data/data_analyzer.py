@@ -10,12 +10,19 @@ import pandas as pd
 from collections import OrderedDict
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
-import pypospack.pareto as pareto
+from pypospack.pareto import pareto
 
 class PyposmatDataAnalyzer(object):
-    def __init__(self):
+    def __init__(self,fn_config=None,fn_data=None):
         self._configuration = None
         self._datafile = None
+        
+        if fn_config is not None:
+            self.fn_config = fn_config
+            self.read_configuration_file(fn_config)
+        if fn_data is not None:
+            self.fn_data = fn_data
+            self.read_data_file(fn_data)
 
     @property
     def configuration(self):
@@ -27,12 +34,21 @@ class PyposmatDataAnalyzer(object):
         self._configuration = configuration
 
     @property
+    def datafile(self):
+        return self._datafile
+
+    @datafile.setter
+    def datafile(self,datafile):
+        assert type(datafile) is PyposmatDataFile
+        self._datafile = datafile
+
+    @property
     def parameter_names(self):
-        return self._datafile.parameter_names
+        return self._parameter_names
 
     @property
     def qoi_names(self):
-        return self._datafile.qoi_names
+        return self._qoi_names
 
     @property
     def qoi_targets(self):
@@ -40,7 +56,7 @@ class PyposmatDataAnalyzer(object):
 
     @property
     def error_names(self):
-        return self._datafile.error_names
+        return self._error_names
 
     @property
     def df(self):
@@ -51,30 +67,35 @@ class PyposmatDataAnalyzer(object):
         self._configuration.read(filename)
 
     def read_data_file(self,filename):
-        self._datafile = PyposmatDataFile(filename)
-        self._datafile.read()
+        self._datafile = PyposmatDataFile()
+        self._datafile.read(filename)
 
         self._df = copy.deepcopy(self._datafile.df)
-
+        self._parameter_names = list(self._datafile.parameter_names)
+        self._error_names = list(self._datafile.error_names)
+        self._qoi_names = list(self._datafile.qoi_names)
+        self._score_names = None
+    
     def calculate_pareto_set(self,df=None):
         if df is None:
             _df = copy.deepcopy(self.df)
         else:
             _df = copy.deepcopy(df)
 
-        _df[self.error_names] = _df[self.error_names].abs()
-        _results = []
-        for i_row, row in _df.iterrows():
-            _results.append([
-                    i_row,
-                    row[self.parameter_names].values.tolist(),
-                    row[self.error_names].values.tolist()
-                    ])
-        is_pareto_idx = pareto.pareto(_results)
-        print('n_pareto:{}'.format(len(is_pareto_idx)))
+        print(_df)
+        # define names for absolute errors
+        self.abs_error_names = ["{}.abserr".format(k) for k in self.qoi_names]
+        for i,qn in enumerate(self.qoi_names):
+            en  = self.error_names[i]
+            aen = self.abs_error_names[i]
+            _df[aen] = _df[en].abs()
+
+        is_pareto_idx = pareto(_df[self.abs_error_names].values.tolist())
+
         if df is None:
             self._df['is_pareto'] = 0
             self._df.loc[is_pareto_idx,'is_pareto'] = 1
+            
             return self._df
         else:
             _df = copy.deepcopy(df)
