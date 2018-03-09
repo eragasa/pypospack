@@ -15,7 +15,7 @@ for i in range(sampling['n_iterations']):
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
-sampling[0]['file'] =  'data__Ni__eam__born_exp_bjs_00/pyposmat.kde.10.out' 
+sampling[0]['file'] =  'data__Ni__eam__born_exp_bjs_00/pyposmat.kde.10.out'
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -106,9 +106,9 @@ structure_db['structures']['Ni_fcc_isf'] = 'Ni_fcc_isf.vasp'
 structure_db['structures']['Ni_fcc_esf'] = 'Ni_fcc_esf.vasp'
 structure_db['structures']['Ni_fcc_vac'] = 'Ni_fcc_sc_333_vac.vasp'
 structure_db['structures']['Ni_fcc_o_int'] = 'Ni_fcc_sc_333_o_int.vasp'
-structure_db['structures']['Ni_fcc_i_int'] = 'Ni_fcc_sc_333_t_int.vasp' 
+structure_db['structures']['Ni_fcc_i_int'] = 'Ni_fcc_sc_333_t_int.vasp'
 #------------------------------------------------------------------------------
-# FITTING DATABASE 
+# FITTING DATABASE
 #------------------------------------------------------------------------------
 qoi_db = QoiDatabase()
 qoi_db.add_qoi(
@@ -169,7 +169,7 @@ qoi_db.add_qoi(
 #        structures=OrderedDict([
 #                ('defect','Ni_fcc_t_int'),
 #                ('ideal','Ni_fcc')]),
-#        target)  
+#        target)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.100s',
         qoi_type='E_surface',
@@ -270,12 +270,12 @@ qoi_constraints['qoi_constraints']['Ni_fcc.100s'] = ['<',1.00 * abs(qoi_db.qois[
 qoi_constraints['qoi_constraints']['Ni_fcc.111s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.111s']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.esf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.esf']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.isf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.isf']['target'])]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
 qoi_constraints['select_pareto_only'] = True
-qoi_constraints['filter_by_percentile'] = [80,'pct']
+#qoi_constraints['filter_by_percentile'] = [80,'pct']
 
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
@@ -283,7 +283,7 @@ qoi_constraints['filter_by_percentile'] = [80,'pct']
 # by multiple ranks to the same location.
 #------------------------------------------------------------------------------
 if __name__ == '__main__':
-    from pypospack.pyposmat.data import PyposmatConfigurationFile 
+    from pypospack.pyposmat.data import PyposmatConfigurationFile
     pyposmat_filename_in = 'pyposmat.config.in'
     configuration = PyposmatConfigurationFile()
     configuration.qois = qoi_db.qois

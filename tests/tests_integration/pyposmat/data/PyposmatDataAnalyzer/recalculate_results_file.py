@@ -26,8 +26,8 @@ data_out.names = ["sim_id"]\
         +data_out.error_names
 data_out.types = ["sim_id"]\
         +len(data_out.parameter_names)*['param']\
-        +len(data_out.qoi_names)*['qoi_names']\
-        +len(data_out.error_names)*['error_names']
+        +len(data_out.qoi_names)*['qoi']\
+        +len(data_out.error_names)*['error']
 
 def calculate_bulk_modulus(c11,c12,c44):
     return (c11+2*c12)/3
@@ -64,9 +64,3 @@ for i,row in data_in.df.iterrows():
     data_out_lists.append([out_row_results[k] for k in data_out.names])
 data_out.df=pd.DataFrame(data_out_lists,columns=data_out.names)
 data_out.write(_fn_results_out)
-
-
-
-
-
-

@@ -65,12 +65,12 @@ def pareto(pts,chunk_sz=500):
     while True:
         if len(idx) < sz:
             break
-        print('total_idx {} > chunk_sz {}'.format(
+        print('\ttotal_idx {} > chunk_sz {}'.format(
             len(idx),sz))
         chunks=zip(*[iter(idx)]*sz)
         idx= []
         for i,c in enumerate(chunks):
-            print("\tworking on chunk {}".format(i))
+            #print("\tworking on chunk {}".format(i))
             idx += pareto_bruteforce(pts,c)
 
         new_len_idx = len(idx)
@@ -79,7 +79,7 @@ def pareto(pts,chunk_sz=500):
         if (old_len_idx - new_len_idx) < sz:
             sz = 2*sz
         old_len_idx = new_len_idx
-    print("running final pareto calculation on {} points.".format(len(idx)))
+    print("\trunning final pareto calculation on {} points.".format(len(idx)))
     return pareto_bruteforce(pts,idx)
 
 def pareto_lawrenceberkeley(pts, indices = None, i = 0):
