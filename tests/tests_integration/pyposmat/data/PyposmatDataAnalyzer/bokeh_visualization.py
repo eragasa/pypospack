@@ -25,5 +25,6 @@ if __name__ == "__main__":
 
     vizdemo = PyposmatBokehVisualizer()
     vizdemo.load_data_file(filename= filename)
+    print(vizdemo.err_names[0])
     vizdemo.start_bokeh_server()
     vizdemo.setup_bokeh_frame()

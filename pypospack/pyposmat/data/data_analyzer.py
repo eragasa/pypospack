@@ -144,20 +144,48 @@ class PyposmatDataAnalyzer(object):
         _df[_error_names] = df[_error_names]
         return _df
 
+    def filter_with__qoi_constraints(self,kde_df,qoi_constraints):
+        _df = copy.deepcopy(kde_df)
+
+        for qn in self.datafile.qoi_names:
+            aen = "{}.abserr".format(qn)
+            en = "{}.err".format(qn)
+            _df[aen] = _df[en].abs()
+
+        for qoic_n,qoic_v in qoi_constraints.items():
+            nr0,nc0 =_df.shape
+            if qoic_v[0] == '<':
+                _df = _df[_df[qoic_n] < qoic_v[1]]
+            elif qoic_v[0] == '>':
+                _df = _df[_df[qoic_n] > qoic_v[1]]
+            elif qoic_v[0] == '=':
+                _df = _df[_df[qoic_n] == qoic_v[1]]
+            else:
+                raise ValueError('unknown operator, {}'.format(k))
+            nr1,nc0 =_df.shape
+            s = "{:>20} {:^3} {:<10} {:10} {:10} {:10}".format(qoic_n,qoic_v[0],qoic_v[1],nr1,nr0,nr0-nr1)
+            print(s)
+        return _df
+
     def write_kde_file(self,filename):
         _qoi_constraints = self.configuration.qoi_constraints
         kde_df = copy.deepcopy(self._df)
         for k,v in _qoi_constraints.items():
-            if k == 'filter_by_qoi_error':
-                kde_df = self.filter_performance_requirements(kde_df)
+            if k == 'qoi_constraints':
+                kde_df = self.filter_with__qoi_constraints(kde_df,v)
+                kde_df = kde_df.reset_index(drop=True)
+            elif k == 'filter_by_qoi_error':
+                kde_df = self.filter_performance_requirements(kde_df,v)
                 kde_df = kde_df.loc[kde_df['is_survive'] == 1]
                 kde_df = kde_df.reset_index(drop=True)
-            if k == 'filter_by_pareto':
+            elif k == 'filter_by_phase_order':
+                kde_df = self.filter_phase_order(kde_df,v)
+            elif k == 'filter_by_pareto' or k == 'select_pareto_only':
                 if v == True:
-                    kde_df = self.calculate_pareto_set(df=kde_df)
+                    kde_df = self.calculate_pareto_set(kde_df,v)
                     kde_df = kde_df.loc[kde_df['is_pareto'] == 1]
                     kde_df = kde_df.reset_index(drop=True)
-            if k == 'filter_by_dmetric':
+            elif k == 'filter_by_dmetric':
                     (nr,nc) = kde_df.shape
                     kde_df = self.calculate_d_metric(kde_df)
                     (nr,nc) = kde_df.shape
@@ -170,6 +198,8 @@ class PyposmatDataAnalyzer(object):
                     for en in self.error_names:
                         print(en,kde_df[en].max())
                     (nr,nc) = kde_df.shape
+            else:
+                raise ValueError("unknown qoi_constraint method {}".format(k))
             (nr,nc) = kde_df.shape
             print('after {}: {} remainings'.format(k,nr))
         names = ['sim_id'] \
@@ -188,70 +218,6 @@ class PyposmatDataAnalyzer(object):
 
         with open(filename,'w') as f:
             f.write("\n".join(str_list))
+
 if __name__ == "__main__":
-
-    data_directory = 'data'
-    pyposmat_data_filename = 'pypospack.results.out'
-    configuration_filename = 'pypospack.config.in'
-    data_analyzer = PypospackDataAnalyzer()
-    data_analyzer.read_configuration_file(
-            filename=configuration_filename)
-    data_analyzer.read_data_file(
-            filename=os.path.join(
-                data_directory,
-                pyposmat_data_filename))
-    data_analyzer.calculate_pareto_set()
-    data_analyzer.write_kde_file(
-            filename=os.path.join(
-                data_directory,
-                'pyposmat.kde.out'))
-
-    exit()
-    datafile = PyposmatDataFile(filename=os.path.join(
-        data_directory,pyposmat_data_filename))
-
-    datafile.read()
-
-    print(datafile.parameter_names)
-    print(datafile.qoi_names)
-    print(datafile.error_names)
-    #print(datafile.df)
-
-    df = copy.deepcopy(datafile.df)
-
-    p_names = datafile.parameter_names
-    q_names = datafile.qoi_names
-    e_names = datafile.error_names
-
-    p_column_idx = [df.columns.get_loc(n) for n in p_names if n in df.columns]
-    q_column_idx = [df.columns.get_loc(n) for n in q_names if n in df.columns]
-    e_column_idx = [df.columns.get_loc(n) for n in e_names if n in df.columns]
-
-    df['sim_id'] = df['sim_id'].apply(np.int64)
-    df[e_names] = df[e_names].abs()
-
-    values = []
-    i_iter = 0
-    for i_row, row in df.iterrows():
-        values.append(
-                [
-                    "{}_{}".format(i_iter,int(row['sim_id'])),
-                    row[p_column_idx].values.tolist(),
-                    row[e_column_idx].values.tolist()
-                ])
-    for idx,p,v in values:
-        print('idx:',idx)
-        print('p:',p)
-        print('v:',v)
-
-    is_pareto_idx = pareto.pareto([v for idx,p,v in values])
-    df = copy.deepcopy(datafile.df)
-    df['is_pareto'] = 0
-    df.loc[is_pareto_idx,'is_pareto'] = 1
-    n_results = len(values)
-    n_pareto = len(is_pareto_idx)
-    print('n_results={}'.format(n_results))
-    print('n_pareto={}'.format(n_pareto))
-
-    kde_parameters = df[df['is_pareto'] == 1][p_names]
-    print(kde_parameters)
+    pass

@@ -27,7 +27,7 @@ data_out.names = ["sim_id"]\
 data_out.types = ["sim_id"]\
         +len(data_out.parameter_names)*['param']\
         +len(data_out.qoi_names)*['qoi']\
-        +len(data_out.error_names)*['error']
+        +len(data_out.error_names)*['err']
 
 def calculate_bulk_modulus(c11,c12,c44):
     return (c11+2*c12)/3

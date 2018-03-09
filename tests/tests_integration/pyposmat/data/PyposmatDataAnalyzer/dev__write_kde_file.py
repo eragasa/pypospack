@@ -18,6 +18,7 @@ def str__qoi_constraints(qoi_constraints):
 def print__qoi_constraints(qoi_constraints):
     s = str__qoi_constraints(qoi_constraints)
     print(s)
+
 class Dev__PyposmatDataAnalyzer(PyposmatDataAnalyzer):
 
     def filter_with__qoi_constraints(self,kde_df,qoi_constraints):
@@ -45,7 +46,6 @@ class Dev__PyposmatDataAnalyzer(PyposmatDataAnalyzer):
 
     def write_kde_file(self,filename):
         _qoi_constraints = self.configuration.qoi_constraints
-        print__qoi_constraints(_qoi_constraints)
         kde_df = copy.deepcopy(self._df)
         for k,v in _qoi_constraints.items():
             if k == 'qoi_constraints':
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     _fn_pareto_out=os.path.join("pyposmat.pareto.out")
     _fn_kde_out=os.path.join("pyposmat.kde.out")
 
-    pda = Dev__PyposmatDataAnalyzer(
+    pda = PyposmatDataAnalyzer(
         fn_config=_fn_config,
         fn_data=_fn_data)
     pda.write_kde_file(filename=_fn_kde_out)
