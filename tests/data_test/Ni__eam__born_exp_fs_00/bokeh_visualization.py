@@ -20,7 +20,10 @@ import os
 from pypospack.pyposmat.visualization.bokeh import PyposmatBokehVisualizer
 
 if __name__ == "__main__":
-    filename = os.path.join('pyposmat.kde.out')
+    filename = os.path.join(
+            'data__Ni__eam__born_exp_bjs_02',
+            'pyposmat.results.0.mod.out')
+    #filename = "pyposmat.kde.0.out"
 
     vizdemo = PyposmatBokehVisualizer()
     vizdemo.load_data_file(filename= filename)
