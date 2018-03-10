@@ -31,7 +31,7 @@ class PyposmatIterativeSampler(object):
             self.pyposmat_configuration = PyposmatConfigurationFile()
             self.pyposmat_configuration.read(self.pyposmat_configuration_filename)
 
-        
+
         # determine if there was a seed file
         _init_fn = self.find_initial_parameters_files()
 
@@ -50,14 +50,14 @@ class PyposmatIterativeSampler(object):
         pass
 
     def run_all(self):
-        self.start_iteration = 0 
+        self.start_iteration = 0
         self.setup_mpi_environment()
         self.determine_rv_seeds()
 
         if self.is_restart:
             self.run_restart()
         MPI.COMM_WORLD.Barrier()
-        
+
         if self.mpi_rank == 0:
             if not self.is_restart:
                 if os.path.isdir(self.data_directory):
@@ -132,7 +132,7 @@ class PyposmatIterativeSampler(object):
         if self.mpi_rank == 0:
             print(80*'-')
         MPI.COMM_WORLD.Barrier()
-   
+
         _mc_config = self.pyposmat_mc_sampler.configuration.sampling_type[i_iteration]
         _mc_sample_type = _mc_config['type']
         _mc_n_samples = _mc_config['n_samples']
@@ -212,7 +212,7 @@ class PyposmatIterativeSampler(object):
 
         if self.mpi_rank == 0:
             self.print_random_seeds()
-    
+
     def analyze_data_directories(self,data_dir=None):
         _d = data_dir
         i = 0
@@ -235,7 +235,7 @@ class PyposmatIterativeSampler(object):
             i = i + 1
 
         return i, contents
-    
+
     def analyze_rank_directories(self,root_dir=None):
         i = 0
         contents = []
@@ -279,93 +279,70 @@ class PyposmatIterativeSampler(object):
             d = PyposmatDataFile()
             d.read(filename=datafile_fns[i])
             df = d.df
-            
+
             df0 = pd.concat([df0,df]).drop_duplicates().reset_index(drop=True)
         d0.df = df0
         return d0
 
     def merge_files(self,i_iteration):
-        n_ranks = self.mpi_size
 
-        _data_directory = self.data_directory
+        _dir = self.data_directory
+        _n_ranks = self.mpi_size
 
+        datafile = None
         # filename of old kde file
         _filename_kde = os.path.join(
-            self.data_directory,
-            'pyposmat.kde.{}.out'.format(i_iteration))
+            _dir,'pyposmat.kde.{}.out'.format(i_iteration))
+        if os.path.exists(_filename_kde):
+            if os.path.isfile(_filename_kde):
+                datafile = PyposmatDataFile()
+                datafile.read(filename=_filename_kde)
 
-        # filename to send merge results too
-        _filename_out = os.path.join(
+        for i_rank in range(_n_ranks):
+            if datafile is None:
+                datafile = os.path.join(
+                    'rank_{}'.format(i_rank),
+                    'pyposmat.results.out')
+                datafile = PyposmatDataFile()
+                datafile.read(filename=rank_fn)
+                datafile.df['sim_id'] = datafile.df.apply(
+                    lambda x:"{}_{}_{}".format(
+                        i_iteration,i_rank,str(sim_id)))
+            else:
+                rank_fn = os.path.join(
+                    'rank_{}'.format(i_rank),
+                    'pyposmat.results.out')
+                rank_f = PyposmatDataFile()
+                rank_f.read(filename=rank_fn)
+                rank_f.df['sim_id'] = rank.df.apply(
+                    lambda x:"{}_{}_{}".format(
+                        i_iteration,i_rank,str(sim_id)))
+
+                datafile.df = pd.concat(datafile.df,rank.df).reset_index(drop=True)
+
+        fn_out = os.path.join(
             self.data_directory,
             'pyposmat.results.{}.out'.format(i_iteration))
-        # delete directory if directory exists, then create it
-        if i_iteration == 0:
-            if os.path.isdir(self.data_directory):
-                shutil.rmtree(self.data_directory)
-            os.mkdir(self.data_directory)
 
-        # gather all the lines into a list, then flush all at once
-        str_list = []
-
-        # grab the names, from the rank0 data file
-        i_rank = 0
-        _rank_filename = os.path.join(
-            'rank_{}'.format(i_rank),
-            'pyposmat.results.out')
-        with open(_rank_filename,'r') as f:
-            lines = f.readlines()
-        names = [v for v in lines[0].strip().split(',')]
-        types = [v for v in lines[1].strip().split(',')]
-        str_list.append(",".join(names))
-        str_list.append(",".join(types))
-
-        # first merge the kde file from the this iteration
-        if i_iteration > 0:
-            with open(_filename_kde,'r') as f:
-                lines = f.readlines()
-            for line in lines[2:]:
-                line = [v.strip() for v in line.strip().split(',')]
-                line = [line[0]] + [float(s) for s in line[1:]]
-                line = [str(s) for i,s in enumerate(line) if i<len(names)]
-                str_list.append(",".join(line))
-
-        # process all the results from this simulations
-        for i_rank in range(n_ranks):
-            # get the filename of the ith rank
-            _rank_filename = os.path.join(
-                'rank_{}'.format(i_rank),
-                'pyposmat.results.out')
-            print('...merging {}'.format(_rank_filename))
-
-            with open(_rank_filename,'r') as f:
-                lines = f.readlines()
-            lines = [line.strip().split(',') for line in lines]
-            for line in lines[2:]:
-                line[0] = '{}_{}_{}'.format(i_iteration,i_rank,line[0])
-                str_list.append(",".join(line))
-
-        with open(_filename_out,'w') as f_out:
-            f_out.write("\n".join(str_list))
+        datafile.write(filename=fn_out)
 
     def analyze_results(self,i_iteration):
-        pyposmat_data_filename = os.path.join(\
+        data_fn = os.path.join(\
                 self.root_directory,
                 self.data_directory,
                 'pyposmat.results.{}.out'.format(i_iteration))
-        pyposmat_configuration_filename = os.path.join(\
+        config_fn = os.path.join(\
                 self.root_directory,
                 'pyposmat.config.in')
-        pyposmat_kde_filename = os.path.join(\
+        kde_fn = os.path.join(\
                 self.root_directory,
                 self.data_directory,
                 'pyposmat.kde.{}.out'.format(i_iteration+1))
 
         data_analyzer = PyposmatDataAnalyzer()
-        data_analyzer.read_configuration_file(filename=pyposmat_configuration_filename)
-        data_analyzer.read_data_file(filename=pyposmat_data_filename)
-        #data_analyzer.filter_performance_requirements()
-        #data_analyzer.calculate_pareto_set()
-        data_analyzer.write_kde_file(filename=pyposmat_kde_filename)
+        data_analyzer.read_configuration_file(filename=config_fn)
+        data_analyzer.read_data_file(filename=data_fn)
+        data_analyzer.write_kde_file(filename=kde_fn)
 
     def read_configuration_file(self,filename=None):
         assert isinstance(filename,str) or filename is None
@@ -377,8 +354,8 @@ class PyposmatIterativeSampler(object):
             self.pyposmat_configuration_filename = filename
             _filename_in = filename
 
-        self.pyposmat_configuration = PyposmatConfigurationFile(
-                filename=_filename_in)
+        self.pyposmat_configuration = PyposmatConfigurationFile()
+        self.pyposmat_configuration(filename=_filename_in)
         try:
             self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
         except:
