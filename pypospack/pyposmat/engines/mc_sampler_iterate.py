@@ -1,8 +1,8 @@
 import os,shutil,sys
 import numpy as np
 from mpi4py import MPI
-from pandas import pd
-from collecitons import OrderedDict
+import pandas as pd
+from collections import OrderedDict
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataAnalyzer
 from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
