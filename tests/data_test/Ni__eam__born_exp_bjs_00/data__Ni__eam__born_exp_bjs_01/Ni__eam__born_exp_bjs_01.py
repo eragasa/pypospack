@@ -257,10 +257,10 @@ qoi_db.add_qoi(
 #------------------------------------------------------------------------------
 qoi_constraints = OrderedDict()
 qoi_constraints['qoi_constraints']=OrderedDict()
-qoi_constraints['qoi_constraints']['Ni_fcc.E_coh.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.E_coh']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.a0.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.a0']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.c11.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.c12.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Ni_fcc.E_coh.abserr'] = ['<',2]
+qoi_constraints['qoi_constraints']['Ni_fcc.a0.abserr'] = ['<',1.00]
+qoi_constraints['qoi_constraints']['Ni_fcc.c11.abserr'] = ['<',150]
+qoi_constraints['qoi_constraints']['Ni_fcc.c12.abserr'] = ['<',150]
 qoi_constraints['qoi_constraints']['Ni_fcc.c44.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c44']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.B.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.G.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
