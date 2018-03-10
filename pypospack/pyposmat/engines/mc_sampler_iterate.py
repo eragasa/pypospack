@@ -31,70 +31,40 @@ class PyposmatIterativeSampler(object):
             self.pyposmat_configuration = PyposmatConfigurationFile()
             self.pyposmat_configuration.read(self.pyposmat_configuration_filename)
 
-        old_data_files = []
+        
         # determine if there was a seed file
-        if 'file' in self.pyposmat_configuration.sampling_type[0]:
-            _initial_seed_file =os.path.join(
-                self.root_directory,
-                self.pyposmat_configuration.sampling_type[0]['file']
-            )
-            if os.path.exists(_initial_seed_file):
-                if os.path.isfile(_initial_seed_file):
-                    old_data_files.append(_initial_seed_file)
+        _init_fn = self.find_initial_parameters_files()
 
         # get contents of the data directory if it exists
         _data_dir = os.path.join(self.root_directory,self.data_directory)
-        if os.path.exists(_data_dir):
-            if os.path.is_dir(_data_dir):
-                for i in range(self.n_iterations):
-                    results_fn = os.path.join(
-                            _data_dir,
-                            "pypospack.results.{}.out".format(i))
-                    kde_fn = os.path.join(
-                            _data_dir,
-                            "pypospack.kde.{}.out".format(i))
+        self.i_iterations, _data_dir_fns = self.analyze_rank_directories(
+                data_dir=_data_dir)
 
-                    if kde_fn in os.listdir(_data_dir):
-                        self.i_iteration = i
-                        old_data_files.append(kde_fn)
-                    elif results_fn in os.listdir(_data_dir):
-                        old_data_files.append(results_fn)
-                    else:
-                        break
-
-        # get contents of the rank_directories
-        _root_dir_contents =os.path.listdir(self.root_directory)
-        
-        i = 0
-        while "rank_{}".format(i) in _root_dir_contents:
-            rank_dir = os.path.join(self.root_directory,
-                "rank_{}".format(i))
-            rank_data_fn = os.path.join(rank_dir,
-                "pyposmat.results.out")
-            if os.path.exists(rank_data):
-                if os.path.isfile(rank_data):
-                    old_data_files.append(rank_data_fn)
+        # get contents of the rank directories
+        _root_dir = self.root_directory
+        n_ranks, _rank_data_fns = self.analyze_rank_directories(
+                root_dir=_root_dir)
 
         if self.mpi_rank == 0:
-            data_recovered = PypospackDataFile()
-            for fn in old_data_files:
-                print(fn)
+            pass
+        pass
 
     def run_all(self):
+        self.start_iteration = 0 
         self.setup_mpi_environment()
         self.determine_rv_seeds()
 
-        if is_restart:
+        if self.is_restart:
             self.run_restart()
         MPI.COMM_WORLD.Barrier()
-        exit()
+        
         if self.mpi_rank == 0:
-            if not is_restart:
+            if not self.is_restart:
                 if os.path.isdir(self.data_directory):
                     shutil.rmtree(self.data_directory)
         MPI.COMM_WORLD.Barrier()
 
-        for i in range(self.i_iteration,self.n_iterations):
+        for i in range(self.start_iteration,self.n_iterations):
             if self.mpi_rank == 0:
                 print(80*'-')
                 print('{:80}'.format('BEGIN ITERATION {}/{}'.format(
@@ -242,6 +212,77 @@ class PyposmatIterativeSampler(object):
 
         if self.mpi_rank == 0:
             self.print_random_seeds()
+    
+    def analyze_data_directories(self,data_dir=None):
+        _d = data_dir
+        i = 0
+        contents = []
+        if not os.path.exists(_d): return i, contents
+        if not os.path.isdir(_d): return i, contents
+
+        while True:
+            kde_fn = os.path.join(_d,"pyposmat.kde.{}.out".format(i))
+            if os.path.exists(kde_fn):
+                contents.append(kde_fn)
+            else:
+                if i > 0:
+                    contents.append(results_fn)
+                    break
+
+            results_fn = os.path.join(_d,"pyposmat.results.{}.out".format(i))
+            if os.path.exists(results_fn): pass
+            else:break
+            i = i + 1
+
+        return i, contents
+    
+    def analyze_rank_directories(self,root_dir=None):
+        i = 0
+        contents = []
+
+        if root_dir is None:
+            _d = self.root_directory
+        else:
+            _d = root_directory
+
+        while True:
+            rank_dir = os.path.join(_d,"rank_{}".format(i))
+            if not os.path.exists(rank_dir): break
+            if not os.path.isdir(rank_dir): break
+            rank_fn = os.path.join("rank_{}".format(i),"pyposmat.results.out")
+            if not os.path.exists(os.path.join(_d,rank_fn)): break
+            if not os.path.isfile(os.path.join(_d,rank_fn)):
+                break
+            else:
+                contents.append(rank_fn)
+            i = i + 1
+        return i, contents
+
+    def find_initial_parameters_file(self):
+        if 'file' in self.pyposmat_configuration.sampling_type[0]:
+            _init_fn =os.path.join(
+                self.root_directory,
+                self.pyposmat_configuration.sampling_type[0]['file']
+            )
+            if os.path.exists(_init_fn):
+                if os.path.isfile(_init_fn):
+                    return _init_fn
+                else:
+                    return None
+
+    def merge_pypospack_datafiles(datafile_fns):
+        d0 = PyposmatDataFile()
+        d0.read(filename=datafile_fns[0])
+        df0 = d0.df
+        for i in range(1,len(datafile_fns)):
+            print("merging {}...".format(datafile_fns[i]))
+            d = PyposmatDataFile()
+            d.read(filename=datafile_fns[i])
+            df = d.df
+            
+            df0 = pd.concat([df0,df]).drop_duplicates().reset_index(drop=True)
+        d0.df = df0
+        return d0
 
     def merge_files(self,i_iteration):
         n_ranks = self.mpi_size
