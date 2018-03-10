@@ -7,7 +7,7 @@ from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
 
 class PyposmatIterativeSampler(object):
     def __init__(self,
-            configuration_filename):
+            configuration_filename,is_restart=False):
         self.RANK_DIR_FORMAT = 'rank_{}'
         self.mpi_comm = None
         self.mpi_rank = None
@@ -23,17 +23,78 @@ class PyposmatIterativeSampler(object):
 
         self.root_directory = os.getcwd()
         self.data_directory = 'data'
+        self.is_restart = is_restart
+        self.start_iteration = 0
+
+    def run_restart(self):
+        if self.pyposmat_configuration is None:
+            self.pyposmat_configuration = PyposmatConfigurationFile()
+            self.pyposmat_configuration.read(self.pyposmat_configuration_filename)
+
+        old_data_files = []
+        # determine if there was a seed file
+        if 'file' in self.pyposmat_configuration.sampling_type[0]:
+            _initial_seed_file =os.path.join(
+                self.root_directory,
+                self.pyposmat_configuration.sampling_type[0]['file']
+            )
+            if os.path.exists(_initial_seed_file):
+                if os.path.isfile(_initial_seed_file):
+                    old_data_files.append(_initial_seed_file)
+
+        # get contents of the data directory if it exists
+        _data_dir = os.path.join(self.root_directory,self.data_directory)
+        if os.path.exists(_data_dir):
+            if os.path.is_dir(_data_dir):
+                for i in range(self.n_iterations):
+                    results_fn = os.path.join(
+                            _data_dir,
+                            "pypospack.results.{}.out".format(i))
+                    kde_fn = os.path.join(
+                            _data_dir,
+                            "pypospack.kde.{}.out".format(i))
+
+                    if kde_fn in os.listdir(_data_dir):
+                        self.i_iteration = i
+                        old_data_files.append(kde_fn)
+                    elif results_fn in os.listdir(_data_dir):
+                        old_data_files.append(results_fn)
+                    else:
+                        break
+
+        # get contents of the rank_directories
+        _root_dir_contents =os.path.listdir(self.root_directory)
+        
+        i = 0
+        while "rank_{}".format(i) in _root_dir_contents:
+            rank_dir = os.path.join(self.root_directory,
+                "rank_{}".format(i))
+            rank_data_fn = os.path.join(rank_dir,
+                "pyposmat.results.out")
+            if os.path.exists(rank_data):
+                if os.path.isfile(rank_data):
+                    old_data_files.append(rank_data_fn)
+
+        if self.mpi_rank == 0:
+            data_recovered = PypospackDataFile()
+            for fn in old_data_files:
+                print(fn)
 
     def run_all(self):
         self.setup_mpi_environment()
         self.determine_rv_seeds()
 
+        if is_restart:
+            self.run_restart()
+        MPI.COMM_WORLD.Barrier()
+        exit()
         if self.mpi_rank == 0:
-            if os.path.isdir(self.data_directory):
-                shutil.rmtree(self.data_directory)
+            if not is_restart:
+                if os.path.isdir(self.data_directory):
+                    shutil.rmtree(self.data_directory)
         MPI.COMM_WORLD.Barrier()
 
-        for i in range(self.n_iterations):
+        for i in range(self.i_iteration,self.n_iterations):
             if self.mpi_rank == 0:
                 print(80*'-')
                 print('{:80}'.format('BEGIN ITERATION {}/{}'.format(

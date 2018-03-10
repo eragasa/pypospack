@@ -8,24 +8,6 @@ if __name__ == "__main__":
     import Ni__eam__born_exp_fs_0 as config
 
     pyposmat_filename_in = 'pyposmat.config.in'
-    #------------------------------------------------------------------------------
-    # WRITE CONFIGURATION FILE
-    #------------------------------------------------------------------------------
-    configuration = PyposmatConfigurationFile()
-    configuration.qois = config.qoi_db.qois
-    configuration.qoi_constraints = config.qoi_constraints
-    configuration.structures = config.structure_db
-    configuration.potential = config.potential_formalism
-    configuration.sampling_type = config.sampling
-    configuration.sampling_distribution = config.parameter_distribution
-    configuration.sampling_constraints = config.parameter_constraints
-    configuration.write(filename=pyposmat_filename_in)
-
-    #------------------------------------------------------------------------------
-    # CHECK TO SEE IF CONFIGURATION FILE IS READABLE
-    #------------------------------------------------------------------------------
-    configuration.read(filename=pyposmat_filename_in)
-    
  
     #------------------------------------------------------------------------------
     # RUN PYPOSMAT 

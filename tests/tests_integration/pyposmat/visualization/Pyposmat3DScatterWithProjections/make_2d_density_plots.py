@@ -182,6 +182,6 @@ if __name__ == "__main__":
     myplot.read_datafile(filename=fn_results)
     myplot.read_configuration(filename=fn_config)
     myplot.plot(
-        x_name='Ni_fcc.c11.abserr',
-        y_name='Ni_fcc.c12.abserr'
+        x_name='Ni_fcc.G.abserr',
+        y_name='Ni_fcc.c44.abserr'
     )
