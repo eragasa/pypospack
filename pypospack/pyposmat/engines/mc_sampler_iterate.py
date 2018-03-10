@@ -4,6 +4,7 @@ from mpi4py import MPI
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataAnalyzer
 from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
+from pypospack.pyposmat.data import PyposmatDataFile
 
 class PyposmatIterativeSampler(object):
     def __init__(self,
@@ -53,15 +54,6 @@ class PyposmatIterativeSampler(object):
         self.start_iteration = 0
         self.setup_mpi_environment()
         self.determine_rv_seeds()
-
-        if self.is_restart:
-            self.run_restart()
-        MPI.COMM_WORLD.Barrier()
-
-        if self.mpi_rank == 0:
-            if not self.is_restart:
-                if os.path.isdir(self.data_directory):
-                    shutil.rmtree(self.data_directory)
         MPI.COMM_WORLD.Barrier()
 
         for i in range(self.start_iteration,self.n_iterations):
@@ -305,20 +297,20 @@ class PyposmatIterativeSampler(object):
                     'pyposmat.results.out')
                 datafile = PyposmatDataFile()
                 datafile.read(filename=rank_fn)
-                datafile.df['sim_id'] = datafile.df.apply(
-                    lambda x:"{}_{}_{}".format(
-                        i_iteration,i_rank,str(sim_id)))
+                #datafile.df['sim_id'] = datafile.df.apply(
+                #    lambda x:"{}_{}_{}".format(
+                #        i_iteration,i_rank,str(x['sim_id'])))
             else:
                 rank_fn = os.path.join(
                     'rank_{}'.format(i_rank),
                     'pyposmat.results.out')
                 rank_f = PyposmatDataFile()
                 rank_f.read(filename=rank_fn)
-                rank_f.df['sim_id'] = rank.df.apply(
-                    lambda x:"{}_{}_{}".format(
-                        i_iteration,i_rank,str(sim_id)))
+                #rank_f.df['sim_id'] = rank_f.df.apply(
+                #    lambda x:"{}_{}_{}".format(
+                #        i_iteration,i_rank,str(x['sim_id'])))
 
-                datafile.df = pd.concat(datafile.df,rank.df).reset_index(drop=True)
+                datafile.df = pd.concat(datafile.df,rank_f.df).reset_index(drop=True)
 
         fn_out = os.path.join(
             self.data_directory,
@@ -355,7 +347,7 @@ class PyposmatIterativeSampler(object):
             _filename_in = filename
 
         self.pyposmat_configuration = PyposmatConfigurationFile()
-        self.pyposmat_configuration(filename=_filename_in)
+        self.pyposmat_configuration.read(filename=_filename_in)
         try:
             self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
         except:
