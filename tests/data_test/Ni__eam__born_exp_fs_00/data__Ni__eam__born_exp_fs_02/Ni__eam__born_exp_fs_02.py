@@ -6,16 +6,16 @@ from pypospack.qoi import QoiDatabase
 #------------------------------------------------------------------------------
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
-sampling['n_iterations'] = 10
+sampling['n_iterations'] = 20
 sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 1000
+    sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
-sampling[0]['file'] = 'data__Ni__eam__born_exp_fs_00/pyposmat.kde.10.out'
+sampling[0]['file'] = 'data__Ni__eam__born_exp_fs_02/pyposmat.kde.0.out'
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
