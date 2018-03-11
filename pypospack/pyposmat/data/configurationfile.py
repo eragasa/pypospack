@@ -15,9 +15,16 @@ class PyposmatConfigurationFile(object):
         self.filename_out = None
         self.configuration = None
 
+        self._parameter_names = None
+        self._qoi_names = None
+        self._error_names = None
+
         if filename is not None:
             self.read(filename=filename)
 
+    @property
+    def n_iterations(self):
+        return self.sampling_type['n_iterations']
     @property
     def qois(self):
         return self.configuration['qois']
@@ -128,6 +135,10 @@ class PyposmatConfigurationFile(object):
         with open(filename,'r') as f:
             self.configuration = yaml.load(f, OrderedDictYAMLLoader)
 
+        self.parameter_names = [k for k in self.configuration['sampling_dist']]
+        self.qoi_names = [q for q in self.configuration['qois']]
+        self.error_names = ["{}.err".format(q) for q in self.qoi_names]
+    
     def write(self,filename):
         self.filename_out = filename
         _configuration = copy.deepcopy(self.configuration)

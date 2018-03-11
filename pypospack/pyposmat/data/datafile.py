@@ -81,7 +81,6 @@ class PyposmatDataFile(object):
     def read(self,filename=None):
         if filename is not None:
             self.filename = filename
-
         try:
             with open(self.filename,'r') as f:
                 lines = f.readlines()
@@ -92,13 +91,21 @@ class PyposmatDataFile(object):
 
         self.names = [s.strip() for s in lines[0].strip().split(',')]
         self.types = [s.strip() for s in lines[1].strip().split(',')]
-        lines = [l.strip().split(',') for l in lines[2:]]
 
         table = []
         for line in lines[2:]:
-            values = [line[0]] + [float(x) for x in line[1:]]
+            tokens = line.strip().split(',')
+            values = []
+            for i in range(len(self.names)):
+                if i == 0:
+                    values.append(tokens[i])
+                else:
+                    values.append(float(tokens[i]))
             table.append(values)
-
+        
+        self.df = pd.DataFrame(table)
+        self.df.columns = self.names
+        
         self.parameter_names = [
                 n for i,n in enumerate(self.names) \
                     if self.types[i] == 'param']
@@ -111,13 +118,11 @@ class PyposmatDataFile(object):
         self.score_names = [
                 n for i,n in enumerate(self.names) \
                         if self.types[i] == 'score']
-        self.df = pd.DataFrame(data=table,
-                columns=self.names,copy=True)
 
         self.parameter_df = self.df[self.parameter_names]
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
-
+        
     def write(self,filename):
         fn = filename
 
@@ -247,7 +252,8 @@ class PyposmatDataFile(object):
             try:
                 _row[0] = int(_row[0]) # row[0] is the sim_id
             except ValueError as e:
-                pass
+                raise
+            #pass
             str_out += ','.join([str(s) for s in _row]) + "\n"
 
         with open(_filename,'w') as f:

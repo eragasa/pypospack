@@ -67,9 +67,14 @@ class PyposmatDataAnalyzer(object):
         self._configuration.read(filename)
 
     def read_data_file(self,filename):
-        self._datafile = PyposmatDataFile()
-        self._datafile.read(filename)
-
+        
+        try:
+            self._datafile = PyposmatDataFile()
+            self._datafile.read(filename)
+        except ValueError as e:
+            print("Cannot read filename: {}".format(filename))
+            raise
+        
         self._df = copy.deepcopy(self._datafile.df)
         self._parameter_names = list(self._datafile.parameter_names)
         self._error_names = list(self._datafile.error_names)

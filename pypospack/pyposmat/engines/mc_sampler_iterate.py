@@ -20,9 +20,9 @@ class PyposmatIterativeSampler(object):
         self.rv_seed = None
         self.rv_seeds = None
 
-        self.pyposmat_configuration_filename = configuration_filename
-        self.pyposmat_configuration = None
-        self.pyposmat_mc_sampler = None
+        self.configuration_filename = configuration_filename
+        self.configuration = None
+        self.mc_sampler = None
 
         self.root_directory = os.getcwd()
         self.data_directory = 'data'
@@ -30,9 +30,9 @@ class PyposmatIterativeSampler(object):
         self.start_iteration = 0
 
     def run_restart(self):
-        if self.pyposmat_configuration is None:
-            self.pyposmat_configuration = PyposmatConfigurationFile()
-            self.pyposmat_configuration.read(self.pyposmat_configuration_filename)
+        if self.configuration is None:
+            self.configuration = PyposmatConfigurationFile()
+            self.configuration.read(self.configuration_filename)
 
 
         # determine if there was a seed file
@@ -67,9 +67,11 @@ class PyposmatIterativeSampler(object):
             MPI.COMM_WORLD.Barrier()
 
             self.run_simulations(i)
+            
             MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:
+                print('merging files')
                 self.merge_files(i)
                 self.analyze_results(i)
             MPI.COMM_WORLD.Barrier()
@@ -92,7 +94,7 @@ class PyposmatIterativeSampler(object):
 
         _config_filename = os.path.join(
                 self.root_directory,
-                self.pyposmat_configuration_filename)
+                self.configuration_filename)
 
         _results_filename = os.path.join(
                 self.root_directory,
@@ -103,31 +105,31 @@ class PyposmatIterativeSampler(object):
         np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
 
         # initialize()
-        self.pyposmat_mc_sampler = PyposmatMonteCarloSampler(
+        self.mc_sampler = PyposmatMonteCarloSampler(
                 filename_in = _config_filename,
                 filename_out = _results_filename,
                 mpi_rank = self.mpi_rank,
                 mpi_size = self.mpi_size)
-        self.pyposmat_mc_sampler.create_base_directories()
-        self.pyposmat_mc_sampler.read_configuration_file()
-        _structure_dir = self.pyposmat_mc_sampler.configuration.structures['structure_directory']
-        self.pyposmat_mc_sampler.configuration.structures['structure_directory'] = \
+        self.mc_sampler.create_base_directories()
+        self.mc_sampler.read_configuration_file()
+        _structure_dir = self.mc_sampler.configuration.structures['structure_directory']
+        self.mc_sampler.configuration.structures['structure_directory'] = \
                 os.path.join('..',_structure_dir)
-        self.pyposmat_mc_sampler.configure_qoi_manager()
-        self.pyposmat_mc_sampler.configure_task_manager()
-        self.pyposmat_mc_sampler.configure_pyposmat_datafile_out()
+        self.mc_sampler.configure_qoi_manager()
+        self.mc_sampler.configure_task_manager()
+        self.mc_sampler.configure_pyposmat_datafile_out()
         #pyposmat_datafile_out = PyposmatDataFile(filename_out)
 
         if self.mpi_rank == 0:
-            self.pyposmat_mc_sampler.print_structure_database()
-            self.pyposmat_mc_sampler.print_sampling_configuration()
+            self.mc_sampler.print_structure_database()
+            self.mc_sampler.print_sampling_configuration()
         if self.mpi_rank == 0 and i_iteration == 0:
-            self.pyposmat_mc_sampler.print_initial_parameter_distribution()
+            self.mc_sampler.print_initial_parameter_distribution()
         if self.mpi_rank == 0:
             print(80*'-')
         MPI.COMM_WORLD.Barrier()
 
-        _mc_config = self.pyposmat_mc_sampler.configuration.sampling_type[i_iteration]
+        _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
         _mc_sample_type = _mc_config['type']
         _mc_n_samples = _mc_config['n_samples']
 
@@ -137,7 +139,7 @@ class PyposmatIterativeSampler(object):
             _n_samples_per_rank += 1
 
         if _mc_sample_type == 'parametric':
-            self.pyposmat_mc_sampler.run_simulations(
+            self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank)
         elif _mc_sample_type == 'kde':
@@ -153,7 +155,7 @@ class PyposmatIterativeSampler(object):
                     self.data_directory,
                     'pyposmat.kde.{}.out'.format(i_iteration))
 
-            self.pyposmat_mc_sampler.run_simulations(
+            self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in)
@@ -163,7 +165,7 @@ class PyposmatIterativeSampler(object):
             _filename_in = os.path.join(
                 self.root_directory,
                 _mc_config['file'])
-            self.pyposmat_mc_sampler.run_simulations(
+            self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in
@@ -253,10 +255,10 @@ class PyposmatIterativeSampler(object):
         return i, contents
 
     def find_initial_parameters_file(self):
-        if 'file' in self.pyposmat_configuration.sampling_type[0]:
+        if 'file' in self.configuration.sampling_type[0]:
             _init_fn =os.path.join(
                 self.root_directory,
-                self.pyposmat_configuration.sampling_type[0]['file']
+                self.configuration.sampling_type[0]['file']
             )
             if os.path.exists(_init_fn):
                 if os.path.isfile(_init_fn):
@@ -287,38 +289,59 @@ class PyposmatIterativeSampler(object):
         # filename of old kde file
         _filename_kde = os.path.join(
             _dir,'pyposmat.kde.{}.out'.format(i_iteration))
+        
+        print('Looking for previous kde file')
+        print('    {}'.format(_filename_kde))
+
+        
+        datafile_fns = []
         if os.path.exists(_filename_kde):
             if os.path.isfile(_filename_kde):
-                datafile = PyposmatDataFile()
-                datafile.read(filename=_filename_kde)
-
+                datafile_fns.append(_filename_kde)
         for i_rank in range(_n_ranks):
-            if datafile is None:
-                datafile = os.path.join(
-                    'rank_{}'.format(i_rank),
-                    'pyposmat.results.out')
-                datafile = PyposmatDataFile()
-                datafile.read(filename=rank_fn)
-                #datafile.df['sim_id'] = datafile.df.apply(
-                #    lambda x:"{}_{}_{}".format(
-                #        i_iteration,i_rank,str(x['sim_id'])))
-            else:
-                rank_fn = os.path.join(
-                    'rank_{}'.format(i_rank),
-                    'pyposmat.results.out')
-                rank_f = PyposmatDataFile()
-                rank_f.read(filename=rank_fn)
-                #rank_f.df['sim_id'] = rank_f.df.apply(
-                #    lambda x:"{}_{}_{}".format(
-                #        i_iteration,i_rank,str(x['sim_id'])))
+            rank_fn = os.path.join(
+                'rank_{}'.format(i_rank),
+                'pyposmat.results.out')
+            datafile_fns.append(rank_fn)
+        
+        names = ['sim_id']\
+                + self.parameter_names\
+                + self.qoi_names\
+                + self.error_names
+        types = ['sim_id']\
+                + ['param']*len(self.parameter_names)\
+                + ['qoi']*len(self.qoi_names)\
+                + ['err']*len(self.error_names)
+        
+        dataframes = OrderedDict()
+        for fn in datafile_fns:
+            datafile = PyposmatDataFile()
+            datafile.read(fn)
+            #if fn.startswith('rank') 
+            #datafile.df['sim_id'] = datafile.df.apply(
+            #    lambda x:"{}_{}_{}".format(
+            #        i_iteration,i_rank,str(x['sim_id'])))
+            dataframes[fn] = datafile.df[names]
+        
+              
+        df = pd.concat(dataframes).reset_index(drop=True)
+        datafile = PyposmatDataFile()
+        datafile.df = df
+        datafile.parameter_names = self.parameter_names
+        datafile.error_names = self.error_names
+        datafile.qoi_names = self.qoi_names
+        datafile.names = names
+        datafile.types = types
+        try:
+            fn_out = os.path.join(
+                _dir,'pyposmat.results.{}.out'.format(i_iteration))
+            datafile.write(filename=fn_out)
+        except FileNotFoundError as e:
+            if not os.path.exists(self.data_directory):
+                os.mkdir(self.data_directory)
+                datafile.write(filename_fn_out)
+            else: raise
 
-                datafile.df = pd.concat(datafile.df,rank_f.df).reset_index(drop=True)
-
-        fn_out = os.path.join(
-            self.data_directory,
-            'pyposmat.results.{}.out'.format(i_iteration))
-
-        datafile.write(filename=fn_out)
 
     def analyze_results(self,i_iteration):
         data_fn = os.path.join(\
@@ -327,7 +350,7 @@ class PyposmatIterativeSampler(object):
                 'pyposmat.results.{}.out'.format(i_iteration))
         config_fn = os.path.join(\
                 self.root_directory,
-                'pyposmat.config.in')
+                self.configuration_filename)
         kde_fn = os.path.join(\
                 self.root_directory,
                 self.data_directory,
@@ -341,19 +364,23 @@ class PyposmatIterativeSampler(object):
     def read_configuration_file(self,filename=None):
         assert isinstance(filename,str) or filename is None
 
-        _filename_in = None
         if filename is None:
-            _filename_in = self.pyposmat_configuration_filename
+            _filename_in = self.configuration_filename
         else:
-            self.pyposmat_configuration_filename = filename
+            self.configuration_filename = filename
             _filename_in = filename
 
-        self.pyposmat_configuration = PyposmatConfigurationFile()
-        self.pyposmat_configuration.read(filename=_filename_in)
-        try:
-            self.n_iterations = self.pyposmat_configuration.sampling_type['n_iterations']
-        except:
-            raise
+        self.configuration = PyposmatConfigurationFile()
+        self.configuration.read(filename=_filename_in)
+        
+        self.n_iterations = self.configuration.n_iterations
+        self.qoi_names = self.configuration.qoi_names
+        self.error_names = self.configuration.error_names
+        self.parameter_names = self.configuration.parameter_names
+    
+        print(self.parameter_names)
+        print(self.qoi_names)
+        print(self.error_names)
 
     def print_random_seeds(self):
             print(80*'-')
