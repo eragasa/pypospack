@@ -9,26 +9,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 from matplotlib import cm
+from matplotlib import rc
 
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
-from pypospack.pyposmat.visualization import PyposmatDatafileVisualization
-def ellipse(ra,rb,ang,x0,y0,Nb=100):
-    xpos,ypos=x0,y0
-    radm,radn=ra,rb
-    an=ang
-    co,si=np.cos(an),np.sin(an)
-    the=linspace(0,2*np.pi,Nb)
-    X=radm*np.cos(the)*co-si*radn*np.sin(the)+xpos
-    Y=radm*np.cos(the)*si+co*radn*np.sin(the)+ypos
-    return X,Y
+from pypospack.pyposmat.visualization import PyposmatDataFileVisualization
 
-class Pyposmat2DDensityPlots(PyposmatDatafileVisualization):
+class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
     def __init__(self):
-        PyposmatDatafileVisualization.__init__(self)
+        PyposmatDataFileVisualization.__init__(self)
+    
+    def plot(self,x_name,y_name,filename=None,
+            xy_cmap_name='Blues'):
+        
+        plt.rc('text', usetex=True)
+        #plt.ion()
 
-    def plot(self,x_name,y_name,filename=None):
-        plt.ion()
 
         # Define a function to make the ellipses
 
@@ -42,8 +38,8 @@ class Pyposmat2DDensityPlots(PyposmatDatafileVisualization):
         ylims = [min(y),max(y)]
 
         # Set up your x and y labels
-        xlabel = '$\mathrm{Your\\ X\\ Label}$'
-        ylabel = '$\mathrm{Your\\ Y\\ Label}$'
+        xlabel = r'$a_{0,\phi} \mathrm{[\AA]}$'
+        ylabel = r'$a_{a,\rho} \mathrm{[\AA]}$'
 
         # Define the locations for the axes
         left, width = 0.12, 0.55
@@ -52,14 +48,14 @@ class Pyposmat2DDensityPlots(PyposmatDatafileVisualization):
 
         # Set up the geometry of the three plots
         rect_temperature = [left,   bottom,   width, height] # dimensions of temp plot
-        rect_histx =       [left,   bottom_h, width, 0.25] # dimensions of x-histogram
+        rect_histx =       [left,   bottom_h, width, 0.25  ] # dimensions of x-histogram
         rect_histy =       [left_h, bottom,   0.25,  height] # dimensions of y-histogram
 
         # Set up the size of the figure
         fig = plt.figure(1, figsize=(9.5,9))
 
         # Make the three plots
-        axTemperature = plt.axes(rect_temperature) # temperature plot
+        axHeatplot_xy = plt.axes(rect_temperature) # temperature plot
         axHistx = plt.axes(rect_histx) # x histogram
         axHisty = plt.axes(rect_histy) # y histogram
 
@@ -72,7 +68,7 @@ class Pyposmat2DDensityPlots(PyposmatDatafileVisualization):
         xmin = min(xlims)
         xmax = max(xlims)
         ymin = min(ylims)
-        ymax = max(y)
+        ymax = max(ylims)
 
         # Make the 'main' temperature plot
         # Define the number of bins
@@ -84,61 +80,39 @@ class Pyposmat2DDensityPlots(PyposmatDatafileVisualization):
         ybins = linspace(start = ymin, stop = ymax, num = nybins)
         xcenter = (xbins[0:-1]+xbins[1:])/2.0
         ycenter = (ybins[0:-1]+ybins[1:])/2.0
-        aspectratio = 1.0*(xmax - 0)/(1.0*ymax - 0)
+        aspectratio = 1.0*(xmax - xmin)/(1.0*ymax - ymin)
 
-        H, xedges,yedges = np.histogram2d(y,x,bins=(ybins,xbins))
+        Z, xedges,yedges = np.histogram2d(y,x,bins=(ybins,xbins))
         X = xcenter
         Y = ycenter
-        Z = H
 
         # Plot the temperature data
-        cax = (axTemperature.imshow(H, extent=[xmin,xmax,ymin,ymax],
-               interpolation='nearest', origin='lower',aspect=aspectratio))
-
-        # Plot the temperature plot contours
-        contourcolor = 'white'
-        xcenter = np.mean(x)
-        ycenter = np.mean(y)
-        ra = np.std(x)
-        rb = np.std(y)
-        ang = 0
-
-        X,Y=ellipse(ra,rb,ang,xcenter,ycenter)
-        axTemperature.plot(X,Y,"k:",ms=1,linewidth=2.0)
-        axTemperature.annotate('$1\\sigma$', xy=(X[15], Y[15]), xycoords='data',xytext=(10, 10),
-                               textcoords='offset points', horizontalalignment='right',
-                               verticalalignment='bottom',fontsize=25)
-
-        X,Y=ellipse(2*ra,2*rb,ang,xcenter,ycenter)
-        axTemperature.plot(X,Y,"k:",color = contourcolor,ms=1,linewidth=2.0)
-        axTemperature.annotate('$2\\sigma$', xy=(X[15], Y[15]), xycoords='data',xytext=(10, 10),
-                               textcoords='offset points',horizontalalignment='right',
-                               verticalalignment='bottom',fontsize=25, color = contourcolor)
-
-        X,Y=ellipse(3*ra,3*rb,ang,xcenter,ycenter)
-        axTemperature.plot(X,Y,"k:",color = contourcolor, ms=1,linewidth=2.0)
-        axTemperature.annotate('$3\\sigma$', xy=(X[15], Y[15]), xycoords='data',xytext=(10, 10),
-                               textcoords='offset points',horizontalalignment='right',
-                               verticalalignment='bottom',fontsize=25, color = contourcolor)
-
+        axHeatplot_xy.imshow(
+                Z,
+                extent=[xmin,xmax,ymin,ymax],
+                interpolation='nearest', 
+                cmap=plt.get_cmap(xy_cmap_name),
+                origin='lower',
+                aspect=aspectratio)
+         
         #Plot the axes labels
-        axTemperature.set_xlabel(xlabel,fontsize=25)
-        axTemperature.set_ylabel(ylabel,fontsize=25)
+        axHeatplot_xy.set_xlabel(xlabel,fontsize=25)
+        axHeatplot_xy.set_ylabel(ylabel,fontsize=25)
 
         #Make the tickmarks pretty
-        ticklabels = axTemperature.get_xticklabels()
+        ticklabels = axHeatplot_xy.get_xticklabels()
         for label in ticklabels:
             label.set_fontsize(18)
             label.set_family('serif')
 
-        ticklabels = axTemperature.get_yticklabels()
+        ticklabels = axHeatplot_xy.get_yticklabels()
         for label in ticklabels:
             label.set_fontsize(18)
             label.set_family('serif')
 
         #Set up the plot limits
-        axTemperature.set_xlim(xlims)
-        axTemperature.set_ylim(ylims)
+        axHeatplot_xy.set_xlim(xlims)
+        axHeatplot_xy.set_ylim(ylims)
 
         #Set up the histogram bins
         xbins = np.arange(xmin, xmax, (xmax-xmin)/nbins)
@@ -173,7 +147,7 @@ class Pyposmat2DDensityPlots(PyposmatDatafileVisualization):
 
         # Save to a File
         filename = 'myplot'
-        plt.savefig(filename + '.pdf',format = 'pdf', transparent=True)
+        plt.savefig(filename + '.eps',format = 'eps', transparent=True)
 
 if __name__ == "__main__":
     data_dir = "../../../../data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_02" 
@@ -183,6 +157,6 @@ if __name__ == "__main__":
     myplot.read_datafile(filename=fn_results)
     myplot.read_configuration(filename=fn_config)
     myplot.plot(
-        x_name='Ni_fcc.G.abserr',
-        y_name='Ni_fcc.B.abserr'
+        x_name='p_NiNi_r0',
+        y_name='d_Ni_r0'
     )
