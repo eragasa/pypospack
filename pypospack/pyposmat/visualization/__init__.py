@@ -6,7 +6,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.axes3d import Axes3D
 
-from pypospack.kde import Chiu1999_h 
+from pypospack.kde import Chiu1999_h, Silverman1986_h 
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 
@@ -76,6 +76,8 @@ class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
         values=np.vstack([x,y])
         if h is None:
             kde = stats.gaussian_kde(values)
+        elif h in ['silverman','silverman1986']:
+            kde = stats.gaussian_kde(values,_h)
         elif h is 'chiu1999':
             _h = Chiu1999_h(values)
             kde = stats.gaussian_kde(values,_h)
@@ -118,10 +120,13 @@ class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
             ymin,
             ymax
         ):
+        aspectratio = (xmax-xmin)/(ymax-ymin)
         ax.imshow(
             np.rot90(Z),
             cmap=plt.get_cmap(XY_cmap_name),
-            extent=[xmin,xmax,ymin,ymax])
+            extent=[xmin,xmax,ymin,ymax],
+            aspect=aspectratio
+            )
 
     def plot(self,
             x_name : str,

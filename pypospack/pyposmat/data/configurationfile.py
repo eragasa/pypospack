@@ -129,13 +129,23 @@ class PyposmatConfigurationFile(object):
         self.configuration['param_constraints'] = OrderedDict()
         self.configuration['param_constraints'] = copy.deepcopy(constraints)
 
+    @property
+    def latex_labels(self):
+        return self.configuration['latex_labels']
+    
+    @latex_labels.setter
+    def latex_labels(self,labels):
+        assert isinstance(labels,OrderedDict)
+        self.configuration['latex_labels'] = OrderedDict()
+        self.configuration['latex_labels'] = copy.deepcopy(labels)
+
     def read(self,filename):
         self.filename_in = filename
         self.configuration = None
         with open(filename,'r') as f:
             self.configuration = yaml.load(f, OrderedDictYAMLLoader)
 
-        self.parameter_names = [k for k in self.configuration['sampling_dist']]
+        self.parameter_names = [k for k,v in self.configuration['sampling_dist'].items()]
         self.qoi_names = [q for q in self.configuration['qois']]
         self.error_names = ["{}.err".format(q) for q in self.qoi_names]
     
