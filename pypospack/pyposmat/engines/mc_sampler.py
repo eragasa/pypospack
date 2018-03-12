@@ -9,6 +9,7 @@ import time,sys,os,copy,shutil,importlib
 from collections import OrderedDict
 import numpy as np
 import scipy.stats
+from pypospack.kde import Chiu1999_h
 from pypospack.pyposmat.engines import PyposmatEngine
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.task.lammps import LammpsSimulationError
@@ -195,8 +196,13 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         # configure random number generator
         _datafile_in = PyposmatDataFile(filename=filename_in)
         _datafile_in.read()
-        _rv_generator = scipy.stats.gaussian_kde(
-                _datafile_in.df[self.free_parameter_names].values.T)
+       
+        _X = _datafile_in.df[self.free_parameter_names].values.T
+        _h = Chiu1999_h(_X)
+        _rv_generator = scipy.stats.gaussian_kde(_X,_h)
+        print('Chiu199_h:{}'.format(_h))
+        #_rv_generator = scipy.stats.gaussian_kde(
+        #        _datafile_in.df[self.free_parameter_names].values.T)
 
         self.pyposmat_datafile_out.write_header_section(
                 filename=self.pyposmat_data_out_filename,

@@ -11,6 +11,7 @@ class Dev__PyposmatIterativeSampler(PyposmatIterativeSampler):
 
     
 if __name__ == "__main__":
+    pyposmat_data_dir = 'data__Ni__eam__born_exp_fs_00'
     pyposmat_filename_in = os.path.join(
             'data__Ni__eam__born_exp_fs_00',
             'pyposmat.config.in')
@@ -19,7 +20,7 @@ if __name__ == "__main__":
     #------------------------------------------------------------------------------
     pyposmat_app = PyposmatIterativeSampler(
         configuration_filename = pyposmat_filename_in)
-    pyposmat_app.data_directory = pyposmat_filename_in
+    pyposmat_app.data_directory = 'data__Ni__eam__born_exp_fs_00'
     pyposmat_app.read_configuration_file()
     #pyposmat_app.run_restart()
     #exit()

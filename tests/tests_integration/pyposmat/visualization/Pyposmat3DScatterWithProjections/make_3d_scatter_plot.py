@@ -49,6 +49,7 @@ class Pyposmat3DScatterWithProjections(PyposmatDatafileVisualization):
         ax.set_ylabel(y_name)
         ax.set_zlabel(z_name)
 if __name__ == "__main__":
+    
     fn_config = "pyposmat.config.in"
     fn_results = "pyposmat.kde.out"
     myplot = Pyposmat3DScatterWithProjections()

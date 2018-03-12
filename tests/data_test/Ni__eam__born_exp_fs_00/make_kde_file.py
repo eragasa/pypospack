@@ -3,11 +3,11 @@ from pypospack.pyposmat.data import PyposmatDataAnalyzer
 
 if __name__ == "__main__":
     _fn_config=os.path.join(
-         "data__Ni__eam__born_exp_fs_02",
+         "data__Ni__eam__born_exp_fs_03",
          "pyposmat.config.in")
     _fn_data=os.path.join(
          "data__Ni__eam__born_exp_fs_02",
-         "pyposmat.results.0.mod.out")
+         "pyposmat.kde.9.out")
     _fn_kde_out=os.path.join(
          "data__Ni__eam__born_exp_fs_02",
          "pyposmat.kde.0.out")
