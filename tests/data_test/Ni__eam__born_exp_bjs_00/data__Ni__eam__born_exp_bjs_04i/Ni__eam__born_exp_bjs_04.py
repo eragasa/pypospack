@@ -380,5 +380,6 @@ if __name__ == '__main__':
     configuration.sampling_type = sampling
     configuration.sampling_distribution = parameter_distribution
     configuration.sampling_constraints = parameter_constraints
+    configuration.latex_labels = latex_labels
     configuration.write(filename=pyposmat_filename_in)
 
