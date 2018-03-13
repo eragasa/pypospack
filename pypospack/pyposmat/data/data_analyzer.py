@@ -12,6 +12,24 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pareto import pareto
 
+def filter_by_pareto_set_membership(df,error_names):
+    pass
+
+def filter_by_znormalized_errors(df,percentile,qoi_names):
+    for qn in qoi_names:
+        en = "{}.err".format(qn)
+        zen = "{}.zerr".format(qn)
+        df[zen] = df[en]/df[en].std()
+
+    zerror_names = ["{}.zerr".format(q) for q in qoi_names]
+    df['z_err_dist'] = np.sqrt(np.square(df[zerror_names]).sum(axis=1))
+
+    nr0,nc0 = df.shape
+    nr1 = int(percentile*nr0//1)
+    df=df.nsmallest(nr1,"z_err_dist").reset_index(drop=True)
+
+    return df
+
 class PyposmatDataAnalyzer(object):
     def __init__(self,fn_config=None,fn_data=None):
         self._configuration = None
@@ -172,24 +190,24 @@ class PyposmatDataAnalyzer(object):
             print(s)
         return _df
 
+    def filter_by_znormalized_errors(self,kde_df,qoi_constraints):
+        percentile = qoi_constraints['percentile']
+        return filter_by_znormalized_errors(
+                df=kde_df,
+                percentile=percentile,
+                qoi_names=self.qoi_names)
+
     def write_kde_file(self,filename):
         _qoi_constraints = self.configuration.qoi_constraints
         kde_df = copy.deepcopy(self._df)
         for k,v in _qoi_constraints.items():
             if k == 'qoi_constraints':
                 kde_df = self.filter_with__qoi_constraints(kde_df,v)
-                kde_df = kde_df.reset_index(drop=True)
-            elif k == 'filter_by_qoi_error':
-                kde_df = self.filter_performance_requirements(kde_df,v)
-                kde_df = kde_df.loc[kde_df['is_survive'] == 1]
-                kde_df = kde_df.reset_index(drop=True)
-            elif k == 'filter_by_phase_order':
-                kde_df = self.filter_phase_order(kde_df,v)
+            elif k == "filter_by__d_zerror":
+                kde_df = self.filter_by_znormalized_errors(kde_df,v)
             elif k == 'filter_by_pareto' or k == 'select_pareto_only':
-                if v == True:
-                    kde_df = self.calculate_pareto_set(kde_df,v)
-                    kde_df = kde_df.loc[kde_df['is_pareto'] == 1]
-                    kde_df = kde_df.reset_index(drop=True)
+                kde_df = self.calculate_pareto_set(kde_df,v)
+                kde_df = kde_df.loc[kde_df['is_pareto'] == 1]
             elif k == 'filter_by_dmetric':
                     (nr,nc) = kde_df.shape
                     kde_df = self.calculate_d_metric(kde_df)
@@ -205,6 +223,8 @@ class PyposmatDataAnalyzer(object):
                     (nr,nc) = kde_df.shape
             else:
                 raise ValueError("unknown qoi_constraint method {}".format(k))
+            
+            kde_df = kde_df.reset_index(drop=True)
             (nr,nc) = kde_df.shape
             print('after {}: {} remainings'.format(k,nr))
         names = ['sim_id'] \
