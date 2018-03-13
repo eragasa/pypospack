@@ -15,7 +15,7 @@ for i in range(sampling['n_iterations']):
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
-sampling[0]['file'] = 'data__Ni__eam__born_exp_fs_03/pyposmat.kde.00.out'
+sampling[0]['file'] = 'data__Ni__eam__born_exp_fs_03/pyposmat.kde.0.out'
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -267,6 +267,8 @@ qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
+qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+qoi_constraints['filter_by__d_zerror']['percentile'] = .90
 qoi_constraints['select_pareto_only'] = True
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
 if __name__ == '__main__':
