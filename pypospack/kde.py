@@ -43,3 +43,6 @@ def Chiu1999_h(X):
         method='Nelder-Mead')
 
     return results.x[0]
+
+def chiu1999_h(X):return Chiu1999_h(X)
+def silverman1986_h(X): return Silverman1986_h(X)

@@ -58,7 +58,7 @@ if __name__ == "__main__":
     from pypospack.pyposmat.data import PyposmatDataFile
 
     for i in range(9):
-        f = '../../../data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_02/pyposmat.kde.{}.out'.format(i) 
+        fn = '../../../data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_02/pyposmat.kde.{}.out'.format(i) 
         data=PyposmatDataFile()
         data.read(filename=fn)
         X=data.df[data.parameter_names].values

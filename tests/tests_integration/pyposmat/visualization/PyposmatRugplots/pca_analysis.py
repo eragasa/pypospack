@@ -8,20 +8,17 @@ from pypospack.pyposmat.data import PyposmatDataFile
 
 class PcaAnalysis(object):
 
-    def __init__(self,df):
+    def __init__(self):
         self.df = copy.deepcopy(self.df)
 
-        self.data=PyposmatDataFile(self.filename)
-        self.data.read()
+        self._configuration = None
+        self._df = None
 
         self.obj_scaler = StandardScaler().fit(self.df)
         self.normed_df = pd.Dataframe(
                 self.scaler.transform(self.parameter_df)
                 columns=self.parameter_names)
-
-        self.pca = PCA(n_components='mle',svd_solver='full')
-        self.pca.fit_transform(
-
+   
     @property
     def parameter_names(self): return self.data.parameter_names
 
@@ -32,8 +29,12 @@ class PcaAnalysis(object):
     def error_names(self): return self.data.error_names
 
     @property
-    def df(self): return self.data.df
-
+    def df(self):
+        if self._
+    return self._data.df
+    
+    @df.setter
+    def df(self,df):
     @property
     def parameter_df(self): return self.data.df[self.parameter_names]
 
@@ -43,17 +44,18 @@ class PcaAnalysis(object):
     @property
     def error_df(self): return self.data.df[self.error_names]
 
-_filename_bjs = 'subselect.d_metric.bjs.out'
-_filename_fs = 'subselect.d_metric.fs.out'
+    def read_configuration_file(filename):
+        self.configuration = PyposmatConfigurationFile
+filename = 'subselect.d_metric.bjs.out'
 
-_data_bjs=PyposmatDataFile(_filename_bjs)
-_data_bjs.read()
+data=PyposmatDataFile(_ilename_bjs)
+data.read()
 
-_parameter_names_bjs = _data_bjs.parameter_names
-_qoi_names_bjs = _data_bjs.qoi_names
-_error_names_bjs = _data_bjs.error_names
+parameter_names = data.parameter_names
+qoi_names = data.qoi_names
+error_names = data.error_names
 
-_parameter_df_bjs = _data_bjs.df[_parameter_names_bjs]
+parameter_df = data_bjs.df[_parameter_names_bjs]
 _qoi_df_bjs = _data_bjs.df[_error_names_bjs]
 _error_df_bjs = _data_bjs.df[_error_names_bjs]
 

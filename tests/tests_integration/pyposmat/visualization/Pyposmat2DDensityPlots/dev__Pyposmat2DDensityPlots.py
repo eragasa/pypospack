@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict
 
-from  pypospack.pyposmat.visualization import Pyposmat2DDensityPlots
+from pypospack.pyposmat.visualization import Pyposmat2DDensityPlots
 
 if __name__ == "__main__":
     data_dir = os.path.join(
@@ -18,5 +18,6 @@ if __name__ == "__main__":
     myplot.plot(
         x_name='p_NiNi_r0',
         y_name='d_Ni_r0',
-        XY_density_h='chiu1999',
+        XY_density_h='silverman',
+        fn_plot_out=True
     )

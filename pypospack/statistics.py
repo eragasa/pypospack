@@ -45,17 +45,19 @@ def kullbach_lieber_divergence(f,g,n):
 
     # calculate g(x) for all x
     if type_g == scipy.stats.kde.gaussian_kde:
-        g_x = f.__call__(x)
+        g_x = g.__call__(x)
     else:
         raise RuntimeError("{} isn't a supported distribution".format(type_g))
 
     log_f_divide_g = np.log(f_x/g_x)
 
+    #for i in range(f_x.shape[0]):
+    #    print(f_x[i],g_x[i],f_x[i]/g_x[i],log_f_divide_g[i])
     # calculate the Kullbach_Lieber divergence value
-    d = np.sum(log_f_divide_g)/n
+    d = np.sum(f_x*log_f_divide_g)/n
 
     # calculate variance of the Kullbach-Lieber pre-metric
-    var_d = np.var(log_f_divide_g/n
+    var_d = np.var(log_f_divide_g)/n
 
     return d, var_d
 

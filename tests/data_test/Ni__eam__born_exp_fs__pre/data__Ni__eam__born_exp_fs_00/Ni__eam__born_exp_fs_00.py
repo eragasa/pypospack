@@ -20,7 +20,7 @@ for i in range(sampling['n_iterations']):
 sampling[0]['type'] = 'kde'
 sampling[0]['file'] = os.path.join(
         'data__Ni__eam__born_exp_fs_00',
-        'pyposmat.kde.0.out')
+        'pyposmat.kde.0a.out')
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -174,6 +174,9 @@ qoi_constraints['qoi_constraints']['Ni_fcc.c12.abserr'] = ['<',1.00 * abs(qoi_db
 qoi_constraints['qoi_constraints']['Ni_fcc.c44.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c44']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.B.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.G.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
+qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+qoi_constraints['filter_by__d_zerror']['percentile'] = .90
+qoi_constraints['filter_by_pareto'] = True
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
 # this is currently creating a race condition, where the file is being written

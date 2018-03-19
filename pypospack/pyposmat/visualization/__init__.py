@@ -12,8 +12,19 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 
 class PyposmatDataFileVisualization(object):
     def __init__(self):
-        self.datafile = None
-        self.configuation = None
+        self._datafile = None
+        self._configuation = None
+    
+    @property
+    def configuration(self):return self._configuration
+    @configuration.setter
+    def configuration(self,config):
+        self._configuration = config
+    @property
+    def datafile(self):return self._datafile
+    @datafile.setter
+    def datafile(self,datafile):
+        self._datafile=datafile
     @property
     def parameter_names(self):
         return self._parameter_names
@@ -28,7 +39,7 @@ class PyposmatDataFileVisualization(object):
 
     @property
     def df(self):
-        return self._df
+        return self.datafile.df
 
     @property
     def parameter_df(self):
@@ -42,6 +53,7 @@ class PyposmatDataFileVisualization(object):
     def error_df(self):
         error_df(self)
         return self._error_df
+
 
     def read_configuration(self,filename):
         self.configuration = PyposmatConfigurationFile()
@@ -77,7 +89,7 @@ class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
         if h is None:
             kde = stats.gaussian_kde(values)
         elif h in ['silverman','silverman1986']:
-            kde = stats.gaussian_kde(values,_h)
+            kde = stats.gaussian_kde(values,'silverman')
         elif h is 'chiu1999':
             _h = Chiu1999_h(values)
             kde = stats.gaussian_kde(values,_h)
@@ -85,9 +97,13 @@ class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
             hde = stats.gaussian_kde(values,h)
         return kde
 
-    def set_axes_labels(self,ax,x_name,y_name,fontsize=25):
-        ax.set_xlabel(x_name,fontsize=fontsize)
-        ax.set_ylabel(y_name,fontsize=fontsize)
+    def set_axes_labels(self,ax,x_name,y_name):
+        x_label = self.configuration.latex_labels[x_name]['name']
+        y_label = self.configuration.latex_labels[y_name]['name']
+        print('x_label:{}'.format(x_label))
+        print('y_label:{}'.format(y_label))
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
 
     def get_data_limits(self,name):
         xmin = self.df[name].min()

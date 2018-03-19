@@ -21,8 +21,8 @@ from pypospack.pyposmat.visualization.bokeh import PyposmatBokehVisualizer
 
 if __name__ == "__main__":
     filename = os.path.join(
-            'data__Ni__eam__born_exp_fs_02',
-            'pyposmat.kde.9.out')
+            'data__Ni__eam__born_exp_fs_00',
+            'pyposmat.kde.1.out')
     #filename = os.path.join(
     #        'data__Ni__eam__born_exp_fs_03',
     #        "pyposmat.kde.0.out")

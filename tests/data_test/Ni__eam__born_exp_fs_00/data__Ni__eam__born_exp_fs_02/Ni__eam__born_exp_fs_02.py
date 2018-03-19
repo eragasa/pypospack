@@ -269,6 +269,92 @@ qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
 qoi_constraints['select_pareto_only'] = True
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
+#------------------------------------------------------------------------------
+# LATEX LABELS
+#------------------------------------------------------------------------------
+latex_labels=OrderedDict()
+latex_labels['p_NiNi_phi0'] = OrderedDict()
+latex_labels['p_NiNi_phi0']['name'] = r"$\phi_0$"
+latex_labels['p_NiNi_phi0']['namewunits'] = r"$\phi_0 \mathrm{(eV)}$"
+latex_labels['p_NiNi_gamma'] = OrderedDict()
+latex_labels['p_NiNi_gamma']['name'] = r"$\gamma$"
+latex_labels['p_NiNi_gamma']['namewunits'] = r"$\gamma$"
+latex_labels['p_NiNi_r0'] = OrderedDict()
+latex_labels['p_NiNi_r0']['name'] = r"$r_{0,\phi}$"
+latex_labels['p_NiNi_r0']['namewunits'] = r"$\r_{0,\phi} \mathrm{(\AA)}$"
+latex_labels['d_Ni_rho0'] = OrderedDict()
+latex_labels['d_Ni_rho0']['name'] = r"$\rho_0$"
+latex_labels['d_Ni_rho0']['namewunits'] = r"$\rho_0$"
+latex_labels['d_Ni_beta'] = OrderedDict()
+latex_labels['d_Ni_beta']['name'] = r"$\beta$"
+latex_labels['d_Ni_beta']['namewunits'] = r"$\beta$"
+latex_labels['d_Ni_r0'] = OrderedDict()
+latex_labels['d_Ni_r0']['name'] = r"$r_{0,\rho}$"
+latex_labels['d_Ni_r0']['namewunits'] = r"$r_{0,\rho}$ \mathrm{(\AA)}$"
+latex_labels['e_Ni_F0'] = OrderedDict()
+latex_labels['e_Ni_F0']['name'] = r"$F_0$"
+latex_labels['e_Ni_F0']['namewunits'] = r"$F_0 \mathrm{(eV)}$"
+latex_labels['Ni_fcc.E_coh'] = OrderedDict()
+latex_labels['Ni_fcc.E_coh']['name'] = r"$E_c$"
+latex_labels['Ni_fcc.E_coh']['namewunits'] = r"$E_c \mathrm{(eV/atom)}$"
+latex_labels['Ni_fcc.a0'] = OrderedDict()
+latex_labels['Ni_fcc.a0']['name'] = r"$a_0$"
+latex_labels['Ni_fcc.a0']['namewunits'] = r"$a_0 \mathrm{(\AA)}$"
+latex_labels['Ni_fcc.c11'] = OrderedDict()
+latex_labels['Ni_fcc.c11']['name'] = r"$C_{11}$"
+latex_labels['Ni_fcc.c11']['namewunits'] = r"$C_{11} \mathrm{(GPa)}$"
+latex_labels['Ni_fcc.c12'] = OrderedDict()
+latex_labels['Ni_fcc.c12']['name'] = r"$C_{12}$"
+latex_labels['Ni_fcc.c12']['namewunits'] = r"$C_{12} \mathrm{(GPa)}$"
+latex_labels['Ni_fcc.c44'] = OrderedDict()
+latex_labels['Ni_fcc.c44']['name'] = r"$C_{44}$"
+latex_labels['Ni_fcc.c44']['namewunits'] = r"$C_{44} \mathrm{(GPa)}$"
+latex_labels['Ni_fcc.B'] = OrderedDict()
+latex_labels['Ni_fcc.B']['name'] = r"$B$"
+latex_labels['Ni_fcc.B']['namewunits'] = r"$B \mathrm{(GPa)}$"
+latex_labels['Ni_fcc.G'] = OrderedDict()
+latex_labels['Ni_fcc.G']['name'] = r"$G$"
+latex_labels['Ni_fcc.G']['namewunits'] = r"$G \mathrm{(GPa)}$"
+latex_labels['Ni_fcc.vac'] = OrderedDict()
+latex_labels['Ni_fcc.vac']['name'] = r"$E_v$"
+latex_labels['Ni_fcc.vac']['namewunits'] = r"$E_v \mathrm{(eV)}$"
+latex_labels['Ni_fcc.100s'] = OrderedDict()
+latex_labels['Ni_fcc.100s']['name'] = r"$\gamma[100]$"
+latex_labels['Ni_fcc.100s']['namewunits'] \
+        = r"$\gamma[100] \mathrm{(eV \AA^{-2})}$"
+latex_labels['Ni_fcc.110s'] = OrderedDict()
+latex_labels['Ni_fcc.110s']['name'] = r"$\gamma[110]$"
+latex_labels['Ni_fcc.110s']['namewunits'] \
+        = r"$\gamma[110] \mathrm{(eV \AA^{-2})}$"
+latex_labels['Ni_fcc.111s'] = OrderedDict()
+latex_labels['Ni_fcc.111s']['name'] = r"$\gamma[111]$"
+latex_labels['Ni_fcc.111s']['namewunits'] \
+        = r"$\gamma[111] \mathrm{(eV \AA^{-2})}$"
+latex_labels['Ni_fcc.esf'] = OrderedDict()
+latex_labels['Ni_fcc.esf']['name'] = r"$\gamma_{\mathrm{ESF}}$"
+latex_labels['Ni_fcc.esf']['namewunits'] \
+        = r"$\gamma_{\mathrm{ESF}} \mathrm{(eV \AA^{-2})}$"
+latex_labels['Ni_fcc.isf'] = OrderedDict()
+latex_labels['Ni_fcc.isf']['name'] = r"$\gamma_{\mathrm{ISF}}$"
+latex_labels['Ni_fcc.isf']['namewunits'] \
+        = r"$\gamma_{\mathrm{ISF}} \mathrm{(eV \AA^{-2})}$"
+latex_labels['E_Ni_fcc_hcp'] = OrderedDict()
+latex_labels['E_Ni_fcc_hcp']['name'] = r"$H_{\mathrm{fcc,hcp}}$"
+latex_labels['E_Ni_fcc_hcp']['namewunits'] \
+        = r"$H_{\mathrm{fcc,hcp}} \mathrm{(eV/atom)}$"
+latex_labels['E_Ni_fcc_bcc'] = OrderedDict()
+latex_labels['E_Ni_fcc_bcc']['name'] = r"$H_{\mathrm{fcc,bcc}}$"
+latex_labels['E_Ni_fcc_bcc']['namewunits'] \
+        = r"$H_{\mathrm{fcc,bcc}} \mathrm{(eV/atom)}$"
+latex_labels['E_Ni_fcc_sc'] = OrderedDict()
+latex_labels['E_Ni_fcc_sc']['name'] = r"$H_{\mathrm{fcc,bcc}}$"
+latex_labels['E_Ni_fcc_sc']['namewunits'] \
+        = r"$H_{\mathrm{fcc,bcc}} \mathrm{(eV/atom)}$"
+latex_labels['E_Ni_fcc_dia'] = OrderedDict()
+latex_labels['E_Ni_fcc_dia']['name'] = r"$H_{\mathrm{fcc,bcc}}$"
+latex_labels['E_Ni_fcc_dia']['namewunits'] \
+        = r"$H_{\mathrm{fcc,bcc}} \mathrm{(eV/atom)}$"
+
 if __name__ == '__main__':
     from pypospack.pyposmat.data import PyposmatConfigurationFile
     pyposmat_filename_in = 'pyposmat.config.in'
@@ -280,4 +366,5 @@ if __name__ == '__main__':
     configuration.sampling_type = sampling
     configuration.sampling_distribution = parameter_distribution
     configuration.sampling_constraints = parameter_constraints
+    configuration.latex_labels = latex_labels
     configuration.write(filename=pyposmat_filename_in)

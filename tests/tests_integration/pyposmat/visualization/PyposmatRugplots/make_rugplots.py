@@ -8,13 +8,13 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 if __name__ == "__main__":
     data_directory = os.path.join('../../../../',
             'data_test',
-            'Ni__eam__born_exp_fs_00',
-            'data__Ni__eam__born_exp_fs_03')
+            'Ni__eam__born_exp_bjs_00',
+            'data__Ni__eam__born_exp_bjs_04i')
     config_fn = os.path.join(data_directory,'pyposmat.config.in')
     config=PyposmatConfigurationFile()
     config.read(filename=config_fn)
 
-    datafile_fn = os.path.join(data_directory,'pyposmat.kde.5.out')
+    datafile_fn = os.path.join(data_directory,'pyposmat.kde.20.out')
     datafile=PyposmatDataFile()
     datafile.read(filename=datafile_fn)
 
@@ -64,6 +64,6 @@ if __name__ == "__main__":
     #    )
     ax.set_xlim([-1,1])
     ax.set_ylim([0,len(qoi_names)+1])
-    fig.savefig('rugplots_finnis.eps')
+    fig.savefig('rugplots_bjs.eps')
     
     exit()
