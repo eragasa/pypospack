@@ -16,6 +16,8 @@ from pypospack.task.lammps import LammpsSimulationError
 from pypospack.task.task_manager import PypospackTaskManagerError
 from pypospack.potential import PotentialObjectMap
 
+from numpy.linalg import LinAlgError
+
 class PyposmatBadParameterError(Exception): pass
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
@@ -113,7 +115,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
-        time_start = time.time()
+        time_start_iteration = time.time()
         _n_errors = 0
 
         for i_sample in range(n_samples):
@@ -138,6 +140,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is list:
+                        # required for EAM potentials to calculate dens_max for embedding function
                         if self.parameter_distribution_definition[p][1][0] == 'equilibrium_density':
                             a0 = self.parameter_distribution_definition[p][1][1]
                             latt = self.parameter_distribution_definition[p][1][2]
@@ -181,7 +184,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 if (i_sample+1)%10 == 0:
                     n_samples_completed = i_sample+1
                     time_end = time.time()
-                    time_total = time_end-time_start
+                    time_total = time_end-time_start_iteration
                     avg_time = time_total/n_samples_completed
                     _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
                         n_samples_completed,
@@ -198,7 +201,11 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         _datafile_in.read()
        
         _X = _datafile_in.df[self.free_parameter_names].values.T
-        _h = Chiu1999_h(_X)
+        try:
+            _h = Chiu1999_h(_X)
+        except LinAlgError as e:
+            print('filename:{}'.format(filename_in))
+            raise
         _rv_generator = scipy.stats.gaussian_kde(_X,_h)
         print('Chiu199_h:{}'.format(_h))
         #_rv_generator = scipy.stats.gaussian_kde(
@@ -210,7 +217,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
-        time_start = time.time()
+        time_start_iteration_iteration = time.time()
         _n_errors = 0
         for i_sample in range(n_samples):
             # generate parameter set
@@ -263,7 +270,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 if (i_sample+1)%10 == 0:
                     n_samples_completed = i_sample+1
                     time_end = time.time()
-                    time_total = time_end-time_start
+                    time_total = time_end-time_start_iteration
                     avg_time = time_total/n_samples_completed
                     _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
                         n_samples_completed,
@@ -284,7 +291,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
-        time_start = time.time()
+        time_start_iteration = time.time()
         if self.mpi_rank is None:
             self.mpi_rank = 0
         if self.mpi_size is None:
@@ -332,7 +339,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 if (i_sample)%10 == 0:
                     n_samples_completed = i_sample
                     time_end = time.time()
-                    time_total = time_end-time_start
+                    time_total = time_end-time_start_iteration
                     avg_time = time_total/n_samples_completed
                     _str_msg = '{} samples completed in {:.4f}s. Avg_time = {:.4f}. n_errors = {}'.format(
                         n_samples_completed,

@@ -153,4 +153,21 @@ class PyposmatConfigurationFile(object):
         self.filename_out = filename
         _configuration = copy.deepcopy(self.configuration)
         with open(filename,'w') as f:
-            yaml.dump(_configuration,f, default_flow_style=False)    
+            yaml.dump(_configuration,f, default_flow_style=False)
+
+    def str__structure_database(self):
+        _structure_dir = self.structures['structure_directory']
+        _structures = self.structures['structures']
+        str_out = [
+            80*'-',
+            '{:^80}'.format('STRUCTURE DATABASE'),
+            80*'-',
+            'structure_directory:{}'.format(_structure_dir),
+            '',
+            '{:^20} {:^20}'.format('name','filename'),
+            '{} {}'.format(20*'-',20*'-')
+        ]
+        for k,v in _structures.items():
+            str_out.append('{:20} {:20}'.format(k,v))
+
+        return "\n".join(str_out)
