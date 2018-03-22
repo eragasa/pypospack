@@ -119,7 +119,7 @@ qoi_db.add_qoi(
         target=5.067)
 qoi_db.add_qoi(
         qoi_name='MgO_NaCl.001s',
-        qoi_type='E_surface',
+        qoi_type='surface_energy',
         structures=OrderedDict([
             ('slab','MgO_NaCl_001s'),
             ('ideal','MgO_NaCl')]),

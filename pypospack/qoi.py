@@ -419,23 +419,32 @@ class QoiManager(object):
         """
 
         Args:
-            results(dict)
+            task_results(OrderedDict):
         """
+
+        # calculate the QOIs from the QOI objects
         for n_qoi, o_qoi in self.obj_Qoi.items():
             try:
                 o_qoi.calculate_qois(task_results=task_results)
             except TypeError as e:
                 msg_err = "Cannot calculate qoi for \'{}\'.".format(n_qoi)
                 raise ValueError(msg_err+str(e))
-        for k_qoi in self.qois:
-            _qoi_id = self.qois[k_qoi]['qoi_name']
-            _obj_qoi_id = _qoi_id[:_qoi_id.rindex('.')]
+        
+        
+        for k_qoi,_ in self.qois.items():
             try:
+                _qoi_id = self.qois[k_qoi]['qoi_name']
+                _obj_qoi_id = _qoi_id[:_qoi_id.rindex('.')]
                 _qoi_val = self.obj_Qoi[_obj_qoi_id].qois[_qoi_id]
-            except KeyError as e:
+            except:
+                print('all_k_qois:')
+                for k,v in self.qois.items():
+                    print(k,v)
+                print('k_qoi:{}'.format(k_qoi))
+                print('v_qoi:{}'.format(self.qois[k_qoi]))
                 print('obj_qoi_id:{}'.format(_obj_qoi_id))
                 print('qoi_id:{}'.format(_qoi_id))
-                print(self.obj_Qoi[_obj_qoi_id].qois)
+                print(self.obj_Qoi)
                 raise
             _qoi_ref = self.qois[k_qoi]['qoi_ref']
             self.qois[k_qoi]['qoi_val'] = _qoi_val

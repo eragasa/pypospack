@@ -135,6 +135,7 @@ class PyposmatEngine(object):
         self.configure_task_manager()
         _parameters = copy.deepcopy(parameters)
         _potential = copy.deepcopy(self.configuration.potential)
+        
         try:
             self.task_manager.evaluate_tasks(
                     parameters=_parameters,
@@ -155,11 +156,12 @@ class PyposmatEngine(object):
             print(type(self.configuration.potential))
             raise
         else:
+            # send the results from the task calculations to calculate QOIs
             _task_results = self.task_manager.results
             self.qoi_manager.calculate_qois(
                     task_results=_task_results)
 
-            # popular qoi values
+            # populate qoi values
             _qoi_results = OrderedDict()
             for k_qoi,v_qoi in self.qoi_manager.qois.items():
                 _qoi_val = v_qoi['qoi_val']

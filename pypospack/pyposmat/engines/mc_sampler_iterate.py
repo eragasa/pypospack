@@ -53,11 +53,11 @@ class PyposmatIterativeSampler(object):
         pass
 
     def run_all(self):
-        self.start_iteration = 0
         self.setup_mpi_environment()
         self.determine_rv_seeds()
         MPI.COMM_WORLD.Barrier()
 
+        self.start_iteration = 0
         for i in range(self.start_iteration,self.n_iterations):
             if self.mpi_rank == 0:
                 print(80*'-')
@@ -67,7 +67,6 @@ class PyposmatIterativeSampler(object):
             MPI.COMM_WORLD.Barrier()
 
             self.run_simulations(i)
-            
             MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:

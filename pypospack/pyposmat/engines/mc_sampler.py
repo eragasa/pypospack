@@ -63,8 +63,12 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.error_names = ['{}.err'.format(k) for k in self.qoi_names]
         self.parameter_distribution_definition =\
                 self.configuration.sampling_distribution
-        self.free_parameter_names = [k for k,v in self.parameter_distribution_definition.items() if v[0] != 'equals']
-
+        
+        try:
+            self.free_parameter_names = [k for k,v in self.parameter_distribution_definition.items() if v[0] != 'equals']
+        except KeyError as e:
+            print(self.parameter_distribution_definition.items())
+            raise
         if self.configuration.sampling_constraints is not None:
             self.parameter_constraints = copy.deepcopy(self.configuration.sampling_constraints)
         else:
@@ -217,7 +221,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
-        time_start_iteration_iteration = time.time()
+        time_start_iteration= time.time()
         _n_errors = 0
         for i_sample in range(n_samples):
             # generate parameter set
