@@ -6,13 +6,7 @@ from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering, AffinityPropagation
 from sklearn.preprocessing import normalize
-from pypospack.pyposmat import PyposmatDataFile
-import os, sys, inspect
-
-"""
-TODO:
-manifold learning
-"""
+from sklearn.preprocessing import StandardScaler
 
 
 def read_data_file(filename):
@@ -86,7 +80,9 @@ class TransformPCA(object):
             if label == 'err':
                 df = np.absolute(df)
             # ------------------------
-            df = normalize(df)
+            # df = normalize(df)
+            norm = StandardScaler()
+            df = norm.fit_transform(df)
             obj_pca = PCA()
             pca_np = obj_pca.fit_transform(df)
             nrows, ncols = pca_np.shape
@@ -235,11 +231,11 @@ if __name__ == "__main__":
     '''
 
     # cluster_by kmeans, dbscan, agg, or aff_pro (kmeans default)
-    results = read_data_file(r'/home/seaton/repos/pypospack/visualization_apps/MgO_pareto/data/culled_009.out')
+    results = read_data_file(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
     tp = TransformPCA(num_clusters=3, param_df=results[0]['param_df'],
                       err_df=results[0]['err_df'], qoi_df=results[0]['qoi_df'],
                       total_df=results[0]['total_df'],
-                      cluster_by='agg')
+                      cluster_by='kmeans')
     # dtype must be 'param', 'err', or 'qoi'
     tp.plot_3d(dtype='param')
     tp.plot_3d(dtype='err')
