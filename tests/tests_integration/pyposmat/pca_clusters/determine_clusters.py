@@ -37,43 +37,11 @@ class ParetoSurface(object):
 
     def __init__(self):
         self.config = None
-        self.data = None:
+        self.data = None
 
 if __name__ == "__main__":
 
-
-
-    # #############################################################################
-    # Generate sample data
-    centers = [[1, 1], [-1, -1], [1, -1]]
-    X, labels_true = make_blobs(n_samples=750, centers=centers, cluster_std=0.4,
-                                random_state=0)
-
-    X = preprocessing.StandardScaler().fit_transform(X)
-    print(labels_true)
-    print(X.shape)
-    # #############################################################################
-    # Compute DBSCAN
-    db = cluster.DBSCAN(eps=0.3, min_samples=10).fit(X)
-    core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
-    core_samples_mask[db.core_sample_indices_] = True
-    labels = db.labels_
-
-    # Number of clusters in labels, ignoring noise if present.
-    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-
-    print('Estimated number of clusters: %d' % n_clusters_)
-    print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels_true, labels))
-    print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels))
-    print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels))
-    print("Adjusted Rand Index: %0.3f"
-          % metrics.adjusted_rand_score(labels_true, labels))
-    print("Adjusted Mutual Information: %0.3f"
-          % metrics.adjusted_mutual_info_score(labels_true, labels))
-    print("Silhouette Coefficient: %0.3f"
-          % metrics.silhouette_score(X, labels))
-
-    fn = "../../../data_test/Ni__eam__born_exp_bjs_00/data__Ni__eam__born_exp_bjs_01/pyposmat.results.0.mod.out"
+    fn = "/Users/eugeneragasa/repos/pypospack/tests/data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_03/pyposmat.kde.10.out"
     print("loading {}...".format(fn))
     data = PyposmatDataFile()
     data.read(filename=fn)
@@ -94,22 +62,26 @@ if __name__ == "__main__":
 
     print(names[0])
     print(names.remove(names[0]))
-    dbscan_eps=0.3
-    min_samples=10
-    clusterer=cluster.DBSCAN(eps=dbscan_eps,min_samples=10).fit(X_pca)
-    core_samples_mask = np.zeros_like(clusterer.labels_, dtype=bool)
-    core_samples_mask[clusterer.core_sample_indices_] = True
-    labels = clusterer.labels_
-    
-    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-    print('Estimated number of clusters: %d' % n_clusters_)
-    #print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels_true, labels))
-    #print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels))
-    #print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels))
-    #print("Adjusted Rand Index: %0.3f"
-    #  % metrics.adjusted_rand_score(labels_true, labels))
-    #print("Adjusted Mutual Information: %0.3f"
-    #  % metrics.adjusted_mutual_info_score(labels_true, labels))
+    eps_range = np.arange(0.01,1,.05)
+    min_samples_range = np.arange(100,1000,50)
+    for dbscan_eps in eps_range.tolist():
+        for min_samples in min_samples_range.tolist():
+            clusterer=cluster.DBSCAN(eps=dbscan_eps,min_samples=10).fit(X_pca)
+            core_samples_mask = np.zeros_like(clusterer.labels_, dtype=bool)
+            core_samples_mask[clusterer.core_sample_indices_] = True
+            labels = clusterer.labels_
+            
+            n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+            if n_clusters_ > 1:
+                print(dbscan_eps,min_samples, n_clusters_)
+    exit()
+    print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels))
+    print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels))
+    print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels))
+    print("Adjusted Rand Index: %0.3f"
+      % metrics.adjusted_rand_score(labels_true, labels))
+    print("Adjusted Mutual Information: %0.3f"
+      % metrics.adjusted_mutual_info_score(labels_true, labels))
     print("Silhouette Coefficient: %0.3f" % metrics.silhouette_score(X_pca, labels))
 
 
