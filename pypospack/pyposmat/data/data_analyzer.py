@@ -19,7 +19,7 @@ def filter_by_znormalized_errors(df,percentile,qoi_names):
     for qn in qoi_names:
         en = "{}.err".format(qn)
         zen = "{}.zerr".format(qn)
-        df[zen] = df[en]/df[en].std()
+        df[zen] = (df[en]-df[en].mean())/df[en].std()
 
     zerror_names = ["{}.zerr".format(q) for q in qoi_names]
     df['z_err_dist'] = np.sqrt(np.square(df[zerror_names]).sum(axis=1))

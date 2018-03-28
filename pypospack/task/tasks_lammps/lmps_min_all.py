@@ -1,7 +1,7 @@
 import os,copy
 from collections import OrderedDict
 from pypospack.task.lammps import LammpsSimulation
-import pypospack.potenital as potential
+import pypospack.potential as potential
 
 class LammpsStructuralMinimization(LammpsSimulation):
     """ Class for LAMMPS structural minimization
@@ -46,12 +46,21 @@ class LammpsStructuralMinimization(LammpsSimulation):
                 self._lammps_input_out_section()])
         return(str_out)
 
+    def on_init(self,configuration=None,results=None):
+        LammpsSimulation.on_init(self,configuration=configuration)
+
+    def on_config(self,configuration,results=None):
+        LammpsSimulation.on_config(self,configuration=None,results=None)
+
     def on_post(self,configuration=None):
         self.__get_results_from_lammps_outputfile()
-        LammpsSimulation.on_post(self,configuration=configuration)
+        LammpsSimulation.on_post(
+                self,
+                configuration=configuration)
 
     def on_ready(self,configuration=None,results=None):
         LammpsSimulation.on_ready(
+                self,
                 configuration=configuration,
                 results=results)
 
@@ -65,7 +74,7 @@ class LammpsStructuralMinimization(LammpsSimulation):
         _variables = [
                 'tot_energy',
                 'num_atoms',
-                'xx','yy','zz','xy','xz','yz',
+                'a11','a12','a13','a22','a23','a33',
                 'tot_press',
                 'pxx', 'pyy', 'pzz', 'pxy', 'pxz', 'pyz',
                 ]
@@ -86,15 +95,15 @@ class LammpsStructuralMinimization(LammpsSimulation):
         self.results['{}.{}'.format(_task_name,'toten')] = _results['tot_energy']
         self.results['{}.{}'.format(_task_name,'natoms')] = _results['num_atoms']
         # this only works for orthogonal cells
-        self.results['{}.{}'.format(_task_name,'a11')] = _results['xx']
-        self.results['{}.{}'.format(_task_name,'a12')] = 0
-        self.results['{}.{}'.format(_task_name,'a13')] = 0
+        self.results['{}.{}'.format(_task_name,'a11')] = _results['a11']
+        self.results['{}.{}'.format(_task_name,'a12')] = _results['a12']
+        self.results['{}.{}'.format(_task_name,'a13')] = _results['a13']
         self.results['{}.{}'.format(_task_name,'a21')] = 0
-        self.results['{}.{}'.format(_task_name,'a22')] = _results['yy']
-        self.results['{}.{}'.format(_task_name,'a23')] = 0
+        self.results['{}.{}'.format(_task_name,'a22')] = _results['a22']
+        self.results['{}.{}'.format(_task_name,'a23')] = _results['a23']
         self.results['{}.{}'.format(_task_name,'a31')] = 0
         self.results['{}.{}'.format(_task_name,'a32')] = 0
-        self.results['{}.{}'.format(_task_name,'a33')] = _results['zz']
+        self.results['{}.{}'.format(_task_name,'a33')] = _results['a33']
         self.results['{}.{}'.format(_task_name,'totpress')] = _results['tot_press']
         self.results['{}.{}'.format(_task_name,'p11')] = _results['pxx']
         self.results['{}.{}'.format(_task_name,'p12')] = _results['pxy']
@@ -113,9 +122,9 @@ class LammpsStructuralMinimization(LammpsSimulation):
             'compute eatoms all reduce sum c_eng\n'
             '# ---- run minimization\n'            
             'reset_timestep 0\n'
-            'fix 1 all box/relax iso 0.0 vmax 0.001\n'
+            'fix 1 all box/relax aniso 0.0 vmax 0.001\n'
             'thermo 10\n'
-            'thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms\n'
+            'thermo_style custom step pe xhi xlo yhi ylo zhi xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms\n'
             # 'thermo_style custom step pe lx ly lz press pxx pyy pzz c_eatoms\n'
             'min_style cg\n'
             'minimize 1e-25 1e-25 5000 10000\n'
