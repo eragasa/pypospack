@@ -18,32 +18,14 @@ class TransformPCA(object):
     3) plot the clusters
     '''
 
-    def __init__(self, df, col_names, normalizer, cluster_by, fit_by):
+    def __init__(self, df, normalizer, cluster_by):
         self.df = df
-        self.col_names = col_names
         self.normalizer = normalizer
         self.cluster_by = cluster_by
-        self.fit_by = fit_by
-
-        self.norm_pca_df = self.normalize_and_transform()
-        self.norm_pca_df['cluster_id'] = self.make_clusters()
+        self.pca_df = self.normalize_and_transform()
 
     def normalize_and_transform(self):
-        if self.fit_by == 'all':
-            df = copy.deepcopy(self.df)
-        elif self.fit_by == 'param':
-            df = self.df[self.col_names['param']]
-        elif self.fit_by == 'err':
-            df = self.df[self.col_names['err']]
-        elif self.fit_by == 'qoi':
-            df = self.df[self.col_names['qoi']]
-        else:
-            df = None
-            print('unsupported fit by method')
-            exit()
-
-        print(df)
-
+        df = copy.deepcopy(self.df)
         if self.normalizer == 'sphere':
             df = normalize(df)
         elif self.normalizer == 'standard':
@@ -53,20 +35,25 @@ class TransformPCA(object):
             df = None
             print("unsupported normalize method")
             exit()
-        nrows, ncols = df.shape
+        obj_pca = PCA()
+        pca_df = obj_pca.fit_transform(df)
+        self.write_pca_data(obj_pca)
+        nrows, ncols = pca_df.shape
         # this naming convention is wrong and i feel bad about doing it
         names = ['pca_{}'.format(i) for i in range(ncols)]
-        transformed_df = pd.DataFrame(data=df, columns=names)
-        return transformed_df
+        pca_df = pd.DataFrame(data=pca_df, columns=names)
+        labels = self.make_clusters(pca_df)
+        pca_df['cluster_id'] = labels
+        return pca_df
 
-    def make_clusters(self):
+    def make_clusters(self, pca_df):
         if self.cluster_by == 'kmeans':
             obj_kmeans = KMeans(n_clusters=3)
-            obj_kmeans = obj_kmeans.fit(self.norm_pca_df)
+            obj_kmeans = obj_kmeans.fit(pca_df)
             labels = obj_kmeans.labels_
         elif self.cluster_by == 'dbscan':
             obj_dbscan = DBSCAN()
-            obj_dbscan = obj_dbscan.fit(self.norm_pca_df)
+            obj_dbscan = obj_dbscan.fit(pca_df)
             labels = obj_dbscan.labels_
         else:
             labels = None
@@ -74,24 +61,33 @@ class TransformPCA(object):
             exit()
         return labels
 
+    def write_pca_data(self, obj_pca):
+        eigen_vectors = obj_pca.components_
+        eigen_values = obj_pca.explained_variance_
+        vector_df = pd.DataFrame(data=eigen_vectors, columns=['pca_{}'.format(str(i)) for i in range(eigen_vectors.shape[1])])
+        value_df = pd.DataFrame(data=eigen_values, columns=['eigen_values'])
+        result = pd.concat([value_df, vector_df], axis=1)
+        result.to_excel('param_err_sphere_dbscan_pca.xlsx')
+
     def plot_3d(self):
-        _clusterids = set(self.norm_pca_df['cluster_id'])
+        _clusterids = set(self.pca_df['cluster_id'])
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         for clusterid in _clusterids:
-            x = self.norm_pca_df.loc[self.norm_pca_df['cluster_id'] == clusterid]['pca_0']
-            y = self.norm_pca_df.loc[self.norm_pca_df['cluster_id'] == clusterid]['pca_1']
-            z = self.norm_pca_df.loc[self.norm_pca_df['cluster_id'] == clusterid]['pca_2']
+            x = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['pca_0']
+            y = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['pca_1']
+            z = self.pca_df.loc[self.pca_df['cluster_id'] == clusterid]['pca_2']
             print(x.shape, y.shape, z.shape)
             ax.scatter(x, y, z, s=1)
-        plt.title(s='PCA Transformation')
+        plt.title(s='Normalizer: {n} Cluster: {c} '.format(n=self.normalizer, c=self.cluster_by))
         plt.show()
 
 
 if __name__ == "__main__":
     datafile = datafile.PyposmatDataFile()
     datafile.read(r'/home/seaton/repos/pypospack/visualization_apps/MgO_pareto/data/culled_009.out')
-    data = datafile.df
-    names = {'err': datafile.error_names, 'param': datafile.parameter_names, 'qoi': datafile.qoi_names}
-    t_pca = TransformPCA(df=data, col_names=names, normalizer='sphere', cluster_by='kmeans', fit_by='all')
+    param_data = datafile.parameter_df
+    err_data = datafile.error_df
+    data = pd.concat([param_data, err_data], axis=1)
+    t_pca = TransformPCA(df=data, normalizer='sphere', cluster_by='dbscan')
     t_pca.plot_3d()
