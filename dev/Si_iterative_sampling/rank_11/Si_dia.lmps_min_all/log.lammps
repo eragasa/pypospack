@@ -1,0 +1,151 @@
+LAMMPS (11 Aug 2017)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /home/yadama95/repos/pypospack/dev/Si_iterative_sampling/rank_11/Si_dia.lmps_min_all/lammps.structure
+  triclinic box = (0 0 0) to (5.43 5.43 5.43) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  8 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 28.086
+
+group Si type 1
+8 atoms in group Si
+
+pair_style sw
+pair_coeff * * Si.parameters Si
+
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax aniso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe xhi xlo yhi ylo zhi xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 3.69826
+  ghost atom cutoff = 3.69826
+  binsize = 1.84913, bins = 3 3 3
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 3.937 | 3.937 | 3.937 Mbytes
+Step PotEng Xhi Xlo Yhi Ylo Zhi Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+       0  -0.62553473         5.43            0         5.43            0         5.43            0            0            0   -85981.063   -85981.063   -85981.063   -85981.063 4.444072e-12            0            0  -0.62553473 
+      10  -0.91306237      5.40285      0.02715      5.40285      0.02715      5.40285            0            0            0   -107522.74   -107522.74   -107522.74   -107522.74 3.6640846e-11 2.9371154e-32 -3.4350793e-12  -0.91306237 
+      20   -1.2531615       5.3757       0.0543       5.3757       0.0543       5.3757            0            0            0   -125527.59   -125527.59   -125527.59   -125527.59 -2.5025268e-10 -2.2192219e-10 -2.3726787e-10   -1.2531615 
+      30   -1.6286146      5.34855      0.08145      5.34855      0.08145      5.34855            0            0            0   -136521.94   -136521.94   -136521.94   -136521.94 -4.8692928e-12 1.4607878e-11 -4.8692928e-12   -1.6286146 
+      40   -2.0129671       5.3214       0.1086       5.3214       0.1086       5.3214            0            0            0    -136698.4    -136698.4    -136698.4    -136698.4 -1.8082975e-10 -2.4612939e-10 -1.9213161e-10   -2.0129671 
+      50   -2.3705671      5.29425      0.13575      5.29425      0.13575      5.29425            0            0            0   -122005.17   -122005.17   -122005.17   -122005.17 -7.0493518e-10 -8.6561893e-10 -7.5806448e-10   -2.3705671 
+      60   -2.6568537       5.2671       0.1629       5.2671       0.1629       5.2671            0            0            0   -88199.218   -88199.218   -88199.218   -88199.218 -1.0647572e-09 -1.1369895e-09 -1.1369895e-09   -2.6568537 
+      70   -2.8187782      5.23995      0.19005      5.23995      0.19005      5.23995            0            0            0   -30866.193   -30866.193   -30866.193   -30866.193 -1.4489311e-09 -1.9358217e-09 -1.9358217e-09   -2.8187782 
+      80   -2.8353067    5.2289835   0.20101654    5.2289835   0.20101654    5.2289835            0            0            0 -5.6727094e-10 -5.6727094e-10 -5.6727094e-10 -5.6727094e-10 1.8008601e-10 3.9168708e-10 5.897817e-10   -2.8353067 
+Loop time of 0.00107789 on 1 procs for 80 steps with 8 atoms
+
+100.1% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+       -0.625534729598     -2.83530670171     -2.83530670171
+  Force two-norm initial, final = 14.8817 1.06658e-13
+  Force max component initial, final = 8.59195 4.86032e-14
+  Final line search alpha, max atom move = 1 4.86032e-14
+  Iterations, force evaluations = 80 86
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.00074744 | 0.00074744 | 0.00074744 |   0.0 | 69.34
+Neigh   | 1.4782e-05 | 1.4782e-05 | 1.4782e-05 |   0.0 |  1.37
+Comm    | 4.4584e-05 | 4.4584e-05 | 4.4584e-05 |   0.0 |  4.14
+Output  | 6.175e-05  | 6.175e-05  | 6.175e-05  |   0.0 |  5.73
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.0002093  |            |       | 19.42
+
+Nlocal:    8 ave 8 max 8 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    86 ave 86 max 86 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  128 ave 128 max 128 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 128
+Ave neighs/atom = 16
+Neighbor list builds = 1
+Dangerous builds = 0
+# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "tot_energy = ${tot_energy}"
+tot_energy = -2.8353067017109
+print "num_atoms = ${natoms}"
+num_atoms = 8
+print "a11 = ${a11}"
+a11 = 5.02796692903826
+print "a22 = ${a22}"
+a22 = 5.02796692903826
+print "a33 = ${a33}"
+a33 = 5.02796692903826
+print "a12 = ${tilt_xy}"
+a12 = 0
+print "a13 = ${tilt_xz}"
+a13 = 0
+print "a23 = ${tilt_yz}"
+a23 = 0
+print "tot_press = ${tot_press}"
+tot_press = -5.67270943416063e-10
+print "pxx = ${press_xx}"
+pxx = -5.67270943416062e-10
+print "pyy = ${press_yy}"
+pyy = -5.67270943416067e-10
+print "pzz = ${press_zz}"
+pzz = -5.67270943416061e-10
+print "pxy = ${press_xy}"
+pxy = 1.80086013782874e-10
+print "pxz = ${press_xz}"
+pxz = 3.91687079977755e-10
+print "pyz = ${press_yz}"
+pyz = 5.89781695138921e-10
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
+Total wall time: 0:00:00
