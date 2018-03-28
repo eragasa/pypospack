@@ -3,7 +3,7 @@ from collections import OrderedDict
 from pypospack.io.vasp import Poscar
 from pypospack.task.lammps import LammpsSimulation
 
-class LammpsPositionMinimization(LammpsSimulation):
+class LammpsStackingFaultMinimization(LammpsSimulation):
     """ Class for LAMMPS structural minimization
 
     This data class defines additional attributes and methods necessary to 
@@ -24,7 +24,7 @@ class LammpsPositionMinimization(LammpsSimulation):
             structure_filename,
             restart=False,
             fullauto=False):
-        _task_type = 'lmps_min_pos'
+        _task_type = 'lmps_min_sf'
 
         self.bulk_structure_name = None
         self.bulk_structure_filename = None
@@ -179,8 +179,13 @@ class LammpsPositionMinimization(LammpsSimulation):
             '\n'
             '# ---- run minimization\n'
             'reset_timestep 0\n'
-            'thermo 1\n'
+            'thermo 100\n'
             'thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms\n'
+            'fix 1 all box/relax aniso 0.0 vmax 0.001\n'
+            'min_style cg\n'
+            'minimize 1e-25 1e-25 5000 10000\n'
+            'unfix 1\n'
+            'fix 2 all setforce 0 0 NULL\n'
             'min_style cg\n'
             'minimize 1e-20 1e-20 1000 100000\n'
             '\n'

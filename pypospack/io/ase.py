@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 import ase.io
+from ase.lattice.cubic import FaceCenteredCubic
+from ase.lattice.cubic import BodyCenteredCubic
+from ase.lattice.cubic import SimpleCubic
+from ase.lattice.cubic import Diamond
+from ase.lattice.hexagonal import HexagonalClosedPacked
 import ase.build.bulk as asebulk
 import numpy as np
 import numpy.linalg as linalg
@@ -193,6 +198,177 @@ def make_bulk_structure(symbols,
             ase_cell = cell,
             fname_out = fname_out)
 
+def get_atomic_radius(symbol):
+    if symbol == 'Ni':
+        return  (0.5/(2**0.5))*3.524
+
+def determine_direction_vectors_for_surface(direction=[1,1,1]):
+    direction_z = np.array(direction)
+    point_1 = [direction_z[0],0,0]
+    point_2 = [0,direction_z[1],0]
+    point_3 = [0,0,direction_z[2]]
+    
+    direction_x = (np.array(point_3) - np.array(point_2))
+    direction_y = np.cross(
+            direction_z,
+            direction_x
+        )
+    return [ 
+            direction_x.tolist(),
+            direction_y.tolist(),
+            direction_z.tolist()
+            ]
+
+def make_fcc_100_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    direction_x = [1,0,0]
+    direction_y = [0,1,0]
+    direction_z = [0,0,1]
+
+    atoms = FaceCenteredCubic(\
+            directions=[direction_x,direction_y,direction_z],
+            size=size,
+            symbol=symbols[0],
+            pbc=pbc)
+
+    return atoms
+
+def make_fcc_111_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    _surface_direction = [1,1,1]
+
+    directions = determine_direction_vectors_for_surface(
+            direction=_surface_direction
+        )
+
+    size=(1,1,1)
+    atoms = FaceCenteredCubic(\
+            directions=directions,
+            size=size,
+            symbol=symbols[0],
+            pbc=pbc)
+
+    return atoms
+
+def make_fcc_110_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    direction_x = [0,0,1]
+    direction_y = [1,-1,0]
+    direction_z = [1,1,0]
+
+    atoms = FaceCenteredCubic(\
+            directions=[direction_x,direction_y,direction_z],
+            size=size,
+            symbol=symbols[0],
+            pbc=pbc)
+    return atoms
+
+def make_bcc_100_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    direction_x = [1,0,0]
+    direction_y = [0,1,0]
+    direction_z = [0,0,1]
+
+    directions = [direction_x,direction_y,direction_z]
+    atoms = None
+    try:
+        atoms = BodyCenteredCubic(\
+                directions=directions,
+                size=size,
+                symbol=symbols[0],
+                pbc=pbc)
+    except ValueError as e:
+        if str(e) == 'Cannot guess the bcc lattice constant of an element with crystal structure fcc.':
+            r = get_atomic_radius(symbol=symbols[0])
+            a0 = 4*r/(3**0.5)
+            atoms = BodyCenteredCubic(\
+                    directions=directions,
+                    size=size,
+                    symbol=symbols[0],
+                    pbc=pbc,
+                    latticeconstant=a0)
+        else:
+            raise ValueError('cannot create the bcc structure')
+    return atoms
+
+def make_sc_100_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    direction_x = [1,0,0]
+    direction_y = [0,1,0]
+    direction_z = [0,0,1]
+    directions = [direction_x,direction_y,direction_z]
+
+    atoms = None
+    try:
+        atoms = SimpleCubic(\
+                directions=[direction_x,direction_y,direction_z],
+                size=size,
+                symbol=symbols[0],
+                pbc=pbc)
+    except ValueError as e:
+        if str(e) == 'Cannot guess the sc lattice constant of an element with crystal structure fcc.':
+            r = get_atomic_radius(symbol=symbols[0])
+            a0 = 2*r
+            atoms = SimpleCubic(\
+                    directions=directions,
+                    size=size,
+                    symbol=symbols[0],
+                    pbc=pbc,
+                    latticeconstant=a0)
+        else:
+            raise ValueError('cannot create the simple cubic structure')
+    return atoms
+
+def make_dia_100_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    direction_x = [1,0,0]
+    direction_y = [0,1,0]
+    direction_z = [0,0,1]
+
+    atoms = None
+    try:
+        atoms = Diamond(\
+                directions=[direction_x,direction_y,direction_z],
+                size=size,
+                symbol=symbols[0],
+                pbc=pbc)
+    except ValueError as e:
+        if str(e) == 'Cannot guess the diamond lattice constant of an element with crystal structure fcc.':
+            r = get_atomic_radius(symbol=symbols[0])
+            a0 = 3.567
+            atoms = Diamond(\
+                    directions=[direction_x,direction_y,direction_z],
+                    size=size,
+                    symbol=symbols[0],
+                    pbc=pbc,
+                    latticeconstant=a0)
+        else:
+            raise ValueError("cannnot create the diamond cubic structure")
+    return atoms
+
+def make_hcp_0001_cell(size=(1,1,1),symbols=['Ni'],pbc=(1,1,1)):
+    direction_x = [2,-1,-1,0]
+    direction_y = [0,1,-1,0]
+    direction_z = [0,0,0,1]
+
+    directions=[direction_x,direction_y,direction_z]
+    atoms = None
+    try:
+        atoms = HexagonalClosedPacked(
+            directions=[direction_x,direction_y,direction_z],
+            size=size,
+            symbol=symbols[0],
+            pbc=pbc)
+    except ValueError as e:
+        if str(e) == 'Cannot guess the hcp lattice constant of an element with crystal structure fcc.':
+            r = get_atomic_radius(symbol=symbols[0])
+            _lattice_constants = {}
+            _lattice_constants['a'] = r
+            _lattice_constants['c/a'] = 1.663
+            
+            atoms = HexagonalClosedPacked(\
+                    directions=directions,
+                    size=size,
+                    symbol=symbols[0],
+                    pbc=pbc,
+                    latticeconstant=_lattice_constants)
+        else:
+            raise
+    return atoms
 if __name__ == "__main__":
     symbol = 'Ni'
     structure = 'fcc'

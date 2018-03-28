@@ -187,6 +187,47 @@ class LammpsSimulation(Task):
             for k,v in self.configuration.items():
                 print(k,' = ',v)
             raise
+
+        # writing eam potential files
+        if type(self.potential) is EamPotential:
+            if self.lammps_setfl_filename is None:
+                self.lammps_setfl_filename = "{}.eam.alloy".format(
+                        "".join(self.potential.symbols))
+
+            # if setfl_filename_src is set, then we just copy the 
+            # EAM potential file.
+            if all([self.potential.obj_pair is None,
+                    self.potential.obj_density is None,
+                    self.potential.obj_embedding is None,
+                    self.potential.setfl_filename_src is not None]):
+                _eam_setfl_filename_src = self.potential.setfl_filename_src
+                _eam_setfl_filename_dst = os.path.join(
+                        self.task_directory,
+                        self.lammps_setfl_filename)
+                shutil.copyfile(
+                        src=_eam_setfl_filename_src,
+                        dst=_eam_setfl_filename_dst)
+            elif all([self.potential.obj_pair is not None,
+                      self.potential.obj_density is not None,
+                      self.potential.obj_embedding is not None]):
+                pass
+            else:
+                msg_err = (
+                    "EamPotential must be either be parameterized by setting "
+                    "pair,density,and embedding formalisms through the "
+                    "constructor or a setfl filename must be provided through "
+                    "the filename argument\n"
+                    "obj_pair:{obj_pair}\n"
+                    "obj_density:{obj_pensity}\n"
+                    "obj_embedding:{obj_embedding}\n"
+                    "setfl_filename:{setfl_filename\n"
+                    ).format(
+                            obj_pair=str(type(self.potential.obj_pair)),
+                            obj_density=str(type(self.potential.obj_density)),
+                            obj_embedding=str(type(self.potential.obj_embedding)),
+                            setfl_filename=str(self.potential.setfl_filename))
+                raise ValueError(msg_err)
+        
         self.set_potential_parameters()
         if self.configuration['parameters'] is not None:
             self.parameters = self.configuration['parameters']
@@ -216,6 +257,8 @@ class LammpsSimulation(Task):
                 self.lammps_setfl_filename = "{}.eam.alloy".format(
                         "".join(self.potential.symbols))
 
+            # if setfl_filename_src is set, then we just copy the 
+            # EAM potential file.
             if all([self.potential.obj_pair is None,
                     self.potential.obj_density is None,
                     self.potential.obj_embedding is None,
@@ -676,7 +719,7 @@ class LammpsSimulation(Task):
             'compute eatoms all reduce sum c_eng\n'
             '# ---- run minimization\n'            
             'reset_timestep 0\n'
-            'fix 1 all box/relax iso 0.0 vmax 0.001\n'
+            'fix 1 all box/relax aniso 0.0 vmax 0.001\n'
             'thermo 10\n'
             'thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms\n'
             # 'thermo_style custom step pe lx ly lz press pxx pyy pzz c_eatoms\n'
@@ -690,9 +733,9 @@ class LammpsSimulation(Task):
             '# ---- define output variables ----\n'
             'variable natoms equal "count(all)"\n'
             'variable tot_energy equal "c_eatoms"\n'
-            'variable length_x equal "lx"\n'
-            'variable length_y equal "ly"\n'
-            'variable length_z equal "lz"\n'
+            'variable a11 equal "xhi-xlo"\n'
+            'variable a22 equal "yhi-ylo"\n'
+            'variable a33 equal "zhi-zlo"\n'
             'variable tilt_xy equal "xy"\n'
             'variable tilt_xz equal "xz"\n'
             'variable tilt_yz equal "yz"\n'
@@ -708,12 +751,12 @@ class LammpsSimulation(Task):
             'print \"pypospack:output_section:begin\"\n'
             'print \"tot_energy = ${tot_energy}\"\n'
             'print \"num_atoms = ${natoms}"\n'
-            'print \"xx = ${length_x}\"\n'
-            'print \"yy = ${length_y}\"\n'
-            'print \"zz = ${length_z}\"\n'
-            'print \"xy = ${tilt_xy}\"\n'
-            'print \"xz = ${tilt_xz}\"\n'
-            'print \"yz = ${tilt_yz}\"\n'
+            'print \"a11 = ${a11}\"\n'
+            'print \"a22 = ${a22}\"\n'
+            'print \"a33 = ${a33}\"\n'
+            'print \"a12 = ${tilt_xy}\"\n'
+            'print \"a13 = ${tilt_xz}\"\n'
+            'print \"a23 = ${tilt_yz}\"\n'
             'print \"tot_press = ${tot_press}\"\n'
             'print \"pxx = ${press_xx}\"\n'
             'print \"pyy = ${press_yy}\"\n'
@@ -730,9 +773,13 @@ from pypospack.task.tasks_lammps.single_point_calc \
         import LammpsSinglePointCalculation
 from pypospack.task.tasks_lammps.lmps_min_pos \
         import LammpsPositionMinimization
-from pypospack.task.tasks_lammps.structural_minimization \
+from pypospack.task.tasks_lammps.lmps_min_all \
         import LammpsStructuralMinimization
+#from pypospack.task.tasks_lammps.structural_minimization \
+#        import LammpsStructuralMinimization
 from pypospack.task.tasks_lammps.elastic_calculation \
         import LammpsElasticCalculation
 from pypospack.task.tasks_lammps.lammps_npt_simulation \
         import LammpsNptSimulation
+from pypospack.task.tasks_lammps.lmps_min_sf \
+        import LammpsStackingFaultMinimization
