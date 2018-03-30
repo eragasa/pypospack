@@ -93,15 +93,15 @@ class RelaxedStructureCalculations(Qoi):
         self.qois['{}.a31_min_all'.format(_prefix)] = _a31
         self.qois['{}.a32_min_all'.format(_prefix)] = _a32
         self.qois['{}.a33_min_all'.format(_prefix)] = _a33
-        self.qois['{}.p_11_min_all'].format(_prefix)] = _p11
-        self.qois['{}.p_12_min_all'].format(_prefix)] = _p12
-        self.qois['{}.p_13_min_all'].format(_prefix)] = _p13
-        self.qois['{}.p_21_min_all'].format(_prefix)] = _p21
-        self.qois['{}.p_22_min_all'].format(_prefix)] = _p22
-        self.qois['{}.p_23_min_all'].format(_prefix)] = _p23
-        self.qois['{}.p_31_min_all'].format(_prefix)] = _p31
-        self.qois['{}.p_32_min_all'].format(_prefix)] = _p32
-        self.qois['{}.p_33_min_all'].format(_prefix)] = _p33
+        self.qois['{}.p_11_min_all'.format(_prefix)] = _p11
+        self.qois['{}.p_12_min_all'.format(_prefix)] = _p12
+        self.qois['{}.p_13_min_all'.format(_prefix)] = _p13
+        self.qois['{}.p_21_min_all'.format(_prefix)] = _p21
+        self.qois['{}.p_22_min_all'.format(_prefix)] = _p22
+        self.qois['{}.p_23_min_all'.format(_prefix)] = _p23
+        self.qois['{}.p_31_min_all'.format(_prefix)] = _p31
+        self.qois['{}.p_32_min_all'.format(_prefix)] = _p32
+        self.qois['{}.p_33_min_all'.format(_prefix)] = _p33
     
     def get_required_variables(self):
         return list(self.variables.keys())
