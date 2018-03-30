@@ -24,7 +24,7 @@ def get_qoi_map():
                     'p_31_min_none','p_32_min_none','P_33_min_none',
                       ],
                 'module':'pypospack.qoi',
-                'class':'SinglePointCalculation'},
+                'class':'StaticStructureCalculations'},
             'lmps_min_pos':{
                 'qoi':['Ecoh_min_pos',
                        'a1_min_pos', 'a2_min_pos', 'a3_min_pos',
