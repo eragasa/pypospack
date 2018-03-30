@@ -158,9 +158,8 @@ class TaskManager(object):
                     except AttributeError as e:
                         print('k_task:{}'.format(k_task))
                         print('o_task:{}'.format(o_task))
-                        print('k:{}'.format(k))
-                        print('v:{}'.format(k))
                         raise
+
                 elif o_task.status == 'FINISHED':
                     o_task.on_finished()
                 elif o_task.status == 'ERROR':
