@@ -36,7 +36,7 @@ lammps_simulation_map = {\
             'class':'LammpsPositionMinimization'},
         'min_none':{
             'module':'pypospack.task.lammps',
-            'class':'LammpsSinglePointCalculation'},
+            'class':'LammpsStaticCalculations'},
         'elastic':{
             'module':'pypospack.task.lammps',
             'class':'LammpsElasticCalculation'},
@@ -769,8 +769,8 @@ class LammpsSimulation(Task):
                   )
         return str_out
 
-from pypospack.task.tasks_lammps.single_point_calc \
-        import LammpsSinglePointCalculation
+from pypospack.task.tasks_lammps.lmps_min_none \
+        import LammpsStaticCalculations
 from pypospack.task.tasks_lammps.lmps_min_pos \
         import LammpsPositionMinimization
 from pypospack.task.tasks_lammps.lmps_min_all \
