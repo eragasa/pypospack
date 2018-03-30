@@ -312,6 +312,7 @@ class QoiManager(object):
                             _s1,_s2,_qoi_simulation_type)
                     elif _qoi_simulation_type in [
                             'lmps_min_all',
+                            'lmps_min_none',
                             'lmps_elastic']:
                         try:
                             _s = qoiv['structures']['ideal']

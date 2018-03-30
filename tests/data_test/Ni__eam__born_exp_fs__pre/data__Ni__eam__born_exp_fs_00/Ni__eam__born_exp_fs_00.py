@@ -15,7 +15,7 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10
+    sampling[i]['n_samples'] = 100
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'kde'
 sampling[0]['file'] = os.path.join(

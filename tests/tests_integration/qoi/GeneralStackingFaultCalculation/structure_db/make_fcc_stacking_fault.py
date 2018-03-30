@@ -5,7 +5,15 @@ from pypospack.io.ase import make_fcc_111_cell
 
 def make_fcc_stacking_fault(symbols,stacking_sequence):
     # use ASE to make fcc 111 oriented cell
-    ase_fcc_111 = make_fcc_111_cell(symbols=symbols) 
+    direction_x = [1,2,-1]
+    direction_y = [1,-1,0]
+    direction_z = [1,1,0]
+
+    ase_fcc_111 = FaceCenteredCubic(\
+            directions=[direction_x,direction_y,direction_z],
+            size=size,
+            symbol=symbols[0],
+            pbc=pbc)
     ase_lattice = ase_fcc_111.get_cell()
 
     for a in ase_fcc_111:
