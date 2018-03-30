@@ -121,7 +121,7 @@ class LammpsStaticCalculations(LammpsSimulation):
             'reset_timestep 0\n'
             'thermo 10\n'
             'thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms\n'
-            'run 0\n"
+            'run 0\n'
             )
         return str_out
 
