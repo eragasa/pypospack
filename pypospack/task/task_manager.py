@@ -83,26 +83,24 @@ class TaskManager(object):
         self.process_tasks()
     
     def evaluate_tasks(self,parameters,potential):
+        def all_simulations_finished(obj_Task):
+            _statuses = [o_task.status in ['FINISHED','ERROR']
+                    for o_task in obj_Task.values()]
+            return all(_statuses) #--------------------------------------------
+        
         _sleep_time = 0.1
+        _max_time_per_simulation = 100
 
         self.results = OrderedDict()
         _configuration = OrderedDict()
         _configuration['potential'] = potential
         _configuration['parameters'] = parameters
-        def all_simulations_finished(obj_Task):
-            _statuses = [o_task.status in ['FINISHED','ERROR']
-                    for o_task in obj_Task.values()]
-            return all(_statuses)
 
         _start_time = time.time()
         while not all_simulations_finished(self.obj_Task):
-            # iterate over each task, and try to progress the status
-            # INIT -> CONFIG
-            # CONFIG -> READY
-            # READY -> RUNNING
-            # RUNNING -> POST
-            # POST -> FINISHED
-            _max_time_per_simulation = 100
+            
+            # if the maximum time has been exceeded for this parameter set, we are going to kill
+            # off all the subprocesses which maybe running simulations in each of the tasks.
             _time_elapsed = time.time() - _start_time
             if _time_elapsed > _max_time_per_simulation:
                 for k_task,o_task in self.obj_Task.items():
@@ -120,8 +118,13 @@ class TaskManager(object):
                     except: 
                         pass
                 raise PypospackTaskManagerError('simulation time exceeded')
-            #for k_task,o_task in self.obj_Task.items():
-            #    print('{} {} {}'.format(k_task,o_task.status,_time_elapsed))
+            
+            # iterate over each task, and try to progress the status
+            # INIT -> CONFIG
+            # CONFIG -> READY
+            # READY -> RUNNING
+            # RUNNING -> POST
+            # POST -> FINISHED
             for k_task,o_task in self.obj_Task.items():
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()
@@ -154,7 +157,7 @@ class TaskManager(object):
                             self.results[k] = v
                     except AttributeError as e:
                         print('k_task:{}'.format(k_task))
-                        print('v_task:{}'.format(v_task))
+                        print('o_task:{}'.format(o_task))
                         print('k:{}'.format(k))
                         print('v:{}'.format(k))
                         raise
