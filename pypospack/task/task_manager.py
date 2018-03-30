@@ -149,8 +149,15 @@ class TaskManager(object):
                 elif o_task.status == 'POST':
                     o_task.on_post()
                     _results = o_task.results
-                    for k,v in o_task.results.items():
-                        self.results[k] = v
+                    try:
+                        for k,v in o_task.results.items():
+                            self.results[k] = v
+                    except AttributeError as e:
+                        print('k_task:{}'.format(k_task))
+                        print('v_task:{}'.format(v_task))
+                        print('k:{}'.format(k))
+                        print('v:{}'.format(k))
+                        raise
                 elif o_task.status == 'FINISHED':
                     o_task.on_finished()
                 elif o_task.status == 'ERROR':
