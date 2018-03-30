@@ -57,6 +57,12 @@ class StaticStructureCalculations(Qoi):
         _e_min_none = task_results['{}.{}'.format(_prefix,'toten')]
         _n_atoms = task_results['{}.{}'.format(_prefix,'natoms')]
         _p_tot = task_results['{}.{}'.format(_prefix,'totpress')]
+
+        # getting the individual components of the H-matrix
+        # H = [ [a11,a12,a13]
+        #       [a21,a22,a33]
+        #       [a31,a32,a33]]
+
         _a11 = task_results['{}.{}'.format(_prefix,'a11')]
         _a12 = task_results['{}.{}'.format(_prefix,'a12')]
         _a13 = task_results['{}.{}'.format(_prefix,'a13')]
@@ -66,6 +72,12 @@ class StaticStructureCalculations(Qoi):
         _a31 = task_results['{}.{}'.format(_prefix,'a31')]
         _a32 = task_results['{}.{}'.format(_prefix,'a32')]
         _a33 = task_results['{}.{}'.format(_prefix,'a33')]
+
+  
+        # getting the individual components of the pressure tensor
+        # H = [ [p11,p12,p13]
+        #       [p21,p22,p33]
+        #       [p31,p32,p33]]
         _p11 = task_results['{}.{}'.format(_prefix,'p11')]
         _p12 = task_results['{}.{}'.format(_prefix,'p12')]
         _p13 = task_results['{}.{}'.format(_prefix,'p13')]
@@ -76,6 +88,10 @@ class StaticStructureCalculations(Qoi):
         _p32 = task_results['{}.{}'.format(_prefix,'p32')]
         _p33 = task_results['{}.{}'.format(_prefix,'p33')]
 
+        # calculate the length of cells
+        # a = a1
+        # b = a2
+        # c = a3
         _a1 = (_a11**2+_a12**2+_a13**2)**0.5
         _a2 = (_a21**2+_a22**2+_a23**2)**0.5
         _a3 = (_a31**2+_a32**2+_a33**2)**0.5
