@@ -71,7 +71,7 @@ class LammpsStaticCalculations(LammpsSimulation):
         _variables = [
                 'tot_energy',
                 'num_atoms',
-                'xx','yy','zz','xy','xz','yz',
+                'a11','a12','a13','a22','a23','a33',
                 'tot_press',
                 'pxx', 'pyy', 'pzz', 'pxy', 'pxz', 'pyz',
                 ]
