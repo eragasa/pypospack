@@ -1,22 +1,23 @@
 from collections import OrderedDict
 from pypospack.qoi import Qoi
 
-class RelaxedStructureCalculations(Qoi):
+class StaticStructureCalculations(Qoi):
     qois_calculated = [
-            'Ecoh_min_all',
-            'a1_min_all','a2_min_all','a3_min_all',
-            'a11_min_all','a12_min_all','a13_min_all',
-            'a21_min_all','a22_min_all','a23_min_all',
-            'a31_min_all','a32_min_all','a33_min_all',
-            'p_11_min_all','p_12_min_all','p_13_min_all',
-            'p_21_min_all','p_22_min_all','p_23_min_all',
-            'p_31_min_all','p_32_min_all','P_33_min_all'
+            'Ecoh_min_none',
+            'a1_min_none','a2_min_none','a3_min_none',
+            'a11_min_none','a12_min_none','a13_min_none',
+            'a21_min_none','a22_min_none','a23_min_none',
+            'a31_min_none','a32_min_none','a33_min_none',
+            'p_11_min_none','p_12_min_none','p_13_min_none',
+            'p_21_min_none','p_22_min_none','p_23_min_none',
+            'p_31_min_none','p_32_min_none','P_33_min_none'
     ]
+
     def __init__(self,qoi_name,structures):
         assert isinstance(qoi_name,str)
         _qoi_name = qoi_name
 
-        _qoi_type = 'lmps_relax_all'
+        _qoi_type = 'lmps_relax_none'
 
         _structures = OrderedDict()
         if isinstance(structures,str):
@@ -38,7 +39,7 @@ class RelaxedStructureCalculations(Qoi):
 
     def determine_tasks(self):
         _structure_ideal_name = self.structures['ideal']
-        _task_type = 'lmps_min_all'
+        _task_type = 'lmps_min_none'
         _task_name = "{}.{}".format(
                 _structure_ideal_name,
                 _task_type)
@@ -51,9 +52,9 @@ class RelaxedStructureCalculations(Qoi):
     def calculate_qois(self,task_results):
         _prefix = '{}.{}'.format(
                 self.structures['ideal'],
-                'lmps_min_all')
+                'lmps_min_none')
 
-        _e_min_all = task_results['{}.{}'.format(_prefix,'toten')]
+        _e_min_none = task_results['{}.{}'.format(_prefix,'toten')]
         _n_atoms = task_results['{}.{}'.format(_prefix,'natoms')]
         _p_tot = task_results['{}.{}'.format(_prefix,'totpress')]
         _a11 = task_results['{}.{}'.format(_prefix,'a11')]
@@ -80,32 +81,27 @@ class RelaxedStructureCalculations(Qoi):
         _a3 = (_a31**2+_a32**2+_a33**2)**0.5
 
         self.qois = OrderedDict()
-        self.qois['{}.Ecoh_min_all'.format(_prefix)] = _e_min_all / _n_atoms
-        self.qois['{}.a1_min_all'.format(_prefix)] = _a11
-        self.qois['{}.a2_min_all'.format(_prefix)] = _a12
-        self.qois['{}.a3_min_all'.format(_prefix)] = _a13
-        self.qois['{}.a11_min_all'.format(_prefix)] = _a11
-        self.qois['{}.a12_min_all'.format(_prefix)] = _a12
-        self.qois['{}.a13_min_all'.format(_prefix)] = _a13
-        self.qois['{}.a21_min_all'.format(_prefix)] = _a21
-        self.qois['{}.a22_min_all'.format(_prefix)] = _a22
-        self.qois['{}.a23_min_all'.format(_prefix)] = _a23
-        self.qois['{}.a31_min_all'.format(_prefix)] = _a31
-        self.qois['{}.a32_min_all'.format(_prefix)] = _a32
-        self.qois['{}.a33_min_all'.format(_prefix)] = _a33
-        self.qois['{}.p_11_min_all'].format(_prefix)] = _p11
-        self.qois['{}.p_12_min_all'].format(_prefix)] = _p12
-        self.qois['{}.p_13_min_all'].format(_prefix)] = _p13
-        self.qois['{}.p_21_min_all'].format(_prefix)] = _p21
-        self.qois['{}.p_22_min_all'].format(_prefix)] = _p22
-        self.qois['{}.p_23_min_all'].format(_prefix)] = _p23
-        self.qois['{}.p_31_min_all'].format(_prefix)] = _p31
-        self.qois['{}.p_32_min_all'].format(_prefix)] = _p32
-        self.qois['{}.p_33_min_all'].format(_prefix)] = _p33
-    
+        self.qois['{}.Ecoh_min_none'.format(_prefix)] = _e_min_none / _n_atoms
+        self.qois['{}.a1_min_none'.format(_prefix)] = _a11
+        self.qois['{}.a2_min_none'.format(_prefix)] = _a12
+        self.qois['{}.a3_min_none'.format(_prefix)] = _a13
+        self.qois['{}.a11_min_none'.format(_prefix)] = _a11
+        self.qois['{}.a12_min_none'.format(_prefix)] = _a12
+        self.qois['{}.a13_min_none'.format(_prefix)] = _a13
+        self.qois['{}.a21_min_none'.format(_prefix)] = _a21
+        self.qois['{}.a22_min_none'.format(_prefix)] = _a22
+        self.qois['{}.a23_min_none'.format(_prefix)] = _a23
+        self.qois['{}.a31_min_none'.format(_prefix)] = _a31
+        self.qois['{}.a32_min_none'.format(_prefix)] = _a32
+        self.qois['{}.a33_min_none'.format(_prefix)] = _a33
+        self.qois['{}.p_11_min_none'].format(_prefix)] = _p11
+        self.qois['{}.p_12_min_none'].format(_prefix)] = _p12
+        self.qois['{}.p_13_min_none'].format(_prefix)] = _p13
+        self.qois['{}.p_21_min_none'].format(_prefix)] = _p21
+        self.qois['{}.p_22_min_none'].format(_prefix)] = _p22
+        self.qois['{}.p_23_min_none'].format(_prefix)] = _p23
+        self.qois['{}.p_31_min_none'].format(_prefix)] = _p31
+        self.qois['{}.p_32_min_none'].format(_prefix)] = _p32
+        self.qois['{}.p_33_min_none'].format(_prefix)] = _p33
     def get_required_variables(self):
         return list(self.variables.keys())
-
-class RelaxedPositionCalculations(Qoi):
-    pass
-
