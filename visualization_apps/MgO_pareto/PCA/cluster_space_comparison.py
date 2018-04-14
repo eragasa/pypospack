@@ -22,13 +22,13 @@ def pca_transform(df):
 
 
 def tsne_transform(df):
-    obj_tsne = manifold.TSNE(init='pca', random_state=None, perplexity=50, n_iter=5000, n_components=3)
+    obj_tsne = manifold.TSNE(random_state=None, perplexity=50, n_iter=5000, n_components=3)
     df = obj_tsne.fit_transform(df)
     return df
 
 
 def cluster(df):
-    obj_dbscan = DBSCAN(eps=0.75, min_samples=10)
+    obj_dbscan = DBSCAN(eps=0.75, min_samples=15)
     labels = obj_dbscan.fit(df).labels_
     return labels
 
@@ -62,6 +62,38 @@ def plot_3d(df, title):
     plt.show()
 
 
+def phillpot_plot(df1, df2):
+    _clusterids1 = set(df1['cluster_id'])
+    _clusterids1.remove(-1)
+    _clusterids2 = set(df2['cluster_id'])
+    _clusterids2.remove(-1)
+    f = plt.figure('t-SNE Space Visualization of Clusters', figsize=(8,4))
+    ax1 = plt.subplot(121, aspect='equal', adjustable='box-forced')
+    ax2 = plt.subplot(122, aspect='equal', adjustable='box-forced')
+    x11, x12 = ax1.get_xlim()
+    y11, y12 = ax1.get_ylim()
+    ax1.set_aspect(abs(x12 - x11) / abs(y12 - y11))
+
+    x21, x22 = ax2.get_xlim()
+    y21, y22 = ax2.get_ylim()
+    ax2.set_aspect(abs(x22 - x11) / abs(y22 - y21))
+    print(_clusterids1)
+    print(_clusterids2)
+    for clusterid1 in _clusterids1:
+        x1 = df1.loc[df1['cluster_id'] == clusterid1]['col_0']
+        y1 = df1.loc[df1['cluster_id'] == clusterid1]['col_1']
+        ax1.scatter(x1, y1, s=1)
+
+    for clusterid2 in _clusterids2:
+        x2 = df2.loc[df2['cluster_id'] == clusterid2]['col_0']
+        y2 = df2.loc[df2['cluster_id'] == clusterid2]['col_1']
+        ax2.scatter(x2, y2, s=1)
+
+    ax1.set_title('t-SNE Clustered')
+    ax2.set_title('PCA Clustered')
+    plt.show()
+
+
 if __name__ == "__main__":
     datafile = datafile.PyposmatDataFile()
     # datafile.read(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
@@ -74,18 +106,24 @@ if __name__ == "__main__":
 
     norm_data = normalize(data)
     norm_clusters = cluster(norm_data)
-    norm_df = pd.DataFrame(data=norm_data, columns=generic_names)
-    norm_df['cluster_id'] = norm_clusters
-    plot_3d(norm_df, 'Normalized Only')
+    # transform to tsne space
+    norm_tsne_arr = tsne_transform(norm_data)
+    norm_tsne_df = pd.DataFrame(data=norm_tsne_arr, columns=generic_names[:3])
+    norm_tsne_df['cluster_id'] = norm_clusters
+    #plot_3d(norm_tsne_df, 'Normalized Only in t-SNE Space')
 
     pca_data = pca_transform(norm_data)
     pca_clusters = cluster(pca_data)
-    pca_df = pd.DataFrame(data=pca_data, columns=generic_names)
-    pca_df['cluster_id'] = pca_clusters
-    plot_3d(pca_df, 'Normalized PCA')
+    # transform to tsne space
+    pca_tsne_arr = tsne_transform(pca_data)
+    pca_tsne_df = pd.DataFrame(data=pca_tsne_arr, columns=generic_names[:3])
+    pca_tsne_df['cluster_id'] = pca_clusters
+    #plot_3d(pca_tsne_df, 'Normalized PCA in t-SNE Space')
 
     tsne_data = tsne_transform(norm_data)
     tsne_clusters = cluster(tsne_data)
     tsne_df = pd.DataFrame(data=tsne_data, columns=generic_names[:3])
     tsne_df['cluster_id'] = tsne_clusters
-    plot_3d(tsne_df, 'Normalized tSNE')
+    #plot_3d(tsne_df, 'Normalized tSNE')
+
+    phillpot_plot(tsne_df, pca_tsne_df)
