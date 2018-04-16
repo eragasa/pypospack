@@ -6,7 +6,8 @@ from pypospack.pyposmat.engines import PyposmatIterativeSampler
 
 if __name__ == "__main__":
     pyposmat_data_dir = 'data' 
-    pyposmat_filename_in = os.path.join(pyposmat_data_dir,'pyposmat.config.in')
+    pyposmat_filename_in = os.path.join(
+            pyposmat_data_dir,'pyposmat.config.in')
     #------------------------------------------------------------------------------
     # RUN PYPOSMAT 
     #------------------------------------------------------------------------------
