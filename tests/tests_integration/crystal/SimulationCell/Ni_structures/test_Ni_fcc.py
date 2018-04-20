@@ -21,15 +21,20 @@ def get_atomic_radius(symbol):
     if symbol == 'Ni':
         return 1.35
 
-class Fcc(crystal.SimulationCell):
+class FaceCenteredCubic(crystal.SimulationCell):
 
+    fcc_111_ortho_vectors = [
+            [1,-1,0],
+            [1,1,-2],
+            [1,1,1]
+        ]
     def __init__(self,symbols,structure_type = 'cubic'):
-        self.supported_structure_types = ['cubic','orthorhombic','primitive','111']
+        self.supported_structure_types = ['cubic','orthorhombic','primitive','111','110','100']
 
         atomic_radius = get_atomic_radius(symbols)
         lattice_parameter = 4*atomic_radius/(2**0.5)
         if structure_type == 'cubic':
-            atoms = ase.build.bulk(symbols,'fcc', cubic=True)
+            atoms =nsl ase.build.bulk(symbols,'fcc', cubic=True)
             crystal.SimulationCell.__init__(self,atoms)
             self.normalize_h_matrix()
         elif structure_type == 'primitive':
@@ -76,7 +81,6 @@ class Fcc(crystal.SimulationCell):
             raise ValueError('structure_type not supported')
         self.structure_type = structure_type
         
-
     def get_interstitial_sites(self):
         if self.structure_type == 'cubic':
             self.sites = []
