@@ -99,16 +99,13 @@ def sample_by_pca(n_samples, params_in, n_clusters):
 if __name__ == "__main__":
     data_file = r'/home/seaton/repos/pypospack/visualization_apps/MgO_pareto/data/culled_009.out'
     data, names = read_data_file(filename=data_file)
-    # for proper de-normalization len samples needs to be len input
-    # possibly change order of operations to solve
-    new_samples = sample_by_pca(n_samples=len(data['param_df']), params_in=data['param_df'], n_clusters=3)
-
+    pca_selected_samples = sample_by_pca(n_samples=10000, params_in=data['param_df'], n_clusters=3)
     fig = plt.figure()
     ax1 = fig.add_subplot(211)
-    ax1.hist(data['param_df']['chrg_Mg'], bins=50)
+    ax1.hist(data['param_df']['chrg_Mg'], bins=30)
     ax1.set_title('original distribution of chrg_Mg')
     ax2 = fig.add_subplot(212)
-    ax2.hist(new_samples['cluster_0']['resample_inv_0'], bins=50)
-    ax2.set_title('resampled distribution of chrg_Mg')
+    ax2.hist(pca_selected_samples['cluster_2']['resample_inv_0'], bins=30)
+    ax2.set_title('Cluster 2 distribution of chrg_Mg')
     fig.tight_layout(h_pad=1)
     plt.show()

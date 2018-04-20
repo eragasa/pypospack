@@ -86,9 +86,9 @@ class TransformPCA(object):
 if __name__ == "__main__":
     datafile = datafile.PyposmatDataFile()
     datafile.read(r'/home/seaton/repos/pypospack/visualization_apps/MgO_pareto/data/culled_009.out')
-    #datafile.read('/home/seaton/repos/pypospack/tests/data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_03/pyposmat.kde.10.out')
-    #datafile.read('/home/seaton/repos/pypospack/dev/Si_iterative_sampling/data/pyposmat.kde.10.out')
+    # datafile.read('/home/seaton/repos/pypospack/tests/data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_03/pyposmat.kde.10.out')
+    # datafile.read('/home/seaton/repos/pypospack/dev/Si_iterative_sampling/data/pyposmat.kde.10.out')
     names = datafile.parameter_names
     data = datafile.df[names]
-    t_pca = TransformPCA(df=data, normalizer='standard', cluster_by='dbscan')
+    t_pca = TransformPCA(df=data, normalizer='sphere', cluster_by='kmeans')
     t_pca.plot_3d()

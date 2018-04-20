@@ -63,41 +63,61 @@ def plot_3d(df, title):
 
 
 def phillpot_plot(df1, df2):
+    #df1 is tsne
+    #df2 is pca
     _clusterids1 = set(df1['cluster_id'])
-    _clusterids1.remove(-1)
     _clusterids2 = set(df2['cluster_id'])
-    _clusterids2.remove(-1)
-    f = plt.figure('t-SNE Space Visualization of Clusters', figsize=(8,4))
-    ax1 = plt.subplot(121, aspect='equal', adjustable='box-forced')
-    ax2 = plt.subplot(122, aspect='equal', adjustable='box-forced')
-    x11, x12 = ax1.get_xlim()
+    f = plt.figure('t-SNE Space Visualization of Clusters', figsize=(8,8))
+    ax_ul = plt.subplot(221, aspect='equal', adjustable='box-forced')
+    ax_ur = plt.subplot(222, aspect='equal', adjustable='box-forced')
+    ax_ll = plt.subplot(223, aspect='equal', adjustable='box-forced')
+    ax_lr = plt.subplot(224, aspect='equal', adjustable='box-forced')
+    '''
+    x_ul_min, x12 = ax1.get_xlim()
     y11, y12 = ax1.get_ylim()
     ax1.set_aspect(abs(x12 - x11) / abs(y12 - y11))
 
     x21, x22 = ax2.get_xlim()
     y21, y22 = ax2.get_ylim()
     ax2.set_aspect(abs(x22 - x11) / abs(y22 - y21))
+    '''
     print(_clusterids1)
     print(_clusterids2)
+    # tsne with noise
     for clusterid1 in _clusterids1:
         x1 = df1.loc[df1['cluster_id'] == clusterid1]['col_0']
         y1 = df1.loc[df1['cluster_id'] == clusterid1]['col_1']
-        ax1.scatter(x1, y1, s=1)
+        ax_ul.scatter(x1, y1, s=1)
 
+    # tsne without noise
+    _clusterids1.remove(-1)
+    for clusterid1 in _clusterids1:
+        x1 = df1.loc[df1['cluster_id'] == clusterid1]['col_0']
+        y1 = df1.loc[df1['cluster_id'] == clusterid1]['col_1']
+        ax_ll.scatter(x1, y1, s=1)
+
+    # pca with noise
     for clusterid2 in _clusterids2:
         x2 = df2.loc[df2['cluster_id'] == clusterid2]['col_0']
         y2 = df2.loc[df2['cluster_id'] == clusterid2]['col_1']
-        ax2.scatter(x2, y2, s=1)
+        ax_ur.scatter(x2, y2, s=1)
 
-    ax1.set_title('t-SNE Clustered')
-    ax2.set_title('PCA Clustered')
+    # pca without noise
+    _clusterids2.remove(-1)
+    for clusterid2 in _clusterids2:
+        x2 = df2.loc[df2['cluster_id'] == clusterid2]['col_0']
+        y2 = df2.loc[df2['cluster_id'] == clusterid2]['col_1']
+        ax_lr.scatter(x2, y2, s=1)
+
+    ax_ul.set_title('t-SNE Clustered')
+    ax_ur.set_title('PCA Clustered')
     plt.show()
 
 
 if __name__ == "__main__":
     datafile = datafile.PyposmatDataFile()
     # datafile.read(r'C:\Users\Seaton\repos\pypospack\visualization_apps\MgO_pareto\data\culled_009.out')
-    datafile.read(r'C:\Users\Seaton\repos\pypospack\tests\data_test\Ni__eam__born_exp_fs_00\data__Ni__eam__born_exp_fs_03\pyposmat.kde.10.out')
+    datafile.read(r'/home/seaton/repos/pypospack/tests/data_test/Ni__eam__born_exp_fs_00/data__Ni__eam__born_exp_fs_03/pyposmat.kde.10.out')
     # datafile.read(r'C:\Users\Seaton\repos\pypospack\dev\Si_iterative_sampling\data\pyposmat.kde.10.out')
     names = datafile.parameter_names
     data = datafile.df[names]
