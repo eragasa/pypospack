@@ -7,6 +7,7 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 
 
 results_PunMishin2015 = OrderedDict([
+    ('sim_id','PunMishin2015'),
     ('Ni_fcc.E_coh', -4.449999985713825), 
     ('Ni_fcc.a0', 3.52000004514173), 
     ('Ni_fcc.c11', 241.341629134211), 
@@ -25,7 +26,9 @@ results_PunMishin2015 = OrderedDict([
     ('E_Ni_fcc_sc', 0.7235998449031951), 
     ('E_Ni_fcc_dia', 1.4164289731208752)
 ])
+
 results_Mishin1999 = OrderedDict([
+    ('sim_id','Mishin1999'),
     ('Ni_fcc.E_coh', -4.449999998348875),
     ('Ni_fcc.a0', 3.51999943754043),
     ('Ni_fcc.c11', 247.862330912402),
@@ -45,6 +48,7 @@ results_Mishin1999 = OrderedDict([
     ('E_Ni_fcc_dia', 0.010588663471387427)
 ])
 results_Angelo1995 = OrderedDict([
+    ('sim_id','Angelo1995'),
     ('Ni_fcc.E_coh', -4.4500000125938),
     ('Ni_fcc.a0', 3.52000035011041),
     ('Ni_fcc.c11', 246.715158886758),
@@ -74,42 +78,90 @@ ref_data_colors['PunMishin2015']= 'red'
 ref_data_colors['Mishin1999'] = 'blue'
 ref_data_colors['Angelo1995'] = 'green'
 
+class PyposmatParallelCoordinates(object):
+    pass
+
 if __name__ == "__main__":
+    # define the data directory
     data_directory = os.path.join('../../../../',
             'data_test',
             'Ni__eam__born_exp_fs_00',
             'data__Ni__eam__born_exp_fs_03')
+
+    # read configuration file
     config_fn = os.path.join(data_directory,'pyposmat.config.in')
     config=PyposmatConfigurationFile()
     config.read(filename=config_fn)
 
+    # read the associated datafile
     datafile_fn = os.path.join(data_directory,'pyposmat.kde.5.out')
     datafile=PyposmatDataFile()
     datafile.read(filename=datafile_fn)
 
-    plot_fn = 'rugplots_fs.png'
+    plot_fn = 'parallelcoordinates_fs.png'
 
-    qoi_names = [q for q in config.qoi_names if q not in ['Ni_fcc.esf','Ni_fcc.isf','E_Ni_fcc_hcp']]
+    excluded_qoi_names = ['Ni_fcc.esf','Ni_fcc.isf','E_Ni_fcc_hcp']
+    qoi_names = [q for q in config.qoi_names if q not in excluded_qoi_names]
     print('qoi_names is length:{}'.format(len(qoi_names)))
     error_names = ["{}.err".format(q) for q in qoi_names]
+    normed_error_names = ["{}.nerr".format(q) for q in qoi_names]
     qoi_targets = config.qoi_targets
-    
+  
+
+    # calculate normalized error for sampled data
     for iqn,qn in enumerate(qoi_names):
         en = "{}.err".format(qn)
         nen = "{}.nerr".format(qn)
         q = qoi_targets[qn]
         datafile.df[nen] = datafile.df[qn]/q-1
-   
     (nrows,ncols) = datafile.df.shape
     
     normederr_names = ['{}.nerr'.format(q) for q in qoi_names]
     datafile.df['d_metric'] = np.sqrt(np.square(datafile.df[normederr_names]).sum(axis=1))
-    df = datafile.df.nsmallest(50,'d_metric')
-   
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
+    from pandas.plotting import parallel_coordinates
     fig, ax = plt.subplots()
 
+
+    reference_df = pd.DataFrame(list(ref_data.values()))
+    for iqn,qn in enumerate(qoi_names):
+        en = "{}.err".format(qn)
+        nen = "{}.nerr".format(qn)
+        q = qoi_targets[qn]
+        reference_df[nen] = reference_df[qn]/q-1 
+    reference_df.set_index('sim_id')
+    
+    data_df = copy.deepcopy(datafile.df)
+    data_df.set_index('sim_id')
+    
+
+    subselect_df = datafile.df.nsmallest(10,'d_metric')
+    subselect_df.set_index('sim_id')
+   
+    is_plot_all_data = False
+    if is_plot_all_data:
+        parallel_coordinates(
+                data_df[normed_error_names],
+                'Ni_fcc.E_coh.nerr',
+                color='grey'
+                )
+    
+    parallel_coordinates(
+            subselect_df[normed_error_names],
+            'Ni_fcc.E_coh.nerr',
+            color='k'
+            )
+
+    parallel_coordinates(
+            reference_df[normed_error_names],
+            'Ni_fcc.E_coh.nerr',
+            )
+    plt.gca().legend_.remove()
+    
+    fig.savefig(plot_fn)
+    #plt.show()
+    exit()
     (nr,nc)=df.shape
     print("We have {} potentials...".format(nr))
     for iqn,qn in enumerate(qoi_names):
@@ -162,5 +214,5 @@ if __name__ == "__main__":
         ]
     )
     fig.savefig(plot_fn)
-    
+     
     exit()
