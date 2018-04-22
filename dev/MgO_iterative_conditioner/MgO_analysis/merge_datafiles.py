@@ -91,12 +91,12 @@ if not os.path.isfile(new_data_fn):
 
                 results['errors'] = OrderedDict()
                 for e in a0_config.error_names:
-                    results['errors'][q] = a0_data.df.iloc[
+                    results['errors'][e] = a0_data.df.iloc[
                          i,
                          a0_data.df.columns.get_loc(e)
                     ]
-                for e in press_config.qoi_names:
-                    results['errors'][q] = press_data.df.iloc[
+                for e in press_config.error_names:
+                    results['errors'][e] = press_data.df.iloc[
                         j,
                         press_data.df.columns.get_loc(e)
                     ]
