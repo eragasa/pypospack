@@ -75,7 +75,7 @@ class PyposmatFileSampler(PyposmatEngine):
 
         str_out = ",".join(
             ['sim_id']\
-            +self.parameter_names\
+            +self.parameter_names\ 
             +self.qoi_names)
         self.file_out.write(str_out+"\n")
 
