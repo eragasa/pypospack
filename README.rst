@@ -1,10 +1,10 @@
-=========
-pyPOSpack
-=========
+===========================================================
+Python Potential Optimization Software Packages (pypospack)
+===========================================================
 
 This package as several directory.
 
-pypospack.  
+pypospack.
 
 This is the software package you have been looking for.
 pyPOSpack has several requirements for installation.
@@ -22,4 +22,3 @@ test
 doc. this directory contains sphinx documentation on the package.
 
 examples.  this is a collection of recipes on how to do things
-

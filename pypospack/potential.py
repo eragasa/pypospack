@@ -34,6 +34,78 @@ def determine_symbol_pairs(symbols):
 
     return pairs
 
+class BasePotential(object):
+    def __init__(self,
+            symbols,
+            potential_type=None,
+            is_charge=None):
+        self.PYPOSPACK_CHRG_FORMAT = "chrg_{s}"
+        self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
+        self.PYPOSPACK_3BODY_FORMAT = "{s1}{s2}{s3}_{p}"
+
+        self.potential = None
+        self.symbols = list(symbols)
+        self.potential_type = potential_type
+        self.is_charge = is_charge
+
+        # these attributes will be initialized by _init_parameter_names
+        self.symbol_pairs = None
+        self.parameter_names = None
+        self._init_parameter_names()
+
+        # these attributes will be initialized by _init_parameter_names
+        self.parameters = None
+        self._init_parameters()
+
+        # deprecated parameters here
+        self.param = {}
+        self.param_names = None         # list of str
+
+    def _init_parameter_names(self):
+        raise NotImplementedError
+
+    def _init_parameters(self):
+        raise NotImplementedError
+
+    def evaluate(self,r,parameters,r_cut=False):
+        raise NotImplementedError
+
+    def write_lammps_potential_file(self):
+        raise NotImplementedError
+
+    def lammps_potential_section_to_string(self):
+        raise NotImplementedError
+
+    def write_gulp_potential_section(self):
+        raise NotImplementedError
+
+    def gulp_potential_section_to_string(self):
+        raise NotImplementedError
+
+    def _get_mass(self,element):
+        if element == 'Mg':
+            return 24.305
+        elif element == "O":
+            return 15.999
+        elif element == 'Si':
+            return 28.086
+        elif element == 'Ni':
+            return 58.6934
+        else:
+            raise ValueError("element {} not in database".format(element))
+
+    def _get_name(self,element):
+        if element == "Mg":
+            return 'magnesium'
+        elif element == "O":
+            return 'oxygen'
+        elif element == 'Si':
+            return 'silicon'
+        elif element == 'Ni':
+            return 'nickel'
+        else:
+            raise ValueError('element {} not in database'.format(element))
+
 class Potential(object):
     def __init__(self,
             symbols,
@@ -52,7 +124,7 @@ class Potential(object):
         self.symbol_pairs = None
         self.parameter_names = None
         self._init_parameter_names()
-        
+
         # these attributes will be initialized by _init_parameter_names
         self.parameters = None
         self._init_parameters()
@@ -60,10 +132,10 @@ class Potential(object):
         # deprecated parameters here
         self.param = {}
         self.param_names = None         # list of str
-        
+
     def _init_parameter_names(self):
         raise NotImplementedError
-    
+
     def _init_parameters(self):
         raise NotImplementedError
 
@@ -81,7 +153,7 @@ class Potential(object):
 
     def gulp_potential_section_to_string(self):
         raise NotImplementedError
-    
+
     def _get_mass(self,element):
         if element == 'Mg':
             return 24.305
@@ -93,7 +165,7 @@ class Potential(object):
             return 58.6934
         else:
             raise ValueError("element {} not in database".format(element))
-          
+
     def _get_name(self,element):
         if element == "Mg":
             return 'magnesium'
@@ -117,7 +189,7 @@ class PairPotential(Potential):
                 is_charge=is_charge)
 
         self.pair_evaluations = None
-        
+
 from pypospack.potentials.morse import MorsePotential
 from pypospack.potentials.buckingham import BuckinghamPotential
 from pypospack.potentials.bornmayer import BornMayerPotential
@@ -177,7 +249,7 @@ class EamPotential(Potential):
             func_density=None,
             func_embedding=None,
             filename=None):
-       
+
         # these are pypospack.potential.Potential objects
         self.obj_pair = None
         self.obj_density = None
@@ -203,7 +275,7 @@ class EamPotential(Potential):
         self.setfl_filename_dst = "{symbols}.eam.alloy".format(
                 symbols="".join(self.symbols))
         self.setfl = None
-        
+
         if filename is None:
             self.set_obj_pair(func_pair=func_pair)
             self.set_obj_density(func_density=func_density)
@@ -233,7 +305,7 @@ class EamPotential(Potential):
         str_out += "pair_coeff * * {setfl_dst_filename} {str_symbols}\n".format(
                     setfl_dst_filename=setfl_dst_filename,
                     str_symbols=" ".join(self.symbols))
-        
+
         return str_out
 
 
@@ -269,7 +341,7 @@ class EamPotential(Potential):
 
     def determine_rho_max(self,a0,latt_type):
         _a0 = a0
-        
+
         #extract parameters for the density function
         _parameters = OrderedDict()
         for k,v in self.parameters.items():
@@ -288,7 +360,7 @@ class EamPotential(Potential):
             _natoms_2NN = 6
             _natoms_O = 4
             _natoms_T = 2
-        
+
         s = 'Ni'
         _rhomax = _natoms_1NN * self.obj_density.evaluate(_d_1NN,_parameters)[s]
         _rhomax += _natoms_2NN * self.obj_density.evaluate(_d_2NN,_parameters)[s]
@@ -296,7 +368,7 @@ class EamPotential(Potential):
         _rhomax += _natoms_T * self.obj_density.evaluate(_d_T,_parameters)[s]
 
         return float(_rhomax)
-    
+
     def write_setfl_file(self,filename,symbols,
             Nr,rmax,rcut,
             Nrho,rhomax,
@@ -336,14 +408,14 @@ class EamPotential(Potential):
 
         for p in self.parameters:
             self.parameters[p] = parameters[p]
-        
+
         self.r_cut = rcut
         self.r = copy.deepcopy(r)
         self.rho = copy.deepcopy(rho)
         self.evaluate_pair(r=r,rcut=rcut)
         self.evaluate_density(r=r,rcut=rcut)
         self.evaluate_embedding(rho)
-    
+
     def set_obj_pair(self,func_pair):
         if func_pair == 'morse':
             self.obj_pair = MorsePotential(symbols=self.symbols)
@@ -389,7 +461,7 @@ class EamPotential(Potential):
             msg_err = "func_embedding must be a EamEmbeddingFunction"
             raise ValueError(msg_err)
 
-    def evaluate_pair(self,r,parameters=None,rcut=None): 
+    def evaluate_pair(self,r,parameters=None,rcut=None):
         assert isinstance(r,np.ndarray)
 
         if parameters is not None:
@@ -398,7 +470,7 @@ class EamPotential(Potential):
 
         # pair potential parameters are prepended with 'p_'
         p_params = [p for p in self.parameters if p.startswith('p_')]
-        
+
         # subselect the parameters required for the pair potential
         _parameters = OrderedDict()
         for p in p_params:
@@ -409,14 +481,14 @@ class EamPotential(Potential):
                 r=r,
                 parameters=_parameters,
                 r_cut=rcut)
-        
+
         self.pair = copy.deepcopy(self.obj_pair.potential_evaluations)
- 
+
     def evaluate_density(self,
             r,
             rcut=None,
             parameters=None):
-        assert isinstance(r,np.ndarray) or isinstance(r,float) 
+        assert isinstance(r,np.ndarray) or isinstance(r,float)
         assert isinstance(rcut,float) or rcut is None
         assert isinstance(parameters,dict) or parameters is None
 
@@ -432,7 +504,7 @@ class EamPotential(Potential):
         for p in d_params:
             _parameter_name = p.partition('_')[2]
             _parameters[_parameter_name] = self.parameters[p]
-        
+
         _dens_eval= self.obj_density.evaluate(
                 r=r,
                 parameters=_parameters,
@@ -458,19 +530,19 @@ class EamPotential(Potential):
             self.rho = np.copy(rho)
         #<--- grab the parameters for the embedding function
         e_params = [p for p in self.parameters if p.startswith('e_')]
-        
+
         _parameters = OrderedDict()
         for p in e_params:
             _parameter_name = p.partition('_')[2]
             _parameters[_parameter_name] = self.parameters[p]
-        
+
         self.obj_embedding.evaluate(
                 rho=self.rho,
                 parameters=_parameters)
-        
+
         #<--- set the internal attribute
         self.embedding = copy.deepcopy(self.obj_embedding.embedding_evaluations)
-    
+
 def PotentialObjectMap(potential_type):
     potential_map = OrderedDict()
     potential_map['buckingham'] = OrderedDict()
@@ -496,7 +568,7 @@ def PotentialObjectMap(potential_type):
     potential_map['stillingerweber'] = OrderedDict()
     potential_map['stillingerweber']['module'] = 'pypospack.potential'
     potential_map['stillingerweber']['class'] = 'StillingerWeberPotential'
-    
+
     potential_map['eam_dens_exp'] = OrderedDict()
     potential_map['eam_dens_exp']['module'] = 'pypospack.potential'
     potential_map['eam_dens_exp']['class'] = 'ExponentialDensityFunction'
@@ -521,7 +593,7 @@ def PotentialObjectMap(potential_type):
 def get_potential_map():
     """ get the potential map
 
-    Support for interatomic potentials requires a mapping from the 
+    Support for interatomic potentials requires a mapping from the
     potential formalism to the class supporting the function.  Additional
     potentials to be supported can either be added here, or provided
     using any module available on the PYTHONPATH.
@@ -549,7 +621,7 @@ class PotentialInformation(object):
 
     pypospack uses yaml files to store configuration information for required
     for optimization routines.
-    
+
     Attributes:
         filename(str): filename of the yaml file to read/write configuration
             file.  Default is pypospack.potential.yaml'
@@ -559,7 +631,7 @@ class PotentialInformation(object):
         param_info(dict): param info
         eam_pair_potential(str): name of the functional form for the eam
             pair potential.  Set by default to None.
-        eam_embedding_function(str): name of the functional form the eam 
+        eam_embedding_function(str): name of the functional form the eam
             embedding function.  Set by default to None.
         eam_density_function(str): name of the functional form of the eam
             electron desnsity function.  Set by default to None.
@@ -577,7 +649,7 @@ class PotentialInformation(object):
 
         self.parameter_names = None
         self._free_parameter_names = None
-    
+
     @property
     def free_parameter_names(self):
         self._free_parameter_names = []
@@ -587,7 +659,7 @@ class PotentialInformation(object):
         return self._free_parameter_names
 
     def read(self,filename=None):
-        """ read potential information from yaml file 
+        """ read potential information from yaml file
 
         Args:
             fname(str): file to yaml file from.  If no argument is passed then
@@ -667,7 +739,7 @@ class PotentialInformation(object):
             ValueError: if the potential type is unsupported
         """
         # initialize, set to false if a test fails
-        passed_all_checks = True 
+        passed_all_checks = True
 
         # check1: check to see if the potential type is supporte
         if self.potential_type not in  get_supported_potentials():
