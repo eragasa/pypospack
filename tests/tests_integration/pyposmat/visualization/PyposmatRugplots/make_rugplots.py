@@ -5,24 +5,23 @@ from collections import OrderedDict
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 
-
 results_PunMishin2015 = OrderedDict([
-    ('Ni_fcc.E_coh', -4.449999985713825), 
-    ('Ni_fcc.a0', 3.52000004514173), 
-    ('Ni_fcc.c11', 241.341629134211), 
-    ('Ni_fcc.c12', 150.824244634751), 
-    ('Ni_fcc.c44', 127.34413217099), 
-    ('Ni_fcc.B', 180.996706134571), 
-    ('Ni_fcc.G', 45.25869224972999), 
-    ('Ni_fcc.vac', 1.5722909444763218), 
-    ('Ni_fcc.100s', 0.12083783763315925), 
-    ('Ni_fcc.110s', 0.1306411055698218), 
-    ('Ni_fcc.111s', 0.1097944617790805), 
-    ('Ni_fcc.esf', 4.50280507300032e-14), 
-    ('Ni_fcc.isf', 0.008398360367557003), 
-    ('E_Ni_fcc_hcp', 0.02213171443965045), 
-    ('E_Ni_fcc_bcc', 0.06728584869762066), 
-    ('E_Ni_fcc_sc', 0.7235998449031951), 
+    ('Ni_fcc.E_coh', -4.449999985713825),
+    ('Ni_fcc.a0', 3.52000004514173),
+    ('Ni_fcc.c11', 241.341629134211),
+    ('Ni_fcc.c12', 150.824244634751),
+    ('Ni_fcc.c44', 127.34413217099),
+    ('Ni_fcc.B', 180.996706134571),
+    ('Ni_fcc.G', 45.25869224972999),
+    ('Ni_fcc.vac', 1.5722909444763218),
+    ('Ni_fcc.100s', 0.12083783763315925),
+    ('Ni_fcc.110s', 0.1306411055698218),
+    ('Ni_fcc.111s', 0.1097944617790805),
+    ('Ni_fcc.esf', 4.50280507300032e-14),
+    ('Ni_fcc.isf', 0.008398360367557003),
+    ('E_Ni_fcc_hcp', 0.02213171443965045),
+    ('E_Ni_fcc_bcc', 0.06728584869762066),
+    ('E_Ni_fcc_sc', 0.7235998449031951),
     ('E_Ni_fcc_dia', 1.4164289731208752)
 ])
 results_Mishin1999 = OrderedDict([
@@ -44,6 +43,7 @@ results_Mishin1999 = OrderedDict([
     ('E_Ni_fcc_sc', 0.8330381769486048),
     ('E_Ni_fcc_dia', 0.010588663471387427)
 ])
+
 results_Angelo1995 = OrderedDict([
     ('Ni_fcc.E_coh', -4.4500000125938),
     ('Ni_fcc.a0', 3.52000035011041),
@@ -93,19 +93,19 @@ if __name__ == "__main__":
     print('qoi_names is length:{}'.format(len(qoi_names)))
     error_names = ["{}.err".format(q) for q in qoi_names]
     qoi_targets = config.qoi_targets
-    
+
     for iqn,qn in enumerate(qoi_names):
         en = "{}.err".format(qn)
         nen = "{}.nerr".format(qn)
         q = qoi_targets[qn]
         datafile.df[nen] = datafile.df[qn]/q-1
-   
+
     (nrows,ncols) = datafile.df.shape
-    
+
     normederr_names = ['{}.nerr'.format(q) for q in qoi_names]
     datafile.df['d_metric'] = np.sqrt(np.square(datafile.df[normederr_names]).sum(axis=1))
     df = datafile.df.nsmallest(50,'d_metric')
-   
+
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
@@ -133,7 +133,7 @@ if __name__ == "__main__":
                     marker='|',
                     color=ref_data_colors[ref_data_name]
             )
-    
+
     plt.axvline(0,color='k',linestyle='-',linewidth=.1)
     ax.set_xlabel('Pct Error Difference')
     yticks_labels = [config.latex_labels[qn]['name'] for qn in qoi_names]
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         handles = [
             mpatches.Patch(
                 color=ref_data_colors[ref_data_name],
-                label=ref_data_name) 
+                label=ref_data_name)
             for ref_data_name in ref_data
         ] + [
             mpatches.Patch(
@@ -162,5 +162,5 @@ if __name__ == "__main__":
         ]
     )
     fig.savefig(plot_fn)
-    
+
     exit()

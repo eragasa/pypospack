@@ -1,4 +1,13 @@
+import os,signal,sys
 import subprocess, shlex, copy
+
+def set_exit_handler(func):
+    singal.signal(signal.SIGTERM,func)
+    
+def on_exit(sig, func=None):
+    print("exist handler triggered")
+    sys.exit(1)
+
 
 def get_jobs_from_slurm_running_only(username):
     cmd = 'squeue -u {} -t RUNNING'.format(username)
@@ -26,7 +35,7 @@ def get_job_control_info(jobid):
 
 def process_get_jobs_info(results):
     lines = results.split('\n')
-    
+
     names = None # initialize
     jobinfo = [] # initialize
     for i,line in enumerate(lines):
@@ -39,6 +48,8 @@ def process_get_jobs_info(results):
         'jobinfo':jobinfo
         }
     return copy.deepcopy(return_dict)
+
+
 
 username = 'eragasa'
 output = get_jobs_from_slurm(username)
