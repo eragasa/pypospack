@@ -51,12 +51,12 @@ class PyposmatClusterAnalysis(object):
     def cluster_names(self):
         # determine which variables are included in the analysis
         cluster_names = []
-        if self.include_parameters is True:
-            cluster_names = cluster_names + self.parameter_names
-        if self.include_qois is True:
-            cluster_names = cluster_names + self.qoi_names
-        if self.include_errors is True:
-            cluster_names = cluster_names + self.error_names
+        if self.include_parameters:
+            cluster_names += self.parameter_names
+        if self.include_qois:
+            cluster_names += self.qoi_names
+        if self.include_errors:
+            cluster_names += self.error_names
 
         return cluster_names
 
@@ -119,9 +119,6 @@ class PyposmatClusterAnalysis(object):
             o.normalize_data(o.normalizer_type)
 
         return o
-
-    def rescale_data(normalizer_type,**kwargs):
-        pass
 
     def to_dict(self):
         d = OrderedDict()
@@ -223,14 +220,41 @@ class PyposmatClusterAnalysis(object):
 
 
     def _cluster_dbscan(self,d):
-        qe = OrderedDict()
-        pe = OrderedDict()
+        kwargs = OrderedDict()
+        if 'eps' in d['cluster']['args']:
+            eps = d['cluster']['args']['eps']
+            if isinstance(eps,dict):
+                kNN = eps['NN']
+                percentile = eps['percentile']
 
-        for i in range(self.kNN):
-            qe[i],pe[i] = ecdf(o.data.df['NN_{}'.format(i)])
+                qe = OrderedDict()
+                pe = OrderedDict()
+                for i in range(self.kNN):
+                    qe[i],pe[i] = ecdf(o.data.df['NN_{}'.format(i)])
+                kwargs['eps'] = np.interp(percentile,pe[kNN],qe[kNN])
+            else:
+                kwargs['eps'] = eps
+        else:
+            kwargs['eps'] = 0.5
 
-        kwargs = d['cluster']['args']
-        kwargs['eps'] = np.interp(.95,pe[3],qe[3])
+        if 'min_samples' in d['cluster']['args']:
+            min_samples = d['cluster']['args']['min_samples']
+
+            o.data.df = pd.concat(
+                [
+                    o.data.df,
+                    pd.DataFrame(
+                        data = self.kNN_tree.query_radius(
+                            o.data.df[self.manifold_names],
+                            r = kwargs['eps'],
+                            count_only = True
+                        ),
+                        columns = ['kNN_radius']
+                    )
+                ],
+                axis = 1
+            )
+            kwargs['min_samples'] = min_samples
 
         self.clusterer = cluster.DBSCAN(**kwargs)
         data = self.clusterer.fit(
@@ -453,7 +477,9 @@ if __name__ == "__main__":
     d['cluster'] = OrderedDict()
     d['cluster']['type'] = 'dbscan'
     d['cluster']['args'] = OrderedDict()
-    d['cluster']['args']['eps'] = 0.5
+    d['cluster']['args']['eps'] = OrderedDict()
+    d['cluster']['args']['eps']['NN'] = 3
+    d['cluster']['args']['eps']['percentile'] = .99
     d['cluster']['args']['min_samples'] = 10
     d['cluster']['args']['metric'] = 'euclidean'
     d['cluster']['args']['metric_params'] = None
@@ -461,24 +487,41 @@ if __name__ == "__main__":
     d['cluster']['args']['leaf_size'] = 30
     d['cluster']['args']['p'] = None
 
-    rd = OrderedDict()
-    o = PyposmatClusterAnalysis()
-
+    #o = PyposmatClusterAnalysis()
     o = PyposmatClusterAnalysis.init_from_ordered_dict(d)
-    o.preprocess_data(d)
-    o.calculate_manifold(d)
-    o.calculate_kNN_analysis(d)
-    o.calculate_clusters(d)
 
+    rd = OrderedDict()
+    rd['include_parameters'] = d['include_parameters']
+    rd['include_qois'] = d['include_qois']
+    rd['include_errors'] = d['include_errors']
+    rd['cluster'] = OrderedDict()
+    rd['cluster']['names'] = o.cluster_names
+
+
+    o.preprocess_data(d)
     rd['preprocessing'] = OrderedDict()
     rd['preprocessing']['type'] = d['preprocessing']['type']
     rd['preprocessing']['args'] = d['preprocessing']['args']
+    rd['preprocessing']['names'] = o.scaled_names
     rd['preprocessing']['results'] = OrderedDict()
-    rd['preprocessing']['results']['mean'] = o.preprocessor.mean_
-    rd['preprocessing']['results']['sd'] = o.preprocessor.scale_
+    #rd['preprocessing']['results']['mean'] = o.preprocessor.mean_
+    #rd['preprocessing']['results']['sd'] = o.preprocessor.var_
+    for i,v in enumerate(o.cluster_names):
+        rd['preprocessing']['results'][v] = OrderedDict(
+            [
+                ('mean',o.preprocessor.mean_[i]),
+                ('var',o.preprocessor.var_[i])
+            ]
+        )
     rd['preprocessing']['performance'] = OrderedDict()
     rd['preprocessing']['performance']['cpu_time'] = \
         o.cpu_time_preprocess
+
+    if rd['preprocessing']['type'] is 'standard_scaler':
+        for k,v in rd['preprocessing']['results'].items():
+            print("{},{},{}".format(k,v['mean'],v['var']))
+
+    o.calculate_manifold(d)
 
     rd['manifold'] = OrderedDict()
     rd['manifold']['type'] = d['manifold']['type']
@@ -489,43 +532,60 @@ if __name__ == "__main__":
     rd['manifold']['performance']['cpu_time'] = \
         o.cpu_time_manifold
 
-    # if the attribute is in the dictionary then update the attribute
-    # otherwise, update the dict
-    #if 'include_parameters' in d:
-    #    o.include_parameters = d['include_parameters']
-    #else:
-    #    d['include_parameters'] = o.include_parameters
 
-    #if 'include_qois' in d:
-    #    o.include_qois = d['include_qois']
-    #else:
-    #    d['include_qois'] = o.include_qois
+    o.calculate_kNN_analysis(d)
+    o.calculate_clusters(d)
 
-    #if 'include_errors' in d:
-    #    o.include_errors = d['include_errors']
-    #else:
-    #    d['include_errors'] = o.include_errors
+    fig1, (ax11,ax12) = plt.subplots(1,2)
+    (nr,nc) = o.data.df.shape
+    qe1,pe1 = ecdf(o.data.df['NN_1'])
+    qe2,pe2 = ecdf(o.data.df['NN_2'])
+    qe3,pe3 = ecdf(o.data.df['NN_3'])
+    ax11.plot(qe1,pe1,lw=2,label='NN_1')
+    ax11.plot(qe2,pe2,lw=2,label='NN_2')
+    ax11.plot(qe3,pe3,lw=2,label='NN_3')
+    ax11.set_xlabel('Quantile')
+    ax11.set_ylabel('Cumulative probability')
+    ax11.legend(fancybox=True, loc='right')
+    ax12.hist(o.data.df['kNN_radius'])
+    plt.show()
 
-    # determine which variables are included in the analysis
-    #cluster_names = []
-    #if o.include_parameters is True:
-    #    cluster_names = cluster_names + o.parameter_names
-    #if o.include_qois is True:
-    #    cluster_names = cluster_names + o.qoi_names
-    #if o.include_errors is True:
-    #    cluster_names = cluster_names + o.error_names
+    fig2, (ax21,ax22,ax23) = plt.subplots(1,3)
+    ax21.scatter(
+        o.data.df[o.manifold_names[0]],
+        o.data.df[o.manifold_names[1]],
+        marker='.',
+        s=1
+    )
 
-    # determine the column names which are included in the cluster analysis
-    #scaled_names = []
-    #if o.include_parameters is True:
-    #    for v in o.parameter_names:
-    #        scaled_names.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddappend('{}.nparam'.format(v))
-    #if o.include_qois is True:
-    #    for v in o.qoi_names:
-    #        scaled_names.append('{}.nqoi'.format(v))
-    #if o.include_errors is True:
-    #    for v in o.error_names:
-    #        scaled_names.append('{}.nerr'.format(v))
+    cluster_colors = cm.spectral(
+        o.data.df[o.data.df['cluster_id'] != -1]['cluster_id'].astype(float)\
+            /o.n_clusters
+    )
+
+    ax22.scatter(
+        o.data.df[o.data.df['cluster_id'] != -1][o.manifold_names[0]],
+        o.data.df[o.data.df['cluster_id'] != -1][o.manifold_names[1]],
+        marker='.',
+        c=cluster_colors,
+        s=1
+    )
+    ax23.scatter(
+        o.data.df[o.data.df['cluster_id'] == -1][o.manifold_names[0]],
+        o.data.df[o.data.df['cluster_id'] == -1][o.manifold_names[1]],
+        marker='.',
+        s=1
+    )
+    plt.show()
+
+
+    #ax12.plot(o.data.df['NN_1'].sort_values(),range(nr),lw=2,label='NN_1')
+    #ax12.plot(o.data.df['NN_2'].sort_values(),range(nr),lw=2,label='NN_2')
+    #ax12.plot(o.data.df['NN_3'].sort_values(),range(nr),lw=2,label='NN_3')
+    #ax12.set_xlabel('Quantile')
+    #ax12.set_ylabel('Cumulative probability')
+    #ax12.legend(fancybox=True, loc='right')
+
 
     print('scaling data')
     time_start = time.time()

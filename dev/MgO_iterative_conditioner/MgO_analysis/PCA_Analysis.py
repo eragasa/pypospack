@@ -1,61 +1,95 @@
-import matplotlib.pyplot as plt
+from collections import OrderedDict
 import pandas as pd
 import numpy as np
-from pypospack.pyposmat.data import PyposmatDataFile
-from sklearn import datasets
+
+from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+# imports for graphics
+import matplotlib.pyplot as plt
+
+from pypospack.pyposmat.data import PyposmatDataFile
 
 #load data
 data_fn = "pyposmat.results.0.out"
 data = PyposmatDataFile()
 data.read(filename=data_fn)
-
-
-# print(data.df['MgO_NaCl.p11'])
 data.df = pd.concat(
     [
         data.df,
         pd.DataFrame(
-            data.df['MgO_NaCl.p11'].abs(),
+            data.df['MgO_NaCl.p11'].abs().as_matrix(),
             columns = ['MgO_NaCl.p11.abs']
+        ),
+        pd.DataFrame(
+            data.df['MgO_NaCl.a0.err'].abs().as_matrix(),
+            columns =['MgO_NaCl.a0.nerr']
         )
     ],
-    axis = 0
-)
-# data.df = data.df.dropna(axis=0)
-print(
-    data.df
+    axis = 1
 )
 
-
-# print(data.df.nsmallest(30, 'MgO_NaCl.p11.abs'))
-
-pca = PCA(n_components=2)
+pca =PCA(n_components=2)
 pca.fit(data.df[data.parameter_names])
+_pca = pca.transform(data.df[data.parameter_names])
+_pca_1_min = _pca[:,0].min()
+_pca_1_max = _pca[:,0].max()
+_pca_2_min = _pca[:,1].min()
+_pca_2_max = _pca[:,1].max()
+sample_sizes = [50000,10000,5000,1000]
 
-X_50000 = pca.transform(
-   data.df.nsmallest(50000, 'MgO_NaCl.p11')
-)
-X_25000 = pca.transform(
-   data.df.nsmallest(25000, 'MgO_NaCl.p11')
-)
-X_10000 = pca.transform(
-   data.df.nsmallest(10000, 'MgO_NaCl.p11')
-)
-X_10000 = pca.transform(
-   data.df.nsmallest(10000, 'MgO_NaCl.p11')
-)
+pca_p11_data=OrderedDict()
+for i in sample_sizes:
+    df = data.df.nsmallest(i, 'MgO_NaCl.p11.abs')
+    pca_p11_data[i] = pca.transform(df[data.parameter_names])
 
+pca_a0_data=OrderedDict()
+for i in sample_sizes:
+    df = data.df.nsmallest(i, 'MgO_NaCl.a0.nerr')
+    pca_a0_data[i] = pca.transform(df[data.parameter_names])
 
-
-plt.figure()
 # colors = ['navy', 'turquoise', 'darkorange']
-lw = 2
-plt.scatter(X_50000[:,0], X_50000[:,1],label='50000')
-plt.scatter(X_25000[:,0], X_25000[:,1],label='25000')
-plt.scatter(X_10000[:,0], X_10000[:,1],label='10000')
-plt.title('PCA of dataset')
+n_plots = len(sample_sizes)
+fig, ax = plt.subplots(n_plots,2)
+i = 0
+#X,Y = np.mgrid[
+#    _pca_1_min:_pca_1_max:100j,
+#    _pca_2_min:_pca_2_max:100j
+#]
+#XY = np.vstack([X.ravel(),Y.ravel()])
+for k,v in pca_p11_data.items():
+    #kde = stats.gaussian_kde(pca_p11_data[k].T)
+    #kde_Z = np.reshape(
+    #    kde(XY).T,
+    #    X.shape
+    #)
+    #ax[i][0].imshow(
+    #    np.rot90(kde_Z),
+    #    extent = [_pca_1_min,_pca_1_max,_pca_2_min,_pca_2_max]
+    #)
+    ax[i][0].scatter(
+        pca_p11_data[k][:,0],
+        pca_p11_data[k][:,1],
+        s=.1)
+    i+=1
 
+i = 0
+for k,v in pca_a0_data.items():
+    #kde = stats.gaussian_kde(pca_a0_data[k].T)
+    #kde_Z = np.reshape(
+    #    kde(XY).T,
+    #    X.shape
+    #)
+    #ax[i][1].imshow(
+    #    np.rot90(kde_Z),
+    #    extent = [_pca_1_min,_pca_1_max,_pca_2_min,_pca_2_max]
+    #)
+
+    ax[i][1].scatter(
+        pca_a0_data[k][:,0],
+        pca_a0_data[k][:,1],
+        s=.1)
+    i+=1
 
 plt.show()
