@@ -93,3 +93,8 @@ for k,v in pca_a0_data.items():
     i+=1
 
 plt.show()
+
+print(data.parameter_names)
+print(pca.components_)
+print(pca.explained_variance_)
+print(pca.explained_variance_ratio_)
