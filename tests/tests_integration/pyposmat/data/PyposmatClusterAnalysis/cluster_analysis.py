@@ -76,6 +76,27 @@ class PyposmatClusterAnalysis(object):
 
         return scaled_names
 
+    @property
+    def n_parameter_names(self):
+        n_parameter_names = [
+            '{}.nparam'.format(v) for v in o.parameter_names
+        ]
+        return n_parameter_names
+
+    @property
+    def n_qoi_names(self):
+        n_qoi_names = [
+            '{}.nqoi'.format(v) for v in o.qoi_names
+        ]
+        return n_qoi_names
+
+    @property
+    def n_error_names(self):
+        n_error_names = [
+            '{}.nerr'.format(v) for v in o.qoi_names
+        ]
+        return n_error_names
+
     def init_from_json(json):
         pass
 
@@ -295,7 +316,11 @@ class PyposmatClusterAnalysis(object):
         #pipeline_preprocessor = preprocessing.StandardScaler()
         self.preprocessor = preprocessing.StandardScaler(**kwargs)
         self.preprocessor.fit(
-            self.df[self.cluster_names]
+            self.df[
+                self.parameter_names
+                + self.error_names
+                + self.qoi_names
+            ]
         )
 
         self.data.df = pd.concat(
@@ -303,9 +328,15 @@ class PyposmatClusterAnalysis(object):
                 self.data.df,
                 pd.DataFrame(
                     data=self.preprocessor.transform(
-                        self.df[self.cluster_names]
+                        self.df[
+                            self.parameter_names
+                            + self.error_names
+                            + self.qoi_names
+                        ]
                     ),
-                    columns=self.scaled_names
+                    columns=self.n_parameter_names\
+                        + self.n_error_names\
+                        + self.n_qoi_names
                 )
             ],
             axis = 1
@@ -440,7 +471,7 @@ if __name__ == "__main__":
     d['configuration_fn'] = pyposmat_configuration_fn
     d['data_fn'] = pyposmat_data_fn
     d['include_parameters'] = True
-    d['include_qois'] = False
+    d['include_qois'] = True
     d['include_errors'] = False
 
     d['preprocessing'] = OrderedDict()
@@ -578,282 +609,13 @@ if __name__ == "__main__":
     )
     plt.show()
 
-
-    #ax12.plot(o.data.df['NN_1'].sort_values(),range(nr),lw=2,label='NN_1')
-    #ax12.plot(o.data.df['NN_2'].sort_values(),range(nr),lw=2,label='NN_2')
-    #ax12.plot(o.data.df['NN_3'].sort_values(),range(nr),lw=2,label='NN_3')
-    #ax12.set_xlabel('Quantile')
-    #ax12.set_ylabel('Cumulative probability')
-    #ax12.legend(fancybox=True, loc='right')
-
-
-    print('scaling data')
-    time_start = time.time()
-    time_start_preprocessing = time.time()
-    preprocessor_type = d['preprocessing']['type']
-    pipeline_preprocessor = None
-
-    if preprocessor_type == 'standard_scaler':
-
-        # default keyword arguments
-        kwargs = OrderedDict()
-        kwargs['copy'] = True
-        kwargs['with_mean'] = True
-        kwargs['with_std'] = True
-
-        # change default arguments
-        for k,v in d['preprocessing']['args'].items():
-            kwargs[k] = v
-
-        # add the default arguments to the
-        for k,v in kwargs.items():
-            d['preprocessing']['args'][k] = v
-
-        #pipeline_preprocessor = preprocessing.StandardScaler()
-        pipeline_preprocessor = preprocessing.StandardScaler(**kwargs)
-        pipeline_preprocessor.fit(o.df[o.cluster_names])
-
-        o.data.df = pd.concat(
-            [
-                o.data.df,
-                pd.DataFrame(
-                    data=pipeline_preprocessor.transform(o.df[o.cluster_names]),
-                    columns=o.scaled_names
-                )
-            ],
-            axis = 1
+    from pandas.plotting import parallel_coordinates
+    fig3, ax3 = plt.subplots(1,1)
+    cluster_ids = set(o.data.df['cluster_id'])
+    for cluster_id in cluster_ids:
+        parallel_coordinates(
+            o.data.df[o.data.df['cluster_id'] == cluster_id][o.n_error_names],
+            'Ni_fcc.E_coh.nerr'
         )
-        print(o.data.df.shape)
-
-        time_end_preprocessing = time.time()
-    else:
-        raise BadPreprocessorTypeException()
-
-
-    # add manifold learner to pipeline
-    print('learning_manifold')
-    manifold_time_start = time.time()
-    pipeline_manifold = None
-    data_manifold = None
-    manifold_names = None
-    o.manifold_type = d['manifold']['type']
-    if o.manifold_type == 'tsne':
-
-        # default keyword arguments
-        kwargs = OrderedDict()
-        kwargs['n_components'] = 2
-        kwargs['perplexity'] = 30
-        kwargs['early_exaggeration'] = 12
-        kwargs['learning_rate'] = 200
-        kwargs['n_iter'] = 1000
-        kwargs['n_iter_without_progress']=300,
-        kwargs['min_grad_norm'] =1e-7,
-        #kwargs['metric']='euclidean',
-        kwargs['init'] ='pca',
-        kwargs['verbose']=0,
-        kwargs['random_state']=None
-
-        # change default arguments
-        for k,v in d['manifold']['args'].items():
-            kwargs[k] = v
-
-        # add the default arguments to the
-        for k,v in kwargs.items():
-            d['manifold']['args'][k] = v
-
-        manifold_names = []
-        for i in range(kwargs['n_components']):
-            manifold_names.append('tsne_{}'.format(i))
-
-        #TODO: need to fix
-        pipeline_manifold =  manifold.TSNE()
-        #pipeline_manifold =  manifold.TSNE(**kwargs)
-
-        o.data.df = pd.concat(
-            [
-                o.data.df,
-                pd.DataFrame(
-                    data = pipeline_manifold.fit_transform(
-                        o.data.df[o.scaled_names]
-                    ),
-                    columns = manifold_names
-                )
-            ],
-            axis = 1
-        )
-        manifold_time_stop = time.time()
-
-    else:
-        raise BadManifoldTypeException()
-
-    print(o.data.df.shape)
-    for n in manifold_names:
-        assert n in list(o.data.df.columns.values)
-    rd['manifold'] = OrderedDict()
-    rd['manifold']['type'] = d['manifold']['type']
-    rd['manifold']['args'] = d['manifold']['args']
-    rd['manifold']['results'] = OrderedDict()
-    rd['manifold']['axes'] = list(manifold_names)
-    rd['manifold']['performance'] = OrderedDict()
-    rd['manifold']['performance']['cpu_time'] = \
-        manifold_time_stop - manifold_time_start
-
-    print('nearest neighbors analysis')
-    kNN_start_time = time.time()
-    kNN_tree = None
-    kNN_names = None
-    kNN = 4
-    o.nearest_neighbor_type = d['neighbors']['type']
-    if o.nearest_neighbor_type == 'ball_tree':
-        kwargs = OrderedDict()
-        kwargs['leaf_size'] = 40
-        kwargs['metric'] = 'minkowski'
-
-        for k,v in d['neighbors']['args'].items():
-            kwargs[k] = v
-
-        for k,v in kwargs.items():
-            d['neighbors']['args'][k] = v
-
-        kNN_tree = neighbors.BallTree(
-            o.data.df[manifold_names],
-            **kwargs
-        )
-
-        kNN_names = ['NN_{}'.format(i) for i in range(kNN)]
-
-        o.data.df = pd.concat(
-            [
-                o.data.df,
-                pd.DataFrame(
-                    data = kNN_tree.query(
-                        X = o.data.df[manifold_names],
-                        k = kNN,
-                        return_distance = True
-                    )[0],
-                    columns = kNN_names
-                )
-            ],
-            axis = 1
-        )
-
-    else:
-        raise BadNearestNeighborTypeException()
-
-    print(o.data.df[kNN_names])
-    print(o.data.df.shape)
-    import matplotlib.pyplot as plt
-
-    # Here we need to select an algorithm to determine the EPS based on the
-    # distribution of the nearest neighbors.  We calculate the empirical
-    # cumulative distribution function.
-
-    # For now, we do visual inspection of the empirical CDF
-    fig1, (ax11,ax12) = plt.subplots(1,2)
-    (nr,nc) = o.data.df.shape
-    qe1,pe1 = ecdf(o.data.df['NN_1'])
-    qe2,pe2 = ecdf(o.data.df['NN_2'])
-    qe3,pe3 = ecdf(o.data.df['NN_3'])
-    ax11.plot(qe1,pe1,lw=2,label='NN_1')
-    ax11.plot(qe2,pe2,lw=2,label='NN_2')
-    ax11.plot(qe3,pe3,lw=2,label='NN_3')
-    ax11.set_xlabel('Quantile')
-    ax11.set_ylabel('Cumulative probability')
-    ax11.legend(fancybox=True, loc='right')
-
-    ax12.plot(o.data.df['NN_1'].sort_values(),range(nr),lw=2,label='NN_1')
-    ax12.plot(o.data.df['NN_2'].sort_values(),range(nr),lw=2,label='NN_2')
-    ax12.plot(o.data.df['NN_3'].sort_values(),range(nr),lw=2,label='NN_3')
-    ax12.set_xlabel('Quantile')
-    ax12.set_ylabel('Cumulative probability')
-    ax12.legend(fancybox=True, loc='right')
+    plt.gca().legend_.remove()
     plt.show()
-
-    d['cluster']['args']['eps'] = np.interp(.95,pe3,qe3)
-    print('cluster_eps={}'.format(d['cluster']['args']['eps']))
-    stop_time_NN = time.time()
-
-     # Here we estimate the number minimum point cluster leaf_size
-    o.data.df = pd.concat(
-        [
-            o.data.df,
-            pd.DataFrame(
-                data = kNN_tree.query_radius(
-                    o.data.df[manifold_names],
-                    r = d['cluster']['args']['eps'],
-                    count_only = True
-                ),
-                columns = ['kNN_radius']
-            )
-        ],
-        axis = 1
-    )
-
-    fig2, ax2 = plt.subplots(1,1)
-    ax2.hist(o.data.df['kNN_radius'])
-    plt.show()
-
-    # add clustering
-    print('learning clusters')
-    time_start = time.time()
-    pipeline_cluster = None
-    data_cluster = None
-
-    o.cluster_type = d['cluster']['type']
-    if o.cluster_type == 'dbscan':
-        kwargs = d['cluster']['args']
-        pipeline_cluster = cluster.DBSCAN(**kwargs)
-        data_cluster = pipeline_cluster.fit(o.data.df[manifold_names])
-        print(data_cluster)
-    else:
-        raise BadClusterTypeException()
-    time_stop = time.time()
-    if 'results' not in d['cluster']:
-        d['cluster']['results'] = OrderedDict()
-    #core_samples_mask = np.zeros_like(data_cluster.labels_, dtype=bool)
-    #core_samples_mask[data_cluster.core_samples_indices_] = True
-    cluster_labels = data_cluster.labels_
-
-    n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
-    print("n_clusters:{}".format(n_clusters))
-
-
-    silhouette_avg = None
-    silhouette_scores = None
-    if n_clusters > 0:
-        silhouette_avg = metrics.silhouette_score(
-            o.data.df[manifold_names],
-            cluster_labels
-        )
-        silhouette_scores = metrics.silhouette_samples(
-            o.data.df[manifold_names],
-            cluster_labels
-        )
-        print("silhouette_score_avg:{}".format(silhouette_scores))
-
-        for i in range(n_clusters):
-            print(
-                "cluster_id={}".format(i)
-            )
-            print(
-                "\tsize={}".format(
-                    silhouette_scores[cluster_labels == i].size
-                )
-            )
-            print(
-                "\tsilhouette_score={}".format(
-                    silhouette_scores[cluster_labels == i].max()
-                )
-            )
-
-    import matplotlib.pyplot as plt
-    cluster_colors = cm.spectral(cluster_labels.astype(float)/n_clusters)
-    plt.scatter(
-        o.data.df[manifold_names[0]].iloc[cluster_labels == -1],
-        o.data.df[manifold_names[1]].iloc[cluster_labels == -1],
-        marker='.',
-        c=cluster_colors,
-        s=1
-    )
-    plt.show()
-        # cluster data
