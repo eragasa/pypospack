@@ -332,11 +332,14 @@ class EamPotential(Potential):
         _a0 = a0
 
         if latt_type == 'fcc':
+            _d_1NN = 0.707 * _a0
             _d_2NN = 1.000 * _a0
             _d_3NN = 1.225 * _a0
+            _d_4NN = 1.414 * _a0
+            _d_5NN = 1.581 * _a0
 
-        # r_max should be between the 2NN and 3NN
-        _rcut = 0.5 * (_d_2NN + _d_3NN)
+        # r_max should be between the 3NN and 4NN
+        _rcut = 0.5 * (_d_3NN + _d_4NN)
         return _rcut
 
     def determine_rho_max(self,a0,latt_type):
