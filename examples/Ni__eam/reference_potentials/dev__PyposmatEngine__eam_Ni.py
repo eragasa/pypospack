@@ -1,6 +1,8 @@
 import os
 import shutil
-import Ni__eam__born_exp_bjs as configuration
+#import Ni__eam__MishinMehl2002 as configuration
+#import Ni__eam__Mishin1999 as configuration
+import Ni__eam__Angelo1997_Ni as configuration
 
 def cleanup_simulation_directories():
     sim_directories = [
@@ -24,7 +26,6 @@ def cleanup_simulation_directories():
         if os.path.isdir(d):
             shutil.rmtree(d)
 
-
 if __name__ == "__main__":
     from pypospack.pyposmat.engines import PyposmatEngine
     from pypospack.pyposmat.data import PyposmatDataFile
@@ -38,8 +39,9 @@ if __name__ == "__main__":
             filename_out = 'pypospack.config.out')
     engine.configure()
 
-    _parameters = potential_parameters
-    results = engine.evaluate_parameter_set(parameters=_parameters)
+    _parameters = None
+    results = engine.evaluate_parameter_set(
+            parameters=_parameters)
     print(results)
 
     print('cleaning up simulation directories...')
