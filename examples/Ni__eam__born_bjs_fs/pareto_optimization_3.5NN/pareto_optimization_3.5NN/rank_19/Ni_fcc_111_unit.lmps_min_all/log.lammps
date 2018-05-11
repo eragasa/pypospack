@@ -1,0 +1,161 @@
+LAMMPS (11 Aug 2017)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_19/Ni_fcc_111_unit.lmps_min_all/lammps.structure
+  triclinic box = (0 0 0) to (2.4819 4.2987 6.0783) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  6 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+6 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_19/Ni_fcc_111_unit.lmps_min_all/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax aniso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe xhi xlo yhi ylo zhi xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 1 2 3
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.212 | 4.212 | 4.212 Mbytes
+Step PotEng Xhi Xlo Yhi Ylo Zhi Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+       0   0.21131388       2.4819            0       4.2987            0       6.0783            0            0            0    301219.61     301128.9    301148.31    301381.62 -0.0027413078 -0.00093832567   -4.3464559   0.21131388 
+      10  -0.13128422    2.4942992  -0.01239921    4.3201771 -0.021477054    6.1086915            0            0            0    258875.75    258798.86    258815.49    259012.89 -0.0024207467 -0.00082140185   -3.7134939  -0.13128422 
+      20  -0.43129603    2.5066987 -0.024798664    4.3416545 -0.042954512     6.139083            0            0            0    221995.41    221930.29    221944.53    222111.42 -0.0021365671 -0.00071848372   -3.1710397  -0.43129603 
+      30  -0.69334834    2.5190983 -0.037198339    4.3631323 -0.064432341    6.1694745            0            0            0    189892.23    189837.11    189849.29    189990.27 -0.0018847145 -0.00062801993   -2.7060828  -0.69334834 
+      40  -0.92158815    2.5314982 -0.049598214    4.3846105 -0.085910504     6.199866            0            0            0    161966.53    161919.94    161930.34     162049.3 -0.0016620559 -0.00054995984   -2.3075053  -0.92158815 
+      50   -1.1197327    2.5438983 -0.061998265     4.406089  -0.10738896    6.2302575            0            0            0    137694.27    137654.93    137663.81    137764.06 -0.0014692101 -0.00047966535   -1.9657934   -1.1197327 
+      60    -1.291114    2.5562985 -0.074398468    4.4275677  -0.12886768     6.260649            0            0            0    116617.38    116584.22    116591.79    116676.14 -0.0012932892 -0.00041785333   -1.6728096    -1.291114 
+      70   -1.4387194    2.5686988 -0.086798796    4.4490466  -0.15034661    6.2910405            0            0            0    98335.343    98307.443    98313.874    98384.712 -0.0011374349 -0.00036351355   -1.4215909   -1.4387194 
+      80   -1.5652269    2.5810992 -0.099199221    4.4705257  -0.17182571     6.321432            0            0            0    82497.567    82474.059    82479.516    82539.127 -0.0035993954 -0.00051572602   -1.2097142   -1.5652269 
+      90   -1.6725922    2.5934991  -0.11159907    4.4920039  -0.19330392    6.3518235            0            0            0    68164.821    68143.823      68148.8     68201.84 -0.00087617086 -0.00027698358   -1.0688163   -1.6725922 
+     100   -1.7624661    2.6058987  -0.12399874    4.5134819  -0.21478187     6.382215            0            0            0    55697.328    55679.758    55683.976    55728.249 -0.00076998539 -0.00023965923  -0.90183318   -1.7624661 
+     110   -1.8367671    2.6182982  -0.13639821    4.5349595  -0.23625953    6.4126065            0            0            0    44879.978    44865.347    44868.907     44905.68 -0.00067292122 -0.0002067453  -0.75778652   -1.8367671 
+     120   -1.8972145    2.6306973  -0.14879735    4.5564367  -0.25773669     6.442998            0            0            0    35506.717     35494.61    35497.598    35527.942 -0.00058657308 -0.00017767457  -0.63327642   -1.8972145 
+     130   -1.9453485     2.643096  -0.16119598    4.5779131  -0.27921309    6.4733895            0            0            0    27397.096    27387.166    27389.655    27414.468 -0.0005095679 -0.0001519263    -0.525299   -1.9453485 
+     140   -1.9825493    2.6554938  -0.17359385    4.5993883  -0.30068831     6.503781            0            0            0     20393.08    20385.037    20387.089    20407.115 -0.00044073531 -0.00012941446  -0.43112083   -1.9825493 
+     150   -2.0100533    2.6678905   -0.1859905    4.6208617  -0.32216165    6.5341725            0            0            0    14356.257    14349.868    14351.532     14367.37 -0.00037977158 -0.00010874017  -0.34808497   -2.0100533 
+     160   -2.0289685    2.6802851  -0.19838506    4.6423318   -0.3436318     6.564564            0            0            0    9165.4299    9160.5271    9161.8387    9173.9241 -0.00032221205 -8.9751204e-05  -0.27317561   -2.0289685 
+     170   -2.0402879    2.6926754  -0.21077542    4.6637955  -0.36509549    6.5949555            0            0            0    4714.6004    4711.1119    4712.0838    4720.6056 -0.00026658115 -7.130012e-05  -0.20150569   -2.0402879 
+     180   -2.0449026    2.7050518   -0.2231518    4.6852378  -0.38653783     6.625347            0            0            0    912.07564    910.29341    910.84461     915.0889 -0.00019892856 -4.8233434e-05  -0.11375051   -2.0449026 
+     190   -2.0451058    2.7083257  -0.22642571    4.6909197  -0.39221967    6.6334665            0            0            0  0.085140885  0.013090984 -0.0057779123   0.24810958 3.5179627e-07 1.5372746e-06 0.0038931305   -2.0451058 
+     200   -2.0451058    2.7083254  -0.22642539    4.6909187  -0.39221872     6.633471            0            0            0 1.6515727e-10 -8.5145931e-09 -6.3503222e-09 1.5360387e-08 3.6349091e-12 4.1662149e-12 -4.4811107e-10   -2.0451058 
+     202   -2.0451058    2.7083254  -0.22642539    4.6909187  -0.39221872     6.633471            0            0            0 -3.5545653e-11 1.0982479e-10 6.811081e-11 -2.8457256e-10 -2.3001653e-13 1.5696198e-12 1.5705917e-11   -2.0451058 
+Loop time of 0.0034492 on 1 procs for 202 steps with 6 atoms
+
+100.0% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+        0.211313882889      -2.0451058465      -2.0451058465
+  Force two-norm initial, final = 21.1172 2.5307e-13
+  Force max component initial, final = 12.1986 8.00761e-14
+  Final line search alpha, max atom move = 0.5 4.00381e-14
+  Iterations, force evaluations = 202 222
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.0018284  | 0.0018284  | 0.0018284  |   0.0 | 53.01
+Neigh   | 3.7909e-05 | 3.7909e-05 | 3.7909e-05 |   0.0 |  1.10
+Comm    | 0.00030637 | 0.00030637 | 0.00030637 |   0.0 |  8.88
+Output  | 0.00019765 | 0.00019765 | 0.00019765 |   0.0 |  5.73
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.001079   |            |       | 31.28
+
+Nlocal:    6 ave 6 max 6 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    270 ave 270 max 270 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    162 ave 162 max 162 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 162
+Ave neighs/atom = 27
+Neighbor list builds = 2
+Dangerous builds = 0
+# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "tot_energy = ${tot_energy}"
+tot_energy = -2.04510584650276
+print "num_atoms = ${natoms}"
+num_atoms = 6
+print "a11 = ${a11}"
+a11 = 2.93475077305099
+print "a22 = ${a22}"
+a22 = 5.08313744647635
+print "a33 = ${a33}"
+a33 = 7.18864191621341
+print "a12 = ${tilt_xy}"
+a12 = 0
+print "a13 = ${tilt_xz}"
+a13 = 0
+print "a23 = ${tilt_yz}"
+a23 = 0
+print "tot_press = ${tot_press}"
+tot_press = -3.55456528857152e-11
+print "pxx = ${press_xx}"
+pxx = 1.09824793367275e-10
+print "pyy = ${press_yy}"
+pyy = 6.8110809904236e-11
+print "pzz = ${press_zz}"
+pzz = -2.84572561928657e-10
+print "pxy = ${press_xy}"
+pxy = -2.30016528881314e-13
+print "pxz = ${press_xz}"
+pxz = 1.56961983440841e-12
+print "pyz = ${press_yz}"
+pyz = 1.57059173523467e-11
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
+Total wall time: 0:00:00

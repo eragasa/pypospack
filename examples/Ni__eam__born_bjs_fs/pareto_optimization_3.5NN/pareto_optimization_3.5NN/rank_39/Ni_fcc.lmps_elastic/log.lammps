@@ -1,0 +1,2253 @@
+LAMMPS (11 Aug 2017)
+include init.mod
+# ---- init.mod file
+variable up equal 1.0e-6
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+variable cfac equal 1.0e-4
+variable cunits string GPa
+# ---- define minimization parameters
+variable etol equal 0.0
+variable ftol equal 1.0e-10
+variable maxiter equal 100
+variable maxeval equal 1000
+variable dmax equal 1.0e-2
+# --- read data structure
+read_data lammps.structure
+  triclinic box = (0 0 0) to (3.5167 3.5167 3.5167) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+# ---- Compute initial state
+fix 3 all box/relax aniso 0.0
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+       0            0   -21.567397    -300197.2    -300197.2    -300197.2    -300197.2 -3.9876703e-11 1.2780994e-11 1.1502895e-11       3.5167       3.5167       3.5167    43.491658 
+       1            0    -21.56984   -299872.82   -299872.82   -299872.82   -299872.82 -5.625325e-12 4.6281083e-11 2.6592445e-11    3.5163483    3.5163483    3.5163483    43.478612 
+       2            0    -21.57228   -299547.67   -299547.67   -299547.67   -299547.67 2.6856199e-11 4.7062291e-11 5.9850957e-11    3.5159967    3.5159967    3.5159967    43.465568 
+       3            0   -21.574717   -299221.76   -299221.76   -299221.76   -299221.76 -5.1681717e-11 -4.9123216e-11 -5.3472668e-11     3.515645     3.515645     3.515645    43.452527 
+       4            0   -21.577151   -298895.08   -298895.08   -298895.08   -298895.08 4.3507569e-12 4.504313e-11 2.7640103e-11    3.5152933    3.5152933    3.5152933    43.439489 
+       5            0   -21.579581   -298567.64   -298567.64   -298567.64   -298567.64 -2.0992304e-11 -2.3040333e-12 -1.9968289e-11    3.5149417    3.5149417    3.5149417    43.426453 
+       6            0   -21.582009   -298239.43   -298239.43   -298239.43   -298239.43   9.2189e-12 2.0486445e-12 -3.8412083e-12      3.51459      3.51459      3.51459     43.41342 
+       7            0   -21.584433   -297910.45   -297910.45   -297910.45   -297910.45 1.1527085e-11 1.5369447e-11 5.7635424e-11    3.5142383    3.5142383    3.5142383    43.400389 
+       8            0   -21.586854   -297580.71   -297580.71   -297580.71   -297580.71 5.3809215e-12 -7.4307964e-12 6.405859e-12    3.5138866    3.5138866    3.5138866    43.387362 
+       9            0   -21.589272   -297250.19   -297250.19   -297250.19   -297250.19 -8.4582731e-12 -1.6660235e-11 5.1262261e-13     3.513535     3.513535     3.513535    43.374336 
+      10            0   -21.591687    -296918.9    -296918.9    -296918.9    -296918.9 2.4100499e-11 1.5896074e-11 2.538244e-11    3.5131833    3.5131833    3.5131833    43.361313 
+      11            0   -21.594098   -296586.83   -296586.83   -296586.83   -296586.83 3.3340488e-12  8.71982e-12 1.3849126e-11    3.5128316    3.5128316    3.5128316    43.348293 
+      12            0   -21.596507      -296254      -296254      -296254      -296254 3.3350503e-12 2.4884606e-11 -1.3596744e-11      3.51248      3.51248      3.51248    43.335276 
+      13            0   -21.598912   -295920.38   -295920.38   -295920.38   -295920.38 1.2317731e-11 -1.6167022e-11 6.6721045e-12    3.5121283    3.5121283    3.5121283    43.322261 
+      14            0   -21.601314   -295585.99   -295585.99   -295585.99   -295585.99 4.9542425e-11 2.0279024e-11 3.234376e-11    3.5117766    3.5117766    3.5117766    43.309249 
+      15            0   -21.603713   -295250.82   -295250.82   -295250.82   -295250.82 -3.0812836e-12 -1.9258023e-11 1.2838682e-12     3.511425     3.511425     3.511425    43.296239 
+      16            0   -21.606108   -294914.88   -294914.88   -294914.88   -294914.88 2.4143975e-11 3.0051544e-11 1.2071988e-11    3.5110733    3.5110733    3.5110733    43.283232 
+      17            0   -21.608501   -294578.15   -294578.15   -294578.15   -294578.15 5.0100959e-11 6.2690431e-11 3.9053055e-11    3.5107216    3.5107216    3.5107216    43.270227 
+      18            0    -21.61089   -294240.64   -294240.64   -294240.64   -294240.64 -1.4392292e-11 2.0303412e-11 4.8830992e-12    3.5103699    3.5103699    3.5103699    43.257226 
+      19            0   -21.613276   -293902.35   -293902.35   -293902.35   -293902.35 -4.2161526e-11 3.9847784e-11 3.8562371e-12    3.5100183    3.5100183    3.5100183    43.244226 
+      20            0   -21.615658   -293563.28   -293563.28   -293563.28   -293563.28 -1.3115148e-11 7.4576331e-12 -4.1145562e-12    3.5096666    3.5096666    3.5096666     43.23123 
+      21            0   -21.618038   -293223.42   -293223.42   -293223.42   -293223.42 1.7492121e-11 3.5755954e-11 -5.4019787e-12    3.5093149    3.5093149    3.5093149    43.218236 
+      22            0   -21.620414   -292882.77   -292882.77   -292882.77   -292882.77 -2.8304587e-12 1.801201e-12 2.4444871e-11    3.5089633    3.5089633    3.5089633    43.205244 
+      23            0   -21.622787   -292541.34   -292541.34   -292541.34   -292541.34 1.3641766e-11 4.4271391e-11 4.3756608e-12    3.5086116    3.5086116    3.5086116    43.192255 
+      24            0   -21.625157   -292199.12   -292199.12   -292199.12   -292199.12 3.2441122e-11 -1.0813707e-11 3.0896307e-12    3.5082599    3.5082599    3.5082599    43.179269 
+      25            0   -21.627523    -291856.1    -291856.1    -291856.1    -291856.1 -9.5292265e-12 2.163392e-11 2.2921653e-11    3.5079083    3.5079083    3.5079083    43.166285 
+      26            0   -21.629887    -291512.3    -291512.3    -291512.3    -291512.3 2.3959045e-11 -7.7287241e-12 2.3186172e-12    3.5075566    3.5075566    3.5075566    43.153304 
+      27            0   -21.632247   -291167.71   -291167.71   -291167.71   -291167.71 3.607823e-12 1.5462098e-12 -2.989339e-11    3.5072049    3.5072049    3.5072049    43.140326 
+      28            0   -21.634603   -290822.32   -290822.32   -290822.32   -290822.32 2.1395672e-11 -1.6755646e-11 -7.2178169e-12    3.5068532    3.5068532    3.5068532     43.12735 
+      29            0   -21.636957   -290476.14   -290476.14   -290476.14   -290476.14 -2.5785674e-12 -3.6099944e-12 1.8307829e-11    3.5065016    3.5065016    3.5065016    43.114377 
+      30            0   -21.639307   -290129.16   -290129.16   -290129.16   -290129.16 -8.7697676e-12 -2.1924419e-11 -2.6567237e-11    3.5061499    3.5061499    3.5061499    43.101406 
+      31            0   -21.641654   -289781.39   -289781.39   -289781.39   -289781.39 -1.6770778e-11 -1.8060838e-12 2.0640957e-12    3.5057982    3.5057982    3.5057982    43.088438 
+      32            0   -21.643998   -289432.81   -289432.81   -289432.81   -289432.81 2.8389859e-12 4.6714223e-11 2.4260425e-11    3.5054466    3.5054466    3.5054466    43.075473 
+      33            0   -21.646338   -289083.44   -289083.44   -289083.44   -289083.44 -6.0927487e-11 -6.1960157e-12 -1.8846214e-11    3.5050949    3.5050949    3.5050949     43.06251 
+      34            0   -21.648675   -288733.27   -288733.27   -288733.27   -288733.27 1.4203477e-11 -2.3242054e-11 1.2912252e-12    3.5047432    3.5047432    3.5047432     43.04955 
+      35            0   -21.651009    -288382.3    -288382.3    -288382.3    -288382.3 2.0149178e-11 -2.6090602e-11 1.6016013e-11    3.5043916    3.5043916    3.5043916    43.036592 
+      36            0   -21.653339   -288030.52   -288030.52   -288030.52   -288030.52 5.4264122e-11 -1.6537637e-11 5.0646514e-11    3.5040399    3.5040399    3.5040399    43.023637 
+      37            0   -21.655666   -287677.94   -287677.94   -287677.94   -287677.94 6.4619599e-12 3.541154e-11 5.5831333e-11    3.5036882    3.5036882    3.5036882    43.010685 
+      38            0    -21.65799   -287324.55   -287324.55   -287324.55   -287324.55 -8.7909123e-12 -3.0768193e-11 4.7315792e-11    3.5033365    3.5033365    3.5033365    42.997735 
+      39            0    -21.66031   -286970.36   -286970.36   -286970.36   -286970.36 7.2417554e-12 2.3794339e-11 1.0345365e-12    3.5029849    3.5029849    3.5029849    42.984788 
+      40            0   -21.662628   -286615.36   -286615.36   -286615.36   -286615.36 3.7513244e-11 2.6906051e-11 5.225983e-11    3.5026332    3.5026332    3.5026332    42.971843 
+      41            0   -21.664941   -286259.55   -286259.55   -286259.55   -286259.55 -3.4419066e-11 -3.3383906e-11 -2.3549887e-11    3.5022815    3.5022815    3.5022815    42.958901 
+      42            0   -21.667252   -285902.93   -285902.93   -285902.93   -285902.93 -4.5560758e-11 -2.4074719e-11 -1.4496605e-11    3.5019299    3.5019299    3.5019299    42.945961 
+      43            0   -21.669559    -285545.5    -285545.5    -285545.5    -285545.5 2.1492514e-11 3.2368243e-11 2.6412487e-11    3.5015782    3.5015782    3.5015782    42.933025 
+      44            0   -21.671863   -285187.26   -285187.26   -285187.26   -285187.26 7.5116955e-11 7.2008667e-11 9.3507658e-11    3.5012265    3.5012265    3.5012265     42.92009 
+      45            0   -21.674163    -284828.2    -284828.2    -284828.2    -284828.2 2.8501225e-11 2.9019429e-11 4.4047348e-12    3.5008749    3.5008749    3.5008749    42.907159 
+      46            0    -21.67646   -284468.33   -284468.33   -284468.33   -284468.33 -3.1101618e-12 -3.8358662e-11 -3.7581121e-11    3.5005232    3.5005232    3.5005232     42.89423 
+      47            0   -21.678754   -284107.64   -284107.64   -284107.64   -284107.64 4.9259072e-11 7.7777483e-12 4.8222039e-11    3.5001715    3.5001715    3.5001715    42.881303 
+      48            0   -21.681044   -283746.13   -283746.13   -283746.13   -283746.13 7.7800931e-13 -4.6939895e-11 -7.0020838e-12    3.4998198    3.4998198    3.4998198    42.868379 
+      49            0   -21.683331   -283383.81   -283383.81   -283383.81   -283383.81 2.3087902e-11 4.6435218e-11 2.5163219e-11    3.4994682    3.4994682    3.4994682    42.855458 
+      50            0   -21.685614   -283020.66   -283020.66   -283020.66   -283020.66 6.7468141e-12 2.1278414e-11 1.2455657e-11    3.4991165    3.4991165    3.4991165     42.84254 
+      51            0   -21.687894    -282656.7    -282656.7    -282656.7    -282656.7 3.3484673e-11 2.6216682e-11  2.33614e-12    3.4987648    3.4987648    3.4987648    42.829624 
+      52            0   -21.690171   -282291.91   -282291.91   -282291.91   -282291.91 -1.1684223e-11 -2.7782485e-11 -9.0877287e-12    3.4984132    3.4984132    3.4984132     42.81671 
+      53            0   -21.692444   -281926.29   -281926.29   -281926.29   -281926.29 -1.6103118e-11 -1.5583663e-11 7.5321036e-12    3.4980615    3.4980615    3.4980615    42.803799 
+      54            0   -21.694714   -281559.86   -281559.86   -281559.86   -281559.86 -9.6128242e-12 -8.833406e-12 -1.844623e-11    3.4977098    3.4977098    3.4977098    42.790891 
+      55            0   -21.696981   -281192.59   -281192.59   -281192.59   -281192.59 3.2745439e-11 1.5073298e-11 1.3513991e-11    3.4973582    3.4973582    3.4973582    42.777985 
+      56            0   -21.699244    -280824.5    -280824.5    -280824.5    -280824.5 1.0398514e-11 2.2356805e-11 1.5597771e-12    3.4970065    3.4970065    3.4970065    42.765082 
+      57            0   -21.701504   -280455.58   -280455.58   -280455.58   -280455.58 2.3923799e-11 4.9407846e-12 -4.6807433e-12    3.4966548    3.4966548    3.4966548    42.752182 
+      58            0    -21.70376   -280085.83   -280085.83   -280085.83   -280085.83 -1.0144671e-11 2.3410779e-12 2.6011977e-11    3.4963031    3.4963031    3.4963031    42.739284 
+      59            0   -21.706013   -279715.25   -279715.25   -279715.25   -279715.25 3.9029742e-11 2.8361612e-11 1.5872095e-11    3.4959515    3.4959515    3.4959515    42.726389 
+      60            0   -21.708262   -279343.84   -279343.84   -279343.84   -279343.84 6.2466436e-12 -2.8370173e-11 1.3013841e-12    3.4955998    3.4955998    3.4955998    42.713496 
+      61            0   -21.710508   -278971.59   -278971.59   -278971.59   -278971.59 2.994087e-11 2.3952696e-11 2.5514828e-11    3.4952481    3.4952481    3.4952481    42.700606 
+      62            0   -21.712751   -278598.51   -278598.51   -278598.51   -278598.51 -1.3021699e-12 -3.6460758e-12 7.5525857e-12    3.4948965    3.4948965    3.4948965    42.687718 
+      63            0    -21.71499   -278224.59   -278224.59   -278224.59   -278224.59 8.8574292e-12 1.3807169e-11 2.3446136e-11    3.4945448    3.4945448    3.4945448    42.674833 
+      64            0   -21.717225   -277849.84   -277849.84   -277849.84   -277849.84 -1.407193e-11 -1.824139e-11 3.9609876e-11    3.4941931    3.4941931    3.4941931    42.661951 
+      65            0   -21.719457   -277474.24   -277474.24   -277474.24   -277474.24 1.8507569e-11 -1.5900869e-11 -1.2512159e-11    3.4938415    3.4938415    3.4938415    42.649071 
+      66            0   -21.721686   -277097.81   -277097.81   -277097.81   -277097.81 -1.0951446e-11 -6.5187178e-12 -5.0063753e-11    3.4934898    3.4934898    3.4934898    42.636194 
+      67            0   -21.723911   -276720.53   -276720.53   -276720.53   -276720.53 -8.6073066e-12 3.6515846e-12 1.6432131e-11    3.4931381    3.4931381    3.4931381     42.62332 
+      68            0   -21.726133   -276342.41   -276342.41   -276342.41   -276342.41 -1.1218969e-11 -3.0786939e-11 -3.913594e-12    3.4927864    3.4927864    3.4927864    42.610448 
+      69            0   -21.728351   -275963.45   -275963.45   -275963.45   -275963.45 1.2788269e-11 2.4010628e-11 4.7760271e-11    3.4924348    3.4924348    3.4924348    42.597578 
+      70            0   -21.730565   -275583.65   -275583.65   -275583.65   -275583.65 -1.6969156e-11 -1.6185965e-11 -2.976129e-11    3.4920831    3.4920831    3.4920831    42.584712 
+      71            0   -21.732777   -275202.99   -275202.99   -275202.99   -275202.99 2.5330855e-11 -1.1490285e-11 3.7082282e-11    3.4917314    3.4917314    3.4917314    42.571847 
+      72            0   -21.734984   -274821.49   -274821.49   -274821.49   -274821.49 1.1493757e-11 4.8587246e-11 4.1011815e-11    3.4913798    3.4913798    3.4913798    42.558986 
+      73            0   -21.737189   -274439.14   -274439.14   -274439.14   -274439.14 1.7245846e-11 -4.1808112e-11 -3.1356084e-12    3.4910281    3.4910281    3.4910281    42.546127 
+      74            0   -21.739389   -274055.94   -274055.94   -274055.94   -274055.94 -2.5615209e-11 3.1104182e-11 -7.8413905e-13    3.4906764    3.4906764    3.4906764     42.53327 
+      75            0   -21.741586   -273671.89   -273671.89   -273671.89   -273671.89 3.3728172e-11 4.627819e-11 2.4577118e-11    3.4903248    3.4903248    3.4903248    42.520417 
+      76            0    -21.74378   -273286.99   -273286.99   -273286.99   -273286.99 5.2307549e-12 1.4907651e-11 1.1769198e-11    3.4899731    3.4899731    3.4899731    42.507565 
+      77            0    -21.74597   -272901.23   -272901.23   -272901.23   -272901.23 -1.3080841e-11 2.8516234e-11 2.5376832e-11    3.4896214    3.4896214    3.4896214    42.494717 
+      78            0   -21.748157   -272514.62   -272514.62   -272514.62   -272514.62 9.4210536e-12 -1.9103803e-11 -5.7573105e-12    3.4892697    3.4892697    3.4892697    42.481871 
+      79            0    -21.75034   -272127.15   -272127.15   -272127.15   -272127.15 2.6962833e-11 -6.2826018e-12 -4.0051586e-11    3.4889181    3.4889181    3.4889181    42.469027 
+      80            0   -21.752519   -271738.82   -271738.82   -271738.82   -271738.82 1.1259733e-11 -1.1521587e-11 2.8018405e-11    3.4885664    3.4885664    3.4885664    42.456186 
+      81            0   -21.754695   -271349.63   -271349.63   -271349.63   -271349.63 2.6193345e-11 1.519214e-11 3.6670684e-12    3.4882147    3.4882147    3.4882147    42.443348 
+      82            0   -21.756867   -270959.59   -270959.59   -270959.59   -270959.59 -5.2402538e-13 1.2838622e-11 1.8078876e-11    3.4878631    3.4878631    3.4878631    42.430512 
+      83            0   -21.759036   -270568.68   -270568.68   -270568.68   -270568.68 4.8224921e-11 2.2015725e-11 2.5947104e-11    3.4875114    3.4875114    3.4875114    42.417679 
+      84            0   -21.761201   -270176.91   -270176.91   -270176.91   -270176.91 -4.0374374e-11 -2.5168441e-11 -2.6217126e-11    3.4871597    3.4871597    3.4871597    42.404849 
+      85            0   -21.763363   -269784.27   -269784.27   -269784.27   -269784.27 3.2781325e-11 -7.6052673e-12 -3.068332e-11    3.4868081    3.4868081    3.4868081    42.392021 
+      86            0   -21.765521   -269390.77   -269390.77   -269390.77   -269390.77 -9.1815487e-12 1.2067178e-11 3.5414545e-11    3.4864564    3.4864564    3.4864564    42.379195 
+      87            0   -21.767675    -268996.4    -268996.4    -268996.4    -268996.4 -4.8545732e-11 -5.8254878e-11 -7.1900165e-11    3.4861047    3.4861047    3.4861047    42.366373 
+      88            0   -21.769826   -268601.16   -268601.16   -268601.16   -268601.16 -2.9398744e-11 2.0999103e-12 -9.974574e-12     3.485753     3.485753     3.485753    42.353553 
+      89            0   -21.771973   -268205.06   -268205.06   -268205.06   -268205.06 -7.351911e-12 2.6256825e-13 9.1898888e-12    3.4854014    3.4854014    3.4854014    42.340735 
+      90            0   -21.774117   -267808.08   -267808.08   -267808.08   -267808.08 2.2587706e-11 1.392033e-11 1.5496217e-11    3.4850497    3.4850497    3.4850497     42.32792 
+      91            0   -21.776257   -267410.23   -267410.23   -267410.23   -267410.23 -1.5763636e-12            0 -2.1543636e-11     3.484698     3.484698     3.484698    42.315108 
+      92            0   -21.778393   -267011.51   -267011.51   -267011.51   -267011.51 8.4886606e-11 7.7528015e-11 8.5149413e-11    3.4843464    3.4843464    3.4843464    42.302298 
+      93            0   -21.780526   -266611.91   -266611.91   -266611.91   -266611.91 -5.2577284e-12 -2.1030914e-12 -7.8865926e-13    3.4839947    3.4839947    3.4839947    42.289491 
+      94            0   -21.782655   -266211.44   -266211.44   -266211.44   -266211.44 -7.4156424e-11 -6.0745156e-11 -5.4696937e-11     3.483643     3.483643     3.483643    42.276686 
+      95            0   -21.784781   -265810.09   -265810.09   -265810.09   -265810.09 -6.5761424e-12 3.9456854e-12 -6.5761424e-12    3.4832914    3.4832914    3.4832914    42.263884 
+      96            0   -21.786903   -265407.86   -265407.86   -265407.86   -265407.86  3.42063e-11 1.3156269e-11 1.0525015e-11    3.4829397    3.4829397    3.4829397    42.251084 
+      97            0   -21.789021   -265004.75   -265004.75   -265004.75   -265004.75 -4.3955252e-11 -5.264102e-11 -5.0008969e-11     3.482588     3.482588     3.482588    42.238287 
+      98            0   -21.791136   -264600.76   -264600.76   -264600.76   -264600.76 -1.3427527e-11 2.7381625e-11 3.5016885e-11    3.4822363    3.4822363    3.4822363    42.225493 
+      99            0   -21.793247   -264195.89   -264195.89   -264195.89   -264195.89 -1.2641503e-11 -2.3702817e-11 -1.1588044e-11    3.4818847    3.4818847    3.4818847    42.212701 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13 2.6344445e-12 2.2919667e-11 2.8452001e-11     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.0613391 on 1 procs for 100 steps with 4 atoms
+
+4.5% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = max iterations
+  Energy initial, next-to-last, final = 
+        -21.5673969816     -21.7932466857     -21.7953539726
+  Force two-norm initial, final = 14.1144 12.1558
+  Force max component initial, final = 8.14896 7.01818
+  Final line search alpha, max atom move = 1.4224e-05 9.98263e-05
+  Iterations, force evaluations = 100 100
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.00098276 | 0.00098276 | 0.00098276 |   0.0 |  1.60
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00020361 | 0.00020361 | 0.00020361 |   0.0 |  0.33
+Output  | 0.059494   | 0.059494   | 0.059494   |   0.0 | 96.99
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.0006588  |            |       |  1.07
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+variable tmp equal pxx
+variable pxx0 equal ${tmp}
+variable pxx0 equal -263790.130571622
+variable tmp equal pyy
+variable pyy0 equal ${tmp}
+variable pyy0 equal -263790.130571622
+variable tmp equal pzz
+variable pzz0 equal ${tmp}
+variable pzz0 equal -263790.130571622
+variable tmp equal pyz
+variable pyz0 equal ${tmp}
+variable pyz0 equal 2.84520007824923e-11
+variable tmp equal pxz
+variable pxz0 equal ${tmp}
+variable pxz0 equal 2.29196672970077e-11
+variable tmp equal pxy
+variable pxy0 equal ${tmp}
+variable pxy0 equal 2.63444451689743e-12
+
+variable tmp equal lx
+variable lx0 equal ${tmp}
+variable lx0 equal 3.48153300000002
+variable tmp equal ly
+variable ly0 equal ${tmp}
+variable ly0 equal 3.48153300000002
+variable tmp equal lz
+variable lz0 equal ${tmp}
+variable lz0 equal 3.48153300000002
+
+ # ---- define the derivatives w.r.t. strain components
+variable d1 equal -(v_pxx1-${pxx0})/(v_delta/v_len0)*${cfac}
+variable d1 equal -(v_pxx1--263790.130571622)/(v_delta/v_len0)*${cfac}
+variable d1 equal -(v_pxx1--263790.130571622)/(v_delta/v_len0)*0.0001
+variable d2 equal -(v_pyy1-${pyy0})/(v_delta/v_len0)*${cfac}
+variable d2 equal -(v_pyy1--263790.130571622)/(v_delta/v_len0)*${cfac}
+variable d2 equal -(v_pyy1--263790.130571622)/(v_delta/v_len0)*0.0001
+variable d3 equal -(v_pzz1-${pzz0})/(v_delta/v_len0)*${cfac}
+variable d3 equal -(v_pzz1--263790.130571622)/(v_delta/v_len0)*${cfac}
+variable d3 equal -(v_pzz1--263790.130571622)/(v_delta/v_len0)*0.0001
+variable d4 equal -(v_pyz1-${pyz0})/(v_delta/v_len0)*${cfac}
+variable d4 equal -(v_pyz1-2.84520007824923e-11)/(v_delta/v_len0)*${cfac}
+variable d4 equal -(v_pyz1-2.84520007824923e-11)/(v_delta/v_len0)*0.0001
+variable d5 equal -(v_pxz1-${pxz0})/(v_delta/v_len0)*${cfac}
+variable d5 equal -(v_pxz1-2.29196672970077e-11)/(v_delta/v_len0)*${cfac}
+variable d5 equal -(v_pxz1-2.29196672970077e-11)/(v_delta/v_len0)*0.0001
+variable d6 equal -(v_pxy1-${pxy0})/(v_delta/v_len0)*${cfac}
+variable d6 equal -(v_pxy1-2.63444451689743e-12)/(v_delta/v_len0)*${cfac}
+variable d6 equal -(v_pxy1-2.63444451689743e-12)/(v_delta/v_len0)*0.0001
+
+# ---- write restart files
+unfix 3
+write_restart restart.equil
+# ---- uxx Perturbation
+variable dir equal 1
+include displace.mod
+# NOTE: This script should not need to be
+# modified. See in.elastic for more info.
+# Find which reference length to use
+
+if "${dir} == 1" then    "variable len0 equal ${lx0}"
+variable len0 equal ${lx0}
+variable len0 equal 3.48153300000002
+if "${dir} == 2" then    "variable len0 equal ${ly0}"
+if "${dir} == 3" then    "variable len0 equal ${lz0}"
+if "${dir} == 4" then    "variable len0 equal ${lz0}"
+if "${dir} == 5" then    "variable len0 equal ${lz0}"
+if "${dir} == 6" then    "variable len0 equal ${ly0}"
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Negative deformation
+
+variable delta equal -${up}*${len0}
+variable delta equal -1e-06*${len0}
+variable delta equal -1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+change_box all x delta 0 ${delta} remap units box
+change_box all x delta 0 -3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49911 3.49912 3.49912) with tilt (0 -0 0)
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795361   -263788.79   -263788.43   -263788.97   -263788.97 6.0065395e-11 6.1119174e-11 9.3786319e-11    3.4815295     3.481533     3.481533     42.19987 
+     101            0   -21.795361    -263788.8   -263788.44   -263788.98   -263788.98 -6.3226732e-12 -5.532339e-12 8.2194751e-11    3.4815295     3.481533     3.481533     42.19987 
+     102            0   -21.795361    -263788.8   -263788.44   -263788.98   -263788.98 4.2414599e-11 8.6936756e-12 2.6344472e-11    3.4815295     3.481533     3.481533     42.19987 
+Loop time of 8.98838e-05 on 1 procs for 2 steps with 4 atoms
+
+74.5% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953609206     -21.7953609686     -21.7953609686
+  Force two-norm initial, final = 0.00113854 1.11052e-14
+  Force max component initial, final = 0.000328669 5.66214e-15
+  Final line search alpha, max atom move = 1 5.66214e-15
+  Iterations, force evaluations = 2 4
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 5.1975e-05 | 5.1975e-05 | 5.1975e-05 |   0.0 | 57.82
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 9.7752e-06 | 9.7752e-06 | 9.7752e-06 |   0.0 | 10.88
+Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 | 11.14
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.812e-05  |            |       | 20.16
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263788.439367282
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263788.981705127
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263788.981705127
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 4.24145991366478e-11
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal 8.69367559943713e-12
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 2.63444715134459e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1neg equal ${d1}
+variable C1neg equal 169.120434002252
+variable C2neg equal ${d2}
+variable C2neg equal 114.886649500113
+variable C3neg equal ${d3}
+variable C3neg equal 114.886649500113
+variable C4neg equal ${d4}
+variable C4neg equal -2.1075292690464e-10
+variable C5neg equal ${d5}
+variable C5neg equal -1.42259916975706e-09
+variable C6neg equal ${d6}
+variable C6neg equal 3.97801546197504e-09
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Positive deformation
+
+variable delta equal ${up}*${len0}
+variable delta equal 1e-06*${len0}
+variable delta equal 1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+change_box all x delta 0 ${delta} remap units box
+change_box all x delta 0 3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795347   -263791.47   -263791.83   -263791.29   -263791.29 6.3490049e-11 7.4818149e-11 1.7387316e-11    3.4815365     3.481533     3.481533    42.199954 
+     101            0   -21.795347   -263791.48   -263791.84    -263791.3    -263791.3 -7.9033256e-12 2.0285202e-11 8.5355917e-11    3.4815365     3.481533     3.481533    42.199954 
+     102            0   -21.795347   -263791.48   -263791.84    -263791.3    -263791.3 -9.2205466e-12 4.8210286e-11 2.6080975e-11    3.4815365     3.481533     3.481533    42.199954 
+Loop time of 0.000102997 on 1 procs for 2 steps with 4 atoms
+
+101.0% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953470246     -21.7953470726     -21.7953470726
+  Force two-norm initial, final = 0.00113853 8.80528e-15
+  Force max component initial, final = 0.000328665 3.41394e-15
+  Final line search alpha, max atom move = 1 3.41394e-15
+  Iterations, force evaluations = 2 4
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 5.722e-05  | 5.722e-05  | 5.722e-05  |   0.0 | 55.56
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 2.0981e-05 | 2.0981e-05 | 2.0981e-05 |   0.0 | 20.37
+Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 |  9.72
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.478e-05  |            |       | 14.35
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pe
+variable e1 equal ${tmp}
+variable e1 equal -21.7953470726211
+variable tmp equal press
+variable p1 equal ${tmp}
+variable p1 equal -263791.481841738
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263791.843399635
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263791.301062789
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263791.301062789
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal -9.22054658859443e-12
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal 4.82102864489366e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 2.608097463631e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1pos equal ${d1}
+variable C1pos equal 171.282801299822
+variable C2pos equal ${d2}
+variable C2pos equal 117.049116699491
+variable C3pos equal ${d3}
+variable C3pos equal 117.049116699491
+variable C4pos equal ${d4}
+variable C4pos equal 2.3710261461823e-10
+variable C5pos equal ${d5}
+variable C5pos equal -2.52906191519289e-09
+variable C6pos equal ${d6}
+variable C6pos equal 1.18549911054919e-09
+
+# Combine positive and negative
+
+variable C1${dir} equal 0.5*(${C1neg}+${C1pos})
+variable C11 equal 0.5*(${C1neg}+${C1pos})
+variable C11 equal 0.5*(169.120434002252+${C1pos})
+variable C11 equal 0.5*(169.120434002252+171.282801299822)
+variable C2${dir} equal 0.5*(${C2neg}+${C2pos})
+variable C21 equal 0.5*(${C2neg}+${C2pos})
+variable C21 equal 0.5*(114.886649500113+${C2pos})
+variable C21 equal 0.5*(114.886649500113+117.049116699491)
+variable C3${dir} equal 0.5*(${C3neg}+${C3pos})
+variable C31 equal 0.5*(${C3neg}+${C3pos})
+variable C31 equal 0.5*(114.886649500113+${C3pos})
+variable C31 equal 0.5*(114.886649500113+117.049116699491)
+variable C4${dir} equal 0.5*(${C4neg}+${C4pos})
+variable C41 equal 0.5*(${C4neg}+${C4pos})
+variable C41 equal 0.5*(-2.1075292690464e-10+${C4pos})
+variable C41 equal 0.5*(-2.1075292690464e-10+2.3710261461823e-10)
+variable C5${dir} equal 0.5*(${C5neg}+${C5pos})
+variable C51 equal 0.5*(${C5neg}+${C5pos})
+variable C51 equal 0.5*(-1.42259916975706e-09+${C5pos})
+variable C51 equal 0.5*(-1.42259916975706e-09+-2.52906191519289e-09)
+variable C6${dir} equal 0.5*(${C6neg}+${C6pos})
+variable C61 equal 0.5*(${C6neg}+${C6pos})
+variable C61 equal 0.5*(3.97801546197504e-09+${C6pos})
+variable C61 equal 0.5*(3.97801546197504e-09+1.18549911054919e-09)
+
+# Delete dir to make sure it is not reused
+
+variable dir delete
+# ---- uyy Perturbation
+variable dir equal 2
+include displace.mod
+# NOTE: This script should not need to be
+# modified. See in.elastic for more info.
+# Find which reference length to use
+
+if "${dir} == 1" then    "variable len0 equal ${lx0}"
+if "${dir} == 2" then    "variable len0 equal ${ly0}"
+variable len0 equal ${ly0}
+variable len0 equal 3.48153300000002
+if "${dir} == 3" then    "variable len0 equal ${lz0}"
+if "${dir} == 4" then    "variable len0 equal ${lz0}"
+if "${dir} == 5" then    "variable len0 equal ${lz0}"
+if "${dir} == 6" then    "variable len0 equal ${ly0}"
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Negative deformation
+
+variable delta equal -${up}*${len0}
+variable delta equal -1e-06*${len0}
+variable delta equal -1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+change_box all y delta 0 ${delta} remap units box
+change_box all y delta 0 -3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49911 3.49912) with tilt (0 -0 0)
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795361   -263788.79   -263788.97   -263788.43   -263788.97 7.376452e-12 3.9253263e-11 2.7134806e-11     3.481533    3.4815295     3.481533     42.19987 
+     101            0   -21.795361    -263788.8   -263788.98   -263788.44   -263788.98 2.8978919e-12 1.9231464e-11 4.4785602e-12     3.481533    3.4815295     3.481533     42.19987 
+     102            0   -21.795361    -263788.8   -263788.98   -263788.44   -263788.98 1.8177685e-11 -2.291969e-11 2.4763803e-11     3.481533    3.4815295     3.481533     42.19987 
+Loop time of 8.79765e-05 on 1 procs for 2 steps with 4 atoms
+
+100.0% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953609206     -21.7953609686     -21.7953609686
+  Force two-norm initial, final = 0.00113854 8.85645e-15
+  Force max component initial, final = 0.000328669 5.60923e-15
+  Final line search alpha, max atom move = 1 5.60923e-15
+  Iterations, force evaluations = 2 4
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 5.2929e-05 | 5.2929e-05 | 5.2929e-05 |   0.0 | 60.16
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 | 11.38
+Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 | 11.38
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.502e-05  |            |       | 17.07
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263788.981705127
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263788.439367282
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263788.981705127
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 1.81776853442776e-11
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -2.29196902166979e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 2.47638032226391e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1neg equal ${d1}
+variable C1neg equal 114.886649500113
+variable C2neg equal ${d2}
+variable C2neg equal 169.120434002252
+variable C3neg equal ${d3}
+variable C3neg equal 114.886649500113
+variable C4neg equal ${d4}
+variable C4neg equal -3.6881975598532e-10
+variable C5neg equal ${d5}
+variable C5neg equal -4.58393575137056e-09
+variable C6neg equal ${d6}
+variable C6neg equal 1.55432408273802e-09
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Positive deformation
+
+variable delta equal ${up}*${len0}
+variable delta equal 1e-06*${len0}
+variable delta equal 1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+change_box all y delta 0 ${delta} remap units box
+change_box all y delta 0 3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795347   -263791.47   -263791.29   -263791.83   -263791.29 4.4258624e-11 5.1108173e-11 7.4291261e-11     3.481533    3.4815365     3.481533    42.199954 
+     101            0   -21.795347   -263791.48    -263791.3   -263791.84    -263791.3 -2.8978861e-12 3.5564965e-11 2.7134751e-11     3.481533    3.4815365     3.481533    42.199954 
+     102            0   -21.795347   -263791.48    -263791.3   -263791.84    -263791.3 1.0801212e-11 -1.3699098e-11 5.5586724e-11     3.481533    3.4815365     3.481533    42.199954 
+Loop time of 8.58307e-05 on 1 procs for 2 steps with 4 atoms
+
+101.4% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953470246     -21.7953470726     -21.7953470726
+  Force two-norm initial, final = 0.00113853 1.08148e-14
+  Force max component initial, final = 0.000328665 4.33421e-15
+  Final line search alpha, max atom move = 1 4.33421e-15
+  Iterations, force evaluations = 2 4
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 5.0068e-05 | 5.0068e-05 | 5.0068e-05 |   0.0 | 58.33
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.3113e-05 | 1.3113e-05 | 1.3113e-05 |   0.0 | 15.28
+Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 | 11.67
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.264e-05  |            |       | 14.72
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pe
+variable e1 equal ${tmp}
+variable e1 equal -21.7953470726211
+variable tmp equal press
+variable p1 equal ${tmp}
+variable p1 equal -263791.481841738
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263791.301062789
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263791.843399635
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263791.301062789
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 1.08012117180678e-11
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -1.36990977887689e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 5.55867237198121e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1pos equal ${d1}
+variable C1pos equal 117.049116699491
+variable C2pos equal ${d2}
+variable C2pos equal 171.282801299822
+variable C3pos equal ${d3}
+variable C3pos equal 117.049116699491
+variable C4pos equal ${d4}
+variable C4pos equal -2.71347229373198e-09
+variable C5pos equal ${d5}
+variable C5pos equal 3.66187650857766e-09
+variable C6pos equal ${d6}
+variable C6pos equal -8.16676720117037e-10
+
+# Combine positive and negative
+
+variable C1${dir} equal 0.5*(${C1neg}+${C1pos})
+variable C12 equal 0.5*(${C1neg}+${C1pos})
+variable C12 equal 0.5*(114.886649500113+${C1pos})
+variable C12 equal 0.5*(114.886649500113+117.049116699491)
+variable C2${dir} equal 0.5*(${C2neg}+${C2pos})
+variable C22 equal 0.5*(${C2neg}+${C2pos})
+variable C22 equal 0.5*(169.120434002252+${C2pos})
+variable C22 equal 0.5*(169.120434002252+171.282801299822)
+variable C3${dir} equal 0.5*(${C3neg}+${C3pos})
+variable C32 equal 0.5*(${C3neg}+${C3pos})
+variable C32 equal 0.5*(114.886649500113+${C3pos})
+variable C32 equal 0.5*(114.886649500113+117.049116699491)
+variable C4${dir} equal 0.5*(${C4neg}+${C4pos})
+variable C42 equal 0.5*(${C4neg}+${C4pos})
+variable C42 equal 0.5*(-3.6881975598532e-10+${C4pos})
+variable C42 equal 0.5*(-3.6881975598532e-10+-2.71347229373198e-09)
+variable C5${dir} equal 0.5*(${C5neg}+${C5pos})
+variable C52 equal 0.5*(${C5neg}+${C5pos})
+variable C52 equal 0.5*(-4.58393575137056e-09+${C5pos})
+variable C52 equal 0.5*(-4.58393575137056e-09+3.66187650857766e-09)
+variable C6${dir} equal 0.5*(${C6neg}+${C6pos})
+variable C62 equal 0.5*(${C6neg}+${C6pos})
+variable C62 equal 0.5*(1.55432408273802e-09+${C6pos})
+variable C62 equal 0.5*(1.55432408273802e-09+-8.16676720117037e-10)
+
+# Delete dir to make sure it is not reused
+
+variable dir delete
+# ---- uzz Perturbation
+variable dir equal 3
+include displace.mod
+# NOTE: This script should not need to be
+# modified. See in.elastic for more info.
+# Find which reference length to use
+
+if "${dir} == 1" then    "variable len0 equal ${lx0}"
+if "${dir} == 2" then    "variable len0 equal ${ly0}"
+if "${dir} == 3" then    "variable len0 equal ${lz0}"
+variable len0 equal ${lz0}
+variable len0 equal 3.48153300000002
+if "${dir} == 4" then    "variable len0 equal ${lz0}"
+if "${dir} == 5" then    "variable len0 equal ${lz0}"
+if "${dir} == 6" then    "variable len0 equal ${ly0}"
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Negative deformation
+
+variable delta equal -${up}*${len0}
+variable delta equal -1e-06*${len0}
+variable delta equal -1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+change_box all z delta 0 ${delta} remap units box
+change_box all z delta 0 -3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49911) with tilt (0 -0 0)
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795361   -263788.79   -263788.97   -263788.97   -263788.43 4.7420049e-11 8.2194751e-11 1.2092112e-10     3.481533     3.481533    3.4815295     42.19987 
+     101            0   -21.795361    -263788.8   -263788.98   -263788.98   -263788.44 -8.6936756e-12 1.5279793e-11 1.343568e-11     3.481533     3.481533    3.4815295     42.19987 
+     102            0   -21.795361    -263788.8   -263788.98   -263788.98   -263788.44 9.220565e-12 1.844113e-11 -1.396257e-11     3.481533     3.481533    3.4815295     42.19987 
+Loop time of 8.70228e-05 on 1 procs for 2 steps with 4 atoms
+
+87.3% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953609206     -21.7953609686     -21.7953609686
+  Force two-norm initial, final = 0.00113854 6.00683e-15
+  Force max component initial, final = 0.000328669 3.91354e-15
+  Final line search alpha, max atom move = 1 3.91354e-15
+  Iterations, force evaluations = 2 4
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 5.1975e-05 | 5.1975e-05 | 5.1975e-05 |   0.0 | 59.73
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.0252e-05 | 1.0252e-05 | 1.0252e-05 |   0.0 | 11.78
+Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 | 11.51
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.478e-05  |            |       | 16.99
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263788.981705127
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263788.981705127
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263788.439367282
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 9.22056502970605e-12
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal 1.84411300594121e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal -1.39625699021263e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1neg equal ${d1}
+variable C1neg equal 114.886649500113
+variable C2neg equal ${d2}
+variable C2neg equal 114.886649500113
+variable C3neg equal ${d3}
+variable C3neg equal 169.120434002252
+variable C4neg equal ${d4}
+variable C4neg equal -4.24145706846186e-09
+variable C5neg equal ${d5}
+variable C5neg equal -4.4785372375956e-10
+variable C6neg equal ${d6}
+variable C6neg equal 6.58612051280862e-10
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Positive deformation
+
+variable delta equal ${up}*${len0}
+variable delta equal 1e-06*${len0}
+variable delta equal 1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+change_box all z delta 0 ${delta} remap units box
+change_box all z delta 0 3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795347   -263791.47   -263791.29   -263791.29   -263791.83 2.0548647e-11 4.3204847e-11 7.7716036e-11     3.481533     3.481533    3.4815365    42.199954 
+     101            0   -21.795347   -263791.48    -263791.3    -263791.3   -263791.84 5.3215726e-11 1.5543207e-11 1.2118433e-11     3.481533     3.481533    3.4815365    42.199954 
+     102            0   -21.795347   -263791.48    -263791.3    -263791.3   -263791.84  1.13281e-11 -3.898974e-11 1.7650761e-11     3.481533     3.481533    3.4815365    42.199954 
+Loop time of 8.70228e-05 on 1 procs for 2 steps with 4 atoms
+
+87.3% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953470246     -21.7953470726     -21.7953470726
+  Force two-norm initial, final = 0.00113853 1.04581e-14
+  Force max component initial, final = 0.000328665 3.96905e-15
+  Final line search alpha, max atom move = 1 3.96905e-15
+  Iterations, force evaluations = 2 4
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 5.1022e-05 | 5.1022e-05 | 5.1022e-05 |   0.0 | 58.63
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.2159e-05 | 1.2159e-05 | 1.2159e-05 |   0.0 | 13.97
+Output  | 1.0014e-05 | 1.0014e-05 | 1.0014e-05 |   0.0 | 11.51
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.383e-05  |            |       | 15.89
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pe
+variable e1 equal ${tmp}
+variable e1 equal -21.7953470726211
+variable tmp equal press
+variable p1 equal ${tmp}
+variable p1 equal -263791.481841738
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263791.301062789
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263791.301062789
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263791.843399635
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 1.13281000945589e-11
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -3.89897398603422e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 1.76507606124522e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1pos equal ${d1}
+variable C1pos equal 117.049116699491
+variable C2pos equal ${d2}
+variable C2pos equal 117.049116699491
+variable C3pos equal ${d3}
+variable C3pos equal 171.282801299822
+variable C4pos equal ${d4}
+variable C4pos equal 1.08012401700401e-09
+variable C5pos equal ${d5}
+variable C5pos equal 6.19094071573499e-09
+variable C6pos equal ${d6}
+variable C6pos equal -8.69365557766147e-10
+
+# Combine positive and negative
+
+variable C1${dir} equal 0.5*(${C1neg}+${C1pos})
+variable C13 equal 0.5*(${C1neg}+${C1pos})
+variable C13 equal 0.5*(114.886649500113+${C1pos})
+variable C13 equal 0.5*(114.886649500113+117.049116699491)
+variable C2${dir} equal 0.5*(${C2neg}+${C2pos})
+variable C23 equal 0.5*(${C2neg}+${C2pos})
+variable C23 equal 0.5*(114.886649500113+${C2pos})
+variable C23 equal 0.5*(114.886649500113+117.049116699491)
+variable C3${dir} equal 0.5*(${C3neg}+${C3pos})
+variable C33 equal 0.5*(${C3neg}+${C3pos})
+variable C33 equal 0.5*(169.120434002252+${C3pos})
+variable C33 equal 0.5*(169.120434002252+171.282801299822)
+variable C4${dir} equal 0.5*(${C4neg}+${C4pos})
+variable C43 equal 0.5*(${C4neg}+${C4pos})
+variable C43 equal 0.5*(-4.24145706846186e-09+${C4pos})
+variable C43 equal 0.5*(-4.24145706846186e-09+1.08012401700401e-09)
+variable C5${dir} equal 0.5*(${C5neg}+${C5pos})
+variable C53 equal 0.5*(${C5neg}+${C5pos})
+variable C53 equal 0.5*(-4.4785372375956e-10+${C5pos})
+variable C53 equal 0.5*(-4.4785372375956e-10+6.19094071573499e-09)
+variable C6${dir} equal 0.5*(${C6neg}+${C6pos})
+variable C63 equal 0.5*(${C6neg}+${C6pos})
+variable C63 equal 0.5*(6.58612051280862e-10+${C6pos})
+variable C63 equal 0.5*(6.58612051280862e-10+-8.69365557766147e-10)
+
+# Delete dir to make sure it is not reused
+
+variable dir delete
+# ---- uyz Perturbation
+variable dir equal 4
+include displace.mod
+# NOTE: This script should not need to be
+# modified. See in.elastic for more info.
+# Find which reference length to use
+
+if "${dir} == 1" then    "variable len0 equal ${lx0}"
+if "${dir} == 2" then    "variable len0 equal ${ly0}"
+if "${dir} == 3" then    "variable len0 equal ${lz0}"
+if "${dir} == 4" then    "variable len0 equal ${lz0}"
+variable len0 equal ${lz0}
+variable len0 equal 3.48153300000002
+if "${dir} == 5" then    "variable len0 equal ${lz0}"
+if "${dir} == 6" then    "variable len0 equal ${ly0}"
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Negative deformation
+
+variable delta equal -${up}*${len0}
+variable delta equal -1e-06*${len0}
+variable delta equal -1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+change_box all yz delta ${delta} remap units box
+change_box all yz delta -3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 -3.48153e-06)
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13 2.3973445e-11 5.6904002e-11   0.79702544     3.481533     3.481533     3.481533    42.199912 
+     101            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -5.1108224e-11 4.2151112e-11   0.79702545     3.481533     3.481533     3.481533    42.199912 
+     102            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -2.2919667e-11 1.3435667e-11   0.79702545     3.481533     3.481533     3.481533    42.199912 
+     103            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -7.1130002e-12 -2.6344445e-13   0.79702545     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.000118971 on 1 procs for 3 steps with 4 atoms
+
+86.6% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953539726     -21.7953540206     -21.7953540206
+  Force two-norm initial, final = 0.00113854 2.80295e-15
+  Force max component initial, final = 0.000328668 1.60982e-15
+  Final line search alpha, max atom move = 1 1.60982e-15
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 6.9618e-05 | 6.9618e-05 | 6.9618e-05 |   0.0 | 58.52
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.5259e-05 | 1.5259e-05 | 1.5259e-05 |   0.0 | 12.83
+Output  | 1.6928e-05 | 1.6928e-05 | 1.6928e-05 |   0.0 | 14.23
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.717e-05  |            |       | 14.43
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263790.141389988
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263790.141387505
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263790.141386182
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal -7.11300019562307e-12
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -2.63444451689743e-13
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 0.797025452943836
+
+# Compute elastic constant from pressure tensor
+
+variable C1neg equal ${d1}
+variable C1neg equal -1.08183660195209
+variable C2neg equal ${d2}
+variable C2neg equal -1.08158829971217
+variable C3neg equal ${d3}
+variable C3neg equal -1.08145599951968
+variable C4neg equal ${d4}
+variable C4neg equal 79.7025452915384
+variable C5neg equal ${d5}
+variable C5neg equal -2.31831117486974e-09
+variable C6neg equal ${d6}
+variable C6neg equal -9.7474447125205e-10
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Positive deformation
+
+variable delta equal ${up}*${len0}
+variable delta equal 1e-06*${len0}
+variable delta equal 1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+change_box all yz delta ${delta} remap units box
+change_box all yz delta 3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 3.48153e-06)
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13 6.6124557e-11 4.0307001e-11  -0.79702544     3.481533     3.481533     3.481533    42.199912 
+     101            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 6.744178e-11 -4.7156557e-11  -0.79702545     3.481533     3.481533     3.481533    42.199912 
+     102            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -6.8495557e-11 -2.5027223e-11  -0.79702545     3.481533     3.481533     3.481533    42.199912 
+     103            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 2.2392778e-11 -1.5016334e-11  -0.79702545     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.000121117 on 1 procs for 3 steps with 4 atoms
+
+85.9% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953539726     -21.7953540206     -21.7953540206
+  Force two-norm initial, final = 0.00113854 8.08486e-15
+  Force max component initial, final = 0.000328668 4.21885e-15
+  Final line search alpha, max atom move = 1 4.21885e-15
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 7.2002e-05 | 7.2002e-05 | 7.2002e-05 |   0.0 | 59.45
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.3351e-05 | 1.3351e-05 | 1.3351e-05 |   0.0 | 11.02
+Output  | 2.0027e-05 | 2.0027e-05 | 2.0027e-05 |   0.0 | 16.54
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.574e-05  |            |       | 12.99
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pe
+variable e1 equal ${tmp}
+variable e1 equal -21.7953540206322
+variable tmp equal press
+variable p1 equal ${tmp}
+variable p1 equal -263790.141387892
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263790.141389988
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263790.141387505
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263790.141386182
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 2.23927783936282e-11
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -1.50163337463154e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal -0.797025452903266
+
+# Compute elastic constant from pressure tensor
+
+variable C1pos equal ${d1}
+variable C1pos equal 1.08183660195209
+variable C2pos equal ${d2}
+variable C2pos equal 1.08158829971217
+variable C3pos equal ${d3}
+variable C3pos equal 1.08145599951968
+variable C4pos equal ${d4}
+variable C4pos equal 79.7025452931718
+variable C5pos equal ${d5}
+variable C5pos equal 3.79360010433231e-09
+variable C6pos equal ${d6}
+variable C6pos equal -1.97583338767308e-09
+
+# Combine positive and negative
+
+variable C1${dir} equal 0.5*(${C1neg}+${C1pos})
+variable C14 equal 0.5*(${C1neg}+${C1pos})
+variable C14 equal 0.5*(-1.08183660195209+${C1pos})
+variable C14 equal 0.5*(-1.08183660195209+1.08183660195209)
+variable C2${dir} equal 0.5*(${C2neg}+${C2pos})
+variable C24 equal 0.5*(${C2neg}+${C2pos})
+variable C24 equal 0.5*(-1.08158829971217+${C2pos})
+variable C24 equal 0.5*(-1.08158829971217+1.08158829971217)
+variable C3${dir} equal 0.5*(${C3neg}+${C3pos})
+variable C34 equal 0.5*(${C3neg}+${C3pos})
+variable C34 equal 0.5*(-1.08145599951968+${C3pos})
+variable C34 equal 0.5*(-1.08145599951968+1.08145599951968)
+variable C4${dir} equal 0.5*(${C4neg}+${C4pos})
+variable C44 equal 0.5*(${C4neg}+${C4pos})
+variable C44 equal 0.5*(79.7025452915384+${C4pos})
+variable C44 equal 0.5*(79.7025452915384+79.7025452931718)
+variable C5${dir} equal 0.5*(${C5neg}+${C5pos})
+variable C54 equal 0.5*(${C5neg}+${C5pos})
+variable C54 equal 0.5*(-2.31831117486974e-09+${C5pos})
+variable C54 equal 0.5*(-2.31831117486974e-09+3.79360010433231e-09)
+variable C6${dir} equal 0.5*(${C6neg}+${C6pos})
+variable C64 equal 0.5*(${C6neg}+${C6pos})
+variable C64 equal 0.5*(-9.7474447125205e-10+${C6pos})
+variable C64 equal 0.5*(-9.7474447125205e-10+-1.97583338767308e-09)
+
+# Delete dir to make sure it is not reused
+
+variable dir delete
+# ---- uxz Perturbation
+variable dir equal 5
+include displace.mod
+# NOTE: This script should not need to be
+# modified. See in.elastic for more info.
+# Find which reference length to use
+
+if "${dir} == 1" then    "variable len0 equal ${lx0}"
+if "${dir} == 2" then    "variable len0 equal ${ly0}"
+if "${dir} == 3" then    "variable len0 equal ${lz0}"
+if "${dir} == 4" then    "variable len0 equal ${lz0}"
+if "${dir} == 5" then    "variable len0 equal ${lz0}"
+variable len0 equal ${lz0}
+variable len0 equal 3.48153300000002
+if "${dir} == 6" then    "variable len0 equal ${ly0}"
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Negative deformation
+
+variable delta equal -${up}*${len0}
+variable delta equal -1e-06*${len0}
+variable delta equal -1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+change_box all xz delta ${delta} remap units box
+change_box all xz delta -3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -3.48153e-06 0)
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13 2.0285223e-11   0.79702544 5.7957779e-11     3.481533     3.481533     3.481533    42.199912 
+     101            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -2.3446556e-11   0.79702545 6.3226668e-12     3.481533     3.481533     3.481533    42.199912 
+     102            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 3.1086445e-11   0.79702545 4.2678001e-11     3.481533     3.481533     3.481533    42.199912 
+     103            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -1.3172223e-12   0.79702545 2.6344445e-11     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.000119925 on 1 procs for 3 steps with 4 atoms
+
+100.9% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953539726     -21.7953540206     -21.7953540206
+  Force two-norm initial, final = 0.00113854 2.50354e-15
+  Force max component initial, final = 0.000328668 1.27849e-15
+  Final line search alpha, max atom move = 1 1.27849e-15
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 7.0572e-05 | 7.0572e-05 | 7.0572e-05 |   0.0 | 58.85
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.4067e-05 | 1.4067e-05 | 1.4067e-05 |   0.0 | 11.73
+Output  | 1.6928e-05 | 1.6928e-05 | 1.6928e-05 |   0.0 | 14.12
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.836e-05  |            |       | 15.31
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263790.141387505
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263790.141389988
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263790.141386183
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal -1.31722225844872e-12
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal 0.79702545291275
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 2.63444451689743e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1neg equal ${d1}
+variable C1neg equal -1.08158829971217
+variable C2neg equal ${d2}
+variable C2neg equal -1.08183660195209
+variable C3neg equal ${d3}
+variable C3neg equal -1.0814560984727
+variable C4neg equal ${d4}
+variable C4neg equal -2.107555613518e-10
+variable C5neg equal ${d5}
+variable C5neg equal 79.702545288983
+variable C6neg equal ${d6}
+variable C6neg equal -3.95166677534615e-10
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Positive deformation
+
+variable delta equal ${up}*${len0}
+variable delta equal 1e-06*${len0}
+variable delta equal 1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+change_box all xz delta ${delta} remap units box
+change_box all xz delta 3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 3.48153e-06 0)
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13 3.0296112e-11  -0.79702544 8.2721558e-11     3.481533     3.481533     3.481533    42.199912 
+     101            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 6.6651446e-11  -0.79702545 -8.1404336e-11     3.481533     3.481533     3.481533    42.199912 
+     102            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 -5.8484668e-11  -0.79702545 -5.268889e-12     3.481533     3.481533     3.481533    42.199912 
+     103            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14 3.3457445e-11  -0.79702545 -3.1613334e-12     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.000120878 on 1 procs for 3 steps with 4 atoms
+
+87.7% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953539726     -21.7953540206     -21.7953540206
+  Force two-norm initial, final = 0.00113854 8.13757e-15
+  Force max component initial, final = 0.000328668 4.0341e-15
+  Final line search alpha, max atom move = 1 4.0341e-15
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 7.2241e-05 | 7.2241e-05 | 7.2241e-05 |   0.0 | 59.76
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.4782e-05 | 1.4782e-05 | 1.4782e-05 |   0.0 | 12.23
+Output  | 1.7881e-05 | 1.7881e-05 | 1.7881e-05 |   0.0 | 14.79
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.597e-05  |            |       | 13.21
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pe
+variable e1 equal ${tmp}
+variable e1 equal -21.7953540206322
+variable tmp equal press
+variable p1 equal ${tmp}
+variable p1 equal -263790.141387892
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263790.141387505
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263790.141389988
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263790.141386182
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 3.34574453645974e-11
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -0.797025452911432
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal -3.16133342027692e-12
+
+# Compute elastic constant from pressure tensor
+
+variable C1pos equal ${d1}
+variable C1pos equal 1.08158829971217
+variable C2pos equal ${d2}
+variable C2pos equal 1.08183660195209
+variable C3pos equal ${d3}
+variable C3pos equal 1.08145599951968
+variable C4pos equal ${d4}
+variable C4pos equal 3.16133342027692e-09
+variable C5pos equal ${d5}
+variable C5pos equal 79.7025452934352
+variable C6pos equal ${d6}
+variable C6pos equal -3.08230008477e-09
+
+# Combine positive and negative
+
+variable C1${dir} equal 0.5*(${C1neg}+${C1pos})
+variable C15 equal 0.5*(${C1neg}+${C1pos})
+variable C15 equal 0.5*(-1.08158829971217+${C1pos})
+variable C15 equal 0.5*(-1.08158829971217+1.08158829971217)
+variable C2${dir} equal 0.5*(${C2neg}+${C2pos})
+variable C25 equal 0.5*(${C2neg}+${C2pos})
+variable C25 equal 0.5*(-1.08183660195209+${C2pos})
+variable C25 equal 0.5*(-1.08183660195209+1.08183660195209)
+variable C3${dir} equal 0.5*(${C3neg}+${C3pos})
+variable C35 equal 0.5*(${C3neg}+${C3pos})
+variable C35 equal 0.5*(-1.0814560984727+${C3pos})
+variable C35 equal 0.5*(-1.0814560984727+1.08145599951968)
+variable C4${dir} equal 0.5*(${C4neg}+${C4pos})
+variable C45 equal 0.5*(${C4neg}+${C4pos})
+variable C45 equal 0.5*(-2.107555613518e-10+${C4pos})
+variable C45 equal 0.5*(-2.107555613518e-10+3.16133342027692e-09)
+variable C5${dir} equal 0.5*(${C5neg}+${C5pos})
+variable C55 equal 0.5*(${C5neg}+${C5pos})
+variable C55 equal 0.5*(79.702545288983+${C5pos})
+variable C55 equal 0.5*(79.702545288983+79.7025452934352)
+variable C6${dir} equal 0.5*(${C6neg}+${C6pos})
+variable C65 equal 0.5*(${C6neg}+${C6pos})
+variable C65 equal 0.5*(-3.95166677534615e-10+${C6pos})
+variable C65 equal 0.5*(-3.95166677534615e-10+-3.08230008477e-09)
+
+# Delete dir to make sure it is not reused
+
+variable dir delete
+# ---- uxy Perturbation
+variable dir equal 6
+include displace.mod
+# NOTE: This script should not need to be
+# modified. See in.elastic for more info.
+# Find which reference length to use
+
+if "${dir} == 1" then    "variable len0 equal ${lx0}"
+if "${dir} == 2" then    "variable len0 equal ${ly0}"
+if "${dir} == 3" then    "variable len0 equal ${lz0}"
+if "${dir} == 4" then    "variable len0 equal ${lz0}"
+if "${dir} == 5" then    "variable len0 equal ${lz0}"
+if "${dir} == 6" then    "variable len0 equal ${ly0}"
+variable len0 equal ${ly0}
+variable len0 equal 3.48153300000002
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Negative deformation
+
+variable delta equal -${up}*${len0}
+variable delta equal -1e-06*${len0}
+variable delta equal -1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+change_box all xy delta ${delta} remap units box
+change_box all xy delta -3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (-3.48153e-06 -0 0)
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13   0.79702544 1.8177667e-11 3.6618779e-11     3.481533     3.481533     3.481533    42.199912 
+     101            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14   0.79702545 1.8441112e-11 -5.3742668e-11     3.481533     3.481533     3.481533    42.199912 
+     102            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14   0.79702545 -1.0274334e-11 -3.3984334e-11     3.481533     3.481533     3.481533    42.199912 
+     103            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14   0.79702545 -1.9758334e-11 2.8715445e-11     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.000120163 on 1 procs for 3 steps with 4 atoms
+
+87.4% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953539726     -21.7953540206     -21.7953540206
+  Force two-norm initial, final = 0.00113854 3.43833e-15
+  Force max component initial, final = 0.000328668 2.33147e-15
+  Final line search alpha, max atom move = 1 2.33147e-15
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 7.1764e-05 | 7.1764e-05 | 7.1764e-05 |   0.0 | 59.72
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.3828e-05 | 1.3828e-05 | 1.3828e-05 |   0.0 | 11.51
+Output  | 1.7166e-05 | 1.7166e-05 | 1.7166e-05 |   0.0 | 14.29
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.74e-05   |            |       | 14.48
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263790.141387505
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263790.141386182
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263790.141389988
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal 0.79702545296017
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -1.97583338767307e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal 2.8715445234182e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1neg equal ${d1}
+variable C1neg equal -1.08158829971217
+variable C2neg equal ${d2}
+variable C2neg equal -1.08145599951968
+variable C3neg equal ${d3}
+variable C3neg equal -1.08183660195209
+variable C4neg equal ${d4}
+variable C4neg equal 2.63444451689701e-11
+variable C5neg equal ${d5}
+variable C5neg equal -4.26780011737384e-09
+variable C6neg equal ${d6}
+variable C6neg equal 79.7025452957536
+
+# Reset box and simulation parameters
+
+clear
+read_restart restart.equil remap
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (0 -0 0)
+  1 by 1 by 1 MPI processor grid
+  4 atoms
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+4 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_39/Ni_fcc.lmps_elastic/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+thermo	1
+thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol
+thermo_modify norm no
+
+# Positive deformation
+
+variable delta equal ${up}*${len0}
+variable delta equal 1e-06*${len0}
+variable delta equal 1e-06*3.48153300000002
+if "${dir} == 1" then    "change_box all x delta 0 ${delta} remap units box"
+if "${dir} == 2" then    "change_box all y delta 0 ${delta} remap units box"
+if "${dir} == 3" then    "change_box all z delta 0 ${delta} remap units box"
+if "${dir} == 4" then    "change_box all yz delta ${delta} remap units box"
+if "${dir} == 5" then    "change_box all xz delta ${delta} remap units box"
+if "${dir} == 6" then    "change_box all xy delta ${delta} remap units box"
+change_box all xy delta ${delta} remap units box
+change_box all xy delta 3.48153300000002e-06 remap units box
+  triclinic box = (0.0175835 0.0175835 0.0175835) to (3.49912 3.49912 3.49912) with tilt (3.48153e-06 -0 0)
+
+# Relax atoms positions
+
+minimize ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize 0 ${ftol} ${maxiter} ${maxeval}
+minimize 0 1e-10 ${maxiter} ${maxeval}
+minimize 0 1e-10 100 ${maxeval}
+minimize 0 1e-10 100 1000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.086 | 4.086 | 4.086 Mbytes
+Step Temp PotEng Press Pxx Pyy Pzz Pxy Pxz Pyz Lx Ly Lz Volume 
+     100            0   -21.795354   -263790.13   -263790.13   -263790.13   -263790.13  -0.79702544 6.2436335e-11 3.3984334e-11     3.481533     3.481533     3.481533    42.199912 
+     101            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14  -0.79702545 4.2151112e-11 -1.7387334e-11     3.481533     3.481533     3.481533    42.199912 
+     102            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14  -0.79702545 2.3710001e-12 -1.3172223e-12     3.481533     3.481533     3.481533    42.199912 
+     103            0   -21.795354   -263790.14   -263790.14   -263790.14   -263790.14  -0.79702545 -1.2381889e-11 -1.2118445e-11     3.481533     3.481533     3.481533    42.199912 
+Loop time of 0.000118971 on 1 procs for 3 steps with 4 atoms
+
+86.6% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = force tolerance
+  Energy initial, next-to-last, final = 
+        -21.7953539726     -21.7953540206     -21.7953540206
+  Force two-norm initial, final = 0.00113854 4.99816e-15
+  Force max component initial, final = 0.000328668 2.22305e-15
+  Final line search alpha, max atom move = 1 2.22305e-15
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 7.2241e-05 | 7.2241e-05 | 7.2241e-05 |   0.0 | 60.72
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 1.2875e-05 | 1.2875e-05 | 1.2875e-05 |   0.0 | 10.82
+Output  | 1.812e-05  | 1.812e-05  | 1.812e-05  |   0.0 | 15.23
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 1.574e-05  |            |       | 13.23
+
+Nlocal:    4 ave 4 max 4 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    360 ave 360 max 360 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    156 ave 156 max 156 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 156
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# Obtain new stress tensor
+
+variable tmp equal pe
+variable e1 equal ${tmp}
+variable e1 equal -21.7953540206322
+variable tmp equal press
+variable p1 equal ${tmp}
+variable p1 equal -263790.141387892
+variable tmp equal pxx
+variable pxx1 equal ${tmp}
+variable pxx1 equal -263790.141387505
+variable tmp equal pyy
+variable pyy1 equal ${tmp}
+variable pyy1 equal -263790.141386182
+variable tmp equal pzz
+variable pzz1 equal ${tmp}
+variable pzz1 equal -263790.141389988
+variable tmp equal pxy
+variable pxy1 equal ${tmp}
+variable pxy1 equal -0.797025452918019
+variable tmp equal pxz
+variable pxz1 equal ${tmp}
+variable pxz1 equal -1.23818892294179e-11
+variable tmp equal pyz
+variable pyz1 equal ${tmp}
+variable pyz1 equal -1.21184447777282e-11
+
+# Compute elastic constant from pressure tensor
+
+variable C1pos equal ${d1}
+variable C1pos equal 1.08158829971217
+variable C2pos equal ${d2}
+variable C2pos equal 1.08145599951968
+variable C3pos equal ${d3}
+variable C3pos equal 1.08183660195209
+variable C4pos equal ${d4}
+variable C4pos equal 4.05704455602205e-09
+variable C5pos equal ${d5}
+variable C5pos equal 3.53015565264256e-09
+variable C6pos equal ${d6}
+variable C6pos equal 79.7025452920653
+
+# Combine positive and negative
+
+variable C1${dir} equal 0.5*(${C1neg}+${C1pos})
+variable C16 equal 0.5*(${C1neg}+${C1pos})
+variable C16 equal 0.5*(-1.08158829971217+${C1pos})
+variable C16 equal 0.5*(-1.08158829971217+1.08158829971217)
+variable C2${dir} equal 0.5*(${C2neg}+${C2pos})
+variable C26 equal 0.5*(${C2neg}+${C2pos})
+variable C26 equal 0.5*(-1.08145599951968+${C2pos})
+variable C26 equal 0.5*(-1.08145599951968+1.08145599951968)
+variable C3${dir} equal 0.5*(${C3neg}+${C3pos})
+variable C36 equal 0.5*(${C3neg}+${C3pos})
+variable C36 equal 0.5*(-1.08183660195209+${C3pos})
+variable C36 equal 0.5*(-1.08183660195209+1.08183660195209)
+variable C4${dir} equal 0.5*(${C4neg}+${C4pos})
+variable C46 equal 0.5*(${C4neg}+${C4pos})
+variable C46 equal 0.5*(2.63444451689701e-11+${C4pos})
+variable C46 equal 0.5*(2.63444451689701e-11+4.05704455602205e-09)
+variable C5${dir} equal 0.5*(${C5neg}+${C5pos})
+variable C56 equal 0.5*(${C5neg}+${C5pos})
+variable C56 equal 0.5*(-4.26780011737384e-09+${C5pos})
+variable C56 equal 0.5*(-4.26780011737384e-09+3.53015565264256e-09)
+variable C6${dir} equal 0.5*(${C6neg}+${C6pos})
+variable C66 equal 0.5*(${C6neg}+${C6pos})
+variable C66 equal 0.5*(79.7025452957536+${C6pos})
+variable C66 equal 0.5*(79.7025452957536+79.7025452920653)
+
+# Delete dir to make sure it is not reused
+
+variable dir delete
+
+# ---- Output final values
+variable C11all equal ${C11}
+variable C11all equal 170.201617651037
+variable C22all equal ${C22}
+variable C22all equal 170.201617651037
+variable C33all equal ${C33}
+variable C33all equal 170.201617651037
+variable C12all equal 0.5*(${C12}+${C21})
+variable C12all equal 0.5*(115.967883099802+${C21})
+variable C12all equal 0.5*(115.967883099802+115.967883099802)
+variable C13all equal 0.5*(${C13}+${C31})
+variable C13all equal 0.5*(115.967883099802+${C31})
+variable C13all equal 0.5*(115.967883099802+115.967883099802)
+variable C23all equal 0.5*(${C23}+${C32})
+variable C23all equal 0.5*(115.967883099802+${C32})
+variable C23all equal 0.5*(115.967883099802+115.967883099802)
+variable C44all equal ${C44}
+variable C44all equal 79.7025452923551
+variable C55all equal ${C55}
+variable C55all equal 79.7025452912091
+variable C66all equal ${C66}
+variable C66all equal 79.7025452939095
+variable C14all equal 0.5*(${C14}+${C41})
+variable C14all equal 0.5*(0+${C41})
+variable C14all equal 0.5*(0+1.3174843856795e-11)
+variable C15all equal 0.5*(${C15}+${C51})
+variable C15all equal 0.5*(0+${C51})
+variable C15all equal 0.5*(0+-1.97583054247497e-09)
+variable C16all equal 0.5*(${C16}+${C61})
+variable C16all equal 0.5*(0+${C61})
+variable C16all equal 0.5*(0+2.58175728626211e-09)
+variable C24all equal 0.5*(${C24}+${C42})
+variable C24all equal 0.5*(0+${C42})
+variable C24all equal 0.5*(0+-1.54114602485865e-09)
+variable C25all equal 0.5*(${C25}+${C52})
+variable C25all equal 0.5*(0+${C52})
+variable C25all equal 0.5*(0+-4.6102962139645e-10)
+variable C26all equal 0.5*(${C26}+${C62})
+variable C26all equal 0.5*(0+${C62})
+variable C26all equal 0.5*(0+3.68823681310491e-10)
+variable C34all equal 0.5*(${C34}+${C43})
+variable C34all equal 0.5*(0+${C43})
+variable C34all equal 0.5*(0+-1.58066652572892e-09)
+variable C35all equal 0.5*(${C35}+${C53})
+variable C35all equal 0.5*(-4.94765100000905e-08+${C53})
+variable C35all equal 0.5*(-4.94765100000905e-08+2.87154349598772e-09)
+variable C36all equal 0.5*(${C36}+${C63})
+variable C36all equal 0.5*(0+${C63})
+variable C36all equal 0.5*(0+-1.05376753242643e-10)
+variable C45all equal 0.5*(${C45}+${C54})
+variable C45all equal 0.5*(1.47528892946256e-09+${C54})
+variable C45all equal 0.5*(1.47528892946256e-09+7.37644464731285e-10)
+variable C46all equal 0.5*(${C46}+${C64})
+variable C46all equal 0.5*(2.04169450059551e-09+${C64})
+variable C46all equal 0.5*(2.04169450059551e-09+-1.47528892946257e-09)
+variable C56all equal 0.5*(${C56}+${C65})
+variable C56all equal 0.5*(-3.6882223236564e-10+${C65})
+variable C56all equal 0.5*(-3.6882223236564e-10+-1.73873338115231e-09)
+
+print "c11 = ${C11all} ${cunits}"
+c11 = 170.201617651037 GPa
+print "c22 = ${C22all} ${cunits}"
+c22 = 170.201617651037 GPa
+print "c33 = ${C33all} ${cunits}"
+c33 = 170.201617651037 GPa
+print "c12 = ${C12all} ${cunits}"
+c12 = 115.967883099802 GPa
+print "c13 = ${C13all} ${cunits}"
+c13 = 115.967883099802 GPa
+print "c23 = ${C23all} ${cunits}"
+c23 = 115.967883099802 GPa
+print "c44 = ${C44all} ${cunits}"
+c44 = 79.7025452923551 GPa
+print "c55 = ${C55all} ${cunits}"
+c55 = 79.7025452912091 GPa
+print "c66 = ${C66all} ${cunits}"
+c66 = 79.7025452939095 GPa
+print "c14 = ${C14all} ${cunits}"
+c14 = 6.5874219283975e-12 GPa
+print "c15 = ${C15all} ${cunits}"
+c15 = -9.87915271237485e-10 GPa
+print "c16 = ${C16all} ${cunits}"
+c16 = 1.29087864313105e-09 GPa
+print "c24 = ${C24all} ${cunits}"
+c24 = -7.70573012429325e-10 GPa
+print "c25 = ${C25all} ${cunits}"
+c25 = -2.30514810698225e-10 GPa
+print "c26 = ${C26all} ${cunits}"
+c26 = 1.84411840655246e-10 GPa
+print "c34 = ${C34all} ${cunits}"
+c34 = -7.9033326286446e-10 GPa
+print "c35 = ${C35all} ${cunits}"
+c35 = -2.33024832520514e-08 GPa
+print "c36 = ${C36all} ${cunits}"
+c36 = -5.26883766213215e-11 GPa
+print "c45 = ${C45all} ${cunits}"
+c45 = 1.10646669709692e-09 GPa
+print "c46 = ${C46all} ${cunits}"
+c46 = 2.8320278556647e-10 GPa
+print "c56 = ${C56all} ${cunits}"
+c56 = -1.05377780675898e-09 GPa
+print "lammps_sim_done"
+lammps_sim_done
+Total wall time: 0:00:00

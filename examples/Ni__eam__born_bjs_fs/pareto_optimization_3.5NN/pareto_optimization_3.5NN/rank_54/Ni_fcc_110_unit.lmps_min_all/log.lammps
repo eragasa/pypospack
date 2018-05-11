@@ -1,0 +1,149 @@
+LAMMPS (11 Aug 2017)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_54/Ni_fcc_110_unit.lmps_min_all/lammps.structure
+  triclinic box = (0 0 0) to (3.4851 2.4947 2.4947) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  2 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+2 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /ufrc/phillpot/eragasa/pareto_optimization_3.5NN/rank_54/Ni_fcc_110_unit.lmps_min_all/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax aniso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe xhi xlo yhi ylo zhi xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 5.64464
+  ghost atom cutoff = 5.64464
+  binsize = 2.82232, bins = 2 1 1
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.229 | 4.229 | 4.229 Mbytes
+Step PotEng Xhi Xlo Yhi Ylo Zhi Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+       0    -9.360334       3.4851            0       2.4947            0       2.4947            0            0            0   -238479.33   -235847.19   -239795.39   -239795.39 -0.003246869 -0.003246869 0.0014690868    -9.360334 
+      10   -9.4516347    3.4679975  0.017102489    2.4822265    0.0124735    2.4822265            0            0            0   -217445.34   -214356.93   -218989.54   -218989.54 -0.0034455117 -0.0034455118 0.0015807218   -9.4516347 
+      20   -9.5316285    3.4509937  0.034106254     2.469753     0.024947     2.469753            0            0            0   -190596.42   -187037.34   -192375.95   -192375.95 -0.0035890249 -0.003589025 0.0016817885   -9.5316285 
+      30   -9.5983082    3.4341345  0.050965502    2.4572795    0.0374205    2.4572795            0            0            0   -157053.53   -153025.82   -159067.39   -159067.39 -0.0036291124 -0.0036291122 0.0017555885   -9.5983082 
+      40     -9.64947    3.4175145  0.067585514     2.444806     0.049894     2.444806            0            0            0    -115876.6   -111418.87   -118105.47   -118105.47 -0.003507187 -0.0035071871 0.0017867252     -9.64947 
+      50   -9.6827517    3.4013934  0.083706595    2.4323325    0.0623675    2.4323325            0            0            0   -66227.063   -61479.062   -68601.063   -68601.063 -0.0030173898  -0.00301739  0.001689911   -9.6827517 
+      60   -9.6959687    3.3873934  0.097706562     2.419859     0.074841     2.419859            0            0            0   -9084.3955   -4779.8612   -11236.663   -11236.663 -0.0014778782 -0.0014778779 0.0011404886   -9.6959687 
+      70   -9.6963905    3.3938928  0.091207206     2.415026  0.079674047     2.415026            0            0            0  0.034198048   0.16187767 -0.029641764 -0.029641764 -1.2590961e-10 -3.9501054e-11 1.1726875e-10   -9.6963905 
+      80   -9.6963905    3.3938931  0.091206947    2.4150259  0.079674129    2.4150259            0            0            0 -8.0894865e-10 -6.9867488e-10 -5.9745343e-10 -1.1307176e-09 -1.4812895e-11 9.8752633e-12 -1.9750527e-11   -9.6963905 
+      81   -9.6963905    3.3938931  0.091206947    2.4150259  0.079674129    2.4150259            0            0            0 9.2992063e-11 1.3825369e-10 4.6907501e-11 9.3815001e-11 4.9376317e-12            0 -7.4064475e-12   -9.6963905 
+Loop time of 0.00116801 on 1 procs for 81 steps with 2 atoms
+
+93.7% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+        -9.36033399933     -9.69639045694     -9.69639045694
+  Force two-norm initial, final = 5.59199 4.13025e-15
+  Force max component initial, final = 3.24625 2.59168e-15
+  Final line search alpha, max atom move = 1 2.59168e-15
+  Iterations, force evaluations = 81 96
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.00051022 | 0.00051022 | 0.00051022 |   0.0 | 43.68
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00015783 | 0.00015783 | 0.00015783 |   0.0 | 13.51
+Output  | 7.6056e-05 | 7.6056e-05 | 7.6056e-05 |   0.0 |  6.51
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.0004239  |            |       | 36.29
+
+Nlocal:    2 ave 2 max 2 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    267 ave 267 max 267 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    78 ave 78 max 78 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 78
+Ave neighs/atom = 39
+Neighbor list builds = 0
+Dangerous builds = 0
+# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "tot_energy = ${tot_energy}"
+tot_energy = -9.69639045694232
+print "num_atoms = ${natoms}"
+num_atoms = 2
+print "a11 = ${a11}"
+a11 = 3.30268610664936
+print "a22 = ${a22}"
+a22 = 2.33535174214236
+print "a33 = ${a33}"
+a33 = 2.33535174214236
+print "a12 = ${tilt_xy}"
+a12 = 0
+print "a13 = ${tilt_xz}"
+a13 = 0
+print "a23 = ${tilt_yz}"
+a23 = 0
+print "tot_press = ${tot_press}"
+tot_press = 9.29920628481021e-11
+print "pxx = ${press_xx}"
+pxx = 1.3825368635824e-10
+print "pyy = ${press_yy}"
+pyy = 4.69075007286887e-11
+print "pzz = ${press_zz}"
+pzz = 9.38150014573774e-11
+print "pxy = ${press_xy}"
+pxy = 4.93763165565144e-12
+print "pxz = ${press_xz}"
+pxz = 0
+print "pyz = ${press_yz}"
+pyz = -7.40644748347716e-12
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
+Total wall time: 0:00:00
