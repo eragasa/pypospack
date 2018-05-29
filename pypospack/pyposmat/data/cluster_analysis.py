@@ -64,14 +64,14 @@ class PyposmatClusterAnalysis(object):
     def scaled_names(self):
 
         scaled_names = []
-        if o.include_parameters is True:
-            for v in o.parameter_names:
+        if self.include_parameters is True:
+            for v in self.parameter_names:
                 scaled_names.append('{}.nparam'.format(v))
-        if o.include_qois is True:
-            for v in o.qoi_names:
+        if self.include_qois is True:
+            for v in self.qoi_names:
                 scaled_names.append('{}.nqoi'.format(v))
-        if o.include_errors is True:
-            for v in o.error_names:
+        if self.include_errors is True:
+            for v in self.error_names:
                 scaled_names.append('{}.nerr'.format(v))
 
         return scaled_names
@@ -79,21 +79,21 @@ class PyposmatClusterAnalysis(object):
     @property
     def n_parameter_names(self):
         n_parameter_names = [
-            '{}.nparam'.format(v) for v in o.parameter_names
+            '{}.nparam'.format(v) for v in self.parameter_names
         ]
         return n_parameter_names
 
     @property
     def n_qoi_names(self):
         n_qoi_names = [
-            '{}.nqoi'.format(v) for v in o.qoi_names
+            '{}.nqoi'.format(v) for v in self.qoi_names
         ]
         return n_qoi_names
 
     @property
     def n_error_names(self):
         n_error_names = [
-            '{}.nerr'.format(v) for v in o.qoi_names
+            '{}.nerr'.format(v) for v in self.error_names
         ]
         return n_error_names
 
@@ -217,8 +217,8 @@ class PyposmatClusterAnalysis(object):
         self.kNN_tree = None
         self.kNN_names = None
         self.kNN = d['neighbors']['kNN']
-        o.nearest_neighbor_type = d['neighbors']['type']
-        if o.nearest_neighbor_type == 'ball_tree':
+        self.nearest_neighbor_type = d['neighbors']['type']
+        if self.nearest_neighbor_type == 'ball_tree':
             self._kNN__ball_tree(d)
         else:
             raise BadNearestNeighborTypeException()
@@ -251,7 +251,7 @@ class PyposmatClusterAnalysis(object):
                 qe = OrderedDict()
                 pe = OrderedDict()
                 for i in range(self.kNN):
-                    qe[i],pe[i] = ecdf(o.data.df['NN_{}'.format(i)])
+                    qe[i],pe[i] = ecdf(self.data.df['NN_{}'.format(i)])
                 kwargs['eps'] = np.interp(percentile,pe[kNN],qe[kNN])
             else:
                 kwargs['eps'] = eps
@@ -261,12 +261,12 @@ class PyposmatClusterAnalysis(object):
         if 'min_samples' in d['cluster']['args']:
             min_samples = d['cluster']['args']['min_samples']
 
-            o.data.df = pd.concat(
+            self.data.df = pd.concat(
                 [
-                    o.data.df,
+                    self.data.df,
                     pd.DataFrame(
                         data = self.kNN_tree.query_radius(
-                            o.data.df[self.manifold_names],
+                            self.data.df[self.manifold_names],
                             r = kwargs['eps'],
                             count_only = True
                         ),
@@ -279,7 +279,7 @@ class PyposmatClusterAnalysis(object):
 
         self.clusterer = cluster.DBSCAN(**kwargs)
         data = self.clusterer.fit(
-            o.data.df[o.manifold_names]
+            self.data.df[self.manifold_names]
         )
 
         cluster_labels = data.labels_
@@ -375,7 +375,7 @@ class PyposmatClusterAnalysis(object):
 
         self.data.df = pd.concat(
             [
-                o.data.df,
+                self.data.df,
                 pd.DataFrame(
                     data = self.manifold.fit_transform(
                         self.data.df[self.scaled_names]
