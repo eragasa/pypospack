@@ -450,7 +450,8 @@ class PyposmatSilhouettePlot(object):
        self.fig, (self.silhouette_plot,self.cluster_plot) = plt.subplots(1,2)
 
        # 1st subplot is silhouette plot_kmeans_silhouette_analysis
-
+#------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 if __name__ == "__main__":
     import os
 

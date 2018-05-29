@@ -106,3 +106,8 @@ class ExponentialDensityFunction(EamDensityFunction):
               
         return copy.deepcopy(self.density_evaluations)
 
+if __name__ == '__main__':
+
+    symbols = ['Ni']
+    p = ExponentialDensityFunction(symbols=symbols)
+    print(p.potential_type)
