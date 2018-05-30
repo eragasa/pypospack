@@ -143,6 +143,18 @@ if __name__ == "__main__":
     o.calculate_kNN_analysis(d)
     o.calculate_clusters(d)
 
+    cluster_dfs = [o.data.df.loc[o.data.df['cluster_id'] == _id] for _id in set(o.data.df['cluster_id'].tolist())]
+
+    for i, cluster_df in enumerate(cluster_dfs):
+        print('CLUSTER {} RESULTS:\n'.format(i))
+        for col in cluster_df.columns:
+            mean = cluster_df[col].mean()
+            print('{c} mean value: {m}'.format(c=col, m=mean))
+        print('\n')
+
+
+
+
 ### PLOTTING RESULTS ----------------------------------------------------------
 
     fig1, (ax11,ax12) = plt.subplots(1,2)
@@ -190,7 +202,6 @@ if __name__ == "__main__":
     from pandas.plotting import parallel_coordinates
     fig3, ax3 = plt.subplots(1,1)
     cluster_ids = set(o.data.df['cluster_id'])
-    print(o.data.df.columns)
     for cluster_id in cluster_ids:
         parallel_coordinates(
             o.data.df[o.data.df['cluster_id'] == cluster_id][o.n_error_names],
