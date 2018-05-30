@@ -93,7 +93,8 @@ class PyposmatClusterAnalysis(object):
     @property
     def n_error_names(self):
         n_error_names = [
-            '{}.nerr'.format(v) for v in self.error_names
+            # original error name is a.b.err, ignore .err
+            '{}.nerr'.format(".".join(v.split('.')[:-1])) for v in self.error_names
         ]
         return n_error_names
 
