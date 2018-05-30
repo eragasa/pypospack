@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from sklearn import preprocessing
 from sklearn import manifold
@@ -139,21 +140,29 @@ if __name__ == "__main__":
     rd['manifold']['performance']['cpu_time'] = \
         o.cpu_time_manifold
 
-
     o.calculate_kNN_analysis(d)
     o.calculate_clusters(d)
 
     cluster_dfs = [o.data.df.loc[o.data.df['cluster_id'] == _id] for _id in set(o.data.df['cluster_id'].tolist())]
 
     for i, cluster_df in enumerate(cluster_dfs):
-        print('CLUSTER {} RESULTS:\n'.format(i))
-        for col in cluster_df.columns:
-            mean = cluster_df[col].mean()
-            print('{c} mean value: {m}'.format(c=col, m=mean))
-        print('\n')
+        print('\nCLUSTER {} RESULTS:\n'.format(i))
+        param_names = [col for col in cluster_df.columns if col.endswith('.nparam')]
+        err_names = [col for col in cluster_df.columns if col.endswith('.nerr')]
+        # calculate kde, covariance, and centroids
+        param_kde = stats.gaussian_kde(cluster_df[param_names])
+        param_covariance = param_kde.covariance
+        tsne_centroid = {col: cluster_df[col].mean() for col in o.manifold_names}
+        param_centroid = {col: cluster_df[col].mean() for col in param_names}
+        param_var = {col: cluster_df[col].var() for col in param_names}
+        err_centroid = {col: cluster_df[col].mean() for col in err_names}
+        err_var = {col: cluster_df[col].var() for col in err_names}
 
-
-
+        print('t-SNE Centroid: {}'.format(tsne_centroid))
+        print('nParam Centroid: {}'.format(param_centroid))
+        print('nParam Variance: {}'.format(param_var))
+        print('nErr Centroid: {}'.format(err_centroid))
+        print('nErr Variance: {}'.format(err_var))
 
 ### PLOTTING RESULTS ----------------------------------------------------------
 
