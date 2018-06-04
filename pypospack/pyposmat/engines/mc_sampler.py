@@ -406,6 +406,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         print(80*'-')
         print('{:^80}'.format('SAMPLING CONFIGURATION'))
         print(80*'-')
+
         print('{:^10} {:^10} {:^20}'.format(
             'iteration',
             'n_samples',
@@ -413,8 +414,11 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         print('{} {} {}'.format(10*'-',10*'-',20*'-'))
 
         for i in range(self.n_iterations):
-            _n_samples = self.configuration.sampling_type[i]['n_samples']
             _sample_type = self.configuration.sampling_type[i]['type']
+            if _sample_type == 'kde_w_clusters':
+                _n_samples = self.configuration.sampling_type[i]['n_samples_per_cluster']
+            else:
+                _n_samples = self.configuration.sampling_type[i]['n_samples']
             print('{:^10} {:^10} {:^20}'.format(i,_n_samples,_sample_type))
 
     def print_initial_parameter_distribution(self):

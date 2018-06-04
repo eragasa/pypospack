@@ -129,19 +129,31 @@ class PyposmatIterativeSampler(object):
         MPI.COMM_WORLD.Barrier()
 
         _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
+        
+
+
+
+        # choose sampling type
         _mc_sample_type = _mc_config['type']
-        _mc_n_samples = _mc_config['n_samples']
-
-        # determine number of sims for this rank
-        _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
-        if _mc_n_samples%self.mpi_size > self.mpi_rank:
-            _n_samples_per_rank += 1
-
+        
+        # <----- paramter sampling type ---------------------------------------
         if _mc_sample_type == 'parametric':
+            _mc_n_samples = _mc_config['n_samples']
+            # determine number of sims for this rank
+            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
+            if _mc_n_samples%self.mpi_size > self.mpi_rank:
+                _n_samples_per_rank += 1
             self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank)
+        
+        # <----- kde sampling sampling type ---------------------------------------
         elif _mc_sample_type == 'kde':
+            _mc_n_samples = _mc_config['n_samples']
+            # determine number of sims for this rank
+            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
+            if _mc_n_samples%self.mpi_size > self.mpi_rank:
+                _n_samples_per_rank += 1
             _filename_in = ''
             if 'file' in _mc_config:
                 _filename_in = os.path.join(
@@ -159,17 +171,37 @@ class PyposmatIterativeSampler(object):
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in)
 
+        # <----- sampling from a file type ---------------------------------------
         # get parameters from file
         elif _mc_sample_type == 'from_file':
+            _mc_n_samples = _mc_config['n_samples']
+            
+            # determine number of sims for this rank
+            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
+            if _mc_n_samples%self.mpi_size > self.mpi_rank:
+                _n_samples_per_rank += 1
+            
             _filename_in = os.path.join(
                 self.root_directory,
-                _mc_config['file'])
+                _mc_config['file']
+            )
+            
             self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,
                     filename=_filename_in
             )
 
+        elif _mc_sample_type == 'kde_w_clusters':
+            _mc_n_samples = _mc_config['n_samples_per_cluster']
+            print('seaton sucks and must write code here')
+
+        else:
+            m = "unknown sampling type: {}".format(
+               _mc_sample_type
+            )
+            raise ValueError(m)
+        
         # return to root directory
         os.chdir(self.root_directory)
 

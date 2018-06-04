@@ -11,12 +11,8 @@ sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
-    sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10000
-# <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
-sampling[0]['type'] = 'from_file'
-sampling[0]['w_clusters'] = True
-sampling[0]['file'] = 'data/pyposmat.kde.0.out'
+    sampling[i]['type'] = 'kde_w_clusters'
+    sampling[i]['n_samples_per_cluster'] = 10000
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------

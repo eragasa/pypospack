@@ -29,6 +29,7 @@ import matplotlib.cm as cm
 import numpy as np
 
 if __name__ == "__main__":
+    show_plots = False
 
     pyposmat_src_dir = os.path.join(
         'pareto_optimization_3.5NN',
@@ -143,6 +144,16 @@ if __name__ == "__main__":
     o.calculate_kNN_analysis(d)
     o.calculate_clusters(d)
 
+    all_cluster_ids = list(
+        set(
+            o.data.df['cluster_id'].tolist()
+        )
+    )
+    all_cluster_ids = [v for v in all_cluster_ids if v != -1]
+    for cid in all_cluster_ids:
+        print(cid)
+
+    exit()
     cluster_dfs = [o.data.df.loc[o.data.df['cluster_id'] == _id] for _id in set(o.data.df['cluster_id'].tolist())]
 
     for i, cluster_df in enumerate(cluster_dfs):
@@ -166,55 +177,56 @@ if __name__ == "__main__":
 
 ### PLOTTING RESULTS ----------------------------------------------------------
 
-    fig1, (ax11,ax12) = plt.subplots(1,2)
-    (nr,nc) = o.data.df.shape
-    qe1,pe1 = ecdf(o.data.df['NN_1'])
-    qe2,pe2 = ecdf(o.data.df['NN_2'])
-    qe3,pe3 = ecdf(o.data.df['NN_3'])
-    ax11.plot(qe1,pe1,lw=2,label='NN_1')
-    ax11.plot(qe2,pe2,lw=2,label='NN_2')
-    ax11.plot(qe3,pe3,lw=2,label='NN_3')
-    ax11.set_xlabel('Quantile')
-    ax11.set_ylabel('Cumulative probability')
-    ax11.legend(fancybox=True, loc='right')
-    ax12.hist(o.data.df['kNN_radius'])
-    plt.show()
+    if show_plots is True:
+        fig1, (ax11,ax12) = plt.subplots(1,2)
+        (nr,nc) = o.data.df.shape
+        qe1,pe1 = ecdf(o.data.df['NN_1'])
+        qe2,pe2 = ecdf(o.data.df['NN_2'])
+        qe3,pe3 = ecdf(o.data.df['NN_3'])
+        ax11.plot(qe1,pe1,lw=2,label='NN_1')
+        ax11.plot(qe2,pe2,lw=2,label='NN_2')
+        ax11.plot(qe3,pe3,lw=2,label='NN_3')
+        ax11.set_xlabel('Quantile')
+        ax11.set_ylabel('Cumulative probability')
+        ax11.legend(fancybox=True, loc='right')
+        ax12.hist(o.data.df['kNN_radius'])
+        plt.show()
 
-    fig2, (ax21,ax22,ax23) = plt.subplots(1,3)
-    ax21.scatter(
-        o.data.df[o.manifold_names[0]],
-        o.data.df[o.manifold_names[1]],
-        marker='.',
-        s=1
-    )
-
-    cluster_colors = cm.spectral(
-        o.data.df[o.data.df['cluster_id'] != -1]['cluster_id'].astype(float)\
-            /o.n_clusters
-    )
-
-    ax22.scatter(
-        o.data.df[o.data.df['cluster_id'] != -1][o.manifold_names[0]],
-        o.data.df[o.data.df['cluster_id'] != -1][o.manifold_names[1]],
-        marker='.',
-        c=cluster_colors,
-        s=1
-    )
-    ax23.scatter(
-        o.data.df[o.data.df['cluster_id'] == -1][o.manifold_names[0]],
-        o.data.df[o.data.df['cluster_id'] == -1][o.manifold_names[1]],
-        marker='.',
-        s=1
-    )
-    plt.show()
-
-    from pandas.plotting import parallel_coordinates
-    fig3, ax3 = plt.subplots(1,1)
-    cluster_ids = set(o.data.df['cluster_id'])
-    for cluster_id in cluster_ids:
-        parallel_coordinates(
-            o.data.df[o.data.df['cluster_id'] == cluster_id][o.n_error_names],
-            'Ni_fcc.E_coh.err.nerr'
+        fig2, (ax21,ax22,ax23) = plt.subplots(1,3)
+        ax21.scatter(
+            o.data.df[o.manifold_names[0]],
+            o.data.df[o.manifold_names[1]],
+            marker='.',
+            s=1
         )
-    plt.gca().legend_.remove()
-    plt.show()
+
+        cluster_colors = cm.spectral(
+            o.data.df[o.data.df['cluster_id'] != -1]['cluster_id'].astype(float)\
+                /o.n_clusters
+        )
+
+        ax22.scatter(
+            o.data.df[o.data.df['cluster_id'] != -1][o.manifold_names[0]],
+            o.data.df[o.data.df['cluster_id'] != -1][o.manifold_names[1]],
+            marker='.',
+            c=cluster_colors,
+            s=1
+        )
+        ax23.scatter(
+            o.data.df[o.data.df['cluster_id'] == -1][o.manifold_names[0]],
+            o.data.df[o.data.df['cluster_id'] == -1][o.manifold_names[1]],
+            marker='.',
+            s=1
+        )
+        plt.show()
+
+        from pandas.plotting import parallel_coordinates
+        fig3, ax3 = plt.subplots(1,1)
+        cluster_ids = set(o.data.df['cluster_id'])
+        for cluster_id in cluster_ids:
+            parallel_coordinates(
+                o.data.df[o.data.df['cluster_id'] == cluster_id][o.n_error_names],
+                'Ni_fcc.E_coh.nerr'
+            )
+        plt.gca().legend_.remove()
+        plt.show()
