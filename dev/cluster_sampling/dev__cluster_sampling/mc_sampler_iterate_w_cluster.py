@@ -203,14 +203,6 @@ class PyposmatEngine(object):
 
         return _results
 
-class PyposmatClusterSampler(PyposmatEngine):
-    def __init__(self,
-            filename_in='pypospack.config.in',
-            filename_out='pypospack.results.out',
-            mpi_rank=None,
-            mpi_size=None,
-            base_directory=None):
-
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
