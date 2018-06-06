@@ -114,7 +114,16 @@ class PyposmatClusterAnalysis(object):
         o = PyposmatClusterAnalysis()
 
         o.configuration_fn = d['configuration_fn']
-        o.read_configuration(filename=o.configuration_fn)
+        try:
+            o.read_configuration(filename=o.configuration_fn)
+        except FileNotFoundError as e:
+            print("ConfigurationError in PyposmatClusterAnalysis")
+            for k,v in d.items():
+                print("    {}={}".format(k,v))
+            print("o.configuration_fn={}".format(
+                o.configuration_fn)
+            )
+            raise e
 
         o.data_fn = d['data_fn']
         o.read_data(filename=o.data_fn)

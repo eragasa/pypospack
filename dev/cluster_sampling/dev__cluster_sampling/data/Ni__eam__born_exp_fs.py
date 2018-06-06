@@ -1,6 +1,9 @@
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
+
+configuration_fn = 'data/pyposmat.config.in'
+data_fn = 'data/pyposmat.cluster.0.out'
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT CLUSTER FITTING
 #------------------------------------------------------------------------------
@@ -12,6 +15,59 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde_w_clusters'
+    sampling[i]['cluster_args'] = OrderedDict()
+    sampling[i]['cluster_args']['configuration_fn'] = configuration_fn
+    sampling[i]['cluster_args']['data_fn'] = data_fn
+    sampling[i]['cluster_args']['include_parameters'] = True
+    sampling[i]['cluster_args']['include_qois'] = True
+    sampling[i]['cluster_args']['include_errors'] = False
+    
+    sampling[i]['cluster_args']['preprocessing'] = OrderedDict()
+    sampling[i]['cluster_args']['preprocessing']['type'] = 'standard_scaler'
+    sampling[i]['cluster_args']['preprocessing']['args'] = OrderedDict()
+    sampling[i]['cluster_args']['preprocessing']['args']['copy'] = True
+    sampling[i]['cluster_args']['preprocessing']['args']['with_mean'] = True
+    sampling[i]['cluster_args']['preprocessing']['args']['with_std'] = True
+    
+    sampling[i]['cluster_args']['manifold'] = OrderedDict()
+    # this configuraiton section uses the TSNE learning type
+    sampling[i]['cluster_args']['manifold']['type'] = 'tsne'
+    sampling[i]['cluster_args']['manifold']['args'] = OrderedDict()
+    sampling[i]['cluster_args']['manifold']['args']['n_components'] = 2
+    sampling[i]['cluster_args']['manifold']['args']['perplexity'] = 30
+    sampling[i]['cluster_args']['manifold']['args']['early_exaggeration'] = 12
+    sampling[i]['cluster_args']['manifold']['args']['learning_rate'] = 200
+    sampling[i]['cluster_args']['manifold']['args']['n_iter'] = 5000
+    sampling[i]['cluster_args']['manifold']['args']['n_iter_without_progress'] = 300,
+    sampling[i]['cluster_args']['manifold']['args']['min_grad_norm'] = 1e-7,
+    # support in scikitlearn but not implemented in pypospack
+    # sampling[i]['cluster_args']'manifold']['args']['metric']='euclidean',
+    sampling[i]['cluster_args']['manifold']['args']['init'] = 'pca',
+    sampling[i]['cluster_args']['manifold']['args']['verbose'] = 0,
+    sampling[i]['cluster_args']['manifold']['args']['random_state'] = None
+    # supprted in scikitlearn but not in implemented tSNE
+    # method='barnes_hut'
+    # angle=0.5
+    
+    sampling[i]['cluster_args']['neighbors'] = OrderedDict()
+    sampling[i]['cluster_args']['neighbors']['type'] = 'ball_tree'
+    sampling[i]['cluster_args']['neighbors']['kNN'] = 4
+    sampling[i]['cluster_args']['neighbors']['args'] = OrderedDict()
+    sampling[i]['cluster_args']['neighbors']['args']['leaf_size'] = 40
+    sampling[i]['cluster_args']['neighbors']['args']['metric'] = 'minkowski'
+    
+    sampling[i]['cluster_args']['cluster'] = OrderedDict()
+    sampling[i]['cluster_args']['cluster']['type'] = 'dbscan'
+    sampling[i]['cluster_args']['cluster']['args'] = OrderedDict()
+    sampling[i]['cluster_args']['cluster']['args']['eps'] = OrderedDict()
+    sampling[i]['cluster_args']['cluster']['args']['eps']['NN'] = 3
+    sampling[i]['cluster_args']['cluster']['args']['eps']['percentile'] = .99
+    sampling[i]['cluster_args']['cluster']['args']['min_samples'] = 10
+    sampling[i]['cluster_args']['cluster']['args']['metric'] = 'euclidean'
+    sampling[i]['cluster_args']['cluster']['args']['metric_params'] = None
+    sampling[i]['cluster_args']['cluster']['args']['algorithm'] = 'auto'
+    sampling[i]['cluster_args']['cluster']['args']['leaf_size'] = 30
+    sampling[i]['cluster_args']['cluster']['args']['p'] = None
     sampling[i]['n_samples_per_cluster'] = 10000
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM

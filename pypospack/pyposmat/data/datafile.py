@@ -9,8 +9,8 @@ class PyposmatDataFile(object):
     def __init__(self,filename=None):
         self.filename = filename
 
-        self.names = None
-        self.types = None
+        self._names = None
+        self._types = None
         self.parameter_names = None
         self.qoi_names = None
         self.error_names = None
@@ -30,6 +30,34 @@ class PyposmatDataFile(object):
         self.sub_qoi_df = None
         self.sub_error_df = None
 
+    @property
+    def names(self):
+        if 'cluster_id' in self.df.columns:
+            self._names = ['sim_id','cluster_id']\
+                    + list(self.parameter_names)\
+                    + list(self.qoi_names)\
+                    + list(self.error_names)
+        else:
+            self._names = ['sim_id']\
+                    + list(self.parameter_names)\
+                    + list(self.qoi_names)\
+                    + list(self.error_names)
+        return self._names
+
+    @property
+    def types(self):
+        if 'cluster_id' in self.df.columns:
+            self._types = ['sim_id','cluster_id']\
+                + len(self.parameter_names) * ['param']\
+                + len(self.qoi_names) * ['qoi']\
+                + len(self.error_names) * ['err']
+        else:
+            self._types = ['sim_id']\
+                + len(self.parameter_names) * ['param']\
+                + len(self.qoi_names) * ['qoi']\
+                + len(self.error_names) * ['err']
+        return self._types
+
     def write_header_section(self,
             parameter_names,
             qoi_names,
@@ -48,15 +76,6 @@ class PyposmatDataFile(object):
         self.parameter_names = list(parameter_names)
         self.qoi_names = list(qoi_names)
         self.error_names = list(error_names)
-
-        self.names = ['sim_id']\
-                + list(parameter_names)\
-                + list(qoi_names)\
-                + list(error_names)
-        self.types = ['sim_id']\
-                + len(parameter_names) * ['param']\
-                + len(qoi_names) * ['qoi']\
-                + len(error_names) * ['err']\
 
         _header_str = ",".join(self.names) + "\n"
         _header_str += ",".join(self.types) + "\n"
@@ -90,14 +109,14 @@ class PyposmatDataFile(object):
             print("current_working_dir: {}".format(os.getcwd()))
             raise
 
-        self.names = [s.strip() for s in lines[0].strip().split(',')]
-        self.types = [s.strip() for s in lines[1].strip().split(',')]
+        self._names = [s.strip() for s in lines[0].strip().split(',')]
+        self._types = [s.strip() for s in lines[1].strip().split(',')]
 
         table = []
         for line in lines[2:]:
             tokens = line.strip().split(',')
             values = []
-            for i in range(len(self.names)):
+            for i in range(len(self._names)):
                 if i == 0:
                     values.append(tokens[i])
                 else:
@@ -105,20 +124,20 @@ class PyposmatDataFile(object):
             table.append(values)
         
         self.df = pd.DataFrame(table)
-        self.df.columns = self.names
+        self.df.columns = self._names
         
         self.parameter_names = [
-                n for i,n in enumerate(self.names) \
-                    if self.types[i] == 'param']
+                n for i,n in enumerate(self._names) \
+                    if self._types[i] == 'param']
         self.qoi_names = [
-                n for i,n in enumerate(self.names) \
-                        if self.types[i] == 'qoi']
+                n for i,n in enumerate(self._names) \
+                        if self._types[i] == 'qoi']
         self.error_names = [
-                n for i,n in enumerate(self.names) \
-                        if self.types[i] == 'err']
+                n for i,n in enumerate(self._names) \
+                        if self._types[i] == 'err']
         self.score_names = [
-                n for i,n in enumerate(self.names) \
-                        if self.types[i] == 'score']
+                n for i,n in enumerate(self._names) \
+                        if self._types[i] == 'score']
 
         self.parameter_df = self.df[self.parameter_names]
         self.error_df = self.df[self.error_names]
@@ -129,7 +148,7 @@ class PyposmatDataFile(object):
 
         s =  [",".join(self.names)]
         s += [",".join(self.types)]
-        s += [",".join([str(v) for v in k]) for k in self.df.values.tolist()]
+        s += [",".join([str(v) for v in k]) for k in self.df[self.names].values.tolist()]
 
         with open (fn, 'w') as f:
             f.write("\n".join(s))

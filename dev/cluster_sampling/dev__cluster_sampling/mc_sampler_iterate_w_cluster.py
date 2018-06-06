@@ -8,7 +8,6 @@ from pypospack.pyposmat.data import PyposmatDataAnalyzer
 # from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data.cluster_analysis import PyposmatClusterAnalysis
-
 # ---- imports for PyposmatMonteCarloSampler
 import time,sys,os,copy,shutil,importlib
 from collections import OrderedDict
@@ -27,6 +26,10 @@ from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
 from pypospack.task.lammps import LammpsSimulationError
 
+
+
+# --- import for PyposmatEngine
+from pypospack.pyposmat.engines.mc_sampler import PyposmatBadParameterError
 
 class PyposmatEngine(object):
     """
@@ -132,8 +135,10 @@ class PyposmatEngine(object):
             _filename_in = self.pyposmat_filename_in
         else:
             _filename_in = filename
+            self.pyposmat_filename_in = filename
 
-        self.configuration = PyposmatConfigurationFile(filename=_filename_in)
+        self.configuration = PyposmatConfigurationFile()
+        self.configuration.read(_filename_in)
 
     def configure_qoi_manager(self,qois=None):
         if qois is None:
@@ -209,8 +214,8 @@ class PyposmatEngine(object):
 class PyposmatClusterSampler(PyposmatEngine):
 
     def __init__(self,
-            filename_in='pypospack.config.in',
-            filename_out='pypospack.results.out',
+            filename_in='pyposmat.config.in',
+            filename_out='pyposmat.results.out',
             mpi_rank=None,
             mpi_size=None,
             base_directory=None):
@@ -228,6 +233,12 @@ class PyposmatClusterSampler(PyposmatEngine):
         # for cluster analysis
         self.pyposmat_configuration_fn = filename_in
 
+    @property
+    def configuration_fn(self): return self.pyposmat_configuration_fn
+
+    @property
+    def data_fn(self): return self.pyposmat_data_in_filename
+
     def configure_pyposmat_datafile_in(self,filename):
         self.pyposmat_data_in_filename = filename
         self.pyposmat_datafile_in = PyposmatDataFile(filename)
@@ -241,7 +252,22 @@ class PyposmatClusterSampler(PyposmatEngine):
         self.pyposmat_datafile_out = PyposmatDataFile(filename)
 
     def read_configuration_file(self,filename=None):
-        PyposmatEngine.read_configuration_file(self,filename=filename)
+        if filename is not None:
+            _filename = filename
+            self.pyposmat_configuration_fn = filename
+        else:
+            _filename = self.pyposmat_configuration_fn
+
+        try:
+            PyposmatEngine.read_configuration_file(self,filename=_filename)
+        except FileNotFoundError as e:
+            print("Cannot read filename:")
+            print("    filename={}".format(filename))
+            print("    o.pyposmat_configuration_fn={}".format(self.pyposmat_configuration_fn))
+            print("    _filename={}".format(_filename))
+            raise e
+
+        # get information from the PyposmatConfigurationFile object
         self.structure_directory = self.configuration.structures['structure_directory']
         self.parameter_names = [p for p in self.configuration.sampling_distribution]
         self.qoi_names = [k for k in self.configuration.qois]
@@ -254,6 +280,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         except KeyError as e:
             print(self.parameter_distribution_definition.items())
             raise
+
         if self.configuration.sampling_constraints is not None:
             self.parameter_constraints = copy.deepcopy(self.configuration.sampling_constraints)
         else:
@@ -264,7 +291,10 @@ class PyposmatClusterSampler(PyposmatEngine):
             if p not in self.free_parameter_names:
                 self.constrained_parameter_names.append(p)
 
-    def run_simulations(self,i_iteration,n_samples=None,filename=None):
+    def run_simulations(self,
+            i_iteration,
+            n_samples=None,
+            filename=None):
         # process the arguments of the method first
 
         # arg: i_iteration
@@ -293,6 +323,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         # determine the sampling type
         _sampling_type = self.configuration.sampling_type[i]['type']
         if _sampling_type == 'kde_w_clusters':
+
             if 'cluster_id' in self.data.df.columns:
                 print("i still don't do anything, and it's eugene's fault")
                 pass
@@ -300,15 +331,25 @@ class PyposmatClusterSampler(PyposmatEngine):
             else:
                 print('clustering data from:\n{}'.format(_filename))
                 # prepare the clustering params in an ordered dict
-                cluster_params = self.set_clustering_parameters(_filename)
+                
+                cluster_args = None
+                if 'cluster_args' not in self.configuration.sampling_type[i]:
+                    cluster_args = self.get_clustering_parameters(
+                            configuration_fn=self.configuration_fn,
+                            data_fn=_filename)
+                else:
+                    cluster_args = self.configuration.sampling_type[i]['cluster_args']
+
                 # send the data to be clustered
-                obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_params)
-                obj_cluster_analysis.preprocess_data(cluster_params)
-                obj_cluster_analysis.calculate_manifold(cluster_params)
-                obj_cluster_analysis.calculate_kNN_analysis(cluster_params)
-                obj_cluster_analysis.calculate_clusters(cluster_params)
+                obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
+                obj_cluster_analysis.preprocess_data(cluster_args)
+                obj_cluster_analysis.calculate_manifold(cluster_args)
+                obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
+                obj_cluster_analysis.calculate_clusters(cluster_args)
+                
                 # use newly clustered data for sampling
                 self.data.df = obj_cluster_analysis.data.df
+                
                 print(self.data.df)
                 print("if i do or do not do anything it's seaton's fault")
 
@@ -318,21 +359,51 @@ class PyposmatClusterSampler(PyposmatEngine):
                     _sampling_type
                 )
             )
-
         # actual usage of the clustered data goes here
         # get unique cluster ids
         cluster_ids = set(self.data.df['cluster_id'])
         for cluster_id in cluster_ids:
-            pass
+            print(cluster_id)
+            mc_sampler = PyposmatMonteCarloSampler()
+            mc_sampler.pyposmat_filename_out = 'iammadeofmagic.out'
+            mc_sampler.configuration = PyposmatConfigurationFile()
+            mc_sampler.configuration.read(self.configuration_fn)
+            mc_sampler.configuration.sampling_type[i] = OrderedDict()
+            mc_sampler.configuration.sampling_type[i]['type'] = 'kde'
+            mc_sampler.configuration.sampling_type[i]['n_samples'] = _n_samples
+            
+            mc_sampler.create_base_directories()
+            mc_sampler.read_configuration_file(self.configuration_fn)
+            mc_sampler.configure_qoi_manager()
+            mc_sampler.configure_task_manager()
+            mc_sampler.configure_pyposmat_datafile_out()
+            #pyposmat_datafile_out = PyposmatDataFile(filename_out)
+
+
+            mc_sampler.print_structure_database()
+            mc_sampler.print_sampling_configuration()
+            mc_sampler.print_initial_parameter_distribution()
+
+            for i in range(mc_sampler.n_iterations):
+                #engine.run_simulations(i_iteration=i,n_samples=1000)
+                mc_sampler.run_kde_sampling(
+                    n_samples=_n_samples,
+                    filename_in=self.data_fn,
+                    cluster_id=cluster_id
+                )  
 
         if self.mpi_rank == 0:
             print(i_iteration,_n_samples,_sampling_type)
 
-    def set_clustering_parameters(self, pyposmat_data_fn):
+    def get_clustering_parameters(
+            self,
+            configuration_fn,
+            data_fn
+            ):
 
         d = OrderedDict()
-        d['configuration_fn'] = self.pyposmat_configuration_fn
-        d['data_fn'] = pyposmat_data_fn
+        d['configuration_fn'] = configuration_fn
+        d['data_fn'] = data_fn
         d['include_parameters'] = True
         d['include_qois'] = True
         d['include_errors'] = False
@@ -387,7 +458,6 @@ class PyposmatClusterSampler(PyposmatEngine):
         # not yet implemented in configuration
         return d
 
-
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
             filename_in='pypospack.config.in',
@@ -423,8 +493,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             self.pyposmat_data_out_filename = filename
         self.pyposmat_datafile_out = PyposmatDataFile(filename)
 
-    def read_configuration_file(self):
-        PyposmatEngine.read_configuration_file(self)
+    def read_configuration_file(self,filename=None):
+        PyposmatEngine.read_configuration_file(self,filename=filename)
         self.structure_directory = self.configuration.structures['structure_directory']
         self.n_iterations = self.configuration.sampling_type['n_iterations']
         self.parameter_names = [p for p in self.configuration.sampling_distribution]
@@ -452,6 +522,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         i = i_iteration
         _sampling_type = self.configuration.sampling_type[i]['type']
         _n_samples = self.configuration.sampling_type[i]['n_samples']
+        
         if n_samples is not None:
             _n_samples = n_samples
 
@@ -573,23 +644,35 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     print(_str_msg)
                     sys.stdout.flush()
 
-    def run_kde_sampling(self,n_samples,filename_in):
+    def run_kde_sampling(self,n_samples,filename_in,cluster_id=None):
 
-        # configure random number generator
-        _datafile_in = PyposmatDataFile(filename=filename_in)
-        _datafile_in.read()
-       
+        _datafile_in = None
+        if cluster_id is None:
+            _datafile_in = PyposmatDataFile()
+            _datafile_in.read(filename_in)
+        else:
+            _datafile_in = PyposmatDataFile()
+            _datafile_in.read(filename_in)
+
+            # redefining the dataframe by subselecting the cluster_id we are interested in
+            _datafile_in.df = _datafile_in.df.loc[
+                _datafile_in.df['cluster_id'] == cluster_id
+            ]
+
         _X = _datafile_in.df[self.free_parameter_names].values.T
+
         try:
             _h = Chiu1999_h(_X)
         except LinAlgError as e:
             print('filename:{}'.format(filename_in))
             raise
+
         _rv_generator = scipy.stats.gaussian_kde(_X,_h)
         print('Chiu199_h:{}'.format(_h))
         #_rv_generator = scipy.stats.gaussian_kde(
         #        _datafile_in.df[self.free_parameter_names].values.T)
 
+        self.pyposmat_datafile_out.df = copy.deepcopy(_datafile_in.df)
         self.pyposmat_datafile_out.write_header_section(
                 filename=self.pyposmat_data_out_filename,
                 parameter_names=self.parameter_names,
@@ -936,9 +1019,6 @@ class PyposmatIterativeSampler(object):
 
         _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
         
-
-
-
         # choose sampling type
         _mc_sample_type = _mc_config['type']
         
