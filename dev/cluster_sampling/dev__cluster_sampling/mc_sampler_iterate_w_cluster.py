@@ -291,8 +291,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         self.data.read(_filename)
 
         # determine the sampling type
-        #_sampling_type = self.configuration.sampling_type[i]['type']
-        _sampling_type = 'kde_w_clusters'
+        _sampling_type = self.configuration.sampling_type[i]['type']
         if _sampling_type == 'kde_w_clusters':
             if 'cluster_id' in self.data.df.columns:
                 print("i still don't do anything, and it's eugene's fault")
