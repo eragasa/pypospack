@@ -18,6 +18,14 @@ if __name__ == "__main__":
     # RUN PYPOSMAT 
     #------------------------------------------------------------------------------
 
+    pyposmat_app = PyposmatIterativeSampler(
+        configuration_filename = pyposmat_filename_in)
+    pyposmat_app.data_directory = pyposmat_data_directory
+    pyposmat_app.read_configuration_file()
+    pyposmat_app.run_all()
+    exit()
+
+
     o = PyposmatClusterSampler()
     try:
         o.read_configuration_file(
@@ -55,10 +63,5 @@ if __name__ == "__main__":
     #    print(k,v)
     o.run_simulations(i_iteration=0)
 
-    #pyposmat_app = PyposmatIterativeSampler(
-    #    configuration_filename = pyposmat_filename_in)
-    #pyposmat_app.data_directory = pyposmat_data_directory
-    #pyposmat_app.read_configuration_file()
-    #pyposmat_app.run_all()
 
 
