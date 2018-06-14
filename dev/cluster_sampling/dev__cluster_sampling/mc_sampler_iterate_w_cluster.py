@@ -232,6 +232,8 @@ class PyposmatClusterSampler(PyposmatEngine):
         self.pyposmat_data_bad_filename = 'pypospack.results.bad'
         # for cluster analysis
         self.pyposmat_configuration_fn = filename_in
+        if base_directory is None:
+            self.base_directory = os.getcwd()
 
     @property
     def configuration_fn(self): return self.pyposmat_configuration_fn
@@ -333,13 +335,15 @@ class PyposmatClusterSampler(PyposmatEngine):
                 # prepare the clustering params in an ordered dict
                 
                 cluster_args = None
+                print(self.configuration.sampling_type[i])
                 if 'cluster_args' not in self.configuration.sampling_type[i]:
                     cluster_args = self.get_clustering_parameters(
                             configuration_fn=self.configuration_fn,
                             data_fn=_filename)
                 else:
                     cluster_args = self.configuration.sampling_type[i]['cluster_args']
-
+                    cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
+                    cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
                 # send the data to be clustered
                 obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
                 obj_cluster_analysis.preprocess_data(cluster_args)
@@ -349,9 +353,6 @@ class PyposmatClusterSampler(PyposmatEngine):
                 
                 # use newly clustered data for sampling
                 self.data.df = obj_cluster_analysis.data.df
-                
-                print(self.data.df)
-                print("if i do or do not do anything it's seaton's fault")
 
         else:
             raise ValueError(
@@ -1079,6 +1080,36 @@ class PyposmatIterativeSampler(object):
             )
         # <----- kde with clusters sampling type ---------------------------------------
         elif _mc_sample_type == 'kde_w_clusters':
+            '''
+            Inserting compatibility code here
+            -Seaton
+            '''
+            o = PyposmatClusterSampler()
+            _config_filename = os.path.join(
+                self.root_directory,
+                self.configuration_filename)
+            try:
+                o.read_configuration_file(
+                    filename=_config_filename)
+            except FileNotFoundError as e:
+                print("attempted to configure with")
+                print("    pyposmat_configuration_fn={}".format(
+                    self.configuration_filename)
+                )
+                raise e
+            assert type(o.configuration) is PyposmatConfigurationFile
+            pyposmat_datafile_in = os.path.join(
+                self.root_directory,
+                self.data_directory,
+                "pyposmat.cluster.0.out"
+            )
+            o.configure_pyposmat_datafile_in(
+                filename=pyposmat_datafile_in
+            )
+            # o.run_simulations(i_iteration=0)
+            '''
+            End compatibility code
+            '''
             _mc_n_samples = _mc_config['n_samples_per_cluster']
 
             # determine number of sims for this rank
@@ -1097,12 +1128,18 @@ class PyposmatIterativeSampler(object):
                     self.data_directory,
                     'pyposmat.kde.{}.out'.format(i_iteration))
 
+            # also part of compatibility code
+            o.run_simulations(
+                i_iteration=i_iteration,
+                n_samples=_mc_n_samples,
+                filename=_filename_in)
+            '''
             obj_cluster_sampler = PyposmatClusterSampler()
             obj_cluster_sampler.run_simulations(
                 i_iteration=i_iteration,
                 n_samples=_mc_n_samples,
                 filename=_filename_in)
-
+            '''
         else:
             m = "unknown sampling type: {}".format(
                _mc_sample_type
