@@ -327,9 +327,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         if _sampling_type == 'kde_w_clusters':
 
             if 'cluster_id' in self.data.df.columns:
-                print("i still don't do anything, and it's eugene's fault")
-                pass
-                # Eugene needs to write some code for this to work in PyposmatDataFile and ClusterAnalysis
+                print('datafile already has clusters...')
             else:
                 print('clustering data from:\n{}'.format(_filename))
                 # prepare the clustering params in an ordered dict
@@ -364,9 +362,8 @@ class PyposmatClusterSampler(PyposmatEngine):
         # get unique cluster ids
         cluster_ids = set(self.data.df['cluster_id'])
         for cluster_id in cluster_ids:
-            print(cluster_id)
             mc_sampler = PyposmatMonteCarloSampler()
-            mc_sampler.pyposmat_filename_out = 'iammadeofmagic.out'
+            #mc_sampler.pyposmat_filename_out = 'iammadeofmagic.out'
             mc_sampler.configuration = PyposmatConfigurationFile()
             mc_sampler.configuration.read(self.configuration_fn)
             mc_sampler.configuration.sampling_type[i] = OrderedDict()
@@ -375,6 +372,9 @@ class PyposmatClusterSampler(PyposmatEngine):
             
             mc_sampler.create_base_directories()
             mc_sampler.read_configuration_file(self.configuration_fn)
+            _structure_dir = mc_sampler.configuration.structures['structure_directory']
+            mc_sampler.configuration.structures['structure_directory'] = \
+                    os.path.join('..',_structure_dir)
             mc_sampler.configure_qoi_manager()
             mc_sampler.configure_task_manager()
             mc_sampler.configure_pyposmat_datafile_out()
@@ -660,18 +660,22 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 _datafile_in.df['cluster_id'] == cluster_id
             ]
 
-        _X = _datafile_in.df[self.free_parameter_names].values.T
+        _X = _datafile_in.df[self.free_parameter_names].loc[_datafile_in.df['cluster_id'] == cluster_id].values.T
 
         try:
             _h = Chiu1999_h(_X)
+            kde_bw_type = 'Chiu1999'
         except LinAlgError as e:
             print('filename:{}'.format(filename_in))
             raise
 
+        d = OrderedDict()
+        d['kde_bandwidth'] = OrderedDict()
+        d['kde_bandwidth']['type'] = kde_bw_type
+        d['kde_bandwidth']['h'] = _h
+
         _rv_generator = scipy.stats.gaussian_kde(_X,_h)
-        print('Chiu199_h:{}'.format(_h))
-        #_rv_generator = scipy.stats.gaussian_kde(
-        #        _datafile_in.df[self.free_parameter_names].values.T)
+        print('Chiu1999_h:{}'.format(_h))
 
         self.pyposmat_datafile_out.df = copy.deepcopy(_datafile_in.df)
         self.pyposmat_datafile_out.write_header_section(
@@ -682,7 +686,10 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
         time_start_iteration= time.time()
         _n_errors = 0
+        
+
         for i_sample in range(n_samples):
+            print(i_sample)
             # generate parameter set
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
             _free_parameters = _rv_generator.resample(1)
@@ -1080,66 +1087,46 @@ class PyposmatIterativeSampler(object):
             )
         # <----- kde with clusters sampling type ---------------------------------------
         elif _mc_sample_type == 'kde_w_clusters':
-            '''
-            Inserting compatibility code here
-            -Seaton
-            '''
-            o = PyposmatClusterSampler()
-            _config_filename = os.path.join(
-                self.root_directory,
-                self.configuration_filename)
-            try:
-                o.read_configuration_file(
-                    filename=_config_filename)
-            except FileNotFoundError as e:
-                print("attempted to configure with")
-                print("    pyposmat_configuration_fn={}".format(
-                    self.configuration_filename)
-                )
-                raise e
-            assert type(o.configuration) is PyposmatConfigurationFile
+            
             pyposmat_datafile_in = os.path.join(
                 self.root_directory,
                 self.data_directory,
                 "pyposmat.cluster.0.out"
             )
-            o.configure_pyposmat_datafile_in(
-                filename=pyposmat_datafile_in
-            )
-            # o.run_simulations(i_iteration=0)
-            '''
-            End compatibility code
-            '''
-            _mc_n_samples = _mc_config['n_samples_per_cluster']
 
+            _config_filename = os.path.join(
+                self.root_directory,
+                self.configuration_filename)
+            
+            
             # determine number of sims for this rank
+            _mc_n_samples = _mc_config['n_samples_per_cluster']
             _n_samples_per_rank = int(_mc_n_samples / self.mpi_size)
             if _mc_n_samples % self.mpi_size > self.mpi_rank:
                 _n_samples_per_rank += 1
+           
+            # initialize sampling object
+            o = PyposmatClusterSampler()
+            o.create_base_directories()
+            o.read_configuration_file(filename=_config_filename)
+            o.configure_pyposmat_datafile_in(filename=pyposmat_datafile_in)
+            
+            # fix relative path to structure databae folder
+            _structure_dir = o.configuration.structures['structure_directory']
+            o.configuration.structures['structure_directory'] = \
+                    os.path.join('..',_structure_dir)
 
-            if 'file' in _mc_config:
-                _filename_in = os.path.join(
-                    self.root_directory,
-                    _mc_config['file']
-                )
-            else:
-                _filename_in = os.path.join(
-                    self.root_directory,
-                    self.data_directory,
-                    'pyposmat.kde.{}.out'.format(i_iteration))
+            # finish the rest of the initialization
+            o.configure_qoi_manager()
+            o.configure_task_manager()
+            o.configure_pyposmat_datafile_out()
 
-            # also part of compatibility code
+            # run simulations
             o.run_simulations(
                 i_iteration=i_iteration,
                 n_samples=_mc_n_samples,
-                filename=_filename_in)
-            '''
-            obj_cluster_sampler = PyposmatClusterSampler()
-            obj_cluster_sampler.run_simulations(
-                i_iteration=i_iteration,
-                n_samples=_mc_n_samples,
-                filename=_filename_in)
-            '''
+                filename=pyposmat_datafile_in)
+        
         else:
             m = "unknown sampling type: {}".format(
                _mc_sample_type
