@@ -2,8 +2,8 @@ import os,shutil,sys
 import numpy as np
 from mpi4py import MPI
 from pypospack.pyposmat.data import PyposmatConfigurationFile
-from mc_sampler_iterate_w_cluster import PyposmatIterativeSampler
-from mc_sampler_iterate_w_cluster import PyposmatClusterSampler
+from dev.cluster_sampling.dev__cluster_sampling.mc_sampler_iterate_w_cluster import PyposmatIterativeSampler
+# from mc_sampler_iterate_w_cluster import PyposmatClusterSampler
 if __name__ == "__main__":
     pyposmat_data_directory = 'data'
     pyposmat_filename_in = os.path.join(
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     pyposmat_app.run_all()
     exit()
 
-
+    '''
     o = PyposmatClusterSampler()
     try:
         o.read_configuration_file(
@@ -62,6 +62,6 @@ if __name__ == "__main__":
     #for k,v in o.configuration.sampling_type.items():
     #    print(k,v)
     o.run_simulations(i_iteration=0)
-
+    '''
 
 
