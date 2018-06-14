@@ -5,7 +5,20 @@ from scipy.optimize import brentq
 class EamEmbeddingEquationOfState(object):
 
     def __init__(self,parameters):
-        pass
+        self.density_fn = None
+        self.pair_fn = None
+
+    @property
+    def density_function(self):
+        return self.density_fn
+
+    @property
+    def pair_function(self):
+        return self.pair_fn
+
+
+    def equation_of_state(self,rho,parameters):
+        if latt_type is 'fcc':
 
     def evaluate(rho,parameters,o_pair,o_density):
         pass
@@ -46,10 +59,20 @@ def func_eam_embed_foiles(
         De,
         rp,
         rd,
-        xtol=1.0e-8):
+        F_min = 0,
+        F_max = 10000,
+        F_xtol = 1.0e-8,
+        F_xtol=1.0e-8):
 
     F_evals = np.empty_like(rho)
 
-    for _rho in rho:
+
+    for rhostar in rho:
         p_embedding = (rho0,r0,lambda0,rd,rhostar)
-        astar = brentq(rhofxn,0.,10000.,rhop,xtol)
+        astar = brentq(
+                rhofxn,
+                a=F_min,
+                b=F_max,
+                p_embedding,
+                xtol=F_xtol
+        )
