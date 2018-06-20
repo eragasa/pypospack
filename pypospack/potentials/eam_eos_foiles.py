@@ -1,12 +1,12 @@
 import numpy as np
 from scipy.optimize import brentq
 
-
 class EamEmbeddingEquationOfState(object):
 
     def __init__(self,parameters):
         self.density_fn = None
         self.pair_fn = None
+        self.r_cut = None
 
     @property
     def density_function(self):
@@ -19,6 +19,7 @@ class EamEmbeddingEquationOfState(object):
 
     def equation_of_state(self,rho,parameters):
         if latt_type is 'fcc':
+            pass
 
     def evaluate(rho,parameters,o_pair,o_density):
         pass
@@ -48,6 +49,40 @@ def fembedFoiles(rho,params):
 
     return embedvals
 
+def psi(r):
+    ''' Implements cutoff function for smoothly bringing function to zero '''
+    if type(r) == ndarray:
+        s = np.empty_like(r)
+        for i in xrange(len(r)): 
+            x = r[i]
+            if x > 1.0:
+                s[i]= 0.
+            elif ((x > 0.0) and (x <= 1.0)):
+                s[i] = ( -6.*x**5 + 15.*x**4 - 10.*x**3 + 1.)
+            else:
+                s[i] = 1.
+    else:
+        if r > 1.0:
+            s = 0.
+        elif ((r > 0.0) and (r <= 1.0)):
+            s = ( -6.*r**5 + 15.*r**4 - 10.*r**3 + 1.)
+        else:
+            s = 1.
+
+    return s
+
+def rhofxn(a,rho0,r0,lambda0,rd,rhostar):
+    ''' calculates ideal e- density based on exponential functional form 
+        data input format:  rho0  r0    lambda0  rd   rhostar ''' 
+    return rho0*(
+              12.*exp(-(a/sqrt(2.)-r0)/lambda0)  * psi( (a/sqrt(2.)-rd) / (globalcutoff-rd) )
+            + 6. *exp(-(a-r0)/lambda0)           * psi( (a-rd) / (globalcutoff-rd) )
+            + 24.*exp(-(a*sqrt(1.5)-r0)/lambda0) * psi( (a*sqrt(1.5)-rd) / (globalcutoff-rd) )
+            + 12.*exp(-(a*sqrt(2.)-r0)/lambda0)  * psi( (a*sqrt(2.)-rd) / (globalcutoff-rd) )
+            + 24.*exp(-(a*sqrt(2.5)-r0)/lambda0) * psi( (a*sqrt(2.5)-rd) / (globalcutoff-rd) )
+            + 8. *exp(-(a*sqrt(3.)-r0)/lambda0)  * psi( (a*sqrt(3.)-rd) / (globalcutoff-rd) )
+            ) - rhostar
+
 def func_eam_embed_foiles(
         rho,
         E0,
@@ -73,6 +108,6 @@ def func_eam_embed_foiles(
                 rhofxn,
                 a=F_min,
                 b=F_max,
-                p_embedding,
+                args=p_embedding,
                 xtol=F_xtol
         )
