@@ -68,7 +68,7 @@ for i in range(sampling['n_iterations']):
     sampling[i]['cluster_args']['cluster']['args']['algorithm'] = 'auto'
     sampling[i]['cluster_args']['cluster']['args']['leaf_size'] = 30
     sampling[i]['cluster_args']['cluster']['args']['p'] = None
-    sampling[i]['n_samples_per_cluster'] = 10000
+    sampling[i]['n_samples_per_cluster'] = 1000
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
