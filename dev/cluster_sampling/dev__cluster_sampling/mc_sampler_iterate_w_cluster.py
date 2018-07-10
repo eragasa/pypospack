@@ -905,7 +905,6 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 str_free = 'not_free'
                 print('{:^20} {:^10}'.format(p,str_free))
 
-
 class PyposmatIterativeSampler(object):
     def __init__(self,
             configuration_filename,is_restart=False):
@@ -969,10 +968,12 @@ class PyposmatIterativeSampler(object):
 
             self.run_simulations(i)
             MPI.COMM_WORLD.Barrier()
+            self.log.write('simulations complete...')
 
             if self.mpi_rank == 0:
                 self.log.write('merging files...')
                 self.merge_files(i)
+                self.log.write('analyzing results...')
                 self.analyze_results(i)
             MPI.COMM_WORLD.Barrier()
         self.log.write(80*'-')
