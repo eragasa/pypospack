@@ -1,61 +1,83 @@
-# -*- coding: utf-8 -*-
-__author__ = "Eugene J. Ragasa"
-__copyright__ = "Copyright (C) 2017"
-__license__ = "Simplified BSD License"
-__version__ = "1.0"
-
 from pypospack.potential import Potential
+from collections import OrderedDict
+import os
+
 
 class TersoffPotential(Potential):
-    def __init__(self,symbols):
-        Potential.__init__(self,symbols)
+
+    def __init__(self, symbols):
+        super().__init__(symbols=symbols)
         self._pot_type = 'tersoff'
-        self._determine_parameter_names()
+        self._init_parameter_names()
         self._fname_potential_file = 'potential.mod'
+        self.lmps_parameter_filename = 'lmps_parameter_filename'
 
-    @property
-    def parameter_names(self):
-        return self._param_names
-
-    def _determine_parameter_names(self):
+    def _init_parameter_names(self):
         # TODO: This is only written for a single element potential
-        symbols = self._symbols
-        for i in range(n_symbols):
-            for j in range(n_symbols):
-                for k in range(n_symbols):
-                    el1 = symbols[i]
-                    el2 = symbols[j]
-                    el3 = symbols[k]
-                    self._add_parameter_names(el1,el2,el3)
+        for i in range(len(self.symbols)):
+            for j in range(len(self.symbols)):
+                for k in range(len(self.symbols)):
+                    el1 = self.symbols[i]
+                    el2 = self.symbols[j]
+                    el3 = self.symbols[k]
+                    self._add_parameter_names(el1, el2, el3)
 
-    def _self_add_parameter_names(self,el1,el2,el3):
-        s = "{}{}{}".format(el1,el2,el3)
+    def _add_parameter_names(self, el1, el2, el3):
+        s = "{}{}{}".format(el1, el2, el3)
         tersoff_param_names = ['m','gamma','lambda3','c','d','costheta0','n','beta',
-                       'lambda2','B','R','D','lambda1','A']
-        for p in param_names:
-            self._param_names.append("{}_{}".format(s,p))
+                               'lambda2','B','R','D','lambda1','A']
+        for p in tersoff_param_names:
+            self.param_names.append("{}_{}".format(s, p))
 
-    def write_lammps_potential_file(self):
-        fname_potential_mod = 'potential.mod'
-        fname_tersoff_file = 'potential.tersoff'
+    def _init_parameters(self):
+        self.parameters = OrderedDict()
+        for p in self.parameter_names:
+            self.parameters[p] = None
 
-        for i, el1 in enumerate(elements):
-            for j, el2 in enumerate(elements):
-                for k, el3 in enumerate(elements):
-                    s = '{}{}{}'.format(el1,el2,el3)
-                    m = self._param_dict['{}_m'.format(s)]
-                    str_pot += '{} {} {}'.format(el1,el2,el3)
-                    str_out += ' ' + self._param_dict['{}_gamma'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda3'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_c'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_d'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_costheta0'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_n'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_beta'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda2'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_B'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_R'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_D'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_lambda1'.format(s)]
-                    str_out += ' ' + self._param_dict['{}_A'.format(s)]
+    def lammps_potential_section_to_string(self, parameters=None):
+
+        if parameters is not None:
+            for p in self.parameters:
+                self.parameters[p] = parameters[p]
+
+        str_out = ''
+        for i, s in enumerate(self.symbols):
+            str_out += "mass {} {}\n".format(i+1, self._get_mass(s))
+        str_out += "\n"
+
+        for i, s in enumerate(self.symbols):
+            str_out += "group {} type {}\n".format(s, i+1)
+        str_out += "\n"
+
+        return str_out
+
+    def write_lammps_parameter_file(self,dst_dir,dst_filename):
+        assert type(dst_dir) == str
+        assert type(dst_filename) == str
+        _strout = self.lammps_parameter_file_to_str()
+        with open(os.path.join(dst_dir,dst_filename)) as f:
+            f.write(_strout)
+
+    def lammps_parameter_file_to_str(self):
+        str_out = ''
+        for i, el1 in enumerate(self.symbols):
+            for j, el2 in enumerate(self.symbols):
+                for k, el3 in enumerate(self.symbols):
+                    s = '{}{}{}'.format(el1, el2, el3)
+                    str_out += '{} {} {}'.format(el1, el2, el3)
+                    str_out += ' ' + self.parameters['{}_gamma'.format(s)]
+                    str_out += ' ' + self.parameters['{}_lambda3'.format(s)]
+                    str_out += ' ' + self.parameters['{}_c'.format(s)]
+                    str_out += ' ' + self.parameters['{}_d'.format(s)]
+                    str_out += ' ' + self.parameters['{}_costheta0'.format(s)]
+                    str_out += ' ' + self.parameters['{}_n'.format(s)]
+                    str_out += ' ' + self.parameters['{}_beta'.format(s)]
+                    str_out += ' ' + self.parameters['{}_lambda2'.format(s)]
+                    str_out += ' ' + self.parameters['{}_B'.format(s)]
+                    str_out += ' ' + self.parameters['{}_R'.format(s)]
+                    str_out += ' ' + self.parameters['{}_D'.format(s)]
+                    str_out += ' ' + self.parameters['{}_lambda1'.format(s)]
+                    str_out += ' ' + self.parameters['{}_A'.format(s)]
                     str_out += '\n'
+        return str_out
+
