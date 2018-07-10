@@ -114,7 +114,6 @@ def func_eam_embed_foiles(
         )
 
 if __name__ == "__main__":
-    from pypospack.potential import 
     from collections import OrderedDict
     p = OrderedDict()
 
