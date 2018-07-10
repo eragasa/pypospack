@@ -1,28 +1,29 @@
 import numpy as np
+from pypospack.potential import EamEmbeddingEquationOfState
 from scipy.optimize import brentq
 
-class EamEmbeddingEquationOfState(object):
+class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
 
     def __init__(self,parameters):
-        self.density_fn = None
-        self.pair_fn = None
-        self.r_cut = None
+        EamEmbeddingEquationOfState.__init__(self,parameters)
 
-    @property
-    def density_function(self):
-        return self.density_fn
+    def rose_equation_of_state(self):
+        E = None
+        return E
 
-    @property
-    def pair_function(self):
-        return self.pair_fn
+    def equation_of_state(self,rho,parameters=None):
+        if parameters is None:
+            _p = self.parameters
+        else:
+            _p = parameters
 
-
-    def equation_of_state(self,rho,parameters):
         if latt_type is 'fcc':
             pass
 
     def evaluate(rho,parameters,o_pair,o_density):
-        pass
+        embed_vals = np.empty_like(rho)
+        _ecoh = parameters['ecoh']
+        
 
 def fembedFoiles(rho,params):
     ''' implements Foiles-style embeding function 
@@ -71,6 +72,7 @@ def psi(r):
 
     return s
 
+# This is the exponential density function at rho
 def rhofxn(a,rho0,r0,lambda0,rd,rhostar):
     ''' calculates ideal e- density based on exponential functional form 
         data input format:  rho0  r0    lambda0  rd   rhostar ''' 
@@ -96,7 +98,6 @@ def func_eam_embed_foiles(
         rd,
         F_min = 0,
         F_max = 10000,
-        F_xtol = 1.0e-8,
         F_xtol=1.0e-8):
 
     F_evals = np.empty_like(rho)
@@ -111,3 +112,16 @@ def func_eam_embed_foiles(
                 args=p_embedding,
                 xtol=F_xtol
         )
+
+if __name__ == "__main__":
+    from pypospack.potential import 
+    from collections import OrderedDict
+    p = OrderedDict()
+
+    # testing the constructor
+    o = EamEmbeddingEquationOfState(parameters=p)
+    assert o.density_fn is None
+    assert o.pair_fn is None
+    assert o.r_cut is None
+
+    

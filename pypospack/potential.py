@@ -178,8 +178,13 @@ class Potential(object):
         else:
             raise ValueError('element {} not in database'.format(element))
 
+#------------------------------------------------------------------------------
+# These are three body potentials, but I don't currently have a base class prototype
+# for three body potentials, so they inherent from the Potential base class
+#------------------------------------------------------------------------------
 from pypospack.potentials.tersoff import TersoffPotential
 from pypospack.potentials.stillingerweber import StillingerWeberPotential
+
 #-----------------------------------------------------------------------------
 class PairPotential(Potential):
     def __init__(self,symbols,potential_type,is_charge):
@@ -189,6 +194,9 @@ class PairPotential(Potential):
                 is_charge=is_charge)
 
         self.pair_evaluations = None
+
+# Add the imports here for pair potentials which inherent from the PairPotential
+# prototype class
 
 from pypospack.potentials.morse import MorsePotential
 from pypospack.potentials.buckingham import BuckinghamPotential
@@ -205,6 +213,8 @@ class EamDensityFunction(Potential):
                 is_charge=False)
 
         self.density_evaluations = None
+
+
 from pypospack.potentials.eam_dens_exp import ExponentialDensityFunction
 
 #------------------------------------------------------------------------------
@@ -219,11 +229,27 @@ class EamEmbeddingFunction(Potential):
                 is_charge=False)
 
         self.embedding_evaluations = None
+
+
 from pypospack.potentials.eam_embed_bjs import BjsEmbeddingFunction
 from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
 from pypospack.potentials.eam_embed_fs import FinnisSinclairEmbeddingFunction
+
+#------------------------------------------------------------------------------
+class EamEmbeddingEquationOfState(object):
+    def __init__(self,parameters):
+        self.density_fn = None
+        self.pair_fn = None
+        self.r_cut = None
+
+        assert isinstance(parameters,dict)
+        self.parameters = parameters
+
+
+from pypospack.potentials.eam_eos_foiles import RoseEquationOfStateEmbeddingFunction
 #------------------------------------------------------------------------------
 from pypospack.eamtools import EamSetflFile
+
 class EamPotential(Potential):
     """
     Args:
@@ -277,6 +303,10 @@ class EamPotential(Potential):
         self.setfl = None
 
         if filename is None:
+            assert type(func_pair) is str
+            assert type(func_density) is str
+            assert type(func_embedding) is str
+
             self.set_obj_pair(func_pair=func_pair)
             self.set_obj_density(func_density=func_density)
             self.set_obj_embedding(func_embedding=func_embedding)
@@ -450,12 +480,17 @@ class EamPotential(Potential):
             raise ValueError(msg_err)
 
     def set_obj_embedding(self,func_embedding):
+
+        # this programming is a little sloppy.  some software architecture needs to be implemented here
+        # for a more clean object oriented approach
         if func_embedding == 'eam_embed_universal':
             self.obj_embedding = UniversalEmbeddingFunction(symbols=self.symbols)
         elif func_embedding == 'eam_embed_bjs':
             self.obj_embedding = BjsEmbeddingFunction(symbols=self.symbols)
         elif func_embedding == 'eam_embed_fs':
             self.obj_embedding = FinnisSinclairEmbeddingFunction(symbols=self.symbols)
+        elif func_embedding == 'eam_embed_rose_eos':
+            self.obj_embedding =RoseEquationOfStateEmebeddingFunction(symbols=self.symbols)
         else:
             msg_err = "func_embedding must be a EamEmbeddingFunction"
             raise ValueError(msg_err)
@@ -587,6 +622,10 @@ def PotentialObjectMap(potential_type):
     potential_map['eam_embed_fs'] = OrderedDict()
     potential_map['eam_embed_fs']['module'] = 'pypospack.potential'
     potential_map['eam_embed_fs']['class'] = 'FinnisSinclairEmbeddingFunction'
+
+    potential_map['eam_embed_eos_rose'] = OrderedDict()
+    potential_map['eam_embed_eos_rose']['module'] = 'pypospack.potential'
+    potential_map['eam_embed_eos_rose']['class'] = 'RoseEquationOfStateEmbeddingFunction'
 
     module_name = potential_map[potential_type]['module']
     class_name = potential_map[potential_type]['class']
