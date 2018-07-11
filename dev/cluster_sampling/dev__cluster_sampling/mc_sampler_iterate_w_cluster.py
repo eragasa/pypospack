@@ -1005,6 +1005,7 @@ class PyposmatIterativeSampler(object):
         # set random seed
         np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
 
+        self.log.write("Initializing PyposmatMonteCarloSampler...")
         # initialize()
         self.mc_sampler = PyposmatMonteCarloSampler(
                 filename_in = _config_filename,
@@ -1031,9 +1032,9 @@ class PyposmatIterativeSampler(object):
         MPI.COMM_WORLD.Barrier()
 
         _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
-        
         # choose sampling type
         _mc_sample_type = _mc_config['type']
+        self.log.write("_mc_sample_type={}".format(_mc_sample_type))
         
         # <----- paramter sampling type ---------------------------------------
         if _mc_sample_type == 'parametric':
@@ -1102,14 +1103,14 @@ class PyposmatIterativeSampler(object):
             _config_filename = os.path.join(
                 self.root_directory,
                 self.configuration_filename)
-            
-            
+
             # determine number of sims for this rank
             _mc_n_samples = _mc_config['n_samples_per_cluster']
             _n_samples_per_rank = int(_mc_n_samples / self.mpi_size)
             if _mc_n_samples % self.mpi_size > self.mpi_rank:
                 _n_samples_per_rank += 1
-           
+
+            self.log.write("Initializing PyposmatClusterSampler...")
             # initialize sampling object
             o = PyposmatClusterSampler()
             o.create_base_directories()
