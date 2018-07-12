@@ -367,9 +367,9 @@ class PyposmatClusterSampler(PyposmatEngine):
         # actual usage of the clustered data goes here
         # get unique cluster ids
         cluster_ids = set(self.data.df['cluster_id'])
+        self.log.write("cluster_ids={}".format(cluster_ids))
         for cluster_id in cluster_ids:
             self.log.write("cluster_id={}".format(cluster_id))
-            self.log.write("Initializing PyposmatMonteCarloSampler in PyposmatClusterSampler...")
             mc_sampler = PyposmatMonteCarloSampler(log=self.log)
             #mc_sampler.pyposmat_filename_out = 'iammadeofmagic.out'
             mc_sampler.configuration = PyposmatConfigurationFile()
@@ -393,7 +393,6 @@ class PyposmatClusterSampler(PyposmatEngine):
             mc_sampler.print_sampling_configuration()
             mc_sampler.print_initial_parameter_distribution()
 
-            self.log.write("Running KDE Sampling...")
             for i in range(mc_sampler.n_iterations):
                 #engine.run_simulations(i_iteration=i,n_samples=1000)
                 mc_sampler.run_kde_sampling(
@@ -673,7 +672,6 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
         _X = _datafile_in.df[self.free_parameter_names].loc[_datafile_in.df['cluster_id'] == cluster_id].values.T
 
-        self.log.write("Setting Chiu1999 in PyposmatMonteCarloSampler...")
         try:
             _h = Chiu1999_h(_X)
             kde_bw_type = 'Chiu1999'
@@ -699,18 +697,15 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         time_start_iteration = time.time()
         _n_errors = 0
 
-        self.log.write("Iterating over samples in PyposmatMonteCarloSampler...")
         for i_sample in range(n_samples):
             print(i_sample)
             # generate parameter set
-            self.log.write("Generating parameter set...")
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
             _free_parameters = _rv_generator.resample(1)
             for i,v in enumerate(self.free_parameter_names):
                 _parameters[v] = float(_free_parameters[i,0])
 
             # generate constrained parameters
-            self.log.write("Generating constrained parameters...")
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is not list:
@@ -721,7 +716,6 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         _parameters[p] = eval(_str_eval)
 
             # generate wierd things
-            self.log.write("Generating weird things...")
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is list:
@@ -729,7 +723,6 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             a0 = self.parameter_distribution_definition[p][1][1]
                             latt = self.parameter_distribution_definition[p][1][2]
                             _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
-            self.log.write("Checking constraints...")
             try:
                 # check constraints
                 for k,v in self.parameter_constraints.items():
