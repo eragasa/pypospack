@@ -32,6 +32,7 @@ from pypospack.pyposmat.data.logfile import PyposmatLogFile
 # --- import for PyposmatEngine
 from pypospack.pyposmat.engines.mc_sampler import PyposmatBadParameterError
 
+
 class PyposmatEngine(object):
     """
         Args:
@@ -214,7 +215,7 @@ class PyposmatEngine(object):
 
 class PyposmatClusterSampler(PyposmatEngine):
 
-    def __init__(self,
+    def __init__(self, log,
             filename_in='pyposmat.config.in',
             filename_out='pyposmat.results.out',
             mpi_rank=None,
@@ -235,6 +236,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         self.pyposmat_configuration_fn = filename_in
         if base_directory is None:
             self.base_directory = os.getcwd()
+        self.log = log
 
     @property
     def configuration_fn(self): return self.pyposmat_configuration_fn
@@ -303,6 +305,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         # arg: i_iteration
         i = i_iteration
 
+        self.log.write("Processing n_samples arg in PyposmatClusterSampler...")
         # arg: n_samples
         if n_samples is not None:
             _n_samples = n_samples
@@ -313,12 +316,14 @@ class PyposmatClusterSampler(PyposmatEngine):
                 print("must use \"n_samples_per_cluster\" keyword to describe the number of simulations per cluster")
                 raise e
 
+        self.log.write("Processing filename arg in PyposmatClusterSampler...")
         # arg: filename
         if filename is None:
             _filename = self.pyposmat_data_in_filename
         else:
             _filename = filename
 
+        self.log.write('Reading the data file in PyposmatClusterSampler...')
         # read in the the datafile
         self.data = PyposmatDataFile()
         self.data.read(_filename)
@@ -362,8 +367,10 @@ class PyposmatClusterSampler(PyposmatEngine):
         # actual usage of the clustered data goes here
         # get unique cluster ids
         cluster_ids = set(self.data.df['cluster_id'])
+        self.log.write("cluster_ids={}".format(cluster_ids))
         for cluster_id in cluster_ids:
-            mc_sampler = PyposmatMonteCarloSampler()
+            self.log.write("cluster_id={}".format(cluster_id))
+            mc_sampler = PyposmatMonteCarloSampler(log=self.log)
             #mc_sampler.pyposmat_filename_out = 'iammadeofmagic.out'
             mc_sampler.configuration = PyposmatConfigurationFile()
             mc_sampler.configuration.read(self.configuration_fn)
@@ -460,8 +467,9 @@ class PyposmatClusterSampler(PyposmatEngine):
         # not yet implemented in configuration
         return d
 
+
 class PyposmatMonteCarloSampler(PyposmatEngine):
-    def __init__(self,
+    def __init__(self, log,
             filename_in='pypospack.config.in',
             filename_out='pypospack.results.out',
             mpi_rank=None,
@@ -481,6 +489,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
         self.pyposmat_data_bad_filename = 'pypospack.results.bad'
+        self.log = log
 
     def _log(self,str_msg):
         print(str_msg)
@@ -685,9 +694,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
-        time_start_iteration= time.time()
+        time_start_iteration = time.time()
         _n_errors = 0
-        
 
         for i_sample in range(n_samples):
             print(i_sample)
@@ -749,6 +757,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         avg_time,
                         _n_errors)
                     print(_str_msg)
+                    self.log.write(_str_msg)
 
     def run_file_sampling(self,filename_in):
 
@@ -905,6 +914,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 str_free = 'not_free'
                 print('{:^20} {:^10}'.format(p,str_free))
 
+
 class PyposmatIterativeSampler(object):
     def __init__(self,
             configuration_filename,is_restart=False):
@@ -1005,12 +1015,14 @@ class PyposmatIterativeSampler(object):
         # set random seed
         np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
 
+        self.log.write("Initializing PyposmatMonteCarloSampler...")
         # initialize()
         self.mc_sampler = PyposmatMonteCarloSampler(
                 filename_in = _config_filename,
                 filename_out = _results_filename,
                 mpi_rank = self.mpi_rank,
-                mpi_size = self.mpi_size)
+                mpi_size = self.mpi_size,
+                log=self.log)
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
         _structure_dir = self.mc_sampler.configuration.structures['structure_directory']
@@ -1031,9 +1043,9 @@ class PyposmatIterativeSampler(object):
         MPI.COMM_WORLD.Barrier()
 
         _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
-        
         # choose sampling type
         _mc_sample_type = _mc_config['type']
+        self.log.write("_mc_sample_type={}".format(_mc_sample_type))
         
         # <----- paramter sampling type ---------------------------------------
         if _mc_sample_type == 'parametric':
@@ -1102,16 +1114,16 @@ class PyposmatIterativeSampler(object):
             _config_filename = os.path.join(
                 self.root_directory,
                 self.configuration_filename)
-            
-            
+
             # determine number of sims for this rank
             _mc_n_samples = _mc_config['n_samples_per_cluster']
             _n_samples_per_rank = int(_mc_n_samples / self.mpi_size)
             if _mc_n_samples % self.mpi_size > self.mpi_rank:
                 _n_samples_per_rank += 1
-           
+
+            self.log.write("Initializing PyposmatClusterSampler...")
             # initialize sampling object
-            o = PyposmatClusterSampler()
+            o = PyposmatClusterSampler(log=self.log)
             o.create_base_directories()
             o.read_configuration_file(filename=_config_filename)
             o.configure_pyposmat_datafile_in(filename=pyposmat_datafile_in)
@@ -1127,6 +1139,7 @@ class PyposmatIterativeSampler(object):
             o.configure_pyposmat_datafile_out()
 
             # run simulations
+            self.log.write("Running simulations through PyposmatClusterSampler...")
             o.run_simulations(
                 i_iteration=i_iteration,
                 n_samples=_mc_n_samples,
