@@ -32,6 +32,7 @@ from pypospack.pyposmat.data.logfile import PyposmatLogFile
 # --- import for PyposmatEngine
 from pypospack.pyposmat.engines.mc_sampler import PyposmatBadParameterError
 
+
 class PyposmatEngine(object):
     """
         Args:
@@ -369,7 +370,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         for cluster_id in cluster_ids:
             self.log.write("cluster_id={}".format(cluster_id))
             self.log.write("Initializing PyposmatMonteCarloSampler in PyposmatClusterSampler...")
-            mc_sampler = PyposmatMonteCarloSampler()
+            mc_sampler = PyposmatMonteCarloSampler(log=self.log)
             #mc_sampler.pyposmat_filename_out = 'iammadeofmagic.out'
             mc_sampler.configuration = PyposmatConfigurationFile()
             mc_sampler.configuration.read(self.configuration_fn)
@@ -467,8 +468,9 @@ class PyposmatClusterSampler(PyposmatEngine):
         # not yet implemented in configuration
         return d
 
+
 class PyposmatMonteCarloSampler(PyposmatEngine):
-    def __init__(self,
+    def __init__(self, log,
             filename_in='pypospack.config.in',
             filename_out='pypospack.results.out',
             mpi_rank=None,
@@ -488,6 +490,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
         self.pyposmat_data_bad_filename = 'pypospack.results.bad'
+        self.log = log
 
     def _log(self,str_msg):
         print(str_msg)
@@ -670,6 +673,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
         _X = _datafile_in.df[self.free_parameter_names].loc[_datafile_in.df['cluster_id'] == cluster_id].values.T
 
+        self.log.write("Setting Chiu1999 in PyposmatMonteCarloSampler...")
         try:
             _h = Chiu1999_h(_X)
             kde_bw_type = 'Chiu1999'
@@ -692,19 +696,21 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
-        time_start_iteration= time.time()
+        time_start_iteration = time.time()
         _n_errors = 0
-        
 
+        self.log.write("Iterating over samples in PyposmatMonteCarloSampler...")
         for i_sample in range(n_samples):
             print(i_sample)
             # generate parameter set
+            self.log.write("Generating parameter set...")
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
             _free_parameters = _rv_generator.resample(1)
             for i,v in enumerate(self.free_parameter_names):
                 _parameters[v] = float(_free_parameters[i,0])
 
             # generate constrained parameters
+            self.log.write("Generating constrained parameters...")
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is not list:
@@ -715,6 +721,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         _parameters[p] = eval(_str_eval)
 
             # generate wierd things
+            self.log.write("Generating weird things...")
             for p in self.constrained_parameter_names:
                 if self.parameter_distribution_definition[p][0] == 'equals':
                     if type(self.parameter_distribution_definition[p][1]) is list:
@@ -722,6 +729,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             a0 = self.parameter_distribution_definition[p][1][1]
                             latt = self.parameter_distribution_definition[p][1][2]
                             _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
+            self.log.write("Checking constraints...")
             try:
                 # check constraints
                 for k,v in self.parameter_constraints.items():
@@ -756,6 +764,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         avg_time,
                         _n_errors)
                     print(_str_msg)
+                    self.log.write(_str_msg)
 
     def run_file_sampling(self,filename_in):
 
@@ -912,6 +921,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 str_free = 'not_free'
                 print('{:^20} {:^10}'.format(p,str_free))
 
+
 class PyposmatIterativeSampler(object):
     def __init__(self,
             configuration_filename,is_restart=False):
@@ -1018,7 +1028,8 @@ class PyposmatIterativeSampler(object):
                 filename_in = _config_filename,
                 filename_out = _results_filename,
                 mpi_rank = self.mpi_rank,
-                mpi_size = self.mpi_size)
+                mpi_size = self.mpi_size,
+                log=self.log)
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
         _structure_dir = self.mc_sampler.configuration.structures['structure_directory']
@@ -1119,7 +1130,7 @@ class PyposmatIterativeSampler(object):
 
             self.log.write("Initializing PyposmatClusterSampler...")
             # initialize sampling object
-            o = PyposmatClusterSampler()
+            o = PyposmatClusterSampler(log=self.log)
             o.create_base_directories()
             o.read_configuration_file(filename=_config_filename)
             o.configure_pyposmat_datafile_in(filename=pyposmat_datafile_in)
