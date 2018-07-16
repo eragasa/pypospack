@@ -19,5 +19,7 @@ echo python=$(which python)
 echo PATH=$PATH
 
 echo "start_time:$(date)"
-mpiexec python mc_iterative_sampler.py
+srun --mpi=pmix_v1 python mc_iterative_sampler.py 
+# srun python mc_iterative_sampler.py --mpi=pmix_v1
+# mpiexec python mc_iterative_sampler.py
 echo "end_time:$(date)"

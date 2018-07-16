@@ -393,6 +393,12 @@ class PyposmatClusterSampler(PyposmatEngine):
             mc_sampler.print_sampling_configuration()
             mc_sampler.print_initial_parameter_distribution()
 
+            mc_sampler.run_kde_sampling(
+			    n_samples=_n_samples,
+			    filename_in=self.data_fn,
+			    cluster_id=cluster_id)
+            self.log.write("Finished mc_sampler.run_kde_sampling of cluster_id={}".format(cluster_id))
+            '''
             for i in range(mc_sampler.n_iterations):
                 #engine.run_simulations(i_iteration=i,n_samples=1000)
                 mc_sampler.run_kde_sampling(
@@ -400,7 +406,8 @@ class PyposmatClusterSampler(PyposmatEngine):
                     filename_in=self.data_fn,
                     cluster_id=cluster_id
                 )  
-
+                self.log.write("Finished iteration {} cluster_id={}".format(i, cluster_id))
+            '''
         if self.mpi_rank == 0:
             print(i_iteration,_n_samples,_sampling_type)
 
@@ -696,7 +703,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
         time_start_iteration = time.time()
         _n_errors = 0
-
+        self.log.write("Begin iteration over n_samples in PyposmatMonteCarloSampler...")
         for i_sample in range(n_samples):
             print(i_sample)
             # generate parameter set
