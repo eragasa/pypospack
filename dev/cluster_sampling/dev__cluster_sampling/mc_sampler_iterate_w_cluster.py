@@ -331,7 +331,6 @@ class PyposmatClusterSampler(PyposmatEngine):
         # determine the sampling type
         _sampling_type = self.configuration.sampling_type[i]['type']
         if _sampling_type == 'kde_w_clusters':
-
             if 'cluster_id' in self.data.df.columns:
                 print('datafile already has clusters...')
             else:
@@ -357,7 +356,6 @@ class PyposmatClusterSampler(PyposmatEngine):
                 
                 # use newly clustered data for sampling
                 self.data.df = obj_cluster_analysis.data.df
-
         else:
             raise ValueError(
                 'unknown sampling type:{}'.format(
@@ -388,15 +386,13 @@ class PyposmatClusterSampler(PyposmatEngine):
             mc_sampler.configure_pyposmat_datafile_out()
             #pyposmat_datafile_out = PyposmatDataFile(filename_out)
 
-
             mc_sampler.print_structure_database()
             mc_sampler.print_sampling_configuration()
             mc_sampler.print_initial_parameter_distribution()
 
-            mc_sampler.run_kde_sampling(
-			    n_samples=_n_samples,
-			    filename_in=self.data_fn,
-			    cluster_id=cluster_id)
+            mc_sampler.run_kde_sampling(n_samples=_n_samples,
+                                        filename_in=self.data_fn,
+                                        cluster_id=cluster_id)
             self.log.write("Finished mc_sampler.run_kde_sampling of cluster_id={}".format(cluster_id))
             '''
             for i in range(mc_sampler.n_iterations):
@@ -1147,11 +1143,24 @@ class PyposmatIterativeSampler(object):
 
             # run simulations
             self.log.write("Running simulations through PyposmatClusterSampler...")
-            o.run_simulations(
-                i_iteration=i_iteration,
-                n_samples=_mc_n_samples,
-                filename=pyposmat_datafile_in)
-        
+            # use this while loop and exception block to work around the cholesky decomposition error
+            # keep retrying new cluster partitions until it works
+            err_count = 0
+            while True:
+                try:
+                    o.run_simulations(i_iteration=i_iteration,
+                                      n_samples=_mc_n_samples,
+                                      filename=pyposmat_datafile_in)
+                except np.linalg.linalg.LinAlgError as e:
+                    err_count += 1
+                    msg = "Encountered error:\n{}\nwhile doing cluster sampling.\n".format(e)
+                    msg += "This is occurrence number {} of this error.\n".format(err_count)
+                    msg += "Trying again with new clusters..."
+                    self.log.write(msg)
+                    o.data.df = o.data.df.drop(['cluster_id'], axis=1)
+                    o.data.write(filename=pyposmat_datafile_in)
+                else:
+                    break
         else:
             m = "unknown sampling type: {}".format(
                _mc_sample_type
