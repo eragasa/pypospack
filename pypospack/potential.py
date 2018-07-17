@@ -303,9 +303,18 @@ class EamPotential(Potential):
         self.setfl = None
 
         if filename is None:
-            assert type(func_pair) is str
-            assert type(func_density) is str
-            assert type(func_embedding) is str
+
+            # If the filename is not specified, then the EamPotential must be calibrated
+            # by specifying the number
+            if type(func_pair) is not str:
+                s = "If filename is not specified, then func_pair must be a string"
+                raise ValueError(s)
+            if type(func_density) is not str:
+                s = "If filename is not specified, then func_density must be a string"
+                raise ValueError(s)
+            if type(func_embedding) is not str:
+                s = "If filename is not specified, then func_embeddding must be a string"
+                raise ValueError(s)
 
             self.set_obj_pair(func_pair=func_pair)
             self.set_obj_density(func_density=func_density)

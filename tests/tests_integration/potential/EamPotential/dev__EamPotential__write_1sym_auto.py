@@ -1,6 +1,7 @@
 import pytest
 import os
 from collections import OrderedDict
+
 # <----- TESTING HARNESS VARIABLES
 
 Ni_eam_potential_definition = OrderedDict()
