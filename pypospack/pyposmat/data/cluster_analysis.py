@@ -429,6 +429,22 @@ class PyposmatClusterAnalysis(object):
             axis = 1
         )
 
+    def isValidPartition(self):
+        # check the cholesky decomposition of each cluster
+        # return True if no error
+        # return False on linalg error
+        for cluster_id in set(self.data.df['cluster_id']):
+            cluster = self.data.df.loc[self.data.df['cluster_id'] == cluster_id]
+            cluster = cluster[self.manifold_names]
+            try:
+                covariance = np.cov(cluster)
+                cholesky = np.linalg.cholesky(covariance)
+            except np.linalg.linalg.LinAlgError:
+                return False
+            else:
+                return True
+
+
 def ecdf(sample):
     # convert sample to a numpy array, if it isn't already
     sample = np.atleast_1d(sample)

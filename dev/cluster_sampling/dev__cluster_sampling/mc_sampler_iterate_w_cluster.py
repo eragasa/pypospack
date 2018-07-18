@@ -353,7 +353,13 @@ class PyposmatClusterSampler(PyposmatEngine):
                 obj_cluster_analysis.calculate_manifold(cluster_args)
                 obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
                 obj_cluster_analysis.calculate_clusters(cluster_args)
-                
+                while True:
+                    if not obj_cluster_analysis.isValidPartition():
+                        obj_cluster_analysis.calculate_manifold(cluster_args)
+                        obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
+                        obj_cluster_analysis.calculate_clusters(cluster_args)
+                    else:
+                        break
                 # use newly clustered data for sampling
                 self.data.df = obj_cluster_analysis.data.df
         else:
@@ -1143,24 +1149,9 @@ class PyposmatIterativeSampler(object):
 
             # run simulations
             self.log.write("Running simulations through PyposmatClusterSampler...")
-            # use this while loop and exception block to work around the cholesky decomposition error
-            # keep retrying new cluster partitions until it works
-            err_count = 0
-            while True:
-                try:
-                    o.run_simulations(i_iteration=i_iteration,
-                                      n_samples=_mc_n_samples,
-                                      filename=pyposmat_datafile_in)
-                except np.linalg.linalg.LinAlgError as e:
-                    err_count += 1
-                    msg = "Encountered error:\n{}\nwhile doing cluster sampling.\n".format(e)
-                    msg += "This is occurrence number {} of this error.\n".format(err_count)
-                    msg += "Trying again with new clusters..."
-                    self.log.write(msg)
-                    o.data.df = o.data.df.drop(['cluster_id'], axis=1)
-                    o.data.write(filename=pyposmat_datafile_in)
-                else:
-                    break
+            o.run_simulations(i_iteration=i_iteration,
+                              n_samples=_mc_n_samples,
+                              filename=pyposmat_datafile_in)
         else:
             m = "unknown sampling type: {}".format(
                _mc_sample_type
