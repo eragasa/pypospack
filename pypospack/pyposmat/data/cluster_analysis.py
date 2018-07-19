@@ -434,7 +434,7 @@ class PyposmatClusterAnalysis(object):
         # return True if no error
         # return False on linalg error
         for cluster_id in set(self.data.df['cluster_id']):
-            cluster = self.data.df.loc[self.data.df['cluster_id'] == cluster_id]
+            cluster = self.data.df[self.data.df['cluster_id'] == cluster_id]
             cluster = cluster[self.manifold_names]
             try:
                 covariance = np.cov(cluster)
