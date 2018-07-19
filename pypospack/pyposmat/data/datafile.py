@@ -86,8 +86,12 @@ class PyposmatDataFile(object):
     def write_simulation_results(self,
             sim_id,
             results,
+            cluster_id = None
             filename=None):
+
         _sim_result = [str(sim_id)]
+        if cluster_id is not None:
+            _sim_result += [str(int(cluster_id))]
         _sim_result += [str(v) for k,v in results['parameters'].items()]
         _sim_result += [str(v) for k,v in results['qois'].items()]
         _sim_result += [str(v) for k,v in results['errors'].items()]
