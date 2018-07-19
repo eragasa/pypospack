@@ -10,16 +10,19 @@
 #SBATCH --error=job.err
 #SBATCH --qos=phillpot                # Queue you are submitting to 
 pwd; hostname; date
- 
-module load intel/2018.1.163 
-module load openmpi/3.0.0 
+
+module load intel/2018.1.163
+module load openmpi/3.0.0
 
 echo PYTHONPATH=$PYTHONPATH
+PYTHON_BIN=$(which python)
+echo PYTHON_BIN=$PYTHON_BIN
 echo python=$(which python)
 echo PATH=$PATH
 
 echo "start_time:$(date)"
-srun --mpi=pmix_v1 python mc_iterative_sampler.py 
+srun --mpi=pmix_v1 $PYTHON_BIN mc_iterative_sampler.py
 # srun python mc_iterative_sampler.py --mpi=pmix_v1
 # mpiexec python mc_iterative_sampler.py
 echo "end_time:$(date)"
+
