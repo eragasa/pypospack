@@ -380,7 +380,14 @@ class PyposmatClusterSampler(PyposmatEngine):
                                               _n_samples=_n_samples)
             except np.linalg.linalg.LinAlgError:
                 self.log.write("Encountered LinAlgError in _run_mc_cluster_sampler. Rebuilding partition...")
-                cluster_args = self.configuration.sampling_type[i]['cluster_args']
+                if 'cluster_args' not in self.configuration.sampling_type[i]:
+                    cluster_args = self.get_clustering_parameters(
+                            configuration_fn=self.configuration_fn,
+                            data_fn=_filename)
+                else:
+                    cluster_args = self.configuration.sampling_type[i]['cluster_args']
+                    cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
+                    cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
                 obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
                 obj_cluster_analysis.preprocess_data(cluster_args)
                 obj_cluster_analysis.calculate_manifold(cluster_args)
