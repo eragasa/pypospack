@@ -221,7 +221,7 @@ class PyposmatClusterSampler(PyposmatEngine):
             mpi_comm=None,
             mpi_rank=None,
             mpi_size=None,
-            base_directory=None
+            base_directory=None,
             o_logger=None):
 
         PyposmatEngine.__init__(self,
@@ -361,12 +361,20 @@ class PyposmatClusterSampler(PyposmatEngine):
         _sampling_type = self.configuration.sampling_type[i]['type']
 
         if _sampling_type == 'kde_w_clusters':
+
+            # process the arguments required for clustering
+            cluster_args = None
+            print(self.configuration.sampling_type[i])
+            if 'cluster_args' not in self.configuration.sampling_type[i]:
+                cluster_args = self.get_clustering_parameters(
+                    configuration_fn=self.configuration_fn,
+                    data_fn=_filename)
+            else:
+                cluster_args = self.configuration.sampling_type[i]['cluster_args']
+                cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
+                cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
             
             # this should probably be broken down into master/minion tasks
-
-            ###########
-            # MESSING AROUND CODE STARTS
-            ###########
 
             # RANK_0: initalization
             if self.mpi_comm is not None and self.mpi_rank == 0:
@@ -376,9 +384,8 @@ class PyposmatClusterSampler(PyposmatEngine):
                 obj_cluster_analysis.calculate_manifold(cluster_args)
                 obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
                 obj_cluster_analysis.calculate_clusters(cluster_args)
-            
-                # error checking 
-                '''
+
+                # error checking
                 while True:
                     if obj_cluster_analysis.isValidPartition():
                         break
@@ -388,8 +395,11 @@ class PyposmatClusterSampler(PyposmatEngine):
                         obj_cluster_analysis.calculate_manifold(cluster_args)
                         obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
                         obj_cluster_analysis.calculate_clusters(cluster_args)
-                '''
-                
+
+                # asign newly clustered data to df
+                self.data.df = obj_cluster_analysis.data.df
+
+                # write the cluster file
                 _cluster_filename = self.PYPOSMAT_CLUSTER_FILENAME_FORMAT.format(i_iteration)
                 # TODO BY VIKING MAN: CODE BY WRITING CLUSTER ANALYSIS FILE
                 # obj_cluster_analysis.write(filename=_cluster_filename)
@@ -398,98 +408,22 @@ class PyposmatClusterSampler(PyposmatEngine):
                 # minions wait for master before doing anything
                 self.mpi_comm.Barrier()
 
-            #########
-            # MESSING AROUND CODE ENDS
-            ########
-
-
-            if 'cluster_id' in self.data.df.columns:
-                print('datafile already has clusters...')
-            else:
-                print('clustering data from:\n{}'.format(_filename))
-                # prepare the clustering params in an ordered dict
-                
-                cluster_args = None
-                print(self.configuration.sampling_type[i])
-                if 'cluster_args' not in self.configuration.sampling_type[i]:
-                    cluster_args = self.get_clustering_parameters(
-                            configuration_fn=self.configuration_fn,
-                            data_fn=_filename)
-                else:
-                    cluster_args = self.configuration.sampling_type[i]['cluster_args']
-                    cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
-                    cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
-                # send the data to be clustered
-                obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
-                obj_cluster_analysis.preprocess_data(cluster_args)
-                obj_cluster_analysis.calculate_manifold(cluster_args)
-                obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
-                obj_cluster_analysis.calculate_clusters(cluster_args)
-                # BETTER IMPLEMENTATION FOR CHECKING DECOMPOSITION FAILURE
-                # obj_cluster_analysis.isValidPartition does not yet work
-                
-                '''
-                while True:
-                    if obj_cluster_analysis.isValidPartition():
-                        break
-                    else:
-                        obj_cluster_analysis.calculate_manifold(cluster_args)
-                        obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
-                        obj_cluster_analysis.calculate_clusters(cluster_args)
-                '''
-                
-                # use newly clustered data for sampling
-                self.data.df = obj_cluster_analysis.data.df
-
         else:
             raise ValueError(
                 'unknown sampling type:{}'.format(
                     _sampling_type
                 )
             )
-        # actual usage of the clustered data goes here
-
-        while True:
-
-            try:
-                self._run_mc_cluster_sampling(
-                    i=i,
-                    _n_samples=_n_samples
-                )
-            
-            # There maybe numerical instability problems with the clustering algorithm due to the
-            # Cholesky decomposition of the covariance matrix for an individual cluster.
-            # Catch the linear algebra error, and handle it here
-
-            except np.linalg.linalg.LinAlgError:
-                self.log.write("Encountered LinAlgError in _run_mc_cluster_sampler. Rebuilding partition...")
-
-                # get the necessary arguments from the configuration file for PyposmatClusterAnalysis 
-                if 'cluster_args' not in self.configuration.sampling_type[i]:
-                    
-                    # if the configuration doesn't exist then use the default arguments
-                    cluster_args = self.get_clustering_parameters(
-                            configuration_fn=self.configuration_fn,
-                            data_fn=_filename)
-                else:
-                    cluster_args = self.configuration.sampling_type[i]['cluster_args']
-                    cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
-                    cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
-                
-                obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
-                obj_cluster_analysis.preprocess_data(cluster_args)
-                obj_cluster_analysis.calculate_manifold(cluster_args)
-                obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
-                obj_cluster_analysis.calculate_clusters(cluster_args)
-                self.data.df = obj_cluster_analysis.data.df
-            
-            else:
-                break
+        # actually run the mc kde sampler
+        self._run_mc_cluster_sampling(
+                i=i,
+                _n_samples=_n_samples,
+                _cluster_filename=_cluster_filename)
 
         if self.mpi_rank == 0:
             print(i_iteration,_n_samples,_sampling_type)
 
-    def _run_mc_cluster_sampling(self, i, _n_samples):
+    def _run_mc_cluster_sampling(self, i, _n_samples, _cluster_filename):
 
         # get unique cluster ids
         cluster_ids = set(self.data.df['cluster_id'])
@@ -517,6 +451,7 @@ class PyposmatClusterSampler(PyposmatEngine):
             mc_sampler.configuration.structures['structure_directory'] = os.path.join(
                     '..', 
                     mc_sampler.configuration.structures['structure_directory']
+            )
             
             mc_sampler.configure_qoi_manager()
             mc_sampler.configure_task_manager()
@@ -528,7 +463,7 @@ class PyposmatClusterSampler(PyposmatEngine):
             mc_sampler.print_initial_parameter_distribution()
 
             mc_sampler.run_kde_sampling(n_samples=_n_samples,
-                                        filename_in=self.data_fn,
+                                        filename_in=_cluster_filename,
                                         cluster_id=cluster_id)
             self.log.write("Finished mc_sampler.run_kde_sampling of cluster_id={}".format(cluster_id))
 
