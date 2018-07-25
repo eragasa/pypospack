@@ -148,7 +148,8 @@ class PyposmatClusterAnalysis(object):
         if 'normalizer_type' in d:
             o.normalizer_type = d['normalizer_type']
             o.normalize_data(o.normalizer_type)
-
+        # quick patch to fix the duplicate axis issue
+        o.data.df = o.data.df.drop(['cluster_id'], axis=1)
         return o
 
     def to_dict(self):
@@ -435,7 +436,7 @@ class PyposmatClusterAnalysis(object):
         # return False on linalg error
         for cluster_id in set(self.data.df['cluster_id']):
             cluster = self.data.df[self.data.df['cluster_id'] == cluster_id]
-            cluster = cluster[self.manifold_names]
+            cluster = cluster[['tsne_0', 'tsne_1']]
             try:
                 covariance = np.cov(cluster)
                 cholesky = np.linalg.cholesky(covariance)

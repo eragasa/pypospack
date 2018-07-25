@@ -294,7 +294,7 @@ class PyposmatClusterSampler(PyposmatEngine):
             print("    _filename={}".format(_filename))
             raise e
 
-        # get information from the PyposmatConfigurationFile object
+    # get information from the PyposmatConfigurationFile object
         self.structure_directory = self.configuration.structures['structure_directory']
         self.parameter_names = [p for p in self.configuration.sampling_distribution]
         self.qoi_names = [k for k in self.configuration.qois]
@@ -328,8 +328,6 @@ class PyposmatClusterSampler(PyposmatEngine):
 
         # arg: i_iteration
         i = i_iteration
-
-        self.log.write("Processing n_samples arg in PyposmatClusterSampler...")
         
         # arg: n_samples
         if n_samples is not None:
@@ -341,8 +339,6 @@ class PyposmatClusterSampler(PyposmatEngine):
                 print("must use \"n_samples_per_cluster\" keyword to describe the number of simulations per cluster")
                 raise e
 
-        self.log.write("Processing filename arg in PyposmatClusterSampler...")
-
         # arg: filename
         if filename is None:
             _filename = self.pyposmat_data_in_filename
@@ -352,7 +348,6 @@ class PyposmatClusterSampler(PyposmatEngine):
         # end argument processing
         #----------------------------------------------------------------------
 
-        self.log.write('Reading the data file in PyposmatClusterSampler...')
         # read in the the datafile
         self.data = PyposmatDataFile()
         self.data.read(_filename)
@@ -375,34 +370,50 @@ class PyposmatClusterSampler(PyposmatEngine):
                 cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
             
             # this should probably be broken down into master/minion tasks
-
+            # determine the _cluster_filename
+            _cluster_filename = self.PYPOSMAT_CLUSTER_FILENAME_FORMAT.format(i_iteration)
+            # maybe the data dir should be a property of the class
+            _cluster_filename = os.path.join('..', 'data', _cluster_filename)
             # RANK_0: initalization
+            self.log.write("self.mpi_comm={}".format(self.mpi_comm))
+            self.log.write("self.mpi_rank={}".format(self.mpi_rank))
             if self.mpi_comm is not None and self.mpi_rank == 0:
                 # do cluster analysis
                 obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
+                self.log.write("initial columns: {}".format(obj_cluster_analysis.data.df.columns))
                 obj_cluster_analysis.preprocess_data(cluster_args)
+                self.log.write("preprocess columns: {}".format(obj_cluster_analysis.data.df.columns))
                 obj_cluster_analysis.calculate_manifold(cluster_args)
+                self.log.write("manifold columns: {}".format(obj_cluster_analysis.data.df.columns))
                 obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
+                self.log.write("knn columns: {}".format(obj_cluster_analysis.data.df.columns))
                 obj_cluster_analysis.calculate_clusters(cluster_args)
+                self.log.write("clustered columns: {}".format(obj_cluster_analysis.data.df.columns))
 
                 # error checking
                 while True:
+                    self.log.write("Checking the partition for errors...")
                     if obj_cluster_analysis.isValidPartition():
+                        self.log.write("The partition is valid")
                         break
                     else:
+                        self.log.write("Partition Error encountered, rebuilding partition...")
                         obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args)
                         obj_cluster_analysis.preprocess_data(cluster_args)
                         obj_cluster_analysis.calculate_manifold(cluster_args)
                         obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
                         obj_cluster_analysis.calculate_clusters(cluster_args)
-
+                        c_ids = obj_cluster_analysis.data.df['cluster_id']
+                        c_ids = set(c_ids)
+                        self.log.write("cluster ids: {}".format(c_ids))
+          
                 # asign newly clustered data to df
                 self.data.df = obj_cluster_analysis.data.df
 
                 # write the cluster file
-                _cluster_filename = self.PYPOSMAT_CLUSTER_FILENAME_FORMAT.format(i_iteration)
                 # TODO BY VIKING MAN: CODE BY WRITING CLUSTER ANALYSIS FILE
                 # obj_cluster_analysis.write(filename=_cluster_filename)
+                obj_cluster_analysis.data.write(filename=_cluster_filename)
 
             if self.mpi_comm is not None:
                 # minions wait for master before doing anything
@@ -1209,9 +1220,11 @@ class PyposmatIterativeSampler(object):
             if _mc_n_samples % self.mpi_size > self.mpi_rank:
                 _n_samples_per_rank += 1
 
-            self.log.write("Initializing PyposmatClusterSampler...")
             # initialize sampling object
-            o = PyposmatClusterSampler(log=self.log)
+            o = PyposmatClusterSampler(o_logger=self.log,
+                                       mpi_rank=self.mpi_rank,
+				       mpi_comm=self.mpi_comm,
+				       mpi_size=self.mpi_size)
             o.create_base_directories()
             o.read_configuration_file(filename=_config_filename)
             o.configure_pyposmat_datafile_in(filename=pyposmat_datafile_in)
