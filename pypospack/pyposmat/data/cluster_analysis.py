@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
+import scipy as sp
 
 from sklearn import preprocessing
 from sklearn import manifold
@@ -12,6 +13,7 @@ from sklearn import metrics
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import Imputer
+from sklearn.decomposition import PCA
 
 from pypospack.exception import BadPreprocessorTypeException
 from pypospack.exception import BadManifoldTypeException
@@ -19,6 +21,8 @@ from pypospack.exception import BadNearestNeighborTypeException
 from pypospack.exception import BadClusterTypeException
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.kde import Chiu1999_h
+
 
 class PyposmatClusterSampler(object):
 
@@ -30,7 +34,11 @@ class PyposmatPreprocessingPipeline(object):
         pass
 
 class PyposmatClusterAnalysis(object):
-    def __init__(self):
+    def __init__(self, o_logger=None):
+        if o_logger is None:
+            raise NotImplementedError("backup logging not yet supported")
+        else:
+            self.log = o_logger
         self.configuration_fn = None
         self.data_fn = None
 
@@ -101,7 +109,7 @@ class PyposmatClusterAnalysis(object):
     def init_from_json(json):
         pass
 
-    def init_from_ordered_dict(d):
+    def init_from_ordered_dict(d, o_logger=None):
         """
         constructor from a OrderedDict
 
@@ -111,7 +119,7 @@ class PyposmatClusterAnalysis(object):
 
         """
 
-        o = PyposmatClusterAnalysis()
+        o = PyposmatClusterAnalysis(o_logger=o_logger)
 
         o.configuration_fn = d['configuration_fn']
         try:
@@ -436,11 +444,12 @@ class PyposmatClusterAnalysis(object):
         # return False on linalg error
         for cluster_id in set(self.data.df['cluster_id']):
             cluster = self.data.df[self.data.df['cluster_id'] == cluster_id]
-            cluster = cluster[['tsne_0', 'tsne_1']]
+            cluster = cluster[self.parameter_names]
             try:
-                covariance = np.cov(cluster)
-                cholesky = np.linalg.cholesky(covariance)
-            except np.linalg.linalg.LinAlgError:
+                _h = Chiu1999_h(cluster.values.T)
+            except np.linalg.linalg.LinAlgError as e:
+                self.log.write(e)
+                self.log.write("cholesky failed on cluster {}".format(cluster_id))
                 return False
             else:
                 return True

@@ -44,6 +44,11 @@ class PyposmatDataFile(object):
                     + list(self.error_names)
         return self._names
 
+    @names.setter
+    def names(self, _names):
+        # This should do more checks
+        self._names = _names
+
     @property
     def types(self):
         if 'cluster_id' in self.df.columns:
@@ -57,6 +62,10 @@ class PyposmatDataFile(object):
                 + len(self.qoi_names) * ['qoi']\
                 + len(self.error_names) * ['err']
         return self._types
+
+    @types.setter
+    def types(self, _types):
+        self._types = _types
 
     def write_header_section(self,
             parameter_names,
@@ -86,7 +95,7 @@ class PyposmatDataFile(object):
     def write_simulation_results(self,
             sim_id,
             results,
-            cluster_id = None
+            cluster_id = None,
             filename=None):
 
         _sim_result = [str(sim_id)]
@@ -127,8 +136,10 @@ class PyposmatDataFile(object):
                     values.append(float(tokens[i]))
             table.append(values)
         
-        self.df = pd.DataFrame(table)
-        self.df.columns = self._names
+        # self.df = pd.DataFrame(table)
+        # self.df.columns = self._names
+        # replaced the above 2 lines with this -Seaton
+        self.df = pd.DataFrame(data=table, columns=self._names)
         
         self.parameter_names = [
                 n for i,n in enumerate(self._names) \
