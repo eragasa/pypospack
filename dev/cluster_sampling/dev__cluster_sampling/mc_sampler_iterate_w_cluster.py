@@ -1073,7 +1073,7 @@ class PyposmatIterativeSampler(object):
 
             if self.mpi_rank == 0:
                 self.log.write('merging files...')
-                self.merge_files(i)
+		self.merge_files(i)
                 self.log.write('analyzing results...')
                 self.analyze_results(i)
             MPI.COMM_WORLD.Barrier()
@@ -1317,10 +1317,14 @@ class PyposmatIterativeSampler(object):
 
         while True:
             rank_dir = os.path.join(_d,"rank_{}".format(i))
-            if not os.path.exists(rank_dir): break
-            if not os.path.isdir(rank_dir): break
+            if not os.path.exists(rank_dir): 
+                break
+            if not os.path.isdir(rank_dir): 
+                break
+
             rank_fn = os.path.join("rank_{}".format(i),"pyposmat.results.out")
-            if not os.path.exists(os.path.join(_d,rank_fn)): break
+            if not os.path.exists(os.path.join(_d,rank_fn)):
+                break
             if not os.path.isfile(os.path.join(_d,rank_fn)):
                 break
             else:
@@ -1385,7 +1389,11 @@ class PyposmatIterativeSampler(object):
                 + ['param']*len(self.parameter_names)\
                 + ['qoi']*len(self.qoi_names)\
                 + ['err']*len(self.error_names)
-        
+        ##### 
+        # ERROR OCCURS HERE
+        # pyposmat.results.out exists only in the rank_0 directory
+        # is that the expected behavior or should every rank get a results directory???
+	#####
         dataframes = OrderedDict()
         for fn in datafile_fns:
             datafile = PyposmatDataFile()
