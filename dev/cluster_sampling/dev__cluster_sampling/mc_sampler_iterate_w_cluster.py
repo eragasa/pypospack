@@ -233,10 +233,9 @@ class PyposmatClusterSampler(PyposmatEngine):
         self.PYPOSMAT_CLUSTER_FILENAME_FORMAT = "pyposmat.cluster.{}.out"
 
         # setup possible mpi interaction
-        self.mpi_comm = None
         self.mpi_rank = None
         self.mpi_size = None
-        self._set_mpi_comm_world(mpi_comm, mpi_rank, mpi_size)
+        self._set_mpi_comm_world(mpi_rank, mpi_size)
 
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
@@ -318,6 +317,57 @@ class PyposmatClusterSampler(PyposmatEngine):
             if p not in self.free_parameter_names:
                 self.constrained_parameter_names.append(p)
 
+    # this should only ever be called by rank 0
+    def write_cluster_file(self, i_iteration, filename=None):
+        # arg: filename
+        if filename is None:
+            _filename = self.pyposmat_data_in_filename
+        else:
+            _filename = filename
+        
+        self.data = PyposmatDataFile()
+        self.data.read(_filename)
+         
+        # process the arguments required for clustering
+        cluster_args = None
+        if 'cluster_args' not in self.configuration.sampling_type[i_iteration]:
+            cluster_args = self.get_clustering_parameters(
+                configuration_fn=self.configuration_fn,
+                data_fn=_filename)
+        else:
+            cluster_args = self.configuration.sampling_type[i_iteration]['cluster_args']
+            cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
+            cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
+            
+        # this should probably be broken down into master/minion tasks
+        # determine the _cluster_filename
+        _cluster_filename = self.PYPOSMAT_CLUSTER_FILENAME_FORMAT.format(i_iteration)
+        # maybe the data dir should be a property of the class
+        _cluster_filename = os.path.join('..', 'data', _cluster_filename)
+        # RANK_0: initalization
+        obj_cluster_analysis = None
+	    # do cluster analysis
+        obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args, o_logger=self.log)
+        obj_cluster_analysis.preprocess_data(cluster_args)
+        obj_cluster_analysis.calculate_manifold(cluster_args)
+        obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
+        obj_cluster_analysis.calculate_clusters(cluster_args)
+        # error checking
+        while True:
+            self.log.write("Checking the partition for errors...")
+            if obj_cluster_analysis.isValidPartition():
+                self.log.write("The partition is valid")
+                break
+            else:
+                self.log.write("Partition Error encountered, rebuilding partition...")
+                obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args, o_logger=self.log)
+                obj_cluster_analysis.preprocess_data(cluster_args)
+                obj_cluster_analysis.calculate_manifold(cluster_args)
+                obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
+                obj_cluster_analysis.calculate_clusters(cluster_args)
+        self.data.df = obj_cluster_analysis.data.df
+        self.data.write(filename=_cluster_filename)
+
     def run_simulations(self,
             i_iteration,
             n_samples=None,
@@ -356,88 +406,30 @@ class PyposmatClusterSampler(PyposmatEngine):
         _sampling_type = self.configuration.sampling_type[i]['type']
 
         if _sampling_type == 'kde_w_clusters':
-
-            # process the arguments required for clustering
-            cluster_args = None
-            print(self.configuration.sampling_type[i])
-            if 'cluster_args' not in self.configuration.sampling_type[i]:
-                cluster_args = self.get_clustering_parameters(
-                    configuration_fn=self.configuration_fn,
-                    data_fn=_filename)
-            else:
-                cluster_args = self.configuration.sampling_type[i]['cluster_args']
-                cluster_args['configuration_fn'] = os.path.join(os.getcwd(), self.configuration_fn)
-                cluster_args['data_fn'] = os.path.join(os.getcwd(), _filename)
-            
-            # this should probably be broken down into master/minion tasks
-            # determine the _cluster_filename
             _cluster_filename = self.PYPOSMAT_CLUSTER_FILENAME_FORMAT.format(i_iteration)
-            # maybe the data dir should be a property of the class
             _cluster_filename = os.path.join('..', 'data', _cluster_filename)
-            # RANK_0: initalization
-            obj_cluster_analysis = None
-            if self.mpi_comm is not None and self.mpi_rank == 0:
-                # do cluster analysis
-                obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args, o_logger=self.log)
-                obj_cluster_analysis.preprocess_data(cluster_args)
-                obj_cluster_analysis.calculate_manifold(cluster_args)
-                obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
-                obj_cluster_analysis.calculate_clusters(cluster_args)
-
-                # error checking
-                while True:
-                    self.log.write("Checking the partition for errors...")
-                    if obj_cluster_analysis.isValidPartition():
-                        self.log.write("The partition is valid")
-                        break
-                    else:
-                        self.log.write("Partition Error encountered, rebuilding partition...")
-                        obj_cluster_analysis = PyposmatClusterAnalysis.init_from_ordered_dict(cluster_args, o_logger=self.log)
-                        obj_cluster_analysis.preprocess_data(cluster_args)
-                        obj_cluster_analysis.calculate_manifold(cluster_args)
-                        obj_cluster_analysis.calculate_kNN_analysis(cluster_args)
-                        obj_cluster_analysis.calculate_clusters(cluster_args)
-          
-                # assign newly clustered data to df
-                # self.data.df = obj_cluster_analysis.data.df
-                # self.log.write("run_simulations cluster_ids={}".format(set(self.data.df['cluster_id'])))
-                # write the cluster file
-                # TODO BY VIKING MAN: CODE BY WRITING CLUSTER ANALYSIS FILE
-                # obj_cluster_analysis.write(filename=_cluster_filename)
-                # obj_cluster_analysis.data.write(filename=_cluster_filename)
-                # self.data.write(filename=_cluster_filename)
-           
-            if self.mpi_comm is not None and self.mpi_rank != 0:
-                # minions wait for master before doing anything
-                self.mpi_comm.Barrier()
-            
-            self.data.df = obj_cluster_analysis.data.df
-            self.data.write(filename=_cluster_filename)
-            # if obj_cluster_analysis is not None:
-            #    self.data.df = obj_cluster_analysis.data.df
-            #    self.data.write(filename=_cluster_filename)
-
+            self._run_mc_cluster_sampling(
+                    i=i,
+                    _n_samples=_n_samples,
+                    _cluster_filename=_cluster_filename
+            )
         else:
             raise ValueError(
                 'unknown sampling type:{}'.format(
                     _sampling_type
                 )
             )
-        # actually run the mc kde sampler
-        self._run_mc_cluster_sampling(
-                i=i,
-                _n_samples=_n_samples,
-                _cluster_filename=_cluster_filename)
 
     def _run_mc_cluster_sampling(self, i, _n_samples, _cluster_filename):
 
         # get unique cluster ids
         cluster_ids = set(self.data.df['cluster_id'])
         self.log.write("rank={r} cluster_ids={c}".format(r=self.mpi_rank, c=cluster_ids))
-        for cluster_id in cluster_ids:
-            
-            mc_sampler = PyposmatMonteCarloSampler(log=self.log)
-            
+        for cluster_id in cluster_ids:  
+            mc_sampler = PyposmatMonteCarloSampler(
+                mpi_rank = self.mpi_rank,
+                mpi_size = self.mpi_size,
+                log=self.log)
             # This hack exists because I haven't updated the configuration file to deal with
             # clustering and sampling in any way where the information communicated in the 
             # configuration file is actually handled corrected by the PyposmatMonteCarloSampler
@@ -534,20 +526,16 @@ class PyposmatClusterSampler(PyposmatEngine):
         # not yet implemented in configuration
         return d
 
-    def _set_mpi_comm_world(self,mpi_comm,mpi_rank,mpi_size):
+    def _set_mpi_comm_world(self,mpi_rank,mpi_size):
 
         if all([
-                mpi_comm is not None,
                 mpi_rank is not None,
                 mpi_size is not None]):
-            self.mpi_comm = mpi_comm
             self.mpi_rank = mpi_rank
             self.mpi_size = mpi_size
         elif all([
-                mpi_comm is None,
                 mpi_rank is None,
                 mpi_size is None]):
-            self.mpi_comm = mpi_comm
             self.mpi_rank = mpi_rank
             self.mpi_size = mpi_size
         else:
@@ -1068,12 +1056,15 @@ class PyposmatIterativeSampler(object):
             MPI.COMM_WORLD.Barrier()
 
             self.run_simulations(i)
+            self.log.write("rank {} simulations complete".format(self.mpi_rank))
             MPI.COMM_WORLD.Barrier()
-            self.log.write('simulations complete...')
+
+            if self.mpi_rank == 0:
+                self.log.write("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
 
             if self.mpi_rank == 0:
                 self.log.write('merging files...')
-		self.merge_files(i)
+                self.merge_files(i)
                 self.log.write('analyzing results...')
                 self.analyze_results(i)
             MPI.COMM_WORLD.Barrier()
@@ -1194,13 +1185,13 @@ class PyposmatIterativeSampler(object):
             )
         # <----- kde with clusters sampling type ---------------------------------------
         elif _mc_sample_type == 'kde_w_clusters':
-            
+            cluster_fn = "pyposmat.cluster.{}.out".format(i_iteration)
             pyposmat_datafile_in = os.path.join(
                 self.root_directory,
                 self.data_directory,
-                "pyposmat.cluster.0.out"
+                cluster_fn
             )
-
+                
             _config_filename = os.path.join(
                 self.root_directory,
                 self.configuration_filename)
@@ -1218,22 +1209,34 @@ class PyposmatIterativeSampler(object):
 				       mpi_size=self.mpi_size)
             o.create_base_directories()
             o.read_configuration_file(filename=_config_filename)
+            # check to see if clustered data file exists
+            if self.mpi_rank == 0:
+                if not os.path.isfile(pyposmat_datafile_in):
+                    kde_fn = "pyposmat.kde.{}.out".format(i_iteration)
+                    kde_fn = os.path.join(
+                            self.root_directory,
+                            self.data_directory,
+                            kde_fn
+                    )
+                    o.write_cluster_file(filename=kde_fn, i_iteration=i_iteration)
+
+            MPI.COMM_WORLD.Barrier()
+
             o.configure_pyposmat_datafile_in(filename=pyposmat_datafile_in)
-            
             # fix relative path to structure databae folder
             _structure_dir = o.configuration.structures['structure_directory']
             o.configuration.structures['structure_directory'] = \
                     os.path.join('..',_structure_dir)
-
             # finish the rest of the initialization
             o.configure_qoi_manager()
             o.configure_task_manager()
             o.configure_pyposmat_datafile_out()
-
+            MPI.COMM_WORLD.Barrier()
             # run simulations
             o.run_simulations(i_iteration=i_iteration,
                               n_samples=_mc_n_samples,
                               filename=pyposmat_datafile_in)
+            MPI.COMM_WORLD.Barrier()
         else:
             m = "unknown sampling type: {}".format(
                _mc_sample_type
