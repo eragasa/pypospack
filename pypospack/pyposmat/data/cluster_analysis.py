@@ -136,7 +136,6 @@ class PyposmatClusterAnalysis(object):
         o.data_fn = d['data_fn']
         o.read_data(filename=o.data_fn)
 
-        #
         if 'include_parameters' in d:
             o.include_parameters = d['include_parameters']
         else:
@@ -157,7 +156,8 @@ class PyposmatClusterAnalysis(object):
             o.normalizer_type = d['normalizer_type']
             o.normalize_data(o.normalizer_type)
         # quick patch to fix the duplicate axis issue
-        o.data.df = o.data.df.drop(['cluster_id'], axis=1)
+        if 'cluster_id' in list(o.data.df):
+            o.data.df = o.data.df.drop(['cluster_id'], axis=1)
         return o
 
     def to_dict(self):
