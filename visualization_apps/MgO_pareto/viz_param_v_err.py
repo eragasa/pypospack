@@ -21,7 +21,7 @@ import pypospack.visualization as visualization
 
 if __name__ == "__main__":
     data_dir = 'data'
-    filename = 'culled_009.out'
+    filename = 'pyposmat.results.0.out'
 
     vizdemo = visualization.ParetoOptimizationParamVsErrorScatter()
     vizdemo.load_data_file(fname=os.path.join(data_dir, filename))
