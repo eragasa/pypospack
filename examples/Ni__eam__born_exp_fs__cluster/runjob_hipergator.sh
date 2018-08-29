@@ -21,7 +21,7 @@ echo python=$(which python)
 echo PATH=$PATH
 
 echo "start_time:$(date)"
-srun --mpi=pmix_v1 $PYTHON_BIN Ni__eam__born_exp_fs__cluster.py
+srun --mpi=pmix_v1 $PYTHON_BIN run__iterative_cluster_sampling.py
 # srun python mc_iterative_sampler.py --mpi=pmix_v1
 # mpiexec python mc_iterative_sampler.py
 echo "end_time:$(date)"
