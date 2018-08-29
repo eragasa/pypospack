@@ -131,8 +131,20 @@ class PyposmatConfigurationFile(object):
 
     @property
     def latex_labels(self):
-        return self.configuration['latex_labels']
-    
+        try:
+            return self.configuration['latex_labels']
+        except KeyError as e:
+            if e.args[0] == 'latex_labels':
+               self.configuration['latex_labels'] = OrderedDict()
+               for v in self.qoi_names:
+                   self.configuration['latex_labels'][v] = v
+               for v in self.parameter_names:
+                   self.configuration['latex_labels'][v] = v
+               for v in self.error_names:
+                   self.configuration['latex_labels'][v] = v
+
+               return self.configuration['latex_labels']
+
     @latex_labels.setter
     def latex_labels(self,labels):
         assert isinstance(labels,OrderedDict)

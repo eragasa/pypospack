@@ -3,10 +3,15 @@ This modules does blah blah blah
 
 Author: Seaton Ullberg, 2018 w/ edits by EJR
 """
+import os,copy
+from collections import OrderedDict
+
 from pypospack.pyposmat.data import PyposmatDataFile
+from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatClusterAnalysis
 from pypospack.pyposmat.data import PyposmatLogFile
 from pypospack.pyposmat.engines import PyposmatEngine
+from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
 
 class PyposmatClusterSampler(PyposmatEngine):
 

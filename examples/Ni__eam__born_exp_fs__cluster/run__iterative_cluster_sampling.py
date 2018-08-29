@@ -2,8 +2,8 @@ import os,shutil,sys
 import numpy as np
 from mpi4py import MPI
 from pypospack.pyposmat.data import PyposmatConfigurationFile
-from dev.cluster_sampling.dev__cluster_sampling.mc_sampler_iterate_w_cluster import PyposmatIterativeSampler
-# from mc_sampler_iterate_w_cluster import PyposmatClusterSampler
+from pypospack.pyposmat.engines import PyposmatIterativeSampler
+
 if __name__ == "__main__":
     pyposmat_data_directory = 'data'
     pyposmat_filename_in = os.path.join(

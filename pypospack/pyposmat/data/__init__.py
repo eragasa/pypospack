@@ -6,3 +6,5 @@ from pypospack.pyposmat.data.data_analyzer \
         import PyposmatDataAnalyzer
 from pypospack.pyposmat.data.logfile \
         import PyposmatLogFile
+from pypospack.pyposmat.data.cluster_analysis \
+        import PyposmatClusterAnalysis
