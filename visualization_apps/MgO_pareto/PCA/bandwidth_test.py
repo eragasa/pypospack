@@ -5,7 +5,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.manifold import TSNE
 from pypospack.pyposmat.data.datafile import PyposmatDataFile
-from pypospack.kde import chiu1999_h
+from pypospack.kde import chiu1999_h, silverman1986_h
 
 
 def angle_between(a1, a2):
@@ -50,7 +50,8 @@ for c in cluster_ids:
 
 # check bandwidth of each cluster
 for s in subselections:
-    print("Chiu Bandwidth: {}".format(chiu1999_h(s.values.T)))
+    print("Chiu Bandwidth: {c}\nSilverman Bandwidth: {s}\n".format(c=chiu1999_h(s.values.T),
+                                                                   s=silverman1986_h(s.values.T)))
 
 print("\n")
 
