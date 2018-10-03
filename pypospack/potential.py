@@ -107,10 +107,13 @@ class BasePotential(object):
             raise ValueError('element {} not in database'.format(element))
 
 class Potential(object):
+
     def __init__(self,
             symbols,
             potential_type=None,
             is_charge=None):
+
+        # define formatting strings
         self.PYPOSPACK_CHRG_FORMAT = "chrg_{s}"
         self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
         self.PYPOSPACK_3BODY_FORMAT = "{s1}{s2}{s3}_{p}"
@@ -236,17 +239,22 @@ from pypospack.potentials.eam_embed_universal import UniversalEmbeddingFunction
 from pypospack.potentials.eam_embed_fs import FinnisSinclairEmbeddingFunction
 
 #------------------------------------------------------------------------------
-class EamEmbeddingEquationOfState(object):
-    def __init__(self,parameters):
+class EamEmbeddingEquationOfState(EamEmbeddingFunction):
+    def __init__(self,
+            symbols,
+            potential_type="eam_embed_eos"):
+
+        EamEmbeddingFunction.__init__(self,
+                symbols=symbols,
+                potential_type=potential_type)
+
+        self.is_eos = True
         self.density_fn = None
         self.pair_fn = None
         self.r_cut = None
 
-        assert isinstance(parameters,dict)
-        self.parameters = parameters
 
-
-from pypospack.potentials.eam_eos_foiles import RoseEquationOfStateEmbeddingFunction
+from pypospack.potentials.eam_eos_rose import RoseEquationOfStateEmbeddingFunction
 #------------------------------------------------------------------------------
 from pypospack.eamtools import EamSetflFile
 
@@ -276,6 +284,11 @@ class EamPotential(Potential):
             func_embedding=None,
             filename=None):
 
+        # parameter format strings
+        self.PYPOSPACK_EAM_PAIR_FORMAT = "{s1}{s2}_eam_pair_{p}"
+        self.PYPOSPACK_EAM_DENSITY_FORMAT = "{s1}_eam_density_{p}"
+        self.PYPOSPACK_EAM_EMBEDDING_FORMAT = "{s1}_eam_embedding_{p}"
+        
         # these are pypospack.potential.Potential objects
         self.obj_pair = None
         self.obj_density = None
@@ -320,7 +333,7 @@ class EamPotential(Potential):
             self.set_obj_density(func_density=func_density)
             self.set_obj_embedding(func_embedding=func_embedding)
         else:
-            pass
+            raise NotImplementedError()
 
         Potential.__init__(self,
                 symbols=symbols,
@@ -498,11 +511,20 @@ class EamPotential(Potential):
             self.obj_embedding = BjsEmbeddingFunction(symbols=self.symbols)
         elif func_embedding == 'eam_embed_fs':
             self.obj_embedding = FinnisSinclairEmbeddingFunction(symbols=self.symbols)
-        elif func_embedding == 'eam_embed_rose_eos':
-            self.obj_embedding =RoseEquationOfStateEmebeddingFunction(symbols=self.symbols)
+        elif func_embedding == 'eam_embed_eos_rose':
+            self.obj_embedding = RoseEquationOfStateEmbeddingFunction(symbols=self.symbols)
         else:
             msg_err = "func_embedding must be a EamEmbeddingFunction"
             raise ValueError(msg_err)
+
+        # If the Embedding Function is determined from the Equation of State, then
+        # the density function and the pair function need to be provided to the
+        # embedding function object since these values are determine by numerical
+        # inversion of the equation of state
+
+        if isinstance(self.obj_embedding,EamEmbeddingEquationOfState):
+            self.density_fn = self.obj_density 
+            self.pair_fn = self.obj_pair 
 
         if not isinstance(self.obj_embedding,EamEmbeddingFunction):
             msg_err = "func_embedding must be a EamEmbeddingFunction"
@@ -583,7 +605,24 @@ class EamPotential(Potential):
             _parameter_name = p.partition('_')[2]
             _parameters[_parameter_name] = self.parameters[p]
 
-        self.obj_embedding.evaluate(
+        #<--- for solving embedding function implicitly from the RoseEquationOfState
+        if type(self.obj_embedding) == RoseEquationOfStateEmbeddingFunction:
+            if parameters is not None:
+                self.obj_embedding.evaluate(
+                    rho=self.rho,
+                    parameters=parameters, # pass in all parameters not just a subset
+                    o_pair=self.obj_pair,
+                    o_density=self.obj_density)
+            else:
+                self.obj_embedding.evaluate(
+                    rho=self.rho,
+                    r=self.r,
+                    parameters=self.parameters, # pass in all parameters not just a subset
+                    o_pair=self.obj_pair,
+                    o_density=self.obj_density)
+
+        else:
+            self.obj_embedding.evaluate(
                 rho=self.rho,
                 parameters=_parameters)
 

@@ -15,12 +15,6 @@ class PyposmatRugplot():
 
         self.qoi_reference_data = None
 
-o_rugplot = PyposmatRugplot()
-o_rugplot.data_directory = "../../data/MgO_pareto_data"
-o_rugplot.configuration_fn = os.path.join(
-        o_rugplot.data_directory,
-        'pyposmat.config.in'
-)
 
 # -----------------------------------------------------------------------------
 # DEFINE WHERE TO FIND ALL THE DATA
@@ -74,6 +68,12 @@ def message_out(msg):
     print(msg)
 
 if __name__ == "__main__":
+    o_rugplot = PyposmatRugplot()
+    o_rugplot.data_directory = "../../../data/MgO_pareto_data"
+    o_rugplot.configuration_fn = os.path.join(
+            o_rugplot.data_directory,
+            'pyposmat.config.in'
+    )
     config=PyposmatConfigurationFile()
   
     # check to see if data directory exists

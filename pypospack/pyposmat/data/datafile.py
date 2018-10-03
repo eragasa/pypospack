@@ -32,11 +32,12 @@ class PyposmatDataFile(object):
 
     @property
     def names(self):
-        if 'cluster_id' in self.df.columns:
-            self._names = ['sim_id','cluster_id']\
-                    + list(self.parameter_names)\
-                    + list(self.qoi_names)\
-                    + list(self.error_names)
+        if self.df is not None:
+            if 'cluster_id' in self.df.columns:
+                self._names = ['sim_id','cluster_id']\
+                        + list(self.parameter_names)\
+                        + list(self.qoi_names)\
+                        + list(self.error_names)
         else:
             self._names = ['sim_id']\
                     + list(self.parameter_names)\
@@ -51,11 +52,12 @@ class PyposmatDataFile(object):
 
     @property
     def types(self):
-        if 'cluster_id' in self.df.columns:
-            self._types = ['sim_id','cluster_id']\
-                + len(self.parameter_names) * ['param']\
-                + len(self.qoi_names) * ['qoi']\
-                + len(self.error_names) * ['err']
+        if self.df is not None:
+            if 'cluster_id' in self.df.columns:
+                self._types = ['sim_id','cluster_id']\
+                    + len(self.parameter_names) * ['param']\
+                    + len(self.qoi_names) * ['qoi']\
+                    + len(self.error_names) * ['err']
         else:
             self._types = ['sim_id']\
                 + len(self.parameter_names) * ['param']\

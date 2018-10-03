@@ -82,14 +82,14 @@ class TaskManager(object):
         self.structures = copy.deepcopy(structures)
         self.process_tasks()
     
-    def evaluate_tasks(self,parameters,potential):
+    def evaluate_tasks(self,parameters,potential,max_time_per_simulation=10000):
         def all_simulations_finished(obj_Task):
             _statuses = [o_task.status in ['FINISHED','ERROR']
                     for o_task in obj_Task.values()]
             return all(_statuses) #--------------------------------------------
         
         _sleep_time = 0.1
-        _max_time_per_simulation = 100
+        _max_time_per_simulation = max_time_per_simulation
 
         self.results = OrderedDict()
         _configuration = OrderedDict()

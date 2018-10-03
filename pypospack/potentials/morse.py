@@ -47,7 +47,7 @@ class MorsePotential(PairPotential):
                 the interatomic potential.
         """
         # <----------------------------check arguments are correct
-        assert isinstance(r,np.ndarray)
+        #assert isinstance(r,np.ndarray)
         assert isinstance(parameters,OrderedDict)
         assert type(r_cut) in [int,float,type(None)]
 

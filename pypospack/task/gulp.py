@@ -20,8 +20,17 @@ potential_map = {\
         'eam':['pypospack.potential','EmbeddedAtomModel'],
         'tersoff':['pypospack.potential','Tersoff']}
 
-class GulpSimulationError():
-    pass
+gulp_simulation_map = {
+        'gulp_gamma_phonon':{
+            'module':'pypospack.task.gulp',
+            'class':'GulpGammaPointPhonons'}
+        }
+
+
+class GulpSimulationError(Exception):
+    """Error class for dealing with GULP simulation issues"""
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
 
 class GulpSimulation(Task):
     """
@@ -37,11 +46,23 @@ class GulpSimulation(Task):
     def __init__(self,
             task_name,
             task_directory,
+            task_type=None,
             structure_filename='POSCAR',
             restart=False,
             fullauto=False):
       
+        self.is_restart = restart
         self.is_fullauto = fullauto
+        
+        self.potential = None
+
+        self.structure = None
+
+        # set structure attribute
+        self.structure_filename = structure_filename
+        self.structure = vasp.Poscar()
+        self.structure.read(self.structure_filename)
+
         self.running_filename = 'running'
         self.simulation_type = 'gulp'
 
@@ -189,9 +210,12 @@ class GulpSimulation(Task):
 
 
     def run(self):
+
         gulp_input_filename = os.path.join(
                 self.task_directory,
                 self.gulp_input_filename)
+        self.gulp_input_filename = gulp_input_filename
+
         if not os.path.isfile(gulp_input_filename):
             self.write_gulp_input_file(filename=gulp_input_filename)
 

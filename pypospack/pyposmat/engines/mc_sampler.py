@@ -148,7 +148,11 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         for fp in self.free_parameter_names:
                             if fp in _str_eval:
                                 _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
-                        _parameters[p] = eval(_str_eval)
+                        try:
+                            _parameters[p] = eval(_str_eval)
+                        except NameError as e:
+                            if not p.endswith('latticetype'):
+                                raise e
 
             # generate wierd things
             for p in self.constrained_parameter_names:

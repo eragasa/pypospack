@@ -39,7 +39,7 @@ class PyposmatDataFileVisualization(object):
 
     @property
     def df(self):
-        return self.datafile.df
+        return self._df
 
     @property
     def parameter_df(self):
@@ -70,6 +70,28 @@ class PyposmatDataFileVisualization(object):
         self._df = copy.deepcopy(self.datafile.df)
         self.create_absolute_errors()
 
+    def read_datafiles(self,
+            filenames):
+
+        if type(filenames) is not list:
+            raise ValueError("filenames must be a list")
+        self.n_iterations = len(filenames)
+    
+        self.datafiles = OrderedDict()
+        self._df = OrderedDict()
+        for k in filenames:
+            self.datafiles[k] = PyposmatDataFile()
+            self.datafiles[k].read(k)
+            self._parameter_names = self.datafiles[k].parameter_names
+            self._qoi_names = self.datafiles[k].qoi_names
+            self._error_names = self.datafiles[k].error_names
+            self._df[k] = copy.deepcopy(self.datafiles[k].df)
+
+            for q in self._qoi_names:
+                aen = "{}.abserr".format(q)
+                en = "{}.err".format(q)
+                self._df[k][aen] = self._df[k][en].abs()
+    
     def create_absolute_errors(self):
         for q in self.qoi_names:
             aen = "{}.abserr".format(q)
@@ -98,8 +120,26 @@ class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
         return kde
 
     def set_axes_labels(self,ax,x_name,y_name):
-        x_label = self.configuration.latex_labels[x_name]['name']
-        y_label = self.configuration.latex_labels[y_name]['name']
+        
+        try:
+            x_label = self.configuration.latex_labels[x_name]['name']
+        except KeyError as e:
+            if e.args[0] == 'latex_labels':
+                msg = 'the x_label is using {} because latex_label is not configured in the configuration file'.format(x_name)
+                print(msg)
+                x_label = x_name
+            else:
+                raise
+        try:
+            y_label = self.configuration.latex_labels[y_name]['name']
+        except KeyError as e:
+            if e.args[0] == 'latex_labels':
+                msg = 'the y_label is using {} because latex_label is not configured in the configuration file'.format(y_name)
+                print(msg)
+                y_label = y_name
+            else:
+                raise
+
         print('x_label:{}'.format(x_label))
         print('y_label:{}'.format(y_label))
         ax.set_xlabel(x_label)

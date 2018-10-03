@@ -11,15 +11,18 @@ class GulpPhononCalculation(GulpSimulation):
             self,
             task_name,
             task_directory,
-            structure_filename,
+            task_type,
+            structure_filename='POSCAR',
             restart=False
         ):
+
         self.shrink=[8,8,8]
         self.kpoints=[10,10,10]
         # initialize the parent class
         GulpSimulation.__init__(self,
                 task_name=task_name,
                 task_directory=task_directory,
+                task_type=task_type,
                 structure_filename=structure_filename,
                 )
 
@@ -76,26 +79,84 @@ class GulpPhononCalculation(GulpSimulation):
                         k3=self.kpoints[2])
         return str_phonon
 
-class GulpGammaPointPhonons(GulpPhononCalculation):
+class GulpGammaPointPhonons(GulpSimulation):
 
+    def __init__(
+            self,
+            task_name,
+            task_directory,
+            structure_filename='POSCAR',
+            restart=False,
+            debug=False
+        ):
+        """
+        Args:
+            debug(bool): by default set to false, if set to True outputs debug
+                information to standard out
+        """
+
+        _task_type = 'gulp_gamma_phonons'
+        # initialize the base class
+        GulpSimulation.__init__(
+                self,
+                task_name=task_name,
+                task_directory=task_directory,
+                task_type=_task_type,
+                structure_filename=structure_filename,
+                restart=restart)
+
+        # set additional attributes
+        self.is_debug = debug
+
+    def write_gulp_input_file(self,filename=None,structure_filename=None):
+        """
+        Args:
+            filename (str): location to write the gulp input file.
+            poscar (str): location of poscar file for structure to read.  
+        """
+
+        if filename is not None:
+            self.gulp_input_filename = filename
+        if structure_filename is not None:
+            self.structure_filename=structure_filename
+
+        str_out = "opti conp prop phon eigen\n"
+        str_out += self.get_gulpinputfile_structuresection()
+        str_out += self.get_gulpinputfile_potentialsection()
+        str_out += self.get_gulpinputfile_phononsection()
+
+        gulp_input_filename = os.path.join(
+                self.task_directory,
+                self.gulp_input_filename)
+        with open(gulp_input_filename,'w') as f:
+            f.write(str_out)
+    
     def get_gulpinputfile_phononsection(self):
 
         str_phonon = (
-                "output freq text freq.gulp 12 \n"
+                "output freq text freq.gulp\n"
                 "output phonon text phonon.gulp\n"
                 "output osc test phonon.osc\n"
                 )
         return str_phonon
 
-    def on_post(self):
+    def on_post(self,output_fn=None):
+        
         self.results = OrderedDict()
-        freq_filename = os.path.join(
-                self.task_directory,
-                'freq.gulp')
 
-        lines = None
-        with open(freq_filename,'r') as f:
-            lines = f.readlines()
+        # set filename
+        if output_fn is None:
+            # default behavior
+            _fn = os.path.join(self.task_directory,'freq.gulp')
+        else:
+            # override
+            _fn = output_fn
+
+
+        #read the filename
+        with open(_fn,'r') as _f:
+            _lines = _f.readlines()
+
         
         freqs = [float(line) for line in lines]
         
@@ -107,6 +168,7 @@ class GulpGammaPointPhonons(GulpPhononCalculation):
         
         with open(_results_filename,'w') as f:
             yaml.dump(self.results,f,default_flow_style=True)
+        
         self.update_status()
         if self.is_fullauto:
             self.on_update_status()

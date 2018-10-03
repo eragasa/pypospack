@@ -42,7 +42,7 @@ class BornMayerPotential(PairPotential):
     # this method overrides the parent stub
     def evaluate(self,r,parameters,r_cut=None):
         # <----------------------------check arguments are correct
-        assert isinstance(r,np.ndarray)
+        # assert isinstance(r,np.ndarray)
         assert isinstance(parameters,OrderedDict)
         assert type(r_cut) in [int,float,type(None)]
 
