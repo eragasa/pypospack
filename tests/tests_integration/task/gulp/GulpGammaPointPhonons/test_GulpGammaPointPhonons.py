@@ -20,7 +20,6 @@ MgO_LewisCatlow['OO_A']     = 2274.00
 MgO_LewisCatlow['OO_rho']   = 0.1490
 MgO_LewisCatlow['OO_C']     = 27.88
 
-
 configuration_MgO = OrderedDict()
 configuration_MgO['potential'] = OrderedDict()
 configuration_MgO['potential']['potential_type']='buckingham'
@@ -152,6 +151,7 @@ def test__configure_potential():
         assert pn in gulp_task.parameters
     for pn,pv in gulp_task.parameters.items():
         assert pv is None
+
 def test__on_init():
     task_name = 'gulp_test'
     task_directory = 'gulp_test_directory'
@@ -375,9 +375,21 @@ def test__on_post():
     assert gulp_task.status == 'FINISHED'
 
 if __name__ == '__main__':
-    vasp_filename = 'MgO_NaCl_unit.vasp'
-    vasp_input_filename = os.path.join(os.getcwd(),'rsrc',vasp_filename)
 
+    # set task name and task directory
+    task_name = 'gulp_test'
+    task_directory = 'gulp_test_directory'
+    
+    # structure filename to be analyzed
+    structure_directory = '../../../../structure_db/MgO_structure_db'
+    structure_filename = os.path.join(
+            structure_directory,
+            'MgO_NaCl_prim.gga.relax.vasp')
+    
+    # gulp input filename
+    gulp_input_filename = 'gulp.in'
+
+    restart=False
     param_dict = {}
     param_dict['chrg_Mg'] = +2.0
     param_dict['chrg_O']  = -2.0
@@ -391,12 +403,6 @@ if __name__ == '__main__':
     param_dict['OO_rho']   = 0.1490
     param_dict['OO_C']     = 27.88
 
-    #### TEST INITIALIZE ####
-    task_name = 'gulp_test'
-    task_directory = os.path.join(\
-            os.getcwd(),
-            task_name)
-    gulp_input_filename = 'gulp.in'
     #task = GulpGammaPointPhonons(task_name,task_directory)
 
     #### TEST POTENTIAL POTENTIAL ####
@@ -416,14 +422,93 @@ if __name__ == '__main__':
     #task.structure_filename = os.path.join('rsrc','MgO_NaCl_prim.vasp')
     #task.run()
 
+    from pypospack.potential import BuckinghamPotential
+    _potential = BuckinghamPotential(symbols=['Mg','O']) 
+    from pypospack.task.gulp import GulpGammaPointPhonons
 
-    task = GulpGammaPointPhonons(task_name,task_directory)
-    task.potential = potential.Buckingham(['Mg','O'])
-    task.param_dict = copy.deepcopy(param_dict)
-    task.structure_file = os.path.join(\
-            task.task_directory,
-            vasp_input_filename)
+    print(80*'-')
+    print('task_name={}'.format(task_name))
+    print('task_directory={}'.format(task_directory))
+    if os.path.exists(task_directory):
+        print('\ttask_directory already exists, removing task_directory')
+        shutil.rmtree(task_directory)
+    print('structure_filename={}'.format(structure_filename))
+    
+    if os.path.exists(structure_filename):
+        print('\tstructure_file exists')
+    else:
+        print('\tstructure_file DOES NOT EXIST')
+        exit()
+
+    task = GulpGammaPointPhonons(
+            task_name=task_name,
+            task_directory=task_directory,
+            structure_filename=structure_filename)
+
+    # setting up potential
+    task.potential = _potential
+    task.parameters = copy.deepcopy(param_dict)
+    
     task.write_gulp_input_file(\
             filename=os.path.join(task.task_directory,gulp_input_filename),
-            poscar=vasp_input_filename)
+            structure_filename=structure_filename)
+    print(80*'-')
+    print('running GulpGammaPointPhonons task')
     task.run()
+    print(80*'-')
+    
+    
+    def get_str__file_status(fn):
+        _is_found_str = 'FOUND'
+        _is_not_found_str = 'NOT FOUND'
+
+        if os.path.isfile(fn):
+            return _is_found_str
+        else:
+            return _is_not_found_str
+   
+    gulp_input_filename = os.path.join(
+            task_directory,'gulp.in')
+    gulp_output_filename = os.path.join(
+            task_directory,'gulp.out')
+    gulp_freq_filename = os.path.join(
+            task_directory,'freq.gulp')
+
+    assert os.path.isfile(os.path.join(task_directory,'gulp.in'))
+    assert os.path.isfile(os.path.join(task_directory,'gulp.out'))
+    assert os.path.isfile(os.path.join(task_directory,'freq.gulp'))
+
+    print(
+            'gulp_input_filename:{}\n\t{}'.format(
+                get_str__file_status(fn=gulp_input_filename),
+                gulp_input_filename)
+    )
+    print(
+            'gulp_output_filename:{}\n\t{}'.format(
+                get_str__file_status(fn=gulp_output_filename),
+                gulp_output_filename
+            )
+    )
+    print(
+            'gulp_freq_filename:{}\n\t{}'.format(
+                get_str__file_status(fn=gulp_freq_filename),
+                gulp_freq_filename
+            )
+    )
+
+    # extract data
+    print(80*'-')
+    print('EXTRACT DATA FROM THE SIMULATIONS')
+    print(80*'-')
+    task.on_post()
+    print('n_phonons:{}'.format(task.n_phonons))
+    for k,v in task.results.items():
+        print(k,v)
+    assert type(task.n_phonons) is int
+    assert isinstance(task.results,dict)
+
+    # alternate overloaded method to test
+    #gulp_freq_filename = os.path.join(
+    #        task_directory,'freq.gulp'
+    #    )
+    #task.on_post(filename=)
