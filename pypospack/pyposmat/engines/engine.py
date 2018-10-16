@@ -4,6 +4,7 @@ from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
 from pypospack.pyposmat.data.configurationfile import PyposmatConfigurationFile
 from pypospack.task.lammps import LammpsSimulationError
+
 class PyposmatEngine(object):
     """
         Args:
@@ -112,12 +113,13 @@ class PyposmatEngine(object):
         self.configuration = PyposmatConfigurationFile(filename=_filename_in)
 
     def configure_qoi_manager(self,qois=None):
-        if qois is None:
+        if qois is not None:
+            _qois = qois
+        else:
             _qois= self.configuration.qois
-
+        
         self.qoi_manager = QoiManager(qoi_database=_qois,fullauto=True)
-
-
+    
     def configure_task_manager(self):
         # <-------- local variables
         _base_directory = self.base_directory
