@@ -23,6 +23,9 @@ TaskToClassMap['lmps_npt']['class']= 'LammpsNptSimulation'
 TaskToClassMap['lmps_neb'] = OrderedDict()
 TaskToClassMap['lmps_neb']['module'] = 'pypospack.task.lammps'
 TaskToClassMap['lmps_neb']['class'] = 'LammpsNebCalculation'
+TaskToClassMap['gulp_gamma_phonons'] = OrderedDict()
+TaskToClassMap['gulp_gamma_phonons']['module'] = 'pypospack.task.gulp'
+TaskToClassMap['gulp_gamma_phonons']['class'] = 'GulpGammaPointPhonons'
 
 class PypospackTaskManagerError(Exception): pass
 
@@ -81,12 +84,18 @@ class TaskManager(object):
         self.tasks = copy.deepcopy(tasks)
         self.structures = copy.deepcopy(structures)
         self.process_tasks()
-    
+
+    def __all_simulations_finished(self,obj_Tasks):
+        """
+
+        Returns:
+            True if all simulations are completed
+            False if all simulations are not completed
+        """
+        _statuses = [v.status in ['FINISHED','ERROR'] for v in obj_Tasks.values()]
+        return all(_statuses) 
+
     def evaluate_tasks(self,parameters,potential,max_time_per_simulation=10000):
-        def all_simulations_finished(obj_Task):
-            _statuses = [o_task.status in ['FINISHED','ERROR']
-                    for o_task in obj_Task.values()]
-            return all(_statuses) #--------------------------------------------
         
         _sleep_time = 0.1
         _max_time_per_simulation = max_time_per_simulation
@@ -95,9 +104,9 @@ class TaskManager(object):
         _configuration = OrderedDict()
         _configuration['potential'] = potential
         _configuration['parameters'] = parameters
-
+  
         _start_time = time.time()
-        while not all_simulations_finished(self.obj_Task):
+        while not self.__all_simulations_finished(self.obj_Task):
             
             # if the maximum time has been exceeded for this parameter set, we are going to kill
             # off all the subprocesses which maybe running simulations in each of the tasks.
@@ -129,6 +138,7 @@ class TaskManager(object):
                 assert isinstance(o_task.configuration,OrderedDict)
                 o_task.update_status()
                 if o_task.status == 'INIT':
+
                     _configuration = OrderedDict()
                     _configuration['potential'] = potential
                     _configuration['parameters'] = parameters
@@ -142,11 +152,18 @@ class TaskManager(object):
                     
                     o_task.on_init(configuration=_configuration)
                 elif o_task.status == 'CONFIG':
-                    o_task.on_config(
+                    try:
+                        o_task.on_config(
                             configuration=_configuration,
                             results=self.results)
+                    except TypeError as e:
+                        o_task.on_config(configuration=_configuration)
                 elif o_task.status == 'READY':
-                    o_task.on_ready(results=self.results)
+                    try:
+                        o_task.on_ready(results=self.results)
+                    except TypeError as e:
+                        print("Error with {}:{}".format(k_task,type(o_task)))
+                        raise
                 elif o_task.status == 'RUNNING':
                     o_task.on_running()
                 elif o_task.status == 'POST':
@@ -185,12 +202,18 @@ class TaskManager(object):
             _task_name = k_task
             _task_type = v_task['task_type']
             _task_structure = v_task['task_structure']
+            try:
+                _task_options = v_task['task_options']
+            except KeyError as e:
+                _task_options = None
+
             self.add_task(
                     task_name=_task_name,
                     task_type=_task_type,
-                    task_structure=_task_structure)
+                    task_structure=_task_structure,
+                    task_options = _task_options)
 
-    def add_task(self,task_name,task_type,task_structure):
+    def add_task(self,task_name,task_type,task_structure,task_options=None):
         """
             Args:
                 task_name(str):
@@ -203,7 +226,7 @@ class TaskManager(object):
         _base_directory = self.base_directory
         _task_name = task_name
         _task_type = task_type
-
+        _task_options = copy.deepcopy(task_options)
         # <-------- determine task directory
         _task_directory = os.path.join(
                 _base_directory,
@@ -219,9 +242,20 @@ class TaskManager(object):
         _class_name = TaskToClassMap[_task_type]['class']
         _module = importlib.import_module(_module_name)
         _class = getattr(_module,_class_name)
-        self.obj_Task[_task_name] = _class(
-                task_name = _task_name,
-                task_directory = _task_directory,
-                structure_filename = _task_structure,
-                restart = False,
-                fullauto = False)
+        
+        if _task_options is None:
+            self.obj_Task[_task_name] = _class(
+                    task_name = _task_name,
+                    task_directory = _task_directory,
+                    structure_filename = _task_structure,
+                    restart = False,
+                    fullauto = False)
+        else:
+            kwargs = _task_options
+            self.obj_Task[_task_name] = _class(
+                    task_name = _task_name,
+                    task_directory = _task_directory,
+                    structure_filename = _task_structure,
+                    restart = False,
+                    fullauto = False,
+                    **kwargs)

@@ -9,11 +9,18 @@ class PyposmatDataFile(object):
     def __init__(self,filename=None):
         self.filename = filename
 
+        self.w_cluster_id = False
+
         self._names = None
         self._types = None
         self.parameter_names = None
+
         self.qoi_names = None
         self.error_names = None
+        
+        self.qoi_v_names = None
+        self.error_v_names = None
+        
         self.score_names = None
         self.qoi_references = None
         self.scaling_factors = None
@@ -69,28 +76,68 @@ class PyposmatDataFile(object):
     def types(self, _types):
         self._types = _types
 
+    def get_header_string(self,
+            w_cluster_id = False,
+            parameter_names = None,
+            qoi_names = None,
+            error_names = None,
+            qoi_v_names = None,
+            error_v_names = None):
+
+        _header_line_1 = ['sim_id']
+        _header_line_2 = ['sim_id']
+
+        if w_cluster_id is True:
+            self.w_cluster_id = True
+            _header_line_1 = ['cluster_id']
+            _header_line_2 = ['cluster_id']
+
+        if parameter_names is not None:
+            self.parameter_names = list(parameter_names)
+            _header_line_1 += list(parameter_names)
+            _header_line_2 += len(parameter_names)*['param']
+
+        if qoi_names is not None:
+            self.qoi_names = list(qoi_names)
+            _header_line_1 += list(qoi_names)
+            _header_line_2 += len(qoi_names)*['qoi']
+
+        if error_names is not None:
+            self.error_names = list(error_names)
+            _header_line_1 += list(error_names)
+            _header_line_2 += len(error_names)*['err']
+
+        if qoi_v_names is not None:
+            self.qoi_v_names = list(qoi_v_names)
+            _header_line_1 += list(qoi_v_names)
+            _header_line_2 += len(qoi_v_names)*['qoi_v']
+
+        if error_v_names is not None:
+            self.error_v_names = list(error_v_names)
+            _header_line_1 += list(error_v_names)
+            _header_line_2 += len(error_v_names)*['error_v']
+
+        str_header_section  = "{}\n".format(",".join(_header_line_1))
+        str_header_section += "{}\n".format(",".join(_header_line_2))
+
+        return str_header_section
+    
     def write_header_section(self,
             parameter_names,
             qoi_names,
             error_names,
             filename=None):
 
+
         if filename is not None:
             assert isinstance(filename,str)
             self.filename=filename
 
-        assert isinstance(parameter_names,list)
-        assert isinstance(qoi_names,list)
-        assert isinstance(error_names,list)
-
-        #_a0 = self.configuration['potential']['a0']
-        self.parameter_names = list(parameter_names)
-        self.qoi_names = list(qoi_names)
-        self.error_names = list(error_names)
-
-        _header_str = ",".join(self.names) + "\n"
-        _header_str += ",".join(self.types) + "\n"
-
+        _header_str = self.get_header_string(
+                parameter_names = parameter_names,
+                qoi_names = qoi_names,
+                error_names = error_names)
+        
         with open(self.filename,'w') as f:
             f.write(_header_str)
 

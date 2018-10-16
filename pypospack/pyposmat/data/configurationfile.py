@@ -25,13 +25,10 @@ class PyposmatConfigurationFile(object):
     @property
     def n_iterations(self):
         return self.sampling_type['n_iterations']
+
     @property
     def qois(self):
         return self.configuration['qois']
-
-    @property
-    def qoi_targets(self):
-        return OrderedDict([(k,v['target']) for k,v in self.qois.items()])
 
     @qois.setter
     def qois(self,qois):
@@ -39,6 +36,38 @@ class PyposmatConfigurationFile(object):
         if self.configuration is None: self.configuration = OrderedDict()
         self.configuration['qois'] = OrderedDict()
         self.configuration['qois'] = copy.deepcopy(qois)
+    
+    @property
+    def qoi_targets(self):
+        return OrderedDict([(k,v['target']) for k,v in self.qois.items()])
+   
+    @property
+    def qoi_validation_targets(self):
+        try:
+            return OrderedDict([(k,v['target']) for k,v in self.qois_validation.items()])
+        except KeyError as e:
+            return None
+
+    @property
+    def qois_validation(self):
+        try:
+            return self.configuration['qois_v']
+        except KeyError as e:
+            return None
+
+    @qois_validation.setter
+    def qois_validation(self,qois):
+        assert isinstance(qois,OrderedDict)
+        if self.configuration is None:
+            self.configuration = OrderedDict()
+
+        self.configuration['qois_v'] = OrderedDict()
+        self.configuration['qois_v'] = copy.deepcopy(qois)
+
+    @property
+    def qoi_validation_targets(self):
+        return OrderedDict([(k,v['target']) for k,v in self.qois_validation.items()])
+
 
     @property
     def qoi_constraints(self):
@@ -130,6 +159,14 @@ class PyposmatConfigurationFile(object):
         self.configuration['param_constraints'] = copy.deepcopy(constraints)
 
     @property
+    def reference_potentials(self):
+        return self.configuration['reference_potentials']
+
+    @reference_potentials.setter
+    def reference_potentials(self,potentials):
+        self.configuration['reference_potentials'] = copy.deepcopy(potentials)
+
+    @property
     def latex_labels(self):
         try:
             return self.configuration['latex_labels']
@@ -157,10 +194,30 @@ class PyposmatConfigurationFile(object):
         with open(filename,'r') as f:
             self.configuration = yaml.load(f, OrderedDictYAMLLoader)
 
+        # setup some convenience attributes
+
+        # set parameter_names attribute
         self.parameter_names = [k for k,v in self.configuration['sampling_dist'].items()]
-        self.qoi_names = [q for q in self.configuration['qois']]
-        self.error_names = ["{}.err".format(q) for q in self.qoi_names]
-    
+        
+        # set qoi_names,error_names, and normalized_error_names
+        _qois = self.configuration['qois']
+        self.qoi_names = [q for q in _qois]
+        self.error_names = ["{}.err".format(q) for q in _qois]
+        self.normed_error_names = ["{}.nerr".format(q) for q in _qois]
+
+        try:
+            # set qoi_validation,error_validation_names, and normalized_error_names if
+            # the field exists
+            _qoi_v_names = self.configuration['qois_v']
+            self.qoi_validation_names = [q for q in _qoi_v_names]
+            self.error_validation_names = ["{}.err".format(q) for q in _qoi_v_names]
+            self.normed_error_validation_names = ['{}.nerr'.format(q) for q in _qoi_v_names]
+        except KeyError as e:
+            # set up attribute to default NoneType if they aren't specified
+            self.qoi_validation_names = None
+            self.error_validation_names = None
+            self.normed_error_validation_names = None
+
     def write(self,filename):
         self.filename_out = filename
         _configuration = copy.deepcopy(self.configuration)
