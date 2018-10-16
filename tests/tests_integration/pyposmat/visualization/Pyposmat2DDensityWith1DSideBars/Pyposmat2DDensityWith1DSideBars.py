@@ -16,7 +16,7 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.visualization import PyposmatDataFileVisualization
 from scipy.stats import gaussian_kde
 
-class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
+class Pyposmat2DDensityPlotsWith1DSidebars(PyposmatDataFileVisualization):
     def __init__(self):
         PyposmatDataFileVisualization.__init__(self)
    
