@@ -55,7 +55,6 @@ class GulpSimulation(Task):
         self.is_fullauto = fullauto
         
         self.potential = None
-
         self.structure = None
 
         # set structure attribute
@@ -70,7 +69,9 @@ class GulpSimulation(Task):
         self.gulp_input_filename = 'gulp.in'
         self.gulp_output_filename = 'gulp.out'
         self.gulp_bin = os.environ['GULP_BIN']
-        
+       
+        # flowcontrol variables
+        self.results_processed = None
         # structure information
         self.structure_filename = structure_filename
         self.structure = vasp.Poscar()
@@ -131,7 +132,7 @@ class GulpSimulation(Task):
         if self.is_fullauto:
             self.on_update_status()
     
-    def on_ready(self,configuration=None):
+    def on_ready(self,configuration=None,results=None):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
 
@@ -146,14 +147,25 @@ class GulpSimulation(Task):
         if self.is_fullauto:
             self.on_update_status()
 
-    def on_running(self):
-        pass
+    def on_running(self,configuration=None):
+        self.update_status()
+        if self.is_fullauto:
+            self.on_update_status()
 
-    def on_post(self):
-        print('<---GulpSimulation.on_post')
+    def on_post(self,configuration=None):
+        self.results_processed = True
+        self.update_status()
+        if self.is_fullauto:
+            self.on_update_status()
+
+    def on_finished(self,configuration=None):
+        # doing nothing here
+        self.update_status()
+        if self.is_fullauto:
+            self.on_update_status()
 
     def on_error(self):
-        pass
+        raise ValueError()
 
     # override default behavior
     def get_conditions_init(self):
@@ -202,8 +214,7 @@ class GulpSimulation(Task):
 
     def get_conditions_finished(self):
         self.conditions_FINISHED = OrderedDict()
-        self.conditions_FINISHED['is_results_exists'] \
-                = os.path.isfile(self.results_filename)
+        self.conditions_FINISHED['is_processed'] = self.results_processed
 
     def get_conditions_error(self):
         self.conditions_ERROR = OrderedDict()
@@ -338,4 +349,4 @@ class GulpSimulation(Task):
             self._parameters[p] = parameters[p]
 
 from pypospack.task.tasks_gulp.gulp_phonons import GulpPhononCalculation
-from pypospack.task.tasks_gulp.gulp_phonons import GulpGammaPointPhonons
+from pypospack.task.tasks_gulp.gulp_phonons_gamma import GulpGammaPointPhonons

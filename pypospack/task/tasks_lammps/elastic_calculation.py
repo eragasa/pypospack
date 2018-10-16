@@ -1,7 +1,8 @@
 import os
 from collections import OrderedDict
-from pypospack.task.lammps import LammpsSimulation
 import pypospack.potential as potential
+
+from pypospack.task.lammps import LammpsSimulationError, LammpsSimulation
 
 class LammpsElasticCalculation(LammpsSimulation):
     """ Class for LAMMPS elastic calculation
@@ -49,7 +50,9 @@ class LammpsElasticCalculation(LammpsSimulation):
         self.get_elastic_tensor()
         LammpsSimulation.on_post(self,configuration=configuration)
 
-    def on_finished(self,configuration=None): pass
+    def on_finished(self,configuration=None): 
+        pass
+
     def write_potential_file(self):
         if self.potential is None:
             return
@@ -420,6 +423,7 @@ class LammpsElasticCalculation(LammpsSimulation):
         _lammps_results_names = self.lammps_results_names
 
         self.results = OrderedDict()
+
 
         _task_name = self.task_name
         for i,line in enumerate(lines):
