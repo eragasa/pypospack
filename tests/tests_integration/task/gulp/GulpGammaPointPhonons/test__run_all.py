@@ -73,18 +73,24 @@ if __name__ == '__main__':
             configuration['structures']['structures']['MgO_NaCl_prim']
             )
         )
-
+    
+    print(o_task.status)
     o_task.on_init(configuration)
+    print(o_task.status)
     o_task.on_config(configuration)
+    print(o_task.status)
     o_task.on_ready(configuration)
+    print(o_task.status)
     o_task.on_running(configuration)
-
+    print(o_task.status)
     # we need a loot while the task is running, that polls for the task to be done
     while o_task.status is not 'POST':
+        print(o_task.status)
         o_task.update_status()
 
+    print(o_task.status)
     o_task.on_post(configuration)
-   
+    print(o_task.status)
     print(str__results(o_task))
-
+    print(o_task.status)
 
