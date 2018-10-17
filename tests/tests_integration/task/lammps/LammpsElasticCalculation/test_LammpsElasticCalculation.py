@@ -269,8 +269,7 @@ class TestTaskLammpsElasticCalculation(object):
     def test_init(self):
         self.task = tsk_lammps.LammpsElasticCalculation(
                 self.task_name, 
-                self.task_directory,
-                self.)
+                self.task_directory)
         assert os.path.exists(self.task_directory)
         assert self.task.task_name == self.task_name
         assert self.task.task_directory == os.path.join(\

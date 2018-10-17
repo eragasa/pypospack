@@ -147,16 +147,51 @@ class PyposmatDataFile(object):
             cluster_id = None,
             filename=None):
 
+        if filename is not None:
+            self.filename = filename
+        _filename = self.filename
+        
         _sim_result = [str(sim_id)]
-        if cluster_id is not None:
-            _sim_result += [str(int(cluster_id))]
-        _sim_result += [str(v) for k,v in results['parameters'].items()]
-        _sim_result += [str(v) for k,v in results['qois'].items()]
-        _sim_result += [str(v) for k,v in results['errors'].items()]
+        if cluster_id is not None: _sim_result += [str(int(cluster_id))]
+        
+        if self.parameter_names is not None:
+            for v in self.parameter_names:
+                try:
+                    _sim_result.append(str(results['parameters'][v]))
+                except KeyError as e:
+                    _sim_result.append(str(np.NaN))
+        
+        if self.qoi_names is not None:
+            for v in self.qoi_names:
+                try:
+                    _sim_result.append(str(results['qois'][v]))
+                except KeyError as e:
+                    _sim_result.append(str(np.NaN))
+
+        if self.error_names is not None:
+            for v in self.error_names:
+                try:
+                    _sim_result.append(str(results['errors'][v]))
+                except KeyError as e:
+                    _sim_result.append(str(np.NaN))
+
+        if self.qoi_v_names is not None:
+            for v in self.qoi_v_names:
+                try:
+                    _sim_result.append(str(results['qoi_v_names'][v]))
+                except KeyError as e:
+                    _sim_result.append(str(np.NaN))
+
+        if self.error_v_names is not None:
+            for v in self.error_v_names:
+                try:
+                    _sim_result.append(str(results['error_v_names'][v]))
+                except KeyError as e:
+                    _sim_result.append(str(np.NaN))
 
         _str_sim_results = ",".join(_sim_result)
 
-        with open(filename,'a') as f:
+        with open(_filename,'a') as f:
             f.write(_str_sim_results+"\n")
 
 

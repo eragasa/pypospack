@@ -1,4 +1,5 @@
 import os
+from collections import OrderedDict
 from pypospack.pyposmat.data import PyposmatDataFile
 
 datafile_out_fn = "pyposmat.data.out"
@@ -58,6 +59,73 @@ def test__get_header_string():
     assert line_2.count('err') == len(error_names)
     assert line_2.count('qoi_v') == 0
     assert line_2.count('err_v') == 0
+
+def test__write_header_section():
+
+    cleanup_test()
+
+    parameter_names = ['param{}'.format(i+1) for i in range(3)]
+    qoi_names = ['qoi{}'.format(i+1) for i in range(5)]
+    error_names = ['err{}'.format(i+1) for i in range(5)]
+    
+    datafile = PyposmatDataFile()
+    datafile.write_header_section(
+            parameter_names = parameter_names,
+            qoi_names = qoi_names,
+            error_names = error_names,
+            filename =  datafile_out_fn)
+
+    assert os.path.isfile(datafile_out_fn)
+
+    datafile_read = PyposmatDataFile()
+    datafile_read.read(filename = datafile_out_fn)
+
+    assert len(datafile_read.parameter_names) == len(parameter_names)
+    for i,v in enumerate(parameter_names):
+        assert datafile_read.parameter_names[i] == v
+
+    assert len(datafile_read.qoi_names) == len(qoi_names)
+    for i,v in enumerate(qoi_names):
+        assert datafile_read.qoi_names[i] == v
+
+    assert len(datafile_read.error_names) == len(qoi_names)
+    for i,v in enumerate(error_names):
+        assert datafile_read.error_names[i] == v
+
+    cleanup_test()
+
+def test__write_simulation_results__no_filename():
+
+    cleanup_test()
+
+    parameter_names = ['param{}'.format(i+1) for i in range(3)]
+    qoi_names = ['qoi{}'.format(i+1) for i in range(5)]
+    error_names = ['err{}'.format(i+1) for i in range(5)]
+    
+    datafile = PyposmatDataFile()
+    datafile.write_header_section(
+            parameter_names = parameter_names,
+            qoi_names = qoi_names,
+            error_names = error_names,
+            filename =  datafile_out_fn)
+
+    sim_id = "test_id"
+    
+    results = OrderedDict()
+    results['parameters'] = OrderedDict([(v,1.) for v in parameter_names])
+    results['qois'] = OrderedDict([(v,2.) for v in qoi_names])
+    results['errors'] = OrderedDict([(v,3.0) for v in error_names])
+    
+    datafile.write_simulation_results(
+            sim_id,
+            results)
+
+    assert os.path.isfile(datafile_out_fn)
+
+    datafile_read = PyposmatDataFile()
+    datafile_read.read(filename=datafile_out_fn)
+
+    
 
 if __name__ == "__main__":
 
