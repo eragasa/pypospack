@@ -429,11 +429,11 @@ class EamPotential(Potential):
             _natoms_O = 4
             _natoms_T = 2
 
-        s = 'Ni'
-        _rhomax = _natoms_1NN * self.obj_density.evaluate(_d_1NN,_parameters)[s]
-        _rhomax += _natoms_2NN * self.obj_density.evaluate(_d_2NN,_parameters)[s]
-        _rhomax += _natoms_O * self.obj_density.evaluate(_d_O,_parameters)[s]
-        _rhomax += _natoms_T * self.obj_density.evaluate(_d_T,_parameters)[s]
+        for s in self.symbols:
+            _rhomax = _natoms_1NN * self.obj_density.evaluate(_d_1NN,_parameters)[s]
+            _rhomax += _natoms_2NN * self.obj_density.evaluate(_d_2NN,_parameters)[s]
+            _rhomax += _natoms_O * self.obj_density.evaluate(_d_O,_parameters)[s]
+            _rhomax += _natoms_T * self.obj_density.evaluate(_d_T,_parameters)[s]
 
         return float(_rhomax)
 
