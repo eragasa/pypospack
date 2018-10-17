@@ -175,6 +175,8 @@ class Potential(object):
             return 28.086
         elif element == 'Ni':
             return 58.6934
+        elif element == 'Al':
+            return 26.982
         else:
             raise ValueError("element {} not in database".format(element))
 
@@ -187,6 +189,8 @@ class Potential(object):
             return 'silicon'
         elif element == 'Ni':
             return 'nickel'
+        elif element == 'Al':
+            return 'aluminum':
         else:
             raise ValueError('element {} not in database'.format(element))
 
