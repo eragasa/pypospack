@@ -134,12 +134,11 @@ qoi_db.add_qoi(
         qoi_type='bulk_modulus',
         structures=OrderedDict([('ideal','Ni_fcc')]),
         target=79.)
-#TODO
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.G',
+        qoi_name='Al_fcc.G',
         qoi_type='shear_modulus',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=101.)
+        target=27.)
 qoi_db.add_qoi(
         qoi_name='Al_fcc.vac',
         qoi_type='E_formation',
