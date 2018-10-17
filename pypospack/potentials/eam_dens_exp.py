@@ -73,7 +73,7 @@ class ExponentialDensityFunction(EamDensityFunction):
             for p in self.density_func_parameters:
                 pn = "{}_{}".format(s,p)
                 self.parameters[pn] = parameters[pn]
-
+                
         # cannot evaluate because
         for pn,pv in self.parameters.items():
             if pv is None:

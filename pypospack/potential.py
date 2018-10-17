@@ -13,8 +13,8 @@ from pypospack.eamtools import EamSetflFile
 
 potential_string_to_class_map = OrderedDict()
 potential_string_to_class_map['bornmayer']=OrderedDict([
-    ('module',pypospack.potential),
-    ('class',BornMayerPotential)])
+    ('module','pypospack.potential'),
+    ('class','BornMayerPotential')])
 
 class BadParameterException(Exception):
     def __init__(self,
