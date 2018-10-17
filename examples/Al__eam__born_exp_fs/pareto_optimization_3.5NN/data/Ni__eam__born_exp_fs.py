@@ -21,7 +21,7 @@ sampling[0]['file'] = 'data/pyposmat.kde.0.out'
 #-----------------------------------------------------------------------------
 potential_formalism = OrderedDict()
 potential_formalism['potential_type'] = 'eam'
-potential_formalism['symbols'] = ['Ni']
+potential_formalism['symbols'] = ['Al']
 potential_formalism['setfl_filename'] = None
 potential_formalism['pair_type'] = 'bornmayer'
 potential_formalism['density_type'] = 'eam_dens_exp'
@@ -33,7 +33,7 @@ potential_formalism['r_max'] = 10.0
 potential_formalism['r_cut'] = 10.0
 potential_formalism['N_rho'] = 10000
 potential_formalism['rho_max'] = 1000.0
-potential_formalism['a0'] = 3.52
+potential_formalism['a0'] = 4.05
 potential_formalism['lattice_type'] = 'fcc'
 
 # <---------------- INITIAL PARAMETER DEFINITION
@@ -105,42 +105,42 @@ structure_db['structures']['Ni_fcc_i_int'] = 'Ni_fcc_sc_333_t_int.vasp'
 #------------------------------------------------------------------------------
 qoi_db = QoiDatabase()
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.E_coh',
+        qoi_name='Al_fcc.E_coh',
         qoi_type='Ecoh_min_all',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=-4.45)
+        target=-3.36)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.a0',
+        qoi_name='Al_fcc.a0',
         qoi_type='a11_min_all',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=3.52)
+        target=4.05)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.c11',
+        qoi_name='Al_fcc.c11',
         qoi_type='c11',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=261.)
+        target=114.)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.c12',
+        qoi_name='Al_fcc.c12',
         qoi_type='c12',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=151.)
+        target=61.9)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.c44',
+        qoi_name='Al_fcc.c44',
         qoi_type='c44',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=132.)
+        target=31.6)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.B',
+        qoi_name='Al_fcc.B',
         qoi_type='bulk_modulus',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=188.)
+        target=79.)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.G',
+        qoi_name='Al_fcc.G',
         qoi_type='shear_modulus',
         structures=OrderedDict([('ideal','Ni_fcc')]),
-        target=101.)
+        target=27.)
 qoi_db.add_qoi(
-        qoi_name='Ni_fcc.vac',
+        qoi_name='Al_fcc.vac',
         qoi_type='E_formation',
         structures=OrderedDict(
             [
@@ -148,7 +148,8 @@ qoi_db.add_qoi(
                 ('ideal','Ni_fcc')
             ]
         ),
-        target=1.6)
+        target=0.68)
+#TODO
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.100s',
         qoi_type='E_surface',
@@ -159,6 +160,7 @@ qoi_db.add_qoi(
             ]
         ),
         target=1.51e-1)
+#TODO
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.110s',
         qoi_type='E_surface',
@@ -169,6 +171,7 @@ qoi_db.add_qoi(
             ]
         ),
         target=1.48e-1)
+#TODO
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.111s',
         qoi_type='E_surface',
@@ -179,6 +182,7 @@ qoi_db.add_qoi(
             ]
         ),
         target=1.25e-1)
+#TODO
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.isf',
         qoi_type='E_stacking_fault',
@@ -187,33 +191,33 @@ qoi_db.add_qoi(
                 ('ideal','Ni_fcc_111_unit')]),
         target=1.45e-02)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_hcp',
+        qoi_name='E_Al_fcc_hcp',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_hcp')]),
-        target=0.024)
+        target=0.04)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_bcc',
+        qoi_name='E_Al_fcc_bcc',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_bcc')]),
-        target=0.092)
+        target=0.09)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_sc',
+        qoi_name='E_Al_fcc_sc',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_sc')]),
-        target=0.600)
+        target=0.36)
 qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_dia',
+        qoi_name='E_Al_fcc_dia',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_dia')]),
-        target=1.27)
+        target=0.75)
 #------------------------------------------------------------------------------
 # QOI CONSTRAINTS
 # QOI constraints are performed in the order they are iterated through in
@@ -229,25 +233,25 @@ qoi_db.add_qoi(
 #------------------------------------------------------------------------------
 qoi_constraints = OrderedDict()
 qoi_constraints['qoi_constraints']=OrderedDict()
-qoi_constraints['qoi_constraints']['Ni_fcc.E_coh.abserr'] = ['<',2]
-qoi_constraints['qoi_constraints']['Ni_fcc.a0.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.a0']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.c11.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.c12.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.c44.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c44']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.B.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c11']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.G.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.vac'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.c12']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.110s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.110s']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.100s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.100s']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.111s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.111s']['target'])]
-qoi_constraints['qoi_constraints']['Ni_fcc.isf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.isf']['target'])]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0.]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
-qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-qoi_constraints['filter_by__d_zerror']['percentile'] = .95
-qoi_constraints['select_pareto_only'] = True
+qoi_constraints['qoi_constraints']['Al_fcc.E_coh.abserr'] = ['<',2]
+qoi_constraints['qoi_constraints']['Al_fcc.a0.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.a0']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.c11.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.c11']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.c12.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.c44.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.c44']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.B.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.c11']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.G.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.vac'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.c12']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.110s'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.110s']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.100s'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.100s']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.111s'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.111s']['target'])]
+qoi_constraints['qoi_constraints']['Al_fcc.isf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Al_fcc.isf']['target'])]
+qoi_constraints['qoi_constraints']['E_Al_fcc_bcc'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Al_fcc_sc'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Al_fcc_hcp'] = ['>',0.]
+qoi_constraints['qoi_constraints']['E_Al_fcc_dia'] = ['>',0.]
+#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+#qoi_constraints['filter_by__d_zerror']['percentile'] = .95
+qoi_constraints['select_pareto_only'] = False
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
 if __name__ == '__main__':
     from pypospack.pyposmat.data import PyposmatConfigurationFile
