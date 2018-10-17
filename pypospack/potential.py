@@ -190,7 +190,7 @@ class Potential(object):
         elif element == 'Ni':
             return 'nickel'
         elif element == 'Al':
-            return 'aluminum':
+            return 'aluminum'
         else:
             raise ValueError('element {} not in database'.format(element))
 
