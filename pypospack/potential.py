@@ -11,6 +11,11 @@ import numpy as np
 import pypospack.potentials
 from pypospack.eamtools import EamSetflFile
 
+potential_string_to_class_map = OrderedDict()
+potential_string_to_class_map['bornmayer']=OrderedDict([
+    ('module',pypospack.potential),
+    ('class',BornMayerPotential)])
+
 class BadParameterException(Exception):
     def __init__(self,
             code,
@@ -91,6 +96,8 @@ class BasePotential(object):
             return 28.086
         elif element == 'Ni':
             return 58.6934
+        elif element == 'Al':
+            return 26.982
         else:
             raise ValueError("element {} not in database".format(element))
 
@@ -103,6 +110,8 @@ class BasePotential(object):
             return 'silicon'
         elif element == 'Ni':
             return 'nickel'
+        elif element == 'Al':
+            return 'aluminum'
         else:
             raise ValueError('element {} not in database'.format(element))
 
