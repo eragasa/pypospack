@@ -72,8 +72,20 @@ class ExponentialDensityFunction(EamDensityFunction):
         for s in self.symbols:
             for p in self.density_func_parameters:
                 pn = "{}_{}".format(s,p)
-                self.parameters[pn] = parameters[pn]
-                
+                try:
+                    self.parameters[pn] = parameters[pn]
+                except KeyError as e:
+                    print(80*'-')
+                    print("{:^80}".format("DEBUGGING INFORMATION")
+                    print(80*'-')
+                    print('arg -> parameters:')
+                    for k,v in parameters.items():
+                        print("    {}:{}".format(k,v))
+
+                    print('attr -> density_func_parameters')
+                    for v in self.density_func_parameters:
+                        print("    {}".format(v))
+                    
         # cannot evaluate because
         for pn,pv in self.parameters.items():
             if pv is None:
