@@ -397,6 +397,11 @@ class EamSetflFile(object):
             _atomic_information['amu'] = 5.871
             _atomic_information['a0'] =  3.518121
             _atomic_information['latt_type'] = 'fcc'
+        elif symbol == 'Al':
+            _atomic_information['an'] = 13
+            _atomic_information['amu'] = 2.698
+            _atomic_information['a0'] = 4.046
+            _atomic_information['latt_type'] = 'fcc'
         else:
             raise ValueError("symbol not in database")
         

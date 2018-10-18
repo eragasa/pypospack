@@ -1,7 +1,7 @@
 #!/bin/sh
-#SBATCH --job-name=Ni_fs              # Job name
+#SBATCH --job-name=Al_fs              # Job name
 #SBATCH --mail-type=NONE              # Mail events (NONE, BEGIN, END, FAIL)
-#SBATCH --ntasks=8                   # Number of MPI ranks
+#SBATCH --ntasks=16                   # Number of MPI ranks
 #SBATCH --cpus-per-task=1             # Number of cores per MPI rank 
 #SBATCH --distribution=cyclic:cyclic  # Distribute tasks cyclically on nodes 
 #SBATCH --mem-per-cpu=3000mb          # Memory per processor
