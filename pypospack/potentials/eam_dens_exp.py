@@ -76,7 +76,7 @@ class ExponentialDensityFunction(EamDensityFunction):
                     self.parameters[pn] = parameters[pn]
                 except KeyError as e:
                     print(80*'-')
-                    print("{:^80}".format("DEBUGGING INFORMATION")
+                    print("{:^80}".format("DEBUGGING INFORMATION"))
                     print(80*'-')
                     print('pn:{}'.format(pn))
                     print('arg -> parameters:')
