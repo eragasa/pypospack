@@ -15,10 +15,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import Imputer
 from sklearn.decomposition import PCA
 
-from pypospack.exception import BadPreprocessorTypeException
-from pypospack.exception import BadManifoldTypeException
-from pypospack.exception import BadNearestNeighborTypeException
-from pypospack.exception import BadClusterTypeException
+from pypospack.exceptions import BadPreprocessorTypeException
+from pypospack.exceptions import BadManifoldTypeException
+from pypospack.exceptions import BadNearestNeighborTypeException
+from pypospack.exceptions import BadClusterTypeException
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.kde import Chiu1999_h

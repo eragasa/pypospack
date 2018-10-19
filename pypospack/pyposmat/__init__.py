@@ -18,4 +18,3 @@ def get_supported_potentials():
             'tersoff']
     return supported_potentials
 
-class PyposmatError(Exception): pass
