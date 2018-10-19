@@ -13,6 +13,12 @@ from pypospack.io.eamtools import EamSetflFile
 from pypospack.potential import Potential,EamPotential,PotentialObjectMap
 from pypospack.potential import StillingerWeberPotential
 
+
+class LammpsSimulationError(Exception):
+    """Error class for dealing with LAMMPS simulation issues"""
+    def __init__(self,*args,**kwargs):
+        Exception.__init__(self,*args,**kwargs)
+
 class AbstractLammpsSimulation(Task):
     """ Calculates cohesive energy
 
