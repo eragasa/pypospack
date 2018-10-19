@@ -14,7 +14,7 @@ for i in range(sampling['n_iterations']):
     sampling[i]['type'] = 'kde'
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
-sampling[0]['type'] = 'from_file'
+sampling[0]['type'] = 'kde'
 sampling[0]['file'] = 'data/pyposmat.kde.0.out'
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
