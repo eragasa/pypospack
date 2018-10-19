@@ -9,6 +9,7 @@ import os,pathlib,copy, yaml
 from collections import OrderedDict
 import numpy as np
 import pypospack.potentials
+from pypospack.exceptions import BadParameterException
 from pypospack.eamtools import EamSetflFile
 
 potential_string_to_class_map = OrderedDict()
@@ -16,16 +17,6 @@ potential_string_to_class_map['bornmayer']=OrderedDict([
     ('module','pypospack.potential'),
     ('class','BornMayerPotential')])
 
-class BadParameterException(Exception):
-    def __init__(self,
-            code,
-            parameter_name,
-            parameter_value,
-            parameters):
-        self.code = code
-        self.parameter_name = parameter_name
-        self.parameter_value = parameter_value
-        self.parameters = parameters
 
 def determine_symbol_pairs(symbols):
     if not isinstance(symbols,list):
@@ -39,81 +30,83 @@ def determine_symbol_pairs(symbols):
 
     return pairs
 
-class BasePotential(object):
-    def __init__(self,
-            symbols,
-            potential_type=None,
-            is_charge=None):
-        self.PYPOSPACK_CHRG_FORMAT = "chrg_{s}"
-        self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
-        self.PYPOSPACK_3BODY_FORMAT = "{s1}{s2}{s3}_{p}"
+#TODO: REMOVE THIS CODE IF IT COMMENTING OUT DIDN'T CREATE ERRORS. 10/19/2018
+if False:
+    class BasePotential(object):
+        def __init__(self,
+                symbols,
+                potential_type=None,
+                is_charge=None):
+            self.PYPOSPACK_CHRG_FORMAT = "chrg_{s}"
+            self.PYPOSPACK_PAIR_FORMAT = "{s1}{s2}_{p}"
+            self.PYPOSPACK_3BODY_FORMAT = "{s1}{s2}{s3}_{p}"
 
-        self.potential = None
-        self.symbols = list(symbols)
-        self.potential_type = potential_type
-        self.is_charge = is_charge
+            self.potential = None
+            self.symbols = list(symbols)
+            self.potential_type = potential_type
+            self.is_charge = is_charge
 
-        # these attributes will be initialized by _init_parameter_names
-        self.symbol_pairs = None
-        self.parameter_names = None
-        self._init_parameter_names()
+            # these attributes will be initialized by _init_parameter_names
+            self.symbol_pairs = None
+            self.parameter_names = None
+            self._init_parameter_names()
 
-        # these attributes will be initialized by _init_parameter_names
-        self.parameters = None
-        self._init_parameters()
+            # these attributes will be initialized by _init_parameter_names
+            self.parameters = None
+            self._init_parameters()
 
-        # deprecated parameters here
-        self.param = {}
-        self.param_names = None         # list of str
+            # deprecated parameters here
+            self.param = {}
+            self.param_names = None         # list of str
 
-    def _init_parameter_names(self):
-        raise NotImplementedError
+        def _init_parameter_names(self):
+            raise NotImplementedError
 
-    def _init_parameters(self):
-        raise NotImplementedError
+        def _init_parameters(self):
+            raise NotImplementedError
 
-    def evaluate(self,r,parameters,r_cut=False):
-        raise NotImplementedError
+        def evaluate(self,r,parameters,r_cut=False):
+            raise NotImplementedError
 
-    def write_lammps_potential_file(self):
-        raise NotImplementedError
+        def write_lammps_potential_file(self):
+            raise NotImplementedError
 
-    def lammps_potential_section_to_string(self):
-        raise NotImplementedError
+        def lammps_potential_section_to_string(self):
+            raise NotImplementedError
 
-    def write_gulp_potential_section(self):
-        raise NotImplementedError
+        def write_gulp_potential_section(self):
+            raise NotImplementedError
 
-    def gulp_potential_section_to_string(self):
-        raise NotImplementedError
+        def gulp_potential_section_to_string(self):
+            raise NotImplementedError
 
-    def _get_mass(self,element):
-        if element == 'Mg':
-            return 24.305
-        elif element == "O":
-            return 15.999
-        elif element == 'Si':
-            return 28.086
-        elif element == 'Ni':
-            return 58.6934
-        elif element == 'Al':
-            return 26.982
-        else:
-            raise ValueError("element {} not in database".format(element))
+        def _get_mass(self,element):
+            if element == 'Mg':
+                return 24.305
+            elif element == "O":
+                return 15.999
+            elif element == 'Si':
+                return 28.086
+            elif element == 'Ni':
+                return 58.6934
+            elif element == 'Al':
+                return 26.982
+            else:
+                raise ValueError("element {} not in database".format(element))
 
-    def _get_name(self,element):
-        if element == "Mg":
-            return 'magnesium'
-        elif element == "O":
-            return 'oxygen'
-        elif element == 'Si':
-            return 'silicon'
-        elif element == 'Ni':
-            return 'nickel'
-        elif element == 'Al':
-            return 'aluminum'
-        else:
-            raise ValueError('element {} not in database'.format(element))
+        def _get_name(self,element):
+            if element == "Mg":
+                return 'magnesium'
+            elif element == "O":
+                return 'oxygen'
+            elif element == 'Si':
+                return 'silicon'
+            elif element == 'Ni':
+                return 'nickel'
+            elif element == 'Al':
+                return 'aluminum'
+            else:
+                raise ValueError('element {} not in database'.format(element))
 
 class Potential(object):
 
@@ -435,7 +428,10 @@ class EamPotential(Potential):
             _rhomax += _natoms_O * self.obj_density.evaluate(_d_O,_parameters)[s]
             _rhomax += _natoms_T * self.obj_density.evaluate(_d_T,_parameters)[s]
 
-        return float(_rhomax)
+        # incease the order of magnitude by 10x, just because people might have
+        # really unphysical structures which imply really high electron densities
+        _rhomax = 10*float(_rhomax)
+        return _rhomax
 
     def write_setfl_file(self,filename,symbols,
             Nr,rmax,rcut,
