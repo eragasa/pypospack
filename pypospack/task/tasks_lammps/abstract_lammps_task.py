@@ -160,6 +160,8 @@ class AbstractLammpsSimulation(Task):
 
             # if setfl_filename_src is set, then we just copy the 
             # EAM potential file.
+
+            
             if all([self.potential.obj_pair is None,
                     self.potential.obj_density is None,
                     self.potential.obj_embedding is None,
@@ -345,11 +347,22 @@ class AbstractLammpsSimulation(Task):
                 _process_finished = False
             elif _poll_result == 0:
                 _process_finished = True
+            elif _poll_results == 1:
+                if self.conditions_ERROR is None:
+                    self.conditions_ERROR=OrderedDict()
+
+                m = "Lammps excited with status {}.  If running an EAM "
+                m += "potential this is most likely caused by an out-of-index "
+                m += "exception because the electron density is too high when "
+                m += "evaluating the embedding function.  The code for modifying "
+                m += "max_rho for the embedding function is in pypospack.potential.EamPotential"
+
+                self.conditions_ERROR['lmps_bin_err') = err_msg
+                raise LammpsSimulationError(err_msg)
             else:
                 if self.conditions_ERROR is None:
                     self.conditions_ERROR= OrderedDict()
-
-                err_msg = 'Lammps exited with status {}'.format(_poll_result)
+                err_msg = 'Lammps exited with status {}.'.format(_poll_result)
                 self.conditions_ERROR['lmps_bin_err'] =  err_msg
                 raise LammpsSimulationError(err_msg)
         
