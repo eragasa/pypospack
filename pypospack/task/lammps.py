@@ -45,15 +45,10 @@ lammps_simulation_map = {\
             'class':'LammpsNptSimulation'}
         }
 
-class LammpsSimulationError(Exception):
-    """Error class for dealing with LAMMPS simulation issues"""
-    def __init__(self,*args,**kwargs):
-        Exception.__init__(self,*args,**kwargs)
-
+from pypospack.exceptions import LammpsSimulationError
 from pypospack.task.tasks_lammps.abstract_lammps_task import AbstractLammpsSimulation
 
 class LammpsSimulation(AbstractLammpsSimulation): pass
-
 
 from pypospack.task.tasks_lammps.lmps_min_none import LammpsStaticCalculations
 from pypospack.task.tasks_lammps.lmps_min_pos import LammpsPositionMinimization
