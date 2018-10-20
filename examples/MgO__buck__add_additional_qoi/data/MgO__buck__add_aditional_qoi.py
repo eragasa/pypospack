@@ -161,7 +161,8 @@ qoi_validation_db.add_qoi(
         structures=OrderedDict([
             ('ideal','MgO_NaCl')       # calculated from the unit cell
             ]),
-        target=0.,
+        target=10.8e-6,                # per deg C, 
+                                       # https://www.crystran.co.uk/optical-materials/magnesium-oxide-mgo
         qoi_options={
             'temperature_min':0,       # in degrees Kelvin
             'temperature_max': 1000,    # in degrees Kelvin
@@ -236,7 +237,72 @@ reference_potentials['BG2']['qoi'] = OrderedDict([
     ('MgO_NaCl.sch',5.509124492308274),
     ('MgO_NaCl.001s',0.0692527122209811)
     ])
+#------------------------------------------------------------------------------
+# LATEX LABELS
+#------------------------------------------------------------------------------
+latex_labels = OrderedDict()
+latex_labels['chrg_Mg'] = OrderedDict([
+    ('name',r'Z_{Mg}')])
+latex_labels['chrg_O'] = OrderedDict([
+    ('name',r'Z_{O}')])
 
+latex_labels['MgMg_A'] = OrderedDict([
+    ('name',r'A_{Mg,Mg}')])
+latex_labels['MgMg_rho'] = OrderedDict([
+    ('name',r'\rho_{Mg,Mg]')])
+latex_labels['MgMg_C'] = OrderedDict([
+    ('name',r'C_{Mg,Mg]')])
+
+latex_labels['MgO_A'] = OrderedDict([
+    ('name',r'A_{Mg,O}')])
+latex_labels['MgO_rho'] = OrderedDict([
+    ('name',r'\rho_{Mg,O}')])
+latex_labels['MgO_C'] = OrderedDict([
+    ('name',r'C_{Mg,O}')])
+
+latex_labels['OO_A'] = OrderedDict([
+    ('name',r'A_{OO,OO/}')])
+latex_labels['OO_rho'] = OrderedDict([
+    ('name',r'\rho_{O,O]')])
+latex_labels['OO_C'] = OrderedDict([
+    ('name',r'C_{O,O]')])
+
+latex_labels['MgO_NaCl.a0'] = OrderedDict([
+    ('name',r'a_0'),
+    ('units',r'\AA')])
+latex_labels['MgO_NaCl.c11'] = OrderedDict([
+    ('name',r'c_{11}'),
+    ('units', r'GPa')])
+latex_labels['MgO_NaCl.c12'] = OrderedDict([
+    ('name',r'c_{11}'),
+    ('units', r'GPa')])
+latex_labels['MgO_NaCl.c44'] = OrderedDict([
+    ('name',r'c_{44}'),
+    ('units',r'GPa')])
+latex_labels['MgO_NaCl.B'] = OrderedDict([
+    ('name',r'B'),
+    ('units',r'GPa')])
+latex_labels['MgO_NaCl.G'] = OrderedDict([
+    ('name',r'G'),
+    ('units',r'GPa')])
+latex_labels['MgO_NaCl.fr_a'] = OrderedDict([
+    ('name',r'E_{fr,a}'),
+    ('units',r'eV')])
+latex_labels['MgO_NaCl.fr_c'] = OrderedDict([
+    ('name',r'E_{fr,c}'),
+    ('units',r'eV')])
+latex_labels['MgO_NaCl.sch'] = OrderedDict([
+    ('name',r'E_{sch}'),
+    ('units',r'eV')])
+latex_labels['MgO_NaCl.001s'] = OrderedDict([
+    ('name',r'\gamma_{001}'),
+    ('units',r'mJ/m^2')])
+latex_labels['MgO_NaCl.optical_ph'] = OrderedDict([
+    ('name',r'\Gamma_o'),
+    ('units','cm^-1')])
+latex_labels['MgO_NaCl.th_exp'] = OrderedDict([
+    ('name',r'\alpha_L'),
+    ('units',r'C^{-1}')])
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
 # this is currently creating a race condition, where the file is being written
@@ -255,5 +321,6 @@ if __name__ == '__main__':
     configuration.sampling_distribution = parameter_distribution
     configuration.sampling_constraints = parameter_constraints
     configuration.reference_potentials = reference_potentials
+    configuration.latex_labels = latex_labels
     configuration.write(filename=pyposmat_filename_in)
 
