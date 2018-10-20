@@ -357,7 +357,7 @@ class AbstractLammpsSimulation(Task):
                 m += "evaluating the embedding function.  The code for modifying "
                 m += "max_rho for the embedding function is in pypospack.potential.EamPotential"
 
-                self.conditions_ERROR['lmps_bin_err') = err_msg
+                self.conditions_ERROR['lmps_bin_err'] = err_msg
                 raise LammpsSimulationError(err_msg)
             else:
                 if self.conditions_ERROR is None:
