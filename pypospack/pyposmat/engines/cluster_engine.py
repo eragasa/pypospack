@@ -1,5 +1,6 @@
 """
-This modules does blah blah blah
+This module implements tSNE and DBSCAN to sample from 
+reduced partitions of the whole dataset
 
 Author: Seaton Ullberg, 2018 w/ edits by EJR
 """
@@ -313,7 +314,7 @@ class PyposmatClusterSampler(PyposmatEngine):
         d['cluster']['args']['eps'] = OrderedDict()
         d['cluster']['args']['eps']['NN'] = 3
         d['cluster']['args']['eps']['percentile'] = .99
-        d['cluster']['args']['min_samples'] = 10
+        d['cluster']['args']['min_samples'] = 20
         d['cluster']['args']['metric'] = 'euclidean'
         d['cluster']['args']['metric_params'] = None
         d['cluster']['args']['algorithm'] = 'auto'
