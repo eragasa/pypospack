@@ -428,9 +428,7 @@ class EamPotential(Potential):
             _rhomax += _natoms_O * self.obj_density.evaluate(_d_O,_parameters)[s]
             _rhomax += _natoms_T * self.obj_density.evaluate(_d_T,_parameters)[s]
 
-        # incease the order of magnitude by 10x, just because people might have
-        # really unphysical structures which imply really high electron densities
-        _rhomax = 10*float(_rhomax)
+        _rhomax = float(_rhomax)
         return _rhomax
 
     def write_setfl_file(self,filename,symbols,
