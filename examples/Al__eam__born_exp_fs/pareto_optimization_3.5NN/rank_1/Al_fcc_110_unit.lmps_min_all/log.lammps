@@ -1,0 +1,150 @@
+LAMMPS (11 Aug 2017)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /home/sullberg/repos/pypospack/examples/Al__eam__born_exp_fs/pareto_optimization_3.5NN/rank_1/Al_fcc_110_unit.lmps_min_all/lammps.structure
+  triclinic box = (0 0 0) to (4.05 2.8992 2.8992) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  2 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 26.982
+
+group Al type 1
+2 atoms in group Al
+
+pair_style eam/alloy
+pair_coeff * * /home/sullberg/repos/pypospack/examples/Al__eam__born_exp_fs/pareto_optimization_3.5NN/rank_1/Al_fcc_110_unit.lmps_min_all/Al.eam.alloy Al
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax aniso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe xhi xlo yhi ylo zhi xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.34397
+  ghost atom cutoff = 6.34397
+  binsize = 3.17199, bins = 2 1 1
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.229 | 4.229 | 4.229 Mbytes
+Step PotEng Xhi Xlo Yhi Ylo Zhi Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+       0   -3.4793996         4.05            0       2.8992            0       2.8992            0            0            0   -108676.08   -107853.81   -109087.21   -109087.21 -2.0411233e-12 -1.7961885e-12 -3.5107321e-12   -3.4793996 
+      10   -3.5462682     4.030006  0.019993982     2.884704     0.014496     2.884704            0            0            0   -103795.52   -102801.49   -104292.54   -104292.54 5.3214346e-12 2.9152207e-11 -7.7823351e-12   -3.5462682 
+      20   -3.6081094    4.0100835   0.03991648     2.870208     0.028992     2.870208            0            0            0   -96833.882   -95648.542   -97426.552   -97426.552 5.138208e-12 -1.3701888e-11 -1.4439015e-11   -3.6081094 
+      30   -3.6636978    3.9902577  0.059742344     2.855712     0.043488     2.855712            0            0            0   -87373.953   -85978.625   -88071.617   -88071.617 -1.0505801e-12 -1.2249317e-11 -2.0475135e-11   -3.6636978 
+      40   -3.7116251    3.9705709  0.079429082     2.841216     0.057984     2.841216            0            0            0   -74931.876   -73311.644   -75741.992   -75741.992 2.736248e-11 4.5365932e-11 1.014279e-12   -3.7116251 
+      50   -3.7502831     3.951105  0.098895041      2.82672      0.07248      2.82672            0            0            0   -58958.715   -57109.136   -59883.505   -59883.505 -4.3750693e-11 2.1875347e-12 -1.8070938e-12   -3.7502831 
+      60   -3.7778621     3.932055   0.11794497     2.812224     0.086976     2.812224            0            0            0   -38873.983   -36820.049   -39900.951   -39900.951            0 -2.6491045e-12 -1.1773798e-12   -3.7778621 
+      70   -3.7924328    3.9141825   0.13581749     2.797728     0.101472     2.797728            0            0            0   -14324.957   -12209.369   -15382.751   -15382.751 3.3896844e-11 3.2581444e-11 2.2260614e-11   -3.7924328 
+      80   -3.7945332    3.9153528   0.13464718    2.7867943   0.11240574    2.7867943            0            0            0    137.86502    237.30562    88.144723    88.144723 5.653032e-13 2.2612128e-12 -8.0170272e-12   -3.7945332 
+      90   -3.7945337    3.9159258   0.13407422    2.7866864   0.11251356    2.7866864            0            0            0 3.4312464e-10 3.5218534e-10 2.4453604e-10 4.3265255e-10 -5.1383913e-14 3.6996418e-12 -5.1383913e-13   -3.7945337 
+      95   -3.7945337    3.9159258   0.13407422    2.7866864   0.11251356    2.7866864            0            0            0 -8.4612177e-11 -1.0523425e-10 -2.4664278e-11 -1.23938e-10 2.2608922e-12 1.2948746e-11 -1.7470531e-12   -3.7945337 
+Loop time of 0.00141287 on 1 procs for 95 steps with 2 atoms
+
+94.4% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+         -3.4793996126     -3.79453369358     -3.79453369358
+  Force two-norm initial, final = 3.99946 7.78611e-15
+  Force max component initial, final = 2.31779 4.94049e-15
+  Final line search alpha, max atom move = 1 4.94049e-15
+  Iterations, force evaluations = 95 111
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.00067258 | 0.00067258 | 0.00067258 |   0.0 | 47.60
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00016761 | 0.00016761 | 0.00016761 |   0.0 | 11.86
+Output  | 9.2268e-05 | 9.2268e-05 | 9.2268e-05 |   0.0 |  6.53
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.0004804  |            |       | 34.00
+
+Nlocal:    2 ave 2 max 2 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    267 ave 267 max 267 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    54 ave 54 max 54 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 54
+Ave neighs/atom = 27
+Neighbor list builds = 0
+Dangerous builds = 0
+# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "tot_energy = ${tot_energy}"
+tot_energy = -3.79453369357633
+print "num_atoms = ${natoms}"
+num_atoms = 2
+print "a11 = ${a11}"
+a11 = 3.7818515656771
+print "a22 = ${a22}"
+a22 = 2.67417288753124
+print "a33 = ${a33}"
+a33 = 2.67417288753124
+print "a12 = ${tilt_xy}"
+a12 = 0
+print "a13 = ${tilt_xz}"
+a13 = 0
+print "a23 = ${tilt_yz}"
+a23 = 0
+print "tot_press = ${tot_press}"
+tot_press = -8.46121771376206e-11
+print "pxx = ${press_xx}"
+pxx = -1.05234254318531e-10
+print "pyy = ${press_yy}"
+pyy = -2.46642783559056e-11
+print "pzz = ${press_zz}"
+pzz = -1.23937998738426e-10
+print "pxy = ${press_xy}"
+pxy = 2.26089218262468e-12
+print "pxz = ${press_xz}"
+pxz = 1.29487461368504e-11
+print "pyz = ${press_yz}"
+pyz = -1.74705305020998e-12
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
+Total wall time: 0:00:00

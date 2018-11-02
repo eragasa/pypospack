@@ -12,7 +12,7 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10000
+    sampling[i]['n_samples'] = 1000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'kde'
 sampling[0]['file'] = 'data/pyposmat.kde.0.out'
@@ -245,9 +245,9 @@ qoi_constraints['qoi_constraints']['E_Al_fcc_bcc'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Al_fcc_sc'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Al_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Al_fcc_dia'] = ['>',0.]
-#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-#qoi_constraints['filter_by__d_zerror']['percentile'] = .95
-qoi_constraints['select_pareto_only'] = False
+qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+qoi_constraints['filter_by__d_zerror']['percentile'] = .95
+qoi_constraints['select_pareto_only'] = True
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
 if __name__ == '__main__':
     from pypospack.pyposmat.data import PyposmatConfigurationFile
