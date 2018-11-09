@@ -272,9 +272,10 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
                         xtol=a_tol)
 
                 # here we determine astar as in equation 5 in Foiles. Phys Rev B (33) 12. Jun 1986 
-                _esub = abs(_ecoh) * 1.602e-19   # eV to J conversions as well
-                _omega = (_a0**3)/_n_atoms_per_unit_cell * (1e-10)**3
-                astar = ((a/_a0)-1)/((_esub/(9*_B*_omega))**0.5)
+                # 160.22 is the conversion with _esub in eV, _B in GPa, and _omega in Angs^3
+                _esub = abs(_ecoh) 
+                _omega = (_a0**3)/_n_atoms_per_unit_cell 
+                astar = ((a/_a0)-1)/((_esub/(9*_B*_omega) * 160.22)**0.5)
 
                 # now determine the rose energy as in Equation 4
                 _e_rose = -_esub*(1+astar)*np.exp(-astar)

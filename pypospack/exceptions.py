@@ -17,9 +17,13 @@ class BaseException(Exception):
             self.__class__.__name__,
             self.msg)
 
+#TODO: rneame *Exception names to *Error names
+
 class BadPreprocessorTypeException(BaseException): pass
 
-class BadParameterException(BaseException): pass
+class PyposmatBadParameterError(BaseException): pass
+class BadParameterException(PyposmatBadParameterError): 
+    pass
 # old class saved here just in case
 #class BadParameterException(Exception):
 #    def __init__(self,
@@ -41,3 +45,5 @@ class BadNearestNeighborTypeException(BaseException): pass
 class LammpsSimulationError(BaseException): pass
 
 class PyposmatError(BaseException): pass
+
+class PypospackTaskManagerError(BaseException): pass

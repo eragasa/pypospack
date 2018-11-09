@@ -12,12 +12,6 @@ import pypospack.potentials
 from pypospack.exceptions import BadParameterException
 from pypospack.eamtools import EamSetflFile
 
-potential_string_to_class_map = OrderedDict()
-potential_string_to_class_map['bornmayer']=OrderedDict([
-    ('module','pypospack.potential'),
-    ('class','BornMayerPotential')])
-
-
 def determine_symbol_pairs(symbols):
     if not isinstance(symbols,list):
         raise ValueError("symbols must be a list")
@@ -478,18 +472,33 @@ class EamPotential(Potential):
         self.evaluate_density(r=r,rcut=rcut)
         self.evaluate_embedding(rho)
 
+    def _log(self,msg):
+        print(msg)
+
     def set_obj_pair(self,func_pair):
         if func_pair == 'morse':
             self.obj_pair = MorsePotential(symbols=self.symbols)
         elif func_pair == 'bornmayer':
             self.obj_pair = BornMayerPotential(symbols=self.symbols)
         else:
-            msg_err = ["func_pair must be a PairPotential"]
-            msg_err = ["type(func_pair)={}".format(str(type(func_pair)))]
-            raise ValueError(msg_err)
+            s  = ["func_pair must be a PairPotential"]
+            s += ["    type(func_pair)={}".format(str(type(func_pair)))]
+            s += ["    func_pair={}".format(func_pair)]
+            s = "\n".join(s)
+
+            # TODO: should create a custom error handler
+            self._log(s)
+            raise ValueError(s)
+        
         if not isinstance(self.obj_pair,PairPotential):
-            msg_err = "func_pair must be a PairPotential"
-            raise ValueError(msg_err)
+            s  = ["func_pair must be a PairPotential"]
+            s += ["    type(func_pair)={}".format(str(type(func_pair)))]
+            s += ["    func_pair={}".format(func_pair)]
+            s = "\n".join(s)
+            
+            # TODO: should create a custom error handler
+            self._log(s)
+            raise ValueError(s)
 
     def set_obj_density(self,func_density):
         if func_density == 'eam_dens_exp':
@@ -636,7 +645,7 @@ class EamPotential(Potential):
         #<--- set the internal attribute
         self.embedding = copy.deepcopy(self.obj_embedding.embedding_evaluations)
 
-def PotentialObjectMap(potential_type):
+def PotentialObjectMap(potential_type=None):
     potential_map = OrderedDict()
     potential_map['buckingham'] = OrderedDict()
     potential_map['buckingham']['module'] = 'pypospack.potential'
@@ -682,10 +691,12 @@ def PotentialObjectMap(potential_type):
     potential_map['eam_embed_eos_rose']['module'] = 'pypospack.potential'
     potential_map['eam_embed_eos_rose']['class'] = 'RoseEquationOfStateEmbeddingFunction'
 
-    module_name = potential_map[potential_type]['module']
-    class_name = potential_map[potential_type]['class']
-
-    return module_name,class_name
+    if potential_type == 'all':
+        return potential_map
+    else:
+        module_name = potential_map[potential_type]['module']
+        class_name = potential_map[potential_type]['class']
+        return module_name,class_name
 
 def get_potential_map():
     """ get the potential map

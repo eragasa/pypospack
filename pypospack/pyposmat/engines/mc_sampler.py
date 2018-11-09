@@ -12,13 +12,13 @@ import scipy.stats
 from pypospack.kde import Chiu1999_h
 from pypospack.pyposmat.engines import PyposmatEngine
 from pypospack.pyposmat.data import PyposmatDataFile
-from pypospack.task.lammps import LammpsSimulationError
 from pypospack.task.task_manager import PypospackTaskManagerError
 from pypospack.potential import PotentialObjectMap
 
+# necessary exceptions to handle for this class
 from numpy.linalg import LinAlgError
-
-class PyposmatBadParameterError(Exception): pass
+from pypospack.exceptions import LammpsSimulationError
+from pypospack.exceptions import PyposmatBadParameterError
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self, log,
@@ -45,7 +45,12 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.log = log
 
     def _log(self,str_msg):
-        print(str_msg)
+        if type(str_msg) is str:
+            m = str_msg
+        elif type(str_msg) is list:
+            m = "\n".join(str_msg)
+
+        print(m)
 
     def configure_pyposmat_datafile_in(self,filename):
         self.pyposmat_data_in_filename = filename
@@ -87,6 +92,14 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         _sampling_type = self.configuration.sampling_type[i]['type']
         _n_samples = self.configuration.sampling_type[i]['n_samples']
         
+        if self.mpi_rank in [None,0]:
+            m = ["R{}: Starting iteration N={}".format(self.mpi_rank,i_iteration)]
+            m += ["R{}: Attemping n_samples={} with sampling_type={}".format(
+                    self.mpi_rank,_n_samples,_sampling_type)]
+            if filename is not None:
+                m += ["R{}: Using file:{}".format(self.mpi_rank,filename)]
+            self._log(m)
+
         if n_samples is not None:
             _n_samples = n_samples
 
@@ -129,6 +142,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 qoi_names=self.qoi_names,
                 error_names=self.error_names)
 
+        
         time_start_iteration = time.time()
         _n_errors = 0
 
@@ -142,17 +156,19 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
             # generate constrained parameters
             for p in self.constrained_parameter_names:
-                if self.parameter_distribution_definition[p][0] == 'equals':
-                    if type(self.parameter_distribution_definition[p][1]) is not list:
+                _constraint_type = self.parameter_distribution_definition[p][0]
+                if _constraint_type == 'equals':
+                    if p.endswith('latticetype'):
+                        _v = self.parameter_distribution_definition[p][1]
+                        _parameters[p] = _v
+                    elif type(self.parameter_distribution_definition[p][1]) is not list:
                         _str_eval = str(self.parameter_distribution_definition[p][1])
                         for fp in self.free_parameter_names:
                             if fp in _str_eval:
                                 _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
-                        try:
-                            _parameters[p] = eval(_str_eval)
-                        except NameError as e:
-                            if not p.endswith('latticetype'):
-                                raise e
+                        _parameters[p] = eval(_str_eval)
+                    else:
+                        raise ValueError("oops")
 
             # generate wierd things
             for p in self.constrained_parameter_names:
@@ -163,7 +179,6 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                             a0 = self.parameter_distribution_definition[p][1][1]
                             latt = self.parameter_distribution_definition[p][1][2]
                             _parameters[p] = self.calculate_equilibrium_density(a0,latt,_parameters)
-
             try:
                 # check constraints
                 for k,v in self.parameter_constraints.items():
@@ -183,14 +198,18 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                         self._log(_err_msg)
                         raise
                     if eval(_eval_str) is False:
+                        m = "failed parameter constraint, {}".format(k)
                         raise PyposmatBadParameterError()
-
+            
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except PyposmatBadParameterError as e:
+                print(str(e))
                 _n_errors += 1
             except LammpsSimulationError as e:
+                print(str(e))
                 _n_errors += 1
             except PypospackTaskManagerError as e:
+                print(str(e))
                 _n_errors += 1
             else:
                 self.pyposmat_datafile_out.write_simulation_results(
@@ -228,7 +247,14 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             ]
 
         if cluster_id is None:
-            _X = _datafile_in.df[self.free_parameter_names].values.T
+            try:
+                _free_parameter_names = [str(v) for v in self.free_parameter_names]
+                _X = _datafile_in.df[_free_parameter_names].values.T
+            except:
+                for v in _free_parameter_names:
+                    print(v,v in list(_datafile_in.df))
+                raise
+
         else:
             _X = _datafile_in.df[self.free_parameter_names].loc[_datafile_in.df['cluster_id'] == cluster_id].values.T
             self.log.write("cluster_id {c} _X.shape={x}".format(c=cluster_id, x=_X.shape))
