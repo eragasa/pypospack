@@ -10,9 +10,10 @@ import pypospack.io.lammps as lammps
 from pypospack.task import Task
 
 from pypospack.io.eamtools import EamSetflFile
-from pypospack.exceptions import LammpsSimulationError
 from pypospack.potential import Potential,EamPotential,PotentialObjectMap
 from pypospack.potential import StillingerWeberPotential
+
+from pypospack.exceptions import LammpsSimulationError
 
 class AbstractLammpsSimulation(Task):
     """ Calculates cohesive energy
@@ -347,24 +348,35 @@ class AbstractLammpsSimulation(Task):
                 _process_finished = False
             elif _poll_result == 0:
                 _process_finished = True
-            elif _poll_results == 1:
+            elif _poll_result == 1:
                 if self.conditions_ERROR is None:
                     self.conditions_ERROR=OrderedDict()
+               
+                lammps_out_fn = os.path.join(self.task_directory,'lammps.out')
+                with open(lammps_out_fn) as f:
+                    lines = f.readlines()
+                    last_line = lines[len(lines)-1]
+                
+                if "Neighbor list overflow" in last_line:
+                    m  = "Neighbor list overflow"
+                else:
+                    m = "Lammps excited with status {}.  If running an EAM "
+                    m += "potential this is most likely caused by an out-of-index "
+                    m += "exception because the electron density is too high when "
+                    m += "evaluating the embedding function.  The code for modifying "
+                    m += "max_rho for the embedding function is in "
+                    m += "pypospack.potential.EamPotential"
 
-                m = "Lammps excited with status {}.  If running an EAM "
-                m += "potential this is most likely caused by an out-of-index "
-                m += "exception because the electron density is too high when "
-                m += "evaluating the embedding function.  The code for modifying "
-                m += "max_rho for the embedding function is in pypospack.potential.EamPotential"
+                    m = m.format(_poll_result)
 
-                self.conditions_ERROR['lmps_bin_err'] = err_msg
-                raise LammpsSimulationError(err_msg)
+                self.conditions_ERROR['lmps_bin_err'] = m
+                raise LammpsSimulationError(m)
             else:
                 if self.conditions_ERROR is None:
                     self.conditions_ERROR= OrderedDict()
-                err_msg = 'Lammps exited with status {}.'.format(_poll_result)
-                self.conditions_ERROR['lmps_bin_err'] =  err_msg
-                raise LammpsSimulationError(err_msg)
+                m = 'Lammps exited with status {}.'.format(_poll_result)
+                self.conditions_ERROR['lmps_bin_err'] = m 
+                raise LammpsSimulationError(m)
         
         self.conditions_POST['process_finished'] = _process_finished
 

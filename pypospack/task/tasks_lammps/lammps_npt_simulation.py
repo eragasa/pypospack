@@ -50,6 +50,11 @@ class LammpsNptSimulation(LammpsSimulation):
 
         self.lammps_out_fn = 'lammps.out'
         self.lattice_fn = 'lattice.out'
+    
+    def get_task_name(structure,temperature):
+        task_name = '{s}.lmps_npt_{T}'.format(s=structure,T=str(int(T)))
+        return task_name
+    
     def postprocess(self):
         LammpsSimulation.postprocess(self)
 
