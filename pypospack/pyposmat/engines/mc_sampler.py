@@ -322,7 +322,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     for pn,pv in _parameters.items():
                         _eval_str = _eval_str.replace(pn,str(pv))
                     if eval(_eval_str) is False:
-                        raise PyposmatBadParameterError()
+                        s = 'parameter constraint failed, {}'.format(k)
+                        raise PyposmatBadParameterError(s)
 
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except PyposmatBadParameterError as e:
