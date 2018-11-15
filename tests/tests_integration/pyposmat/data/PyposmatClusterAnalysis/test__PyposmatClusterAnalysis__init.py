@@ -1,12 +1,11 @@
-import pytest
 import os
 
 from collections import OrderedDict
 import pandas as pd
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
+from pypospack.pyposmat.data import PyposmatClusterAnalysis
 
-from cluster_analysis import PyposmatClusterAnalysis
 
 pyposmat_src_dir = os.path.join(
     '..','..','..','..',
@@ -19,6 +18,7 @@ pyposmat_data_fn = os.path.join(
     pyposmat_src_dir,'pyposmat.kde.5.out'
 )
 
+
 def test__init():
     o = PyposmatClusterAnalysis()
     assert type(o) is PyposmatClusterAnalysis
@@ -27,11 +27,13 @@ def test__init():
     assert o.data_fn is None
     assert o.data is None
 
+
 def test__read_configuration_file():
     o = PyposmatClusterAnalysis()
     o.read_configuration(filename=pyposmat_configuration_fn)
     assert o.configuration_fn is pyposmat_configuration_fn
     assert type(o.configuration) is PyposmatConfigurationFile
+
 
 def test__read_data():
     o = PyposmatClusterAnalysis()
@@ -42,6 +44,7 @@ def test__read_data():
     assert type(o.qoi_names) is list
     assert type(o.error_names) is list
     assert type(o.df) is pd.DataFrame
+
 
 def test__init_from_ordered_dict__minimum_config():
     d = OrderedDict([
@@ -60,6 +63,7 @@ def test__init_from_ordered_dict__minimum_config():
     assert o.include_parameters is True
     assert o.include_qois is False
     assert o.include_errors is False
+
 
 def test__init_from_orderedDict__variable_selection():
     d = OrderedDict([

@@ -3,17 +3,12 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-import scipy as sp
+import copy
 
 from sklearn import preprocessing
 from sklearn import manifold
 from sklearn import neighbors
 from sklearn import cluster
-from sklearn import metrics
-
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import Imputer
-from sklearn.decomposition import PCA
 
 from pypospack.exceptions import BadPreprocessorTypeException
 from pypospack.exceptions import BadManifoldTypeException
@@ -29,9 +24,198 @@ class PyposmatClusterSampler(object):
     def __init__(self):
         pass
 
+
 class PyposmatPreprocessingPipeline(object):
     def __init__(self):
         pass
+
+
+class SeatonClusterAnalysis(object):
+
+    def __init__(self):
+        self.configuration_fn = None
+        self.data_fn = None
+
+        self.data = None
+        self.configuration = None
+
+        self.parameter_names = None
+        self.qoi_names = None
+        self.error_names = None
+        self.manifold_names = None
+
+    def read_configuration(self, filename):
+        """
+        read in pyposmat configuration file
+
+        Argum ents:
+        ==========
+        filename(str):
+        """
+        self.configuration_fn = filename
+        self.configuration = PyposmatConfigurationFile()
+        self.configuration.read(filename=filename)
+
+    def read_data(self, filename):
+        """
+        read in pyposmat data filename
+
+        Arguments:
+        ==========
+        filename(str):
+        """
+
+        self.data_fn = filename
+        self.data = PyposmatDataFile()
+        self.data.read(filename)
+
+        self.parameter_names = self.data.parameter_names
+        self.qoi_names = self.data.qoi_names
+        self.error_names = self.data.error_names
+        self.df = self.data.df
+
+    def calculate_manifold(self, df=None, d=None):
+        # process arg: df
+        _df = None
+        if df is None and self.df is None:
+            raise ValueError("no data to calculate manifold")
+        elif df is None:
+            _df = self.df
+        else:
+            _df = df
+
+        # process arg: d
+        if d is None:
+            return self._calculate_manifold_tsne(df=_df)
+        elif d['manifold']['type'] == 'tsne':
+            return self._calculate_manifold_tsne(df=_df, d=d)
+        else:
+            raise NotImplementedError()
+
+    def _calculate_manifold_tsne(self, df, d=None):
+        # process arg: d
+        if d is None:
+            o_tsne = manifold.TSNE()
+        else:
+            kwargs = OrderedDict()
+            for k, v in d['manifold']['args'].items():
+                kwargs[k] = v
+
+            for k, v in kwargs.items():
+                d['manifold']['args'][k] = v
+
+            o_tsne = manifold.TSNE(**kwargs)
+
+        arr = o_tsne.fit_transform(copy.deepcopy(df))
+        nrows, ncols = arr.shape
+        tsne_cols = ["tsne_{}".format(i) for i in range(ncols)]
+        tsne_df = pd.DataFrame(data=arr, columns=tsne_cols)
+        return tsne_df
+
+    def calculate_clusters(self, df=None, d=None):
+        # process arg: df
+        _df = None
+        if df is None and self.df is None:
+            raise ValueError("no data to calculate clusters")
+        elif df is None:
+            _df = self.df
+        else:
+            _df = df
+
+        # process arg: d
+        if d is None:
+            return self._calculate_clusters_dbscan(df=_df)
+        elif d['cluster']['type'] == 'dbscan':
+            return self._calculate_clusters_dbscan(df=_df, d=d)
+        elif d['cluster']['type'] == 'kmeans':
+            raise NotImplementedError()
+        else:
+            raise BadClusterTypeException()
+
+    def _calculate_clusters_dbscan(self, df, d=None):
+        # process arg: d
+        if d is None:
+            dbscan = cluster.DBSCAN()
+        else:
+            kwargs = OrderedDict()
+            for k, v in d['cluster']['args'].items():
+                kwargs[k] = v
+
+            for k, v in kwargs.items():
+                d['cluster']['args'][k] = v
+
+            dbscan = cluster.DBSCAN(**kwargs)
+        labels = dbscan.fit_predict(copy.deepcopy(df))
+        df['cluster_id'] = labels
+        return df
+
+    def select_cluster(self, cluster_id, df=None):
+        # process arg: df
+        _df = None
+        if df is None:
+            _df = self.df
+        else:
+            _df = df
+
+        if 'cluster_id' not in list(df):
+            _df = self.calculate_clusters(_df)  # calculate ids if none exist
+
+        sub_df = _df.loc[_df['cluster_id'] == cluster_id]
+        return sub_df
+
+    # TODO
+    def calculate_kNN_analysis(self,d):
+        start_time = time.time()
+        self.kNN_tree = None
+        self.kNN_names = None
+        self.kNN = d['neighbors']['kNN']
+        self.nearest_neighbor_type = d['neighbors']['type']
+        if self.nearest_neighbor_type == 'ball_tree':
+            self._kNN__ball_tree(d)
+        else:
+            raise BadNearestNeighborTypeException()
+        stop_time = time.time()
+        self.cpu_time_kNN = stop_time - start_time
+
+    # TODO
+    def _kNN__ball_tree(self,d):
+        kwargs = OrderedDict()
+        kwargs['leaf_size'] = 40
+        kwargs['metric'] = 'minkowski'
+
+        for k,v in d['neighbors']['args'].items():
+            kwargs[k] = v
+
+        for k,v in kwargs.items():
+            d['neighbors']['args'][k] = v
+
+        self.kNN_tree = neighbors.BallTree(
+            self.data.df[self.manifold_names],
+            **kwargs
+        )
+
+        self.kNN_names = ['NN_{}'.format(i) for i in range(self.kNN)]
+
+        self.data.df = pd.concat(
+            [
+                self.data.df,
+                pd.DataFrame(
+                    data = self.kNN_tree.query(
+                        X = self.data.df[self.manifold_names],
+                        k = self.kNN,
+                        return_distance = True
+                    )[0],
+                    columns = self.kNN_names
+                )
+            ],
+            axis = 1
+        )
+
+    # TODO
+    def is_valid_partition(self):
+        pass
+
+
 
 class PyposmatClusterAnalysis(object):
     def __init__(self, o_logger=None):
