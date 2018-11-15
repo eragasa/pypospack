@@ -213,16 +213,18 @@ class PyposmatDataFile(object):
         for line in lines[2:]:
             tokens = line.strip().split(',')
             values = []
-            for i in range(len(self._names)):
-                if i == 0:
-                    values.append(tokens[i])
-                else:
+            for i,v in enumerate(self._names):
+                try:
                     values.append(float(tokens[i]))
+                except ValueError as e:
+                    if v.endswith('latticetype'):
+                        values.append(tokens[i])
+                    elif v.endswith('sim_id'):
+                        values.append(tokens[i])
+                    else:
+                        raise
             table.append(values)
         
-        # self.df = pd.DataFrame(table)
-        # self.df.columns = self._names
-        # replaced the above 2 lines with this -Seaton
         self.df = pd.DataFrame(data=table, columns=self._names)
         
         self.parameter_names = [
