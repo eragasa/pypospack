@@ -82,9 +82,9 @@ parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
-#pypospack_root_dir = [v.strip() for v in os.environ['PYTHONPATH'].split(':') if v.endswith('pypospack')][0]
+pypospack_root_dir = [v.strip() for v in os.environ['PYTHONPATH'].split(':') if v.endswith('pypospack')][0]
 structure_db = OrderedDict()
-structure_db['structure_directory'] = os.path.join('structure_db')
+structure_db['structure_directory'] = os.path.join(pypospack_root_dir,'data/Ni_structure_db')
 structure_db['structures'] = OrderedDict()
 structure_db['structures']['Ni_fcc'] = 'Ni_fcc_100_unit.gga.relaxed.vasp'
 structure_db['structures']['Ni_bcc'] = 'Ni_bcc_100_unit.gga.relaxed.vasp'
