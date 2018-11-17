@@ -95,37 +95,33 @@ class SeatonClusterAnalysis(BasePipeSegment):
         arr = o_kmeans.fit_predict(df)
         self.df['cluster_id'] = arr
 
-    def select_cluster(self, cluster_id, df=None):
-        # process arg: df
-        _df = None
-        if df is None:
-            _df = self.df
-        else:
-            _df = df
-
-        if 'cluster_id' not in list(_df):
-            _df = self.calculate_clusters(_df)  # calculate ids if none exist
-
-        sub_df = _df.loc[_df['cluster_id'] == cluster_id]
+    def select_cluster(self, cluster_id):
+        if 'cluster_id' not in list(self.df):
+            raise KeyError("cluster_id column not found, calculate clusters prior to selection")
+        sub_df = self.df.loc[self.df['cluster_id'] == cluster_id]
         return sub_df
 
-    def to_dict(self, df=None):
-        # process arg: df
-        _df = None
-        if df is None:
-            _df = self.df
-        else:
-            _df = df
+    def to_dict(self):
+        if 'cluster_id' not in list(self.df):
+            raise KeyError("cluster_id column not found, calculate clusters prior to selection")
 
-        if 'cluster_id' not in list(_df):
-            _df = self.calculate_clusters(_df)
-
-        cluster_ids = set(_df['cluster_id'])
+        cluster_ids = set(self.df['cluster_id'])
         cluster_dict = OrderedDict()
         for cid in cluster_ids:
-            cluster_dict[cid] = _df.loc[_df['cluster_id'] == cid]
+            cluster_dict[cid] = self.select_cluster(cid)
         return cluster_dict
 
+    def is_valid_partition(self):
+        if 'cluster_id' not in list(self.df):
+            raise KeyError("cluster_id column not found, calculate clusters prior to selection")
+        # ensure that all clusters have more points than there are parameters
+        for k, v in self.to_dict().items():
+            nrows, ncols = v.shape
+            if nrows <= self.data.parameter_names:
+                return False
+        return True
+
+    # TODO: move to plotting class
     def plot_clusters(self, x_axis, y_axis, df=None, show=False, filename=None):
         # process arg: df
         _df = None
@@ -202,11 +198,6 @@ class SeatonClusterAnalysis(BasePipeSegment):
             ],
             axis = 1
         )
-
-    # TODO
-    def is_valid_partition(self):
-        pass
-
 
 
 class PyposmatClusterAnalysis(object):
