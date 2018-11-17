@@ -33,7 +33,8 @@ def filter_by_znormalized_errors(df,percentile,qoi_names):
 class PyposmatDataAnalyzer(object):
     def __init__(self,fn_config=None,fn_data=None):
         self._configuration = None
-        self._datafile = None
+        self._data = None
+        self.obj_log = None
 
         if fn_config is not None:
             self.fn_config = fn_config
@@ -52,13 +53,21 @@ class PyposmatDataAnalyzer(object):
         self._configuration = configuration
 
     @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self,data):
+        self._data = data
+
+    @property
     def datafile(self):
-        return self._datafile
+        return self._data
 
     @datafile.setter
     def datafile(self,datafile):
         assert type(datafile) is PyposmatDataFile
-        self._datafile = datafile
+        self._data = datafile
 
     @property
     def parameter_names(self):
@@ -80,24 +89,36 @@ class PyposmatDataAnalyzer(object):
     def df(self):
         return self._df
 
-    def read_configuration_file(self,filename):
-        self._configuration = PyposmatConfigurationFile()
-        self._configuration.read(filename)
+    def log(self,m):
+        if self.obj_log is None:
+            print(m)
 
+    def read_configuration(self,filename):
+        self._configuration = PyposmatConfigurationFile()
+        self._configuration.read(filename=filename)
+
+        m = "configuration:{}".format(filename)
+        self.log(m)
+
+    def read_configuration_file(self,filename):
+        self.read_configuration(filename=filename)
+
+    def read_data(self,filename):
+        self._data = PyposmatDataFile()
+        self._data.read(filename=filename)
+
+        m = "data:{}".format(filename)
+        self.log(m)
+
+        self._df = copy.deepcopy(self.data.df)
+        self._parameter_names = list(self.data.parameter_names)
+        self._error_names = list(self.data.error_names)
+        self._qoi_names = list(self.data.qoi_names)
+        self._score_names = None
+    
     def read_data_file(self,filename):
         
-        try:
-            self._datafile = PyposmatDataFile()
-            self._datafile.read(filename)
-        except ValueError as e:
-            print("Cannot read filename: {}".format(filename))
-            raise
-        
-        self._df = copy.deepcopy(self._datafile.df)
-        self._parameter_names = list(self._datafile.parameter_names)
-        self._error_names = list(self._datafile.error_names)
-        self._qoi_names = list(self._datafile.qoi_names)
-        self._score_names = None
+        self.read_data(filename=filename)
 
     def calculate_pareto_set(self,df,v):
         _df = copy.deepcopy(df)
@@ -169,6 +190,8 @@ class PyposmatDataAnalyzer(object):
 
     def filter_with__qoi_constraints(self,kde_df,qoi_constraints):
         _df = copy.deepcopy(kde_df)
+        m = [80*'-',"filtering by qoi_constraints",80*'-']
+        self.log("\n".join(m))
 
         for qn in self.datafile.qoi_names:
             aen = "{}.abserr".format(qn)
@@ -186,8 +209,8 @@ class PyposmatDataAnalyzer(object):
             else:
                 raise ValueError('unknown operator, {}'.format(k))
             nr1,nc0 =_df.shape
-            s = "{:>20} {:^3} {:<10} {:10} {:10} {:10}".format(qoic_n,qoic_v[0],qoic_v[1],nr1,nr0,nr0-nr1)
-            print(s)
+            m = "{:>20} {:^3} {:<10} {:10} {:10} {:10}".format(qoic_n,qoic_v[0],qoic_v[1],nr1,nr0,nr0-nr1)
+            self.log(m)
         return _df
 
     def filter_by_znormalized_errors(self,kde_df,qoi_constraints):
@@ -200,7 +223,10 @@ class PyposmatDataAnalyzer(object):
     def write_kde_file(self,filename):
         _qoi_constraints = self.configuration.qoi_constraints
         kde_df = copy.deepcopy(self._df)
+
+        # filtering by the qoi constraints
         for k,v in _qoi_constraints.items():
+
             if k == 'qoi_constraints':
                 kde_df = self.filter_with__qoi_constraints(kde_df,v)
             elif k == "filter_by__d_zerror":

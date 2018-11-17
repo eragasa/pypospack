@@ -24,6 +24,14 @@ import numpy as np
 import pandas as pd
 class PypospackVisualization(ParetoOptimizationVisualization):
 
+    def read_configuration(self,filename):
+        self.config = PyposmatConfigurationFile()
+        self.config.read(filename=filename)
+
+    def read_data(self, filename):
+        self.data = PyposmatDataFile()
+        self.data.read(filename=filename)
+
     def load_data_file(self, fname):
         names = []
         names_types = []
@@ -84,6 +92,11 @@ class PypospackVisualization(ParetoOptimizationVisualization):
         self.err_names = list(err_names)
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config')
+    args = parser.parse_args()
     data_dir = 'data__morse_exp_fs_2'
     filename = os.path.join(data_dir,'pyposmat.kde.10.out')
 
