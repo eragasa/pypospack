@@ -1,14 +1,20 @@
-
 import copy,os
+from collections import OrderedDict
+
+# data management imports
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
-from pypospack.pyposmat.data import PyposmatDataFile
-from pypospack.pyposmat.data import PyposmatConfigurationFile
+
+# graphics import
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from pandas.plotting import parallel_coordinates
 
-class PyposmatParetoRugplot(object):
+# pyposmat imports
+from pypospack.pyposmat.data import PyposmatDataFile
+from pypospack.pyposmat.data import PyposmatConfigurationFile
+
+class PyposmatQoiParallelCoordinatesPlot(object):
 
     def __init__(self):
         """
@@ -101,6 +107,13 @@ class PyposmatParetoRugplot(object):
             include_qois_v (bool): Including the testing qois in the rugplot
         """
 
+        use_latex = True
+        if use_latex:
+            plt.rcParams['font.family'] = 'serif'
+            plt.rcParams['font.serif'] = 'Helvetica'
+            plt.rcParams['text.usetex'] = True
+            plt.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
+        
         self.plot_fn = filename
 
         if qoi_excluded_names is not None:
@@ -130,17 +143,16 @@ class PyposmatParetoRugplot(object):
     
         _fig,_ax = plt.subplots()
         
-        self.add_vertical_datum_line_to_plot(ax=_ax)
+        self.add_datum_line_to_plot(ax=_ax)
         self.add_results_to_plot(ax=_ax,qoi_names=_qoi_names)
         self.add_reference_potentials_to_plot(ax=_ax,qoi_names=_qoi_names)
-        self.add_horizontal_separator(ax=_ax)
+        self.add_qoi_v_separator(ax=_ax)
+        
         # set limits
-        _ax.set_xlim([-1,1])
-        _ax.set_ylim([0,len(_qoi_names)+1])
-        
-        self.add_x_axis_labels(ax=_ax)
-        self.add_y_axis_labels(ax=_ax,qoi_names=_qoi_names)
-        
+        _ax.set_ylim([-1,1])
+
+        self.add_x_axis_labels(ax=_ax,qoi_names=_qoi_names)
+        self.add_y_axis_labels(ax=_ax)
         
         _ref_data_name = [k for k in self.configuration.reference_potentials]
         _ref_data_colors = self.reference_data_colors_default
@@ -157,7 +169,7 @@ class PyposmatParetoRugplot(object):
         _handles.append(mpatches.Patch(color=_best_data_color,label=_best_data_name))
 
         _ax.legend(handles=_handles,loc=_legend_location)
-        
+        _ax.grid(False) 
         _fig.tight_layout()
 
         _plot_fn = self.plot_fn
@@ -227,17 +239,34 @@ class PyposmatParetoRugplot(object):
 
             self.df[nen] = self.df[qn]/q-1
                
-    def add_results_to_plot(self,ax,qoi_names):
-        for iqn,qn in enumerate(qoi_names):
-            (nrows,ncols) = self.results_df.shape
-            if qn in self.qoi_names:
-                x = self.results_df['{}.nerr'.format(qn)]
-            elif qn in self.qoi_validation_names:
-                x = self.results_df['{}.nerr_v'.format(qn)]
+    def add_results_to_plot(self,
+            ax,
+            qoi_names,
+            results_color = 'grey'):
+
+        self.results_color = 'grey'
+        if self.results_color is not None: self.results_color = results_color
+        _results_color = self.results_color
+
+        
+        _df = self.results_df
+        _col_names = []
+        
+        for q in qoi_names:
+            if q in self.configuration.qoi_names:
+                _col_names.append('{}.nerr'.format(q))
+            elif q in self.configuration.qoi_validation_names:
+                _col_names.append('{}.nerr_v'.format(q))
             else:
-                raise ValueError()
-            y = nrows*[len(qoi_names)-iqn]
-            ax.scatter(x,y,marker='|',color='grey')
+                _col_names.append(q)
+
+        parallel_coordinates(
+                _df,
+                'sim_id',
+                cols = _col_names,
+                ax = ax,
+                axvlines = False,
+                color = _results_color)
 
     def add_reference_potentials_to_plot(self,
             ax,
@@ -270,49 +299,58 @@ class PyposmatParetoRugplot(object):
         _marker_size = self.reference_data_marker_size
         _marker_type = self.reference_data_marker_type
         _marker_color = self.reference_data_colors
-       
-        for _,row in self.reference_df.iterrows():
-            for iqn,qn in enumerate(qoi_names):
-                (nrows,ncols) = self.results_df.shape
-                if qn in self.qoi_names:
-                    x = row['{}.nerr'.format(qn)]
-                elif qn in self.qoi_validation_names:
-                    x = row['{}.nerr_v'.format(qn)]
-                else:
-                    raise ValueError()
-                y = [len(qoi_names)-iqn]
-                ax.scatter(x,y,
-                    s=_marker_size,
-                    marker=_marker_type,
-                    color=_marker_color[row['sim_id']]
-                    )
+      
+        _col_names = []
+        for q in qoi_names:
+            if q in self.configuration.qoi_names:
+                _col_names.append('{}.nerr'.format(q))
+            elif q in self.configuration.qoi_validation_names:
+                _col_names.append('{}.nerr_v'.format(q))
+            else:
+                _col_names.append(q)
 
-    def add_x_axis_labels(self,ax):
+        for v in _reference_potential_names:
+            _df = self.df.loc[self.df['sim_id'].isin([v])]
+            parallel_coordinates(
+                    _df,
+                    'sim_id',
+                    axvlines = False,
+                    cols = _col_names,
+                    color = _marker_color[v])
+    def add_y_axis_labels(self,ax):
         # set numbers to percentages
-        vals = ax.get_xticks()
-        ax.set_xticklabels(['{:,.0%}'.format(x) for x in vals])
-    
-    def add_y_axis_labels(self,ax,qoi_names):
+        
+        y_ticks = ax.get_yticks()
+        y_tick_labels = ['{:.0f}\%'.format(100*v) for v in y_ticks]
+   
+        ax.set_yticklabels(y_tick_labels)
+    def add_x_axis_labels(self,ax,qoi_names):
         try:
             _latex_labels = self.configuration.latex_labels 
-            _y_ticks_labels = [_latex_labels[qn]['name'] for qn in qoi_names]
+            _x_ticks_labels = [_latex_labels[qn]['name'] for qn in qoi_names]
 
             plt.rcParams['font.family'] = 'serif'
             plt.rcParams['font.serif'] = 'Helvetica'
             plt.rcParams['text.usetex'] = True
             plt.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
             
+            plt.sca(ax)
+            plt.xticks(
+                    list(range(len(qoi_names))),
+                    list((_x_ticks_labels))
+                )
         except TypeError as e:
             # use text labels
-            _y_ticks_labels = qoi_names
+            _x_ticks_labels = qoi_names
+            plt.sca(ax)
+            plt.xticks(
+                    list(range(1,len(qoi_names)+1)),
+                    list((_x_ticks_labels))
+                )
+            plt.xticks(rotation=90)
 
-        plt.sca(ax)
-        plt.yticks(
-                list(range(1,len(qoi_names)+1)),
-                list(reversed(_y_ticks_labels))
-            )
 
-    def add_horizontal_separator(self,ax,
+    def add_qoi_v_separator(self,ax,
             qoi_v_separator_width=None,
             qoi_v_separator_style=None,
             qoi_v_separator_color=None):
@@ -325,14 +363,14 @@ class PyposmatParetoRugplot(object):
         _qoi_v_separator_style = self.qoi_v_separator_style
         _qoi_v_separator_color = self.qoi_v_separator_color
 
-        _qoi_v_separator_location = len(self.qoi_validation_names) + 0.5
-        ax.axhline(
+        _qoi_v_separator_location = len(self.qoi_names) - 0.5
+        ax.axvline(
                 _qoi_v_separator_location,
                 color = _qoi_v_separator_color,
                 linestyle = _qoi_v_separator_style,
                 linewidth = _qoi_v_separator_width)
 
-    def add_vertical_datum_line_to_plot(self,
+    def add_datum_line_to_plot(self,
             ax,
             datum_line_width=None,
             datum_line_style=None,
@@ -346,7 +384,7 @@ class PyposmatParetoRugplot(object):
         _datum_line_style = self.datum_line_style
         _datum_line_color = self.datum_line_color
 
-        ax.axvline(0,
+        ax.axhline(0,
                 color=_datum_line_color,
                 linestyle=_datum_line_style,
                 linewidth=_datum_line_width

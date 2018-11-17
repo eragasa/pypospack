@@ -36,10 +36,17 @@ class PyposmatBokehVisualizer(object):
         bokeh_tools = ['box_select', 'reset', 'box_zoom', 'pan']
         self.bokeh_tools = ', '.join(bokeh_tools)
 
-    def load_data_file(self, filename):
+    def read_configuration(self,filename):
+        self.configuration = PyposmatConfigurationFile()
+        self.configuration.read(filename=filename)
 
+    def read_data(self,filename):
         self.datafile = PyposmatDataFile()
         self.datafile.read(filename=filename)
+
+        self.parameter_names = list(self.datafile.parameter_names)
+        self.qoi_names = list(self.datafile.qoi_names)
+        self.error_names = list(self.datafile.error_names)
 
         self.param_names = list(self.datafile.parameter_names)
         self.qoi_names = list(self.datafile.qoi_names)
@@ -360,3 +367,11 @@ class PyposmatBokehVisualizer(object):
             self.bokeh_server.show, '/'
         )
         self.bokeh_server.io_loop.start()
+
+def start_bokeh_visualization(config_fn,data_fn):
+    o = PyposmatBokehVisualizer()
+    o.read_configuration(filename=config_fn)
+    o.read_data(filename=data_fn)
+    o.start_bokeh_server()
+    o.setup_bokeh_frame()
+
