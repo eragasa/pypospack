@@ -66,7 +66,7 @@ print('N_r:',r.shape)
 
 # create electron density vector
 rho_max = 100000.
-N_rho = 100
+N_rho = 1000
 rho = rho_max*np.linspace(1,N_rho,N_rho)/N_rho
 print('type(rho):{}'.format(type(rho)))
 print('rho:')
@@ -180,4 +180,45 @@ for s in symbols:
     print('{}:{}:{}'.format(
         s,
         type(pot.embedding[s]),
-        pot.embedding[s].shape))
+      pot.embedding[s].shape))
+
+print('printing these functions')
+
+import matplotlib.pyplot as plt
+
+nearest_neighbor = OrderedDict()
+nearest_neighbor[1] = OrderedDict()
+nearest_neighbor[2] = OrderedDict()
+nearest_neighbor[3] = OrderedDict()
+nearest_neighbor[1]['N'] = 12
+nearest_neighbor[1]['d/a'] = 1.*np.sqrt(1/2)
+nearest_neighbor[2]['N'] = 6
+nearest_neighbor[2]['d/a'] = 1.
+nearest_neighbor[3]['N'] = 24
+nearest_neighbor[3]['d/a'] = 1.*np.sqrt(3/2)
+
+e_coh = 0
+e_dens = 0
+for i in [1,2,3]:
+    a0 = lattice_info['Ni']['lattice_parameter']
+    NN_N = nearest_neighbor[i]['N']
+    NN_r = nearest_neighbor[i]['d/a'] * a0
+
+    e_coh += np.interp(NN_r,r,pot.pair['NiNi'])
+    e_dens += np.interp(NN_r,r,pot.density['Ni'])
+
+e_embed = np.interp(e_dens,rho,pot.embedding['Ni'])
+
+e_coh = e_coh/2 + e_embed
+print('E_cohesive={}'.format(e_coh))
+
+fig, ax = plt.subplots(3,1)
+for k,v in pot.pair.items():
+    ax[0].plot(r,v)
+for k,v in pot.density.items():
+    ax[1].plot(r,v)
+for k,v in pot.embedding.items():
+    ax[2].plot(rho,v)
+
+plt.tight_layout()
+plt.show()
