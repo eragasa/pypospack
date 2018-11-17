@@ -1,9 +1,8 @@
 import time
 from collections import OrderedDict
 
-import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
-import copy
 
 from sklearn import preprocessing
 from sklearn import manifold
@@ -16,6 +15,7 @@ from pypospack.exceptions import BadNearestNeighborTypeException
 from pypospack.exceptions import BadClusterTypeException
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.pyposmat.data.pipeline import BasePipeSegment
 from pypospack.kde import Chiu1999_h
 
 
@@ -30,124 +30,70 @@ class PyposmatPreprocessingPipeline(object):
         pass
 
 
-class SeatonClusterAnalysis(object):
+class SeatonClusterAnalysis(BasePipeSegment):
 
-    def __init__(self):
-        self.configuration_fn = None
-        self.data_fn = None
+    def __init__(self, o_logger=None):
+        super().__init__(o_logger)
 
-        self.data = None
-        self.configuration = None
-
-        self.parameter_names = None
-        self.qoi_names = None
-        self.error_names = None
-        self.manifold_names = None
-
-    def read_configuration(self, filename):
+    def calculate_clusters(self, cluster_by=None, d=None):
         """
-        read in pyposmat configuration file
-
-        Argum ents:
-        ==========
-        filename(str):
+        clusters the dataframe
+        :param d: nested dict of custom args
+                  - default to DBSCAN
+        :param cluster_by: list[string]
+                        - df keys to cluster
+                        - cluster entire df if None
         """
-        self.configuration_fn = filename
-        self.configuration = PyposmatConfigurationFile()
-        self.configuration.read(filename=filename)
-
-    def read_data(self, filename):
-        """
-        read in pyposmat data filename
-
-        Arguments:
-        ==========
-        filename(str):
-        """
-
-        self.data_fn = filename
-        self.data = PyposmatDataFile()
-        self.data.read(filename)
-
-        self.parameter_names = self.data.parameter_names
-        self.qoi_names = self.data.qoi_names
-        self.error_names = self.data.error_names
-        self.df = self.data.df
-
-    def calculate_manifold(self, df=None, d=None):
-        # process arg: df
-        _df = None
-        if df is None and self.df is None:
-            raise ValueError("no data to calculate manifold")
-        elif df is None:
+        # process arg: cluster_by
+        if cluster_by is None:
             _df = self.df
         else:
-            _df = df
+            _df = self.df[cluster_by]
 
         # process arg: d
+        _kwargs = OrderedDict()
         if d is None:
-            return self._calculate_manifold_tsne(df=_df)
-        elif d['manifold']['type'] == 'tsne':
-            return self._calculate_manifold_tsne(df=_df, d=d)
+            self._calculate_clusters_dbscan(df=_df)  # default to dbscan
         else:
-            raise NotImplementedError()
-
-    def _calculate_manifold_tsne(self, df, d=None):
-        # process arg: d
-        if d is None:
-            o_tsne = manifold.TSNE()
-        else:
-            kwargs = OrderedDict()
-            for k, v in d['manifold']['args'].items():
-                kwargs[k] = v
-
-            for k, v in kwargs.items():
-                d['manifold']['args'][k] = v
-
-            o_tsne = manifold.TSNE(**kwargs)
-
-        arr = o_tsne.fit_transform(copy.deepcopy(df))
-        nrows, ncols = arr.shape
-        tsne_cols = ["tsne_{}".format(i) for i in range(ncols)]
-        tsne_df = pd.DataFrame(data=arr, columns=tsne_cols)
-        return tsne_df
-
-    def calculate_clusters(self, df=None, d=None):
-        # process arg: df
-        _df = None
-        if df is None and self.df is None:
-            raise ValueError("no data to calculate clusters")
-        elif df is None:
-            _df = self.df
-        else:
-            _df = df
-
-        # process arg: d
-        if d is None:
-            return self._calculate_clusters_dbscan(df=_df)
-        elif d['cluster']['type'] == 'dbscan':
-            return self._calculate_clusters_dbscan(df=_df, d=d)
-        elif d['cluster']['type'] == 'kmeans':
-            raise NotImplementedError()
-        else:
-            raise BadClusterTypeException()
-
-    def _calculate_clusters_dbscan(self, df, d=None):
-        # process arg: d
-        if d is None:
-            dbscan = cluster.DBSCAN()
-        else:
-            kwargs = OrderedDict()
+            # build kwargs
             for k, v in d['cluster']['args'].items():
-                kwargs[k] = v
-
-            for k, v in kwargs.items():
+                _kwargs[k] = v
+            for k, v in _kwargs.items():
                 d['cluster']['args'][k] = v
 
-            dbscan = cluster.DBSCAN(**kwargs)
-        labels = dbscan.fit_predict(copy.deepcopy(df))
-        df['cluster_id'] = labels
-        return df
+            # check cluster type
+            if d['cluster']['type'] == 'dbscan':
+                self._calculate_clusters_dbscan(df=_df, kwargs=_kwargs)
+            elif d['cluster']['type'] == 'kmeans':
+                self._calculate_clusters_kmeans(df=_df, kwargs=_kwargs)
+            else:
+                raise BadClusterTypeException()
+
+    def _calculate_clusters_dbscan(self, df, kwargs=None):
+        """
+        mutates self.df by concatenating cluster ids
+        """
+        # process arg: kwargs
+        if kwargs is None:
+            o_dbscan = cluster.DBSCAN()  # default args
+        else:
+            o_dbscan = cluster.DBSCAN(**kwargs)
+
+        arr = o_dbscan.fit_predict(df)
+        self.df['cluster_id'] = arr
+
+    def _calculate_clusters_kmeans(self, df, kwargs=None):
+        """
+        mutates self.df by concatenating cluster ids
+        """
+        # process arg: kwargs
+        if kwargs is None:
+            o_kmeans = cluster.KMeans()  # default args
+        else:
+            o_kmeans = cluster.KMeans(**kwargs)
+
+        arr = o_kmeans.fit_predict(df)
+        self.df['cluster_id'] = arr
 
     def select_cluster(self, cluster_id, df=None):
         # process arg: df
@@ -157,11 +103,57 @@ class SeatonClusterAnalysis(object):
         else:
             _df = df
 
-        if 'cluster_id' not in list(df):
+        if 'cluster_id' not in list(_df):
             _df = self.calculate_clusters(_df)  # calculate ids if none exist
 
         sub_df = _df.loc[_df['cluster_id'] == cluster_id]
         return sub_df
+
+    def to_dict(self, df=None):
+        # process arg: df
+        _df = None
+        if df is None:
+            _df = self.df
+        else:
+            _df = df
+
+        if 'cluster_id' not in list(_df):
+            _df = self.calculate_clusters(_df)
+
+        cluster_ids = set(_df['cluster_id'])
+        cluster_dict = OrderedDict()
+        for cid in cluster_ids:
+            cluster_dict[cid] = _df.loc[_df['cluster_id'] == cid]
+        return cluster_dict
+
+    def plot_clusters(self, x_axis, y_axis, df=None, show=False, filename=None):
+        # process arg: df
+        _df = None
+        if df is None:
+            _df = self.df
+        else:
+            _df = df
+
+        if 'cluster_id' not in list(_df):
+            _df = self.calculate_clusters(_df)
+
+        if x_axis not in list(_df) or y_axis not in list(_df):
+            raise ValueError("invalid axis key: {} or {} not found".format(x_axis, y_axis))
+
+        cluster_dict = self.to_dict(_df)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for cid in cluster_dict:
+            _x = cluster_dict[cid][x_axis]
+            _y = cluster_dict[cid][y_axis]
+            ax.scatter(x=_x, y=_y, s=1)
+        if filename is None:
+            fn = "pyposmat_cluster_plot.jpg"
+        else:
+            fn = filename
+        plt.savefig(fn)
+        if show:
+            plt.show()
 
     # TODO
     def calculate_kNN_analysis(self,d):
