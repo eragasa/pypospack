@@ -21,16 +21,15 @@ iso_chem_symbols = ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al',
         'Uub','Uut','Uuq','Uup','Uuh','Uus','Uuo']
 
 atom_info = {}
-atom_info['Ar'] = {'amu':39.948}
-atom_info['Mg'] = {'amu':24.305}
-atom_info['O'] = {'amu':15.9994}
-atom_info['Si'] = {'amu':28.0855}
-atom_info['Ni'] = {'amu':58.6934}
-
-space_group = {}
+atom_info['Ar'] = {'atomic_mass':39.948}
+atom_info['Mg'] = {'atomic_mass':24.305}
+atom_info['O'] = {'atomic_mass':15.9994}
+atom_info['Si'] = {'atomic_mass':28.0855}
+atom_info['Ni'] = {'atomic_mass':58.6934}
+atom_info['Al'] = {'atomic_mass':26.981539}
 
 def get_amu(symbol):
-    return atom_info[symbol]['amu']
+    return atom_info[symbol]['atomic_mass']
 
 def cartesian2direct(x,H):
     """ transforms cartesian coordinates to direct coordinates

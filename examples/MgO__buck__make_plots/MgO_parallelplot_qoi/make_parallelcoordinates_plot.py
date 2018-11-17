@@ -2,81 +2,39 @@ import copy,os
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from pypospack.pyposmat.data import PyposmatDataFile
-from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.pyposmat.visualization.parallel_plot_qoi import PyposmatQoiParallelCoordinatesPlot
+
+pypospack_root_dir = [v for v in os.environ['PYTHONPATH'].split(':') if v.endswith('pypospack')][0]
+# -----------------------------------------------------------------------------
+# DEFINE WHERE TO FIND ALL THE DATA
+# -----------------------------------------------------------------------------
+datafile_fn = os.path.join(pypospack_root_dir,'data/MgO_pareto_data/qoiplus_005.out')
+config_fn = os.path.join(pypospack_root_dir,'examples/MgO__buck__add_additional_qoi/data/pyposmat.config.in')
 
 # -----------------------------------------------------------------------------
-# Define where to find all the data
+# DEFINE WHERE TO PUT ALL THE OUTPUT
 # -----------------------------------------------------------------------------
-
-qoi_names = ['MgO_NaCl.a0','MgO_NaCl.c11','MgO_NaCl.c12','MgO_NaCl.c44','MgO_NaCl.B','MgO_NaCl.G','MgO_NaCl.fr_a','MgO_NaCl.fr_c','MgO_NaCl.sch','MgO_NaCl.001s']
-results_LewisCatlow_raw = [4.21079021691525,307.571810176713,171.13560278936,168.168424864137,216.61433858514434,68.21810369367648,9.679582738895988,9.810034150996216,5.796822583346511,0.06783775861630922]
-results_BallGrimes_1_raw = [4.20883001371435,360.106974760923,162.314315016903,160.683383081696,228.24520159824297,98.89632987200999,12.428466047278562,11.87773342645869,7.200953868002216,0.08064679409333339]
-results_BallGrimes_2_raw = [4.222448,301.315822058251,150.827961278274,142.471471981922,200.99058153826635,75.2439303899885,10.435732615942925,8.526618652243087,5.509124492308274,0.0692527122209811]
-
-
-results_LewisCatlow = OrderedDict([])
-results_BallGrimes_1 = OrderedDict([])
-results_BallGrimes_2 = OrderedDict([])
-
-for i,v in enumerate(qoi_names):
-    results_LewisCatlow[v] = results_LewisCatlow_raw[i]
-    results_BallGrimes_1[v] = results_BallGrimes_1_raw[i]
-    results_BallGrimes_2[v] = results_BallGrimes_2_raw[i]
-
-ref_data = OrderedDict()
-ref_data['LC'] = results_LewisCatlow
-ref_data['BG1'] = results_BallGrimes_1
-ref_data['BG2'] = results_BallGrimes_2
-
-ref_data_colors = OrderedDict()
-ref_data_colors['LC'] = "red"
-ref_data_colors['BG1'] = 'blue'
-ref_data_colors['BG2'] = "green"
-
-class PyposmatParallelCoordinates(object):
-    pass
+output_directory = "./"
+output_plot_fn = os.path.join(
+        output_directory,
+        'qoi_parallelplot_MgO_buck.png'
+)
 
 if __name__ == "__main__":
-    from pathlib import Path
-   
-    # define base qoi
-    base_qoi = "sim_id"
-    # define the data directory, and relevant input files
-    data_directory = "../../../data/MgO_pareto_data"
-    config_fn = os.path.join(data_directory,'pyposmat.config.in')
-    datafile_fn = os.path.join(data_directory,'culled_005.out')
+    o_plot = PyposmatQoiParallelCoordinatesPlot()
+    o_plot.read_configuration(filename=config_fn)
+    o_plot.read_datafile(filename=datafile_fn)
+    o_plot.plot_legend_location = 'best'
+    o_plot.make_plot(
+            filename=output_plot_fn,
+            include_qois=True,
+            include_qois_v=True,
+            qoi_excluded_names=None)
 
-    if Path(data_directory).is_dir():
-        print("[OK] data_directory:{}:found".format(data_directory))
-    else:
-        print("[FAIL] data_directory:{}:not found".format(data_directory))
-        exit()
-
-    # define the the output directory, and relevant output files
-    output_directory = "./"
+    exit()
     output_plot_fn = os.path.join(output_directory,'rugplot_MgO_buck.eps')
 
 
-    if Path(data_directory).is_dir():
-        print("[OK] data_directory:{}:found".format(data_directory))
-    else:
-        print("[FAIL] data_directory:{}:not found".format(data_directory))
-        exit()
-    
-    if Path(output_directory).is_dir():
-        print("[OK] output_directory:{}:found".format(output_directory))
-    else:
-        print("[FAIL] output_directory:{}:found".format(output_directory))
-        exit()
-
-    # read configuration file
-    
-    if Path(config_fn).is_file():
-        print("[OK] configuration file:{}:found".format(config_fn))
-    else:
-        print("[FAIL] configuration file:{}:not found".format(config_fn))
-        exit()
     
     config=PyposmatConfigurationFile()
     config.read(filename=config_fn)

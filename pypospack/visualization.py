@@ -33,6 +33,9 @@ class ParetoOptimizationVisualization(object):
         bokeh_tools = ['box_select', 'reset', 'box_zoom', 'pan']
         self.bokeh_tools = ', '.join(bokeh_tools)
 
+        self.plot_width = 610
+        self.plot_height = 400
+
     def load_data_file(self, fname):
         names = []
         names_types = []
@@ -107,9 +110,106 @@ class ParetoOptimizationVisualization(object):
                                 err_x=self.total_df['err_x'],
                                 err_y=self.total_df['err_y'])
 
-
     def nix(self, val, lst):
         return [x for x in lst if x != val]
+
+    def setup_parameter_graph(self):
+        str_x_min_entry = 'Min X Value'
+        str_x_max_entry = 'Max X Value'
+        str_y_min_entry = 'Min Y Value'
+        str_y_max_entry = 'Max Y Value'
+
+        self.parameter_graph = {}
+        self.parameter_graph['obj_x_select'] = Select(
+            value=self.parameter_names[0],
+            options=self.nix(self.parameter_names[1],self.parameter_names)
+        )
+        self.parameter_graph['obj_y_select'] = Select(
+            value=self.parameter_names[1],
+            options=self.nix(self.parameter_names[0],self.parameter_names)
+            )
+        )
+        self.parameter_graph['x_min_entry'] = TextInput(placeholder='Min X Value',value='')
+        self.parameter_graph['x_max_entry'] = TextInput(placeholder='Max X Value',value='')
+        self.parameter_graph['y_min_entry'] = TextInput(placeholder='Min Y Value',value='')
+        self.parameter_graph['y_max_entry'] = TextInput(placeholder='Max Y Value',value='')
+
+        self.parameter_graph['plot_width'] = self.plot_width
+        self.parameter_graph['plot_height'] = self.plot_graph
+        self.parameter_graph['tools'] = self.bokeh_tools
+        self.parameter_graph['obj_figure'] = figure(
+            plot_width=self.parameter_graph['plot_width'],
+            plot_height=self.parameter_graph['plot_height'],
+            tools=self.parameter_graph['tools'],
+            title=self.parameter_graph['obj_x_select'].value+' vs. '+self.parameter_graph['obj_y_select'].value
+        )
+        self.parameter_graph['obj_figure'].xaxis.axis_label = self.parameter_graph['obj_x_select'].value
+        self.parameter_graph['obj_figure'].yaxis.axis_label = self.parameter_graph['obj_y_select'].value
+        self.parameter_graph['obj_glyph'] = Circle(
+            x='param_x',
+            y='param_y',
+            size=1,
+            fill_color='#5F77D5',
+            line_color='#5F77D5'
+        )
+        self.parameter_graph['obj_figure'].add_glyph(
+            self.source,
+            self.parameter_graph['obj_glyph']
+        )
+
+    def setup_error_graph(self):
+        '''
+        ---------------------------------------------------------------
+        Define Err Graph
+        ---------------------------------------------------------------
+        '''
+        self.error_graph = {}
+        self.error_graph['obj_x_select'] = Select(
+            value=self.err_names[0],
+            options=self.nix(
+                self.err_names[1],
+                self.err_names
+            )
+        )
+        self.error_graph['obj_y_select'] = Select(
+            value=self.err_names[1],
+            options=self.nix(
+                self.err_names[0],
+                self.err_names
+            )
+        )
+
+        self.error_graph['x_min_entry'] = TextInput(placeholder='Min X Value',
+                                                  value='')
+        self.error_graph['x_max_entry'] = TextInput(placeholder='Max X Value',
+                                                  value='')
+        self.error_graph['y_min_entry'] = TextInput(placeholder='Min Y Value',
+                                                  value='')
+        self.error_graph['y_max_entry'] = TextInput(placeholder='Max Y Value',
+                                                  value='')
+
+        self.error_graph['plot_width'] = 610
+        self.error_graph['plot_height'] = 400
+        self.error_graph['tools'] = self.bokeh_tools
+        self.error_graph['obj_figure'] = figure(
+            plot_width=self.error_graph['plot_width'],
+            plot_height=self.error_graph['plot_height'],
+            tools=self.error_graph['tools'],
+            title=self.error_graph['obj_x_select'].value + ' vs. ' + self.error_graph['obj_y_select'].value
+        )
+        self.error_graph['obj_figure'].xaxis.axis_label = self.error_graph['obj_x_select'].value
+        self.error_graph['obj_figure'].yaxis.axis_label = self.error_graph['obj_y_select'].value
+        self.error_graph['obj_glyph'] = Circle(
+            x='err_x',
+            y='err_y',
+            size=1,
+            fill_color='#5F77D5',
+            line_color='#5F77D5'
+        )
+        self.error_graph['obj_figure'].add_glyph(
+            self.source,
+            self.error_graph['obj_glyph']
+        )
 
     def setup_bokeh_frame(self, doc):
         self.source = ColumnDataSource(
@@ -159,8 +259,8 @@ class ParetoOptimizationVisualization(object):
         self.param_graph['y_max_entry'] = TextInput(placeholder='Max Y Value',
                                                     value='')
 
-        self.param_graph['plot_width'] = 610
-        self.param_graph['plot_height'] = 400
+        self.param_graph['plot_width'] = self.plot_width
+        self.param_graph['plot_height'] = self.plot_graph
         self.param_graph['tools'] = self.bokeh_tools
         self.param_graph['obj_figure'] = figure(
             plot_width=self.param_graph['plot_width'],

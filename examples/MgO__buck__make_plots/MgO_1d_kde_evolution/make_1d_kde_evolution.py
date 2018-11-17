@@ -43,12 +43,19 @@ class Pyposmat1DKdeDensityPlots(PyposmatDataFileVisualization):
             x_step=None,
             filename=None,
             plt_labels=None,
-            colormap='cool'):
+            colormap='cool',
+            show_iterations=None):
 
+        """
+
+            show_iterations (list of int)
+        """
         fig, ax = plt.subplots()
 
         plot_handles = OrderedDict()
+
         if type(self.df) is OrderedDict:
+
             if x_min is None:
                 x_min = min([df[x_name].min() for k,df in self.df.items()])
             if x_max is None:
@@ -57,27 +64,49 @@ class Pyposmat1DKdeDensityPlots(PyposmatDataFileVisualization):
                 x_step = 0.01
       
             if plt_labels is None:
-                plt_labels = ['N={}'.format(i) for i in range(self.n_iterations)]
+                if show_iterations is not None:
+                    plt_labels = ['N={}'.format(i) for i in range(self.n_iterations)]
+                else:
+                    plt_labels = ['N={}'.format(i) for i in show_iterations]
             
-            _cm_cmap = plt.get_cmap(colormap)
+            if type(colormap) is str:
+                _cm_cmap = plt.get_cmap(colormap)
+            elif type(colormap) is list:
+
+                # make custom gradient colormap
+                import matplotlib.colors as mcol
+                _cm_cmap_name = "{}To{}".format(colormap[0],colormap[1])
+                _cm_cmap = mcol.LinearSegmentedColormap.from_list(_cm_cmap_name,colormap)
+
+            else:
+                raise ValueError()
             _cm_norm = colors.Normalize(vmin=0,vmax=len(self.df))
             _cm_map = cm.ScalarMappable(
                     norm = _cm_norm,
                     cmap = _cm_cmap)
 
             i = 0
-            for k,df in self.df.items():
 
-                print('working on iterations {} from file {}, n_rows:{}'.format(i,k,df[x_name].shape[0]))
-                X = np.arange(x_min,x_max,x_step)
-                kde = gaussian_kde(df[x_name])
-                plot_handles[k] = ax.plot(
-                        X,
-                        kde(X),
-                        '-',
-                        label=plt_labels[i],
-                        color = _cm_map.to_rgba(i)
-                )
+            if show_iterations is None:
+                _show_iterations = [k for k in self.df]
+            else:
+                _show_iterations = show_iterations
+
+            print(_show_iterations)
+            for k,df in self.df.items():
+                if i in _show_iterations:
+                    print('iteration {}: working from file {}, n_rows:{}'.format(i,k,df[x_name].shape[0]))
+                    X = np.arange(x_min,x_max,x_step)
+                    kde = gaussian_kde(df[x_name])
+                    plot_handles[k] = ax.plot(
+                            X,
+                            kde(X),
+                            '-',
+                            label=plt_labels[i],
+                            color = _cm_map.to_rgba(i)
+                    )
+                else:
+                    print('iteration {}: skipping'.format(i))
                 i += 1
 
         elif type(self.df) is pd.DataFrame:
@@ -94,6 +123,8 @@ class Pyposmat1DKdeDensityPlots(PyposmatDataFileVisualization):
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)
 
+        ax.set_xlim(x_min,x_max)  
+        
         # Tweak spacing to prevent clipping of ylabel
         fig.tight_layout()
         fig.show()
@@ -121,11 +152,16 @@ if __name__ == "__main__":
     fn_config = os.path.join(data_directory,'pyposmat.config.in')
     result_fn_format = "results_{:03d}.out"
     n_iterations = 10
+    colormap=['red','blue']
+
+
+    show_iterations=[0,1,2,4,9]
     fn_results = get_result_filenames(
             data_dir=data_directory,
             fn_format=result_fn_format,
             n_iterations=n_iterations
         )
+
     validate_result_filenames(fn_results)
 
     myplot = Pyposmat1DKdeDensityPlots()
@@ -139,7 +175,9 @@ if __name__ == "__main__":
         try:
             myplot.plot(
                 x_name=pn,
-                filename=plot_fn
+                filename=plot_fn,
+                colormap = colormap,
+                show_iterations=show_iterations
             )
             msg = "saving kde plot of, {}, to {}".format(pn,plot_fn)
             print(msg)

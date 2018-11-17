@@ -1,6 +1,8 @@
 import os,signal,copy,importlib,time
 from collections import OrderedDict
 
+from pypospack.exceptions import PypospackTaskManagerError
+
 TaskToClassMap = OrderedDict()
 TaskToClassMap['lmps_min_all'] = OrderedDict()
 TaskToClassMap['lmps_min_all']['module'] = 'pypospack.task.lammps'
@@ -27,7 +29,6 @@ TaskToClassMap['gulp_gamma_phonons'] = OrderedDict()
 TaskToClassMap['gulp_gamma_phonons']['module'] = 'pypospack.task.gulp'
 TaskToClassMap['gulp_gamma_phonons']['class'] = 'GulpGammaPointPhonons'
 
-class PypospackTaskManagerError(Exception): pass
 
 class TaskManager(object):
     """

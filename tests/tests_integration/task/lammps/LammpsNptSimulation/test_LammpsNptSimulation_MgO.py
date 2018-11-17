@@ -172,3 +172,23 @@ def test__on_ready():
     assert all([v for k,v in lammps_task.conditions_POST.items()]) == False
     assert all([v for k,v in lammps_task.conditions_FINISHED.items()]) == False
 
+if __name__ = "__main__":
+    from pypospack.task.lammps import LammpsNptSimulation
+
+    task_name = configuration['task']['task_name']
+    task_directory = configuration['task']['task_directory']
+    structure_filename = configuration['structure']['filename']
+    
+    lammps_task = LammpsNptSimulation(
+            task_name=task_name,
+            task_directory=task_directory,
+            structure_filename=structure_filename)
+
+    lammps_task.on_init(configuration)
+    lammps_task.on_config(configuration)
+    lammps_task.on_ready(configuration)
+    
+    while lammps_task.status == 'RUNNING':
+        lammps_task.on_running(configuration)
+
+    lammps_task.on_post(configuration)

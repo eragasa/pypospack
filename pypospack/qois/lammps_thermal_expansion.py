@@ -106,8 +106,8 @@ class ThermalExpansion(Qoi):
         T = T[:,np.newaxis]            # T needs to be a column vector
         # model is y = a*x
         alpha_L,_,_,_ = np.linalg.lstsq(T,a0)
-        print('alpha_L:{}'.format(alpha_L))
-        return alpha_L
+        print('alpha_L:{}'.format(alpha_L[0]))
+        return alpha_L[0]
     
     def calculate_qois(self,task_results):
         

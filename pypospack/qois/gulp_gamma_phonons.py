@@ -44,6 +44,5 @@ class GammaPointPhonons(Qoi):
 
         self.qois = OrderedDict()
         for k,v in task_results.items():
-            print("\t{}:{}".format(k,v))
             self.qois[k] = v
 

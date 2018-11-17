@@ -268,40 +268,40 @@ latex_labels['OO_C'] = OrderedDict([
     ('name',r'C_{O,O]')])
 
 latex_labels['MgO_NaCl.a0'] = OrderedDict([
-    ('name',r'a_0'),
+    ('name',r'$a_0$'),
     ('units',r'\AA')])
 latex_labels['MgO_NaCl.c11'] = OrderedDict([
-    ('name',r'c_{11}'),
+    ('name',r'$c_{11}$'),
     ('units', r'GPa')])
 latex_labels['MgO_NaCl.c12'] = OrderedDict([
-    ('name',r'c_{11}'),
+    ('name',r'$c_{12}$'),
     ('units', r'GPa')])
 latex_labels['MgO_NaCl.c44'] = OrderedDict([
-    ('name',r'c_{44}'),
+    ('name',r'$c_{44}$'),
     ('units',r'GPa')])
 latex_labels['MgO_NaCl.B'] = OrderedDict([
-    ('name',r'B'),
+    ('name',r'$B$'),
     ('units',r'GPa')])
 latex_labels['MgO_NaCl.G'] = OrderedDict([
-    ('name',r'G'),
+    ('name',r'$G$'),
     ('units',r'GPa')])
 latex_labels['MgO_NaCl.fr_a'] = OrderedDict([
-    ('name',r'E_{fr,a}'),
+    ('name',r'$E_{fr,a}$'),
     ('units',r'eV')])
 latex_labels['MgO_NaCl.fr_c'] = OrderedDict([
-    ('name',r'E_{fr,c}'),
+    ('name',r'$E_{fr,c}$'),
     ('units',r'eV')])
 latex_labels['MgO_NaCl.sch'] = OrderedDict([
-    ('name',r'E_{sch}'),
+    ('name',r'$E_{sch}$'),
     ('units',r'eV')])
 latex_labels['MgO_NaCl.001s'] = OrderedDict([
-    ('name',r'\gamma_{001}'),
+    ('name',r'$\gamma_{001}$'),
     ('units',r'mJ/m^2')])
 latex_labels['MgO_NaCl.optical_ph'] = OrderedDict([
-    ('name',r'\Gamma_o'),
+    ('name',r'$\Gamma_{o}$'),
     ('units','cm^-1')])
 latex_labels['MgO_NaCl.th_exp'] = OrderedDict([
-    ('name',r'\alpha_L'),
+    ('name',r'$\alpha_{L}$'),
     ('units',r'C^{-1}')])
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE

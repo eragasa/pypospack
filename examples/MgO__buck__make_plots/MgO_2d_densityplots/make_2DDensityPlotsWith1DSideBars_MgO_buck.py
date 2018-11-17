@@ -89,7 +89,7 @@ class Pyposmat2DDensityPlotsWith1DSidebars(PyposmatDataFileVisualization):
             fn_plot_out=None,
             show_xy_scatter=True,
             xy_marker_type='.',
-            xy_marker_size=2,
+            xy_marker_size=1,
             xy_marker_color='k',
             plot_fn = None):
         
@@ -254,7 +254,7 @@ class Pyposmat2DDensityPlotsWith1DSidebars(PyposmatDataFileVisualization):
 if __name__ == "__main__":
     data_directory = "../../../data/MgO_pareto_data"
     fn_config = os.path.join(data_directory,'pyposmat.config.in')
-    fn_results = os.path.join(data_directory,"culled_005.out")
+    fn_results = os.path.join(data_directory,"culled_009.out")
 
     
     x_name = 'OO_A'
