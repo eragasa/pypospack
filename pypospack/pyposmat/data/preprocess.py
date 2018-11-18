@@ -53,5 +53,6 @@ class PyposmatPreprocessor(BasePipeSegment):
 
         arr = normalizer.fit_transform(df)
         norm_cols = ["n{}".format(col) for col in list(df)]  # add 'n' to indicate normalization has occurred
+        self.normalized_names = norm_cols
         norm_df = pd.DataFrame(data=arr, columns=norm_cols)
         self.df = pd.concat([self.df, norm_df])

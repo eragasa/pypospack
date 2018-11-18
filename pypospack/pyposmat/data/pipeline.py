@@ -15,6 +15,13 @@ class BasePipeSegment(object):
         self.data = None
         self.df = None
 
+        self.parameter_names = None
+        self.error_names = None
+        self.qoi_names = None
+        self.normalized_names = None  # TODO: break this into param, err, qoi
+        self.pca_names = None
+        self.manifold_names = None
+
     def read_configuration(self, filename):
         """
         reads in the pyposmat configuration file

@@ -57,6 +57,7 @@ class PyposmatPcaAnalysis(BasePipeSegment):
         arr = o_pca.fit_transform(df)
         nrows, ncols = arr.shape
         pca_cols = ["pca_{}".format(i) for i in range(ncols)]
+        self.pca_names = pca_cols
         pca_df = pd.DataFrame(data=arr, columns=pca_cols)
         self.df = pd.concat([self.df, pca_df])
 

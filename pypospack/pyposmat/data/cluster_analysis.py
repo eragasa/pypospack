@@ -117,7 +117,7 @@ class SeatonClusterAnalysis(BasePipeSegment):
         # ensure that all clusters have more points than there are parameters
         for k, v in self.to_dict().items():
             nrows, ncols = v.shape
-            if nrows <= self.data.parameter_names:
+            if nrows <= len(self.data.parameter_names):
                 return False
         return True
 
@@ -151,8 +151,7 @@ class SeatonClusterAnalysis(BasePipeSegment):
         if show:
             plt.show()
 
-    # TODO
-    def calculate_kNN_analysis(self,d):
+    def calculate_kNN_analysis(self, d):
         start_time = time.time()
         self.kNN_tree = None
         self.kNN_names = None
@@ -165,16 +164,15 @@ class SeatonClusterAnalysis(BasePipeSegment):
         stop_time = time.time()
         self.cpu_time_kNN = stop_time - start_time
 
-    # TODO
-    def _kNN__ball_tree(self,d):
+    def _kNN__ball_tree(self, d):
         kwargs = OrderedDict()
         kwargs['leaf_size'] = 40
         kwargs['metric'] = 'minkowski'
 
-        for k,v in d['neighbors']['args'].items():
+        for k, v in d['neighbors']['args'].items():
             kwargs[k] = v
 
-        for k,v in kwargs.items():
+        for k, v in kwargs.items():
             d['neighbors']['args'][k] = v
 
         self.kNN_tree = neighbors.BallTree(
@@ -188,15 +186,15 @@ class SeatonClusterAnalysis(BasePipeSegment):
             [
                 self.data.df,
                 pd.DataFrame(
-                    data = self.kNN_tree.query(
-                        X = self.data.df[self.manifold_names],
-                        k = self.kNN,
-                        return_distance = True
+                    data=self.kNN_tree.query(
+                        X=self.data.df[self.manifold_names],
+                        k=self.kNN,
+                        return_distance=True
                     )[0],
-                    columns = self.kNN_names
+                    columns=self.kNN_names
                 )
             ],
-            axis = 1
+            axis=1
         )
 
 

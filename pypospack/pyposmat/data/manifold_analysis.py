@@ -54,5 +54,6 @@ class PyposmatManifoldAnalysis(BasePipeSegment):
         arr = o_tsne.fit_transform(df)
         nrows, ncols = arr.shape
         tsne_cols = ["tsne_{}".format(i) for i in range(ncols)]
+        self.manifold_names = tsne_cols
         tsne_df = pd.DataFrame(data=arr, columns=tsne_cols)
         self.df = pd.concat([self.df, tsne_df])
