@@ -1,5 +1,6 @@
 import copy
 import yaml
+import time
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.io.filesystem import OrderedDictYAMLLoader
 
@@ -166,10 +167,19 @@ class PyposmatPipeline(object):
             func(**kwargs)
 
     def run(self):
+        pipeline_start_time = time.time()
         for index in self.configuration:
-            self.log("starting step {} of {}".format(index, len(self.configuration)))
+            self.log("starting step {} of {}".format(index+1, len(self.configuration)))  # +1 to count like a normal person
+            step_start_time = time.time()
             o_segment = self.spawn_pipeline_segment(self.configuration[index]['segment_type'])
             self.make_function_calls(o_segment=o_segment,
                                      calls=self.configuration[index]['function_calls'])
             self.reset(o_segment)
-        self.log("pipeline complete")
+            step_end_time = time.time()
+            step_delta = step_end_time-step_start_time
+            step_delta = round(step_delta, 4)
+            self.log("step {} complete in {} seconds".format(index+1, step_delta))
+        pipeline_end_time = time.time()
+        pipeline_delta = pipeline_end_time-pipeline_start_time
+        pipeline_delta = round(pipeline_delta, 4)
+        self.log("pipeline complete in {} seconds\n".format(pipeline_delta))
