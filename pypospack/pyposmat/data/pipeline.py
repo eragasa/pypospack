@@ -1,14 +1,7 @@
 import copy
 import yaml
 from pypospack.pyposmat.data import PyposmatDataFile
-from pypospack.pyposmat.data import PyposmatConfigurationFile
-from pypospack.pyposmat.data.pipeline_configuration import PyposmatPipelineConfigurationFile
 from pypospack.io.filesystem import OrderedDictYAMLLoader
-
-from pypospack.pyposmat.data.preprocess import PyposmatPreprocessor
-from pypospack.pyposmat.data.cluster_analysis import SeatonClusterAnalysis
-from pypospack.pyposmat.data.pca_analysis import PyposmatPcaAnalysis
-from pypospack.pyposmat.data.manifold_analysis import PyposmatManifoldAnalysis
 
 
 class BasePipeSegment(object):
@@ -29,7 +22,7 @@ class BasePipeSegment(object):
         self.pca_names = None
         self.manifold_names = None
 
-    def process_kwargs(key, d):
+    def process_kwargs(self, key, d):
         if d is None:
             return {}  # use default args
         try:
@@ -86,23 +79,15 @@ class PyposmatPipeline(object):
                  data_fn=None,
                  df=None):
         self.o_logger = o_logger  # logging file object
-        self.configuration = self.read_configuration(configuration_fn)
+        self.configuration_fn = configuration_fn
+        self.configuration = None
+        self.data_fn = data_fn
         self.data = None
-        if df is not None:
-            self.df = df
-            self.parameter_names = None
-            self.error_names = None
-            self.qoi_names = None
-        elif data_fn is not None:
-            self.read_data(data_fn)
-            self.df = data.df
-            self.parameter_names = data.parameter_names
-            self.error_names = data.error_names
-            self.qoi_names = data.qoi_names
-        else:
-            raise ValueError("no data to work with")
-            exit()
+        self.df = df
 
+        self.parameter_names = None
+        self.error_names = None
+        self.qoi_names = None
         self.n_parameter_names = None  # normalized
         self.n_error_names = None  # normalized
         self.n_qoi_names = None  # normalized
@@ -112,7 +97,7 @@ class PyposmatPipeline(object):
     def read_configuration(self, filename):
         with open(filename, 'r') as f:
             config = yaml.load(f, OrderedDictYAMLLoader)
-        return config
+        self.configuration = config
 
     def write_configuration(self, filename, d):
         with open(filename, 'w') as f:
@@ -121,6 +106,10 @@ class PyposmatPipeline(object):
     def read_data(self, filename):
         self.data = PyposmatDataFile()
         self.data.read(filename)
+        self.df = self.data.df
+        self.parameter_names = self.data.parameter_names
+        self.error_names = self.data.error_names
+        self.qoi_names = self.data.qoi_names
 
     def log(self, msg):
         if self.o_logger is None:
@@ -142,19 +131,23 @@ class PyposmatPipeline(object):
 
     def spawn_pipeline_segment(self, segment_type):
         if segment_type == 'preprocess':
+            from pypospack.pyposmat.data.preprocess import PyposmatPreprocessor
             o_segment = PyposmatPreprocessor()
         elif segment_type == 'pca':
+            from pypospack.pyposmat.data.pca_analysis import PyposmatPcaAnalysis
             o_segment = PyposmatPcaAnalysis()
         elif segment_type == 'cluster':
+            from pypospack.pyposmat.data.cluster_analysis import SeatonClusterAnalysis
             o_segment = SeatonClusterAnalysis()
         elif segment_type == 'manifold':
+            from pypospack.pyposmat.data.manifold_analysis import PyposmatManifoldAnalysis
             o_segment = PyposmatManifoldAnalysis()
         else:
             raise ValueError("unknown segment type")
 
         o_segment.o_logger = self.o_logger
         o_segment.df = self.df
-        o_segment.parameter_anmes = self.parameter_names
+        o_segment.parameter_names = self.parameter_names
         o_segment.error_names = self.error_names
         o_segment.qoi_names = self.qoi_names
         o_segment.n_parameter_names = self.n_parameter_names
@@ -169,12 +162,12 @@ class PyposmatPipeline(object):
         for index in calls:
             self.log("calling function {}".format(calls[index]['function']))
             func = getattr(o_segment, calls[index]['function'])
-            kwargs = calls[index]['function']['args']
+            kwargs = calls[index]['args']
             func(**kwargs)
 
-    def run():
+    def run(self):
         for index in self.configuration:
-            self.log("starting step {} of {}".format(index, max(self.configuration.keys)))
+            self.log("starting step {} of {}".format(index, len(self.configuration)))
             o_segment = self.spawn_pipeline_segment(self.configuration[index]['segment_type'])
             self.make_function_calls(o_segment=o_segment,
                                      calls=self.configuration[index]['function_calls'])

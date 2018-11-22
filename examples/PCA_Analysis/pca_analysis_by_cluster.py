@@ -11,5 +11,7 @@ pyposmat_data_fn = os.path.join(pypospack_root_dir, 'data/Ni__eam__born_exp_fs__
 if __name__ == "__main__":
     pipeline = PyposmatPipeline(configuration_fn=pyposmat_config_fn,
                                 data_fn=pyposmat_data_fn)
+    pipeline.read_configuration(pyposmat_config_fn)
+    pipeline.read_data(pyposmat_data_fn)
     pipeline.run()
     print(pipeline.df)
