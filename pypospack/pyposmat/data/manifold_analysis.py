@@ -9,6 +9,9 @@ class PyposmatManifoldAnalysis(BasePipeSegment):
     def __init__(self, o_logger=None):
         super().__init__(o_logger)
 
+    def transform_tsne(self, cols=None, clusters=None, kwargs=None):
+        pass
+
     def calculate_manifold(self, man_by=None, d=None):
         """
         normalizes the dataframe

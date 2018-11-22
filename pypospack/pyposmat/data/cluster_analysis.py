@@ -32,67 +32,25 @@ class PyposmatPreprocessingPipeline(object):
 
 class SeatonClusterAnalysis(BasePipeSegment):
 
-    def __init__(self, o_logger=None):
-        super().__init__(o_logger)
+    def __init__(self):
+        super().__init__()
 
-    def calculate_clusters(self, cluster_by=None, d=None):
-        """
-        clusters the dataframe
-        :param d: nested dict of custom args
-                  - default to DBSCAN
-        :param cluster_by: list[string]
-                        - df keys to cluster
-                        - cluster entire df if None
-        """
-        # process arg: cluster_by
-        if cluster_by is None:
-            _df = self.df
-        else:
-            _df = self.df[cluster_by]
-
-        # process arg: d
-        _kwargs = OrderedDict()
-        if d is None:
-            self._calculate_clusters_dbscan(df=_df)  # default to dbscan
-        else:
-            # build kwargs
-            for k, v in d['cluster']['args'].items():
-                _kwargs[k] = v
-            for k, v in _kwargs.items():
-                d['cluster']['args'][k] = v
-
-            # check cluster type
-            if d['cluster']['type'] == 'dbscan':
-                self._calculate_clusters_dbscan(df=_df, kwargs=_kwargs)
-            elif d['cluster']['type'] == 'kmeans':
-                self._calculate_clusters_kmeans(df=_df, kwargs=_kwargs)
-            else:
-                raise BadClusterTypeException()
-
-    def _calculate_clusters_dbscan(self, df, kwargs=None):
-        """
-        mutates self.df by concatenating cluster ids
-        """
+    def cluster_kmeans(self, cols=None, clusters=None, kwargs=None):
+        # process arg: cols, clusters
+        df = self.select_data(cols=cols, clusters=clusters)
         # process arg: kwargs
-        if kwargs is None:
-            o_dbscan = cluster.DBSCAN()  # default args
-        else:
-            o_dbscan = cluster.DBSCAN(**kwargs)
-
-        arr = o_dbscan.fit_predict(df)
+        kwargs = self.process_kwargs('kmeans', kwargs)
+        o_kmeans = KMeans(**kwargs)
+        arr = o_kmeans.fit_predict(df)
         self.df['cluster_id'] = arr
 
-    def _calculate_clusters_kmeans(self, df, kwargs=None):
-        """
-        mutates self.df by concatenating cluster ids
-        """
+    def cluster_dbscan(self, cols=None, clusters=None, kwargs=None):
+        # process arg: cols, clusters
+        df = self.select_data(cols=cols, clusters=clusters)
         # process arg: kwargs
-        if kwargs is None:
-            o_kmeans = cluster.KMeans()  # default args
-        else:
-            o_kmeans = cluster.KMeans(**kwargs)
-
-        arr = o_kmeans.fit_predict(df)
+        kwargs = self.process_kwargs('dbscan', kwargs)
+        o_dbscan = DBSCAN(**kwargs)
+        arr = o_dbscan.fit_predict(df)
         self.df['cluster_id'] = arr
 
     def select_cluster(self, cluster_id):
