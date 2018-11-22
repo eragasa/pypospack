@@ -47,3 +47,5 @@ pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['kmeans']['n_cl
 
 if __name__ == "__main__":
     pipeline = PyposmatPipeline()
+    pipeline.write_configuration(filename="configure_param_clustering.in",
+                                 d=pipeline_configuration)

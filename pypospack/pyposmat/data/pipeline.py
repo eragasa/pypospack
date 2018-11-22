@@ -1,7 +1,14 @@
 import copy
+import yaml
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data.pipeline_configuration import PyposmatPipelineConfigurationFile
+from pypospack.io.filesystem import OrderedDictYAMLLoader
+
+from pypospack.pyposmat.data.preprocess import PyposmatPreprocessor
+from pypospack.pyposmat.data.cluster_analysis import SeatonClusterAnalysis
+from pypospack.pyposmat.data.pca_analysis import PyposmatPcaAnalysis
+from pypospack.pyposmat.data.manifold_analysis import PyposmatManifoldAnalysis
 
 
 class BasePipeSegment(object):
@@ -11,7 +18,6 @@ class BasePipeSegment(object):
 
     def __init__(self):
         self.o_logger = None
-        self.configuration = None
         self.df = None
 
         self.parameter_names = None
@@ -104,20 +110,73 @@ class PyposmatPipeline(object):
         self.manifold_names = None
 
     def read_configuration(self, filename):
-        pass
+        with open(filename, 'r') as f:
+            config = yaml.load(f, OrderedDictYAMLLoader)
+        return config
+
+    def write_configuration(self, filename, d):
+        with open(filename, 'w') as f:
+            yaml.dump(d, f, default_flow_style=False)
 
     def read_data(self, filename):
         self.data = PyposmatDataFile()
         self.data.read(filename)
 
-    def reset(self, segment):
-        assert type(segment) is BasePipeSegment
-        self.df = segment.df
-        self.parameter_names = segment.parameter_names
-        self.error_names = segment.error_names
-        self.qoi_names = segment.qoi_names
-        self.n_parameter_names = segment.n_parameter_names
-        self.n_error_names = segment.n_error_names
-        self.n_qoi_names = segment.n_qoi_names
-        self.pca_names = segment.pca_names
-        self.manifold_names = segment.manifold_names
+    def log(self, msg):
+        if self.o_logger is None:
+            print(msg)
+        else:
+            self.o_logger.write(msg)
+
+    def reset(self, o_segment):
+        assert isinstance(o_segment, BasePipeSegment)
+        self.df = o_segment.df
+        self.parameter_names = o_segment.parameter_names
+        self.error_names = o_segment.error_names
+        self.qoi_names = o_segment.qoi_names
+        self.n_parameter_names = o_segment.n_parameter_names
+        self.n_error_names = o_segment.n_error_names
+        self.n_qoi_names = o_segment.n_qoi_names
+        self.pca_names = o_segment.pca_names
+        self.manifold_names = o_segment.manifold_names
+
+    def spawn_pipeline_segment(self, segment_type):
+        if segment_type == 'preprocess':
+            o_segment = PyposmatPreprocessor()
+        elif segment_type == 'pca':
+            o_segment = PyposmatPcaAnalysis()
+        elif segment_type == 'cluster':
+            o_segment = SeatonClusterAnalysis()
+        elif segment_type == 'manifold':
+            o_segment = PyposmatManifoldAnalysis()
+        else:
+            raise ValueError("unknown segment type")
+
+        o_segment.o_logger = self.o_logger
+        o_segment.df = self.df
+        o_segment.parameter_anmes = self.parameter_names
+        o_segment.error_names = self.error_names
+        o_segment.qoi_names = self.qoi_names
+        o_segment.n_parameter_names = self.n_parameter_names
+        o_segment.n_error_names = self.n_error_names
+        o_segment.n_qoi_names = self.n_qoi_names
+        o_segment.pca_names = self.pca_names
+        o_segment.manifold_names = self.manifold_names
+
+        return o_segment
+
+    def make_function_calls(self, o_segment, calls):
+        for index in calls:
+            self.log("calling function {}".format(calls[index]['function']))
+            func = getattr(o_segment, calls[index]['function'])
+            kwargs = calls[index]['function']['args']
+            func(**kwargs)
+
+    def run():
+        for index in self.configuration:
+            self.log("starting step {} of {}".format(index, max(self.configuration.keys)))
+            o_segment = self.spawn_pipeline_segment(self.configuration[index]['segment_type'])
+            self.make_function_calls(o_segment=o_segment,
+                                     calls=self.configuration[index]['function_calls'])
+            self.reset(o_segment)
+        self.log("pipeline complete")
