@@ -143,6 +143,9 @@ class PyposmatPipeline(object):
         elif segment_type == 'manifold':
             from pypospack.pyposmat.data.manifold_analysis import PyposmatManifoldAnalysis
             o_segment = PyposmatManifoldAnalysis()
+        elif segment_type == 'plot':
+            from pypospack.pyposmat.data.plotting import PyposmatPlotter
+            o_segment = PyposmatPlotter()
         else:
             raise ValueError("unknown segment type")
 
