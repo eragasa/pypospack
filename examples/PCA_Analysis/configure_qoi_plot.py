@@ -17,5 +17,6 @@ pipeline_configuration[0]['function_calls'][0]['args']['filename'] = 'param_clus
 
 if __name__ == "__main__":
     pipeline = PyposmatPipeline()
-    pipeline.write_configuration(filename="configure_qoi_plot.in",
+    fn = __file__.replace('.py', '.in')
+    pipeline.write_configuration(filename=fn,
                                  d=pipeline_configuration)
