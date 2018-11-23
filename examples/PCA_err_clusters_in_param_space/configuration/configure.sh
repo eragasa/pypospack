@@ -1,0 +1,3 @@
+python configure_err_clustering.py
+python configure_param_pca_transform.py
+python configure_param_plot.py

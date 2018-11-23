@@ -10,7 +10,7 @@ pipeline_configuration[0]['function_calls'] = OrderedDict()
 pipeline_configuration[0]['function_calls'][0]= OrderedDict()  # int keys allow multiple calls to same function
 pipeline_configuration[0]['function_calls'][0]['function'] = 'normalize_standard_scaler'
 pipeline_configuration[0]['function_calls'][0]['args'] = OrderedDict()
-pipeline_configuration[0]['function_calls'][0]['args']['cols'] = ['qoi']
+pipeline_configuration[0]['function_calls'][0]['args']['cols'] = ['param']
 pipeline_configuration[0]['function_calls'][0]['args']['clusters'] = None
 pipeline_configuration[0]['function_calls'][0]['args']['kwargs'] = OrderedDict()
 pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scaler'] = OrderedDict()
@@ -24,7 +24,7 @@ pipeline_configuration[1]['function_calls'] = OrderedDict()
 pipeline_configuration[1]['function_calls'][0]= OrderedDict()
 pipeline_configuration[1]['function_calls'][0]['function'] = 'transform_pca'
 pipeline_configuration[1]['function_calls'][0]['args'] = OrderedDict()
-pipeline_configuration[1]['function_calls'][0]['args']['cols'] = ['n_qoi']
+pipeline_configuration[1]['function_calls'][0]['args']['cols'] = ['n_param']
 pipeline_configuration[1]['function_calls'][0]['args']['clusters'] = None
 pipeline_configuration[1]['function_calls'][0]['args']['kwargs'] = OrderedDict()
 pipeline_configuration[1]['function_calls'][0]['args']['kwargs']['pca'] = OrderedDict()
@@ -34,5 +34,6 @@ pipeline_configuration[1]['function_calls'][0]['args']['kwargs']['pca']['whiten'
 
 if __name__ == "__main__":
     pipeline = PyposmatPipeline()
-    pipeline.write_configuration(filename="configure_qoi_clustering.in",
+    fn = __file__.replace('.py', '.in')
+    pipeline.write_configuration(filename=fn,
                                  d=pipeline_configuration)

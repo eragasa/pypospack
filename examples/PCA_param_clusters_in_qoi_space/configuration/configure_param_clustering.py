@@ -37,13 +37,12 @@ pipeline_configuration[2] = OrderedDict()
 pipeline_configuration[2]['segment_type'] = 'cluster'
 pipeline_configuration[2]['function_calls'] = OrderedDict()
 pipeline_configuration[2]['function_calls'][0]= OrderedDict()
-pipeline_configuration[2]['function_calls'][0]['function'] = 'cluster_kmeans'
+pipeline_configuration[2]['function_calls'][0]['function'] = 'cluster_dbscan'
 pipeline_configuration[2]['function_calls'][0]['args'] = OrderedDict()
 pipeline_configuration[2]['function_calls'][0]['args']['cols'] = ['pca']
 pipeline_configuration[2]['function_calls'][0]['args']['clusters'] = None
 pipeline_configuration[2]['function_calls'][0]['args']['kwargs'] = OrderedDict()
-pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['kmeans'] = OrderedDict()
-pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['kmeans']['n_clusters'] = 4
+pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['dbscan'] = OrderedDict()
 
 # define fourth segment (plotting)
 pipeline_configuration[3] = OrderedDict()
