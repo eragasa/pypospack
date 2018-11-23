@@ -49,7 +49,7 @@ class SeatonClusterAnalysis(BasePipeSegment):
         df = self.select_data(cols=cols, clusters=clusters)
         # process arg: kwargs
         kwargs = self.process_kwargs('dbscan', kwargs)
-        o_dbscan = cluster.BSCAN(**kwargs)
+        o_dbscan = cluster.DBSCAN(**kwargs)
         arr = o_dbscan.fit_predict(df)
         self.df['cluster_id'] = arr
 

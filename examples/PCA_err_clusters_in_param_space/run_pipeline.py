@@ -4,7 +4,7 @@ import pypospack.utils
 from pypospack.pyposmat.data.pipeline import PyposmatPipeline
 
 pypospack_root_dir = pypospack.utils.get_pypospack_root_directory()
-configuration_dir = 'examples/PCA_err_clusters_in_param_space/'
+configuration_dir = 'examples/PCA_err_clusters_in_param_space/configuration/'
 
 config_fn_0 = os.path.join(pypospack_root_dir,
                            configuration_dir,
