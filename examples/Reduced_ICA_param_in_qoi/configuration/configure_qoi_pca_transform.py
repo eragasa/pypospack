@@ -28,7 +28,7 @@ pipeline_configuration[1]['function_calls'][0]['args']['cols'] = ['n_qoi']
 pipeline_configuration[1]['function_calls'][0]['args']['clusters'] = None
 pipeline_configuration[1]['function_calls'][0]['args']['kwargs'] = OrderedDict()
 pipeline_configuration[1]['function_calls'][0]['args']['kwargs']['ica'] = OrderedDict()
-
+pipeline_configuration[1]['function_calls'][0]['args']['kwargs']['ica']['max_iter'] = 5000
 
 if __name__ == "__main__":
     pipeline = PyposmatPipeline()
