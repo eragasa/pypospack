@@ -18,7 +18,7 @@ pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scale
 pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scaler']['with_mean'] = True
 pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scaler']['with_std'] = True
 
-# define second segment (PCA transformation)
+# define second segment (ICA transformation)
 pipeline_configuration[1] = OrderedDict()
 pipeline_configuration[1]['segment_type'] = 'pca'
 pipeline_configuration[1]['function_calls'] = OrderedDict()
@@ -29,6 +29,7 @@ pipeline_configuration[1]['function_calls'][0]['args']['cols'] = ['n_param']
 pipeline_configuration[1]['function_calls'][0]['args']['clusters'] = None
 pipeline_configuration[1]['function_calls'][0]['args']['kwargs'] = OrderedDict()
 pipeline_configuration[1]['function_calls'][0]['args']['kwargs']['ica'] = OrderedDict()
+pipeline_configuration[1]['function_calls'][0]['args']['kwargs']['ica']['max_iter'] = 5000
 
 # define third segment (clustering)
 pipeline_configuration[2] = OrderedDict()

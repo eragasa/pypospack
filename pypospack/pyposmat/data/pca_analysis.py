@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import pandas as pd
-from sklearn.decomposition import PCA, FastICA, CCA, KernelPCA
+from sklearn.decomposition import PCA, FastICA, KernelPCA
+from sklearn.cross_decomposition import CCA
 from pypospack.pyposmat.data.pipeline import BasePipeSegment
 
 
@@ -38,7 +39,7 @@ class PyposmatPcaAnalysis(BasePipeSegment):
         arr = o_ica.fit_transform(df)
         nrows, ncols = arr.shape
         ica_cols = ["ica_{}".format(i) for i in range(ncols)]
-        self.pca_names = pca_cols
+        self.pca_names = ica_cols
         ica_df = pd.DataFrame(data=arr, columns=ica_cols)
         self.df = pd.concat([self.df, ica_df], axis=1)
 
