@@ -9,9 +9,12 @@ class PyposmatPreprocessor(BasePipeSegment):
     def __init__(self):
         super().__init__()
 
-    def normalize_standard_scaler(self, cols=None, clusters=None, kwargs=None):
+    def normalize_standard_scaler(self, abs_cols=None, cols=None, clusters=None, kwargs=None):
         # process arg: cols, clusters
         df = self.select_data(cols=cols, clusters=clusters)
+        # process arg: abs_cols
+        if abs_cols is not None:
+            df = df[abs_cols]  
         # process arg: kwargs
         kwargs = self.process_kwargs('standard_scaler', kwargs)
         o_normalizer = preprocessing.StandardScaler(**kwargs)

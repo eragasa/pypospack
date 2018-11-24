@@ -19,34 +19,29 @@ from pypospack.pyposmat.data.pipeline import BasePipeSegment
 from pypospack.kde import Chiu1999_h
 
 
-class PyposmatClusterSampler(object):
-
-    def __init__(self):
-        pass
-
-
-class PyposmatPreprocessingPipeline(object):
-    def __init__(self):
-        pass
-
-
 class SeatonClusterAnalysis(BasePipeSegment):
 
     def __init__(self):
         super().__init__()
 
-    def cluster_kmeans(self, cols=None, clusters=None, kwargs=None):
+    def cluster_kmeans(self, abs_cols=None, cols=None, clusters=None, kwargs=None):
         # process arg: cols, clusters
         df = self.select_data(cols=cols, clusters=clusters)
+        # process arg: abs_cols
+        if abs_cols is not None:
+            df = df[abs_cols]
         # process arg: kwargs
         kwargs = self.process_kwargs('kmeans', kwargs)
         o_kmeans = cluster.KMeans(**kwargs)
         arr = o_kmeans.fit_predict(df)
         self.df['cluster_id'] = arr
 
-    def cluster_dbscan(self, cols=None, clusters=None, kwargs=None):
+    def cluster_dbscan(self, abs_cols=None, cols=None, clusters=None, kwargs=None):
         # process arg: cols, clusters
         df = self.select_data(cols=cols, clusters=clusters)
+        # process arg: abs_cols
+        if abs_cols is not None:
+            df = df[abs_cols]
         # process arg: kwargs
         kwargs = self.process_kwargs('dbscan', kwargs)
         o_dbscan = cluster.DBSCAN(**kwargs)
@@ -78,36 +73,6 @@ class SeatonClusterAnalysis(BasePipeSegment):
             if nrows <= len(self.data.parameter_names):
                 return False
         return True
-
-    # TODO: move to plotting class
-    def plot_clusters(self, x_axis, y_axis, df=None, show=False, filename=None):
-        # process arg: df
-        _df = None
-        if df is None:
-            _df = self.df
-        else:
-            _df = df
-
-        if 'cluster_id' not in list(_df):
-            _df = self.calculate_clusters(_df)
-
-        if x_axis not in list(_df) or y_axis not in list(_df):
-            raise ValueError("invalid axis key: {} or {} not found".format(x_axis, y_axis))
-
-        cluster_dict = self.to_dict(_df)
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        for cid in cluster_dict:
-            _x = cluster_dict[cid][x_axis]
-            _y = cluster_dict[cid][y_axis]
-            ax.scatter(x=_x, y=_y, s=1)
-        if filename is None:
-            fn = "pyposmat_cluster_plot.jpg"
-        else:
-            fn = filename
-        plt.savefig(fn)
-        if show:
-            plt.show()
 
     def calculate_kNN_analysis(self, d):
         start_time = time.time()
