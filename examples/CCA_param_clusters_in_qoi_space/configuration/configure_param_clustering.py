@@ -23,7 +23,7 @@ pipeline_configuration[1] = OrderedDict()
 pipeline_configuration[1]['segment_type'] = 'pca'
 pipeline_configuration[1]['function_calls'] = OrderedDict()
 pipeline_configuration[1]['function_calls'][0]= OrderedDict()
-pipeline_configuration[1]['function_calls'][0]['function'] = 'transform_pca'
+pipeline_configuration[1]['function_calls'][0]['function'] = 'transform_cca'
 pipeline_configuration[1]['function_calls'][0]['args'] = OrderedDict()
 pipeline_configuration[1]['function_calls'][0]['args']['cols'] = ['n_param']
 pipeline_configuration[1]['function_calls'][0]['args']['clusters'] = None
@@ -50,8 +50,8 @@ pipeline_configuration[3]['function_calls'] = OrderedDict()
 pipeline_configuration[3]['function_calls'][0]= OrderedDict()
 pipeline_configuration[3]['function_calls'][0]['function'] = 'plot_by_cluster'
 pipeline_configuration[3]['function_calls'][0]['args'] = OrderedDict()
-pipeline_configuration[3]['function_calls'][0]['args']['x_axis'] = 'pca_0'
-pipeline_configuration[3]['function_calls'][0]['args']['y_axis'] = 'pca_1'
+pipeline_configuration[3]['function_calls'][0]['args']['x_axis'] = 'cca_0'
+pipeline_configuration[3]['function_calls'][0]['args']['y_axis'] = 'cca_1'
 pipeline_configuration[3]['function_calls'][0]['args']['filename'] = 'param_clusters_in_cca_space.png'
 
 
