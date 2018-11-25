@@ -18,7 +18,7 @@ pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scale
 pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scaler']['with_mean'] = True
 pipeline_configuration[0]['function_calls'][0]['args']['kwargs']['standard_scaler']['with_std'] = True
 
-# define second segment (MDS transformation)
+# define second segment (Spectral transformation)
 pipeline_configuration[1] = OrderedDict()
 pipeline_configuration[1]['segment_type'] = 'manifold'
 pipeline_configuration[1]['function_calls'] = OrderedDict()
@@ -35,12 +35,13 @@ pipeline_configuration[2] = OrderedDict()
 pipeline_configuration[2]['segment_type'] = 'cluster'
 pipeline_configuration[2]['function_calls'] = OrderedDict()
 pipeline_configuration[2]['function_calls'][0]= OrderedDict()
-pipeline_configuration[2]['function_calls'][0]['function'] = 'cluster_dbscan'
+pipeline_configuration[2]['function_calls'][0]['function'] = 'cluster_kmeans'
 pipeline_configuration[2]['function_calls'][0]['args'] = OrderedDict()
 pipeline_configuration[2]['function_calls'][0]['args']['cols'] = ['manifold']
 pipeline_configuration[2]['function_calls'][0]['args']['clusters'] = None
 pipeline_configuration[2]['function_calls'][0]['args']['kwargs'] = OrderedDict()
-pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['dbscan'] = OrderedDict()
+pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['kmeans'] = OrderedDict()
+pipeline_configuration[2]['function_calls'][0]['args']['kwargs']['kmeans']['n_clusters'] = 10
 
 # define fourth segment (plotting)
 pipeline_configuration[3] = OrderedDict()
