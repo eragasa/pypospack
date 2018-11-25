@@ -51,6 +51,7 @@ pipeline_configuration[3]['function_calls'][0]['function'] = 'plot_by_cluster'
 pipeline_configuration[3]['function_calls'][0]['args'] = OrderedDict()
 pipeline_configuration[3]['function_calls'][0]['args']['x_axis'] = 'tsne_0'
 pipeline_configuration[3]['function_calls'][0]['args']['y_axis'] = 'tsne_1'
+pipeline_configuration[3]['function_calls'][0]['args']['filename'] = 'param_clusters_in_tsne_space.png'
 
 
 if __name__ == "__main__":
