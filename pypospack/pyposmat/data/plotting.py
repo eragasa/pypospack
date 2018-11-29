@@ -27,6 +27,7 @@ class PyposmatPlotter(BasePipeSegment):
         nbins = 250
         nclusters = len(set(self.df['cluster_id']))
         fig, ax = plt.subplots(nrows=1, ncols=nclusters)
+        fig.set_size_inches(12, 8, forward=True)
         ax = {i: ax[i] for i in set(self.df['cluster_id'])}
         for cid in set(self.df['cluster_id']):
             cluster_df = self.df.loc[self.df['cluster_id'] == cid]
