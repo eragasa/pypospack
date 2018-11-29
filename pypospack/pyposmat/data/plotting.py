@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.pyplot.switch_backend('agg')
 import matplotlib.pyplot as plt
 from pypospack.pyposmat.data import BasePipeSegment
 from scipy.stats import kde
