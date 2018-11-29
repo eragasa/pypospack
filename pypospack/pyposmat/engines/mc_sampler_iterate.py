@@ -81,7 +81,6 @@ class PyposmatIterativeSampler(object):
 
         if self.mpi_rank == 0:
             pass
-        pass
 
     def run_all(self):
         self.setup_mpi_environment()
@@ -145,7 +144,7 @@ class PyposmatIterativeSampler(object):
                 filename_out = _results_filename,
                 mpi_rank = self.mpi_rank,
                 mpi_size = self.mpi_size,
-                log=self.log)
+                o_log=self.log)
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
         _structure_dir = self.mc_sampler.configuration.structures['structure_directory']
@@ -208,18 +207,23 @@ class PyposmatIterativeSampler(object):
         # <----- sampling from a file type ---------------------------------------
         # get parameters from file
         elif _mc_sample_type == 'from_file':
-            _mc_n_samples = _mc_config['n_samples']
-            
-            # determine number of sims for this rank
-            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
-            if _mc_n_samples%self.mpi_size > self.mpi_rank:
-                _n_samples_per_rank += 1
             
             _filename_in = os.path.join(
                 self.root_directory,
                 _mc_config['file']
             )
+           
+            data = PyposmatDataFile()
+            data.read(filename=_filename_in)
+            _nrows,_ncols = data.df.shape
             
+            #_mc_n_samples = _mc_config['n_samples']
+            _mc_n_samples = _nrows
+
+            # determine number of sims for this rank
+            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
+            if _mc_n_samples%self.mpi_size > self.mpi_rank:
+                _n_samples_per_rank += 1
             self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
                     n_samples=_n_samples_per_rank,

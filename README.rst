@@ -2,23 +2,11 @@
 Python Potential Optimization Software Packages (pypospack)
 ===========================================================
 
-This package as several directory.
+This package is a collection of software libraries to aid in 
+the parameter optimziation of parametric potentials.
 
-pypospack.
+Environment variables to set
 
-This is the software package you have been looking for.
-pyPOSpack has several requirements for installation.
+PYPOSPACK_ROOT_DIR
+LAMMPS_SERIAL_BIN
 
-
-
-test
--> test_acceptance_serial
--> test_acceptance_serial_lmps
--> test_acceptance_mpi
--> test_acceptance_mpi_vasp
--> test_acceptance_mpi_lammps
--> test_unit
-
-doc. this directory contains sphinx documentation on the package.
-
-examples.  this is a collection of recipes on how to do things

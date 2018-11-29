@@ -12,6 +12,12 @@ class PyposmatLogFile(object):
         self.msg_format = "{}\n"
 
     def write(self, s):
+        if type(s) is str:
+            _s = s
+        elif type(s) is list:
+            _s = "\n".join(s)
+        else:
+            _s = s
 
         with open(self.filename, 'a') as f:
 
@@ -27,7 +33,7 @@ class PyposmatLogFile(object):
                         time.sleep(self.time_sleep)
 
             # write message
-            f.write(self.msg_format.format(s))
+            f.write(self.msg_format.format(_s+"\n"))
             
             # release the lock
             fcntl.flock(f, fcntl.LOCK_UN)

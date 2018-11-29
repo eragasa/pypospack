@@ -1,4 +1,4 @@
-import os 
+import os
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 import pypospack.utils
@@ -7,7 +7,7 @@ import pypospack.utils
 #------------------------------------------------------------------------------
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
-sampling['n_iterations'] = 20
+sampling['n_iterations'] = 10
 sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
@@ -16,7 +16,11 @@ for i in range(sampling['n_iterations']):
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
-sampling[0]['file'] = 'data/pyposmat.kde.0.out'
+sampling[0]['file']= os.path.join(
+    pypospack.utils.get_pypospack_root_directory(),
+    'examples','Ni__eam__born_exp_rose','00_preconditioning_3.5NN','data',
+    'pyposmat.kde.4.out')
+
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -26,7 +30,7 @@ potential_formalism['symbols'] = ['Ni']
 potential_formalism['setfl_filename'] = None
 potential_formalism['pair_type'] = 'bornmayer'
 potential_formalism['density_type'] = 'eam_dens_exp'
-potential_formalism['embedding_type'] = 'eam_embed_fs'
+potential_formalism['embedding_type'] = 'eam_embed_eos_rose'
 
 # <---------------- THESE ARE NECESSARY FOR DETERMINING THE SETFL FILE
 potential_formalism['N_r'] = 10000
@@ -38,7 +42,9 @@ potential_formalism['a0'] = 3.52
 potential_formalism['lattice_type'] = 'fcc'
 
 # <---------------- INITIAL PARAMETER DEFINITION
-# units need to be in metal units
+a0 = 3.52
+re = 1/(2**0.5)*a0
+
 parameter_distribution = OrderedDict()
 parameter_distribution['p_NiNi_phi0'] = [
         'uniform',{
@@ -49,9 +55,7 @@ parameter_distribution['p_NiNi_gamma'] = [
             'a':2.00,
             'b':7.00}]
 parameter_distribution['p_NiNi_r0'] = [
-        'uniform',{
-            'a':1.00,
-            'b':5.00}]
+        'equals',re]
 parameter_distribution['d_Ni_rho0'] = [
         'uniform',{
             'a':1.0,
@@ -61,31 +65,30 @@ parameter_distribution['d_Ni_beta'] = [
             'a':2.0000,
             'b':7.0000}]
 parameter_distribution['d_Ni_r0'] = [
-        'uniform',{
-            'a':1.00,
-            'b':5.00}]
-parameter_distribution['e_Ni_F0'] = [
-        'uniform',{
-            'a':-5.00,
-            'b':-0.05}]
+        'equals',re]
+# parameters - Rose Equation of State
+parameter_distribution['e_Ni_latticetype'] = [
+        'equals','fcc']
+parameter_distribution['e_Ni_ecoh'] = [
+        'equals',-4.45]
+parameter_distribution['e_Ni_B'] = [
+        'equals',188.]
+parameter_distribution['e_Ni_a0'] = [
+        'equals',a0]
 #------------------------------------------------------------------------------
 # PARAMETER CONSTRAINTS
 #------------------------------------------------------------------------------
 parameter_constraints = OrderedDict()
 parameter_constraints['p_NiNi_phi0 > 0'] = 'p_NiNi_phi0 > 0.'
 parameter_constraints['p_NiNi_gamma > 0'] = 'p_NiNi_gamma > 0.'
-parameter_constraints['p_NiNi_r0 > 0'] = 'p_NiNi_r0 > 0.'
 parameter_constraints['d_Ni_rho0 > 0'] = 'd_Ni_rho0 > 0.'
 parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
-parameter_constraints['d_Ni_r0 > 0'] = 'd_Ni_r0 > 0.'
-parameter_constraints['e_Ni_F0 < 0'] = 'e_Ni_F0 < 0.'
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
+pypospack_root_dir = [v.strip() for v in os.environ['PYTHONPATH'].split(':') if v.endswith('pypospack')][0]
 structure_db = OrderedDict()
-structure_db['structure_directory'] = os.path.join(
-        pypospack.utils.get_pypospack_root_directory(),
-        'data/Ni_structure_db')
+structure_db['structure_directory'] = os.path.join(pypospack_root_dir,'data/Ni_structure_db')
 structure_db['structures'] = OrderedDict()
 structure_db['structures']['Ni_fcc'] = 'Ni_fcc_100_unit.gga.relaxed.vasp'
 structure_db['structures']['Ni_bcc'] = 'Ni_bcc_100_unit.gga.relaxed.vasp'
@@ -162,6 +165,7 @@ qoi_db.add_qoi(
             ]
         ),
         target=1.51e-1)
+
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.110s',
         qoi_type='E_surface',

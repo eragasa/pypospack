@@ -50,3 +50,5 @@ class LammpsSimulationError(BaseException): pass
 class PyposmatError(BaseException): pass
 
 class PypospackTaskManagerError(BaseException): pass
+
+class PypospackBadKdeBandwidthType(BaseException): pass

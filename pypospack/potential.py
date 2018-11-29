@@ -645,7 +645,11 @@ class EamPotential(Potential):
         #<--- set the internal attribute
         self.embedding = copy.deepcopy(self.obj_embedding.embedding_evaluations)
 
-def PotentialObjectMap(potential_type=None):
+pair_potentials = ['buckingham','morse','bornmayer']
+eam_density_functions = ['eam_dens_exp']
+eam_embedding_functions = ['eam_embed_bjs','eam_embed_universal','eam_embed_fs','eam_embed_eos_rose']
+
+def PotentialObjectMap(potential_type='all'):
     potential_map = OrderedDict()
     potential_map['buckingham'] = OrderedDict()
     potential_map['buckingham']['module'] = 'pypospack.potential'

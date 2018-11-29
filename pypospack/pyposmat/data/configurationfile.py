@@ -1,6 +1,7 @@
-import copy
-import yaml
+import os, copy, yaml
 from collections import OrderedDict
+
+import pypospack.potential
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
 
 class PyposmatConfigurationFile(object):
@@ -240,3 +241,232 @@ class PyposmatConfigurationFile(object):
             str_out.append('{:20} {:20}'.format(k,v))
 
         return "\n".join(str_out)
+
+    # figures for
+    def get_ok_fail(self,b):
+        OKGREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+
+        if b:
+            s = '['+OKGREEN+'OK'+ENDC+']'
+        else:
+            s = '['+FAIL+'FAIL'+ENDC+']'
+
+        return s
+
+    def validate(self):
+        self.validate_potential(potential=self.potential)
+        self.validate_parameters(
+                potential=self.potential,
+                parameters=self.parameter_names)
+        self.validate_structure_db(structures=self.structures)
+        self.validate_sampling_type(sampling_type=self.sampling_type)
+
+    def validate_sampling_type(self,sampling_type):
+        _n_iterations = sampling_type['n_iterations']
+        if type(_n_iterations) is not int:
+            s = ['n_iterations must be int, {}'.format(_n_iterations)]
+            print("\n".join(s))
+        else:
+            s = "{:5} n_iterations:{}".format(
+                    self.get_ok_fail(True),
+                    _n_iterations)
+            print(s)
+
+        _mc_seed = sampling_type['mc_seed']
+        if _mc_seed is None:
+            s = '{:5} mc_seed:{}, using automatic seed generation'.format(
+                    self.get_ok_fail(True),
+                    _mc_seed
+                )
+            print(s)
+        elif type(_mc_seed) is int:
+            s = '{:5} mc_seed:{}'.format(
+                    self.get_ok_fail(True),
+                    _mc_seed
+                )
+            print(s)
+
+        if all([v in sampling_type for v in range(_n_iterations)]):
+            s = [
+                "{:5} n_iterations of sampling_types defined".format(
+                    self.get_ok_fail(True))
+                ]
+            print("\n".join(s))
+        else:
+            s = [
+                "{:5} not all iterations have been defined".format(
+                    self.get_ok_fail(False))
+                ]
+            print("\n".join(s))
+        
+        for i in range(_n_iterations):
+            _sampling_type = sampling_type[i]['type']
+            if _sampling_type == 'parametric':
+                _is_supported_sampling_type = True
+
+                try:
+                    _n_samples = sampling_type[i]['n_samples']
+                except NameError as e:
+                    s = "{:5} n_samples must be defined for {} sampling_type in iteration {}".format(
+                        self.get_ok_fail(False),
+                        _sampling_type,
+                        i)
+                    print(s)
+                    _is_supported_sampling_type = False
+
+                if _is_supported_sampling_type:
+                    s = "{:5} iteration {}: {} sampling".format(
+                        self.get_ok_fail(True),
+                        i,
+                        _sampling_type
+                    )
+                    print(s)
+
+            elif _sampling_type == 'kde':
+                _is_supported_sampling_type = True
+                try:
+                    _n_samples = sampling_type[i]['n_samples']
+                except NameError as e:
+                    s = "{:5} n_samples must be defined for {} sampling_type in iteration {}".format(
+                        self.get_ok_fail(False),
+                        i,
+                        _sampling_type
+                    )
+                    print(s)
+                if _is_supported_sampling_type:
+                    s = "{:5} iteration {}: {} sampling".format(
+                        self.get_ok_fail(True),
+                        i,
+                        _sampling_type
+                    )
+                    print(s)
+
+            elif _sampling_type == 'from_file':
+                _is_supported_sampling_type = True
+                if _is_supported_sampling_type:
+                    s = "{:5} iteration {}: {} sampling".format(
+                        self.get_ok_fail(True),
+                        i,
+                        _sampling_type)
+                    print(s)
+            else:
+                _is_supported_sampling_type = False
+    
+    def validate_structure_db(self,structures):
+        _structure_dir = self.structures['structure_directory']
+        _structure_dir_exists = os.path.isdir(_structure_dir)
+        _structures = self.structures['structures']
+        
+        if _structure_dir_exists:
+            s = ['structure_directory:{}'.format(_structure_dir)]
+        else:
+            s = ['structure_directory does not exist, {}'.format(_structure_dir)]
+        
+        _all_structures_exist = True
+        for _structure_name,_structure_fn in _structures.items():
+            _structure_fn = os.path.join(_structure_dir,_structure_fn)                        
+            _structure_exists = os.path.isfile(_structure_fn)
+
+            if not _structure_exists:
+                _all_structures_exist = False
+            s += ['{:10} {:20} {}'.format(self.get_ok_fail(_structure_exists),_structure_name,_structure_fn)]
+
+        print("\n".join(s))
+
+    def validate_potential(self,potential):
+        if 'potential_type' not in potential:
+            s = "configuration file requires a potential type"
+            print(s)
+            _is_supported_potential=False
+        else:
+            _potential_type = potential['potential_type']
+            
+            _is_supported_potential = self.is_supported_potential(potential_type=_potential_type)
+
+            if _is_supported_potential:
+                s = "potential_type:{}".format(_potential_type)
+                print(s)
+                if _potential_type == 'eam':
+                    _is_supported_potential = self.validate_eam_potential(potential)
+                else:
+                    _is_supported_potential = True
+            else:
+                s = "potential_type not supported:{}".format(_potential_type)
+                print(s)
+                _is_supported_potential = True
+
+
+    def is_supported_potential(self,potential_type):
+        return potential_type in pypospack.potential.get_supported_potentials()
+
+    def validate_eam_potential(self,potential):
+        _func_pair = potential['pair_type'] 
+        _func_density = potential['density_type']
+        _func_embedding = potential['embedding_type']
+
+        _is_supported_potential = True
+        if not _func_pair in pypospack.potential.pair_potentials:
+            s = "pair_type is not supported:{}".format(_func_pair)
+            print(s)
+            _is_supported_potential = False
+        else:
+            s = "pair_type:{}".format(_func_pair)
+            print(s)
+
+        if not _func_density in pypospack.potential.eam_density_functions:
+            s = "'density_type is not supported:{}".format(_func_density)
+            print(s)
+            _is_supported_potential = False
+        else:
+            s = "density_type:{}".format(_func_density)
+
+        if not _func_embedding in pypospack.potential.eam_embedding_functions:
+            s = "embedding_type is not supported:{}".format(_func_embedding)
+            print(s)
+            _is_supported_potential = False
+        else:
+            s = "embedding_type:{}".format(_func_embedding)
+            print(s)
+
+        return _is_supported_potential
+
+    def validate_parameters(self,potential,parameters):
+        _potential_type = potential['potential_type']
+        _symbols = potential['symbols']
+
+        if _potential_type == 'eam':
+            # EAM potentials have a different constructor interface different than
+            # other potentials
+            _pair_type = potential['pair_type']
+            _density_type = potential['density_type']
+            _embedding_type = potential['embedding_type']
+
+            _obj_potential = pypospack.potential.EamPotential(
+                    symbols=_symbols,
+                    func_pair=_pair_type,
+                    func_density=_density_type,
+                    func_embedding=_embedding_type)
+        else:
+            # using the default constructor using dynamic module and class
+            # loading for all other potentials
+            _module_name, _class_name = pypospack.potential.PotentialObjectMap(potential_type='all')
+            _module = importlib.import_module(_module_name)
+            _class = getattr(_module,_class_name)
+            _obj_potential = _class(symbols=_symbols)
+
+        # checking if all parameters for the potential are defined
+        s = ['checking if required parameters are defined']
+        _all_parameters_validated = True
+        for _parameter_name in _obj_potential.parameter_names:
+            s.append('{:5} {:15}'.format(
+                self.get_ok_fail(_parameter_name in parameters),
+                _parameter_name)
+            )
+            if _parameter_name not in parameters:
+                _all_parameters_validated = False
+        
+        print('\n'.join(s))
+        return _all_parameters_validated
