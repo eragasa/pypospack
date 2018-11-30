@@ -3,7 +3,7 @@ import pypospack.utils
 from pypospack.pyposmat.data.pipeline import PyposmatPipeline
 
 pypospack_root_dir = pypospack.utils.get_pypospack_root_directory()
-configuration_dir = 'examples/Ni__eam__born_exp_fs_postprocessing/Reduced_TSNE_param_in_qoi/configuration/'
+configuration_dir = 'examples/Ni__eam__born_exp_fs_postprocessing/Reduced_TSNE_qoi_in_param/configuration/'
 
 config_fn_0 = os.path.join(pypospack_root_dir,
                            configuration_dir,
