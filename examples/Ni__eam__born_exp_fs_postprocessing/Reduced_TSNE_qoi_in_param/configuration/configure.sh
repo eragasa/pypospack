@@ -1,0 +1,3 @@
+python configure_qoi_clustering.py
+python configure_param_tsne.py
+python configure_param_plot.py
