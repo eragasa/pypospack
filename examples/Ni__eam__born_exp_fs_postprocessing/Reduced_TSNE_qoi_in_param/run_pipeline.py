@@ -13,7 +13,7 @@ config_fn_1 = os.path.join(pypospack_root_dir,
                            'configure_param_tsne.in')
 config_fn_2 = os.path.join(pypospack_root_dir,
                            configuration_dir,
-                           'configure_param_plot.in')
+                           'configure_final_plot.in')
 
 pyposmat_data_fn = os.path.join(pypospack_root_dir,
                                 'data/Ni__eam__born_exp_fs__3.5NN/pyposmat.kde.4.out')
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     pipeline_1.df['cluster_id'] = pipeline_0.df['cluster_id']  # transfer cluster labels
 
-    # plot parameter clusters in param space
+    # plot qoi clusters in parameter space
     pipeline_2 = PyposmatPipeline(configuration_fn=config_fn_2,
                                   df=pipeline_1.df)
     pipeline_2.read_configuration(config_fn_2)
