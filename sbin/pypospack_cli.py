@@ -24,15 +24,24 @@ def do_visualization(args):
     # from pypospack.pyposmat.visualization import start_bokeh_visualization
     # start_bokeh_visualization(config_fn=config_fn,data_fn=data_fn)
 
+def check_pyposmat_configuration(args):
+    _config_fn = args.configuration
+    
+    print('checking pyposmat configuration file')
+    print('pyposmat_configuration_file:{}'.format(_config_fn))
+    
+    from pypospack.pyposmat.data import PyposmatConfigurationFile
+    o = PyposmatConfigurationFile()
+    o.read(filename=_config_fn)
+    o.validate()
+
 parsers['visualization'] = parsers['obj_subparsers'].add_parser('visualization')
 parsers['visualization'].add_argument('--configuration','--config')
 parsers['visualization'].add_argument('--data')
 parsers['visualization'].set_defaults(func=do_visualization)
-
-def check_pyposmat_configuration(args):
-    print('checking pyposmat configuration file')
-    config_fn = args.configuration
-    print('pyposmat_configuration_file:{}'.format(config_fn))
+parsers['check_configuration'] = parsers['obj_subparsers'].add_parser('check_configuration')
+parsers['check_configuration'].add_argument('--configuration','--config')
+parsers['check_configuration'].set_defaults(func=check_pyposmat_configuration)
 
 #parsers['check_pyposmat_configuration'] = parsers['obj_subparsers'].add_parser('check_pyposmat_configuration')
 #parsers['check_pyposmat_configuration'].add_argument('--configuration')
@@ -45,4 +54,4 @@ if __name__ == "__main__":
 
     # Examples
     # python ~/repos/pypospack/sbin/pypospack_cli.py visualization --configuration=data/pyposmat.config.in --data=data/pypospack.kde.3.out
-
+    # python ~/repos/pypospack/sbin/pypospack_clu.py check_configuration --configuration=data/pyposmat.config.in
