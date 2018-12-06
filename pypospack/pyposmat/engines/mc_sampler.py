@@ -332,6 +332,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         #    raise
         
         # determine bandwidth
+        self.log('determining kde bandwidth...')
         if kde_bw_type == 'chiu1999':
             try:
                 _h = Chiu1999_h(_X)
