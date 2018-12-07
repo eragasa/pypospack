@@ -115,7 +115,16 @@ def write_phonts_batch_script(filename,job_name,email,qos,ntasks,time,
 
 def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
         output='job.out',
-        error='job.err'):
+        error='job.err'
+        vasp_bin=None):
+
+    _intel_compiler_string =
+    _mpi_compiler_string =
+    if vasp_bin=None:
+        _vasp_bin = os.environ['VASP_BIN']
+    else:
+        _vasp_bin = vasp_bin
+
     s = '#!/bin/bash\n'
     s += '#SBATCH --job-name={}\n'.format(job_name)
     s += '#SBATCH --qos={}\n'.format(qos)
@@ -127,6 +136,9 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
     s += '#SBATCH --output={}\n'.format(output)
     s += '#SBATCH --error={}\n'.format(error)
 
+    if vasp_bin is not None:
+        s += "VASP_BIN={}\n".format(_vasp_bin)
+        s += "export VASP_BIN"
 
     s += 'echo slurm_job_id:$SLURM_JOB_ID\n'
     s += 'echo slurm_job_name:$SLURM_JOB_NAME\n'
@@ -138,11 +150,10 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
     s += 'echo working directory:$(pwd)\n'
     s += 'echo hostname:$(hostname)\n'
     s += 'echo start_time:$(date)\n'
-    
-    s += 'module load intel openmpi vasp\n'
-    
-    s += 'srun --mpi=pmi2 vasp_std > vasp.log\n'
-    s += 'touch jobCompleted\n'    
+
+    s += 'module load intel/2016.0.109\n'
+    s += 'module load impi\n'
+    s += 'srun --mpi=pmi2 $VASP_BIN > vasp.log\n" 
     s += 'echo end_time:$(date)\n'
 
     with open(filename,'w') as f:
