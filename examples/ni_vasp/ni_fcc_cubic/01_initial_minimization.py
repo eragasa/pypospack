@@ -77,6 +77,10 @@ if __name__ == "__main__":
     vasp_simulation.natoms = vasp_simulation.poscar.n_atoms
     vasp_simulation.incar.encut = vasp_simulation.encut
 
+    # these are specifically for Ni which requires spin polarization
+    # and uses methfessl paxton treatment of the basis sets appropriate for
+    # metals and a 0.20 smearing parameter
+
     magmom_init = 1.0
     vasp_simulation.incar.ismear = 1      # methfessel paxton order 1
     vasp_simulation.incar.sigma = 0.20    # smearing parameter
@@ -84,10 +88,12 @@ if __name__ == "__main__":
     vasp_simulation.incar.ispin = 2       # spin-polarized calculations
     vasp_simulation.incar.magmom = "{}*{}".format(
             vasp_simulation.poscar.n_atoms,magmom_init)
+    
+    # position minimization attributes set
     vasp_simulation.incar.ibrion = 2      # conjugate gradient method
     vasp_simulation.incar.isif = 3        # relax everything
     vasp_simulation.incar.potim = 0.5     # dampening parameter
-    vasp_simulation.incar.ediffg = -0.001 # ev/Ang
+    vasp_simulation.incar.ediffg = -0.001 # minimization of forces in ev/Ang
 
     vasp_simulation.poscar.write(
             os.path.join(vasp_simulation.simulation_directory,"POSCAR"))
@@ -105,9 +111,15 @@ if __name__ == "__main__":
             ntasks=ntasks,
             time=time)
     
+    # write current directory context so we can return to it later
     init_dir = os.getcwd()
+    
+    # change directory context for execution
     os.chdir(vasp_simulation.simulation_directory)
-    result = subprocess(sbatch runjob_hpg.slurm)
+    result = subprocess('sbatch runjob_hpg.slurm')
     with open(job.info,'w') as fout:
         fout.write(result.stdout)
+
+    # return to original directory context
+    os.chdir(init_dir)
     fout.close()
