@@ -38,7 +38,10 @@ class PyposmatIterativeSampler(object):
 
     """
     def __init__(self,
-            configuration_filename,is_restart=False):
+            configuration_filename,
+            is_restart=False,
+            log_fn=None,
+            log_to_stdout=True):
         self.RANK_DIR_FORMAT = 'rank_{}'
         self.mpi_comm = None
         self.mpi_rank = None
@@ -57,8 +60,17 @@ class PyposmatIterativeSampler(object):
         self.is_restart = is_restart
         self.start_iteration = 0
 
-        self.log_fn = os.path.join(self.root_directory, self.data_directory, 'pyposmat.log')
-        self.log = PyposmatLogFile(filename=self.log_fn)
+        if log_fn is None:
+            self.log_fn = os.path.join(self.root_directory, self.data_directory, 'pyposmat.log')
+        else:
+            self.log_fn = log_fn
+        self.o_log = PyposmatLogFile(filename=self.log_fn)
+        
+        self.log_to_stdout = log_to_stdout
+
+    def log(self,s):
+        if self.log_to_stdout: print(s)
+        if self.o_log is not None: self.o_log.write(s)
 
     def run_restart(self):
         if self.configuration is None:
@@ -90,27 +102,28 @@ class PyposmatIterativeSampler(object):
         self.start_iteration = 0
         for i in range(self.start_iteration,self.n_iterations):
             if self.mpi_rank == 0:
-                self.log.write(80*'-')
-                self.log.write('{:80}'.format('BEGIN ITERATION {}/{}'.format(
+                self.log(80*'-')
+                self.log('{:80}'.format('BEGIN ITERATION {}/{}'.format(
                                i+1, self.n_iterations)))
-                self.log.write(80*'-')
+                self.log(80*'-')
             MPI.COMM_WORLD.Barrier()
 
             self.run_simulations(i)
-            self.log.write("rank {} simulations complete".format(self.mpi_rank))
+            
+            self.log("rank {} simulations complete".format(self.mpi_rank))
             MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:
-                self.log.write("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
 
             if self.mpi_rank == 0:
-                self.log.write('merging files...')
+                self.log('merging files...')
                 self.merge_files(i)
-                self.log.write('analyzing results...')
+                self.log('analyzing results...')
                 self.analyze_results(i)
             MPI.COMM_WORLD.Barrier()
-        self.log.write(80*'-')
-        self.log.write('JOBCOMPLETE')
+        self.log(80*'-')
+        self.log('JOBCOMPLETE')
 
     def run_simulations(self,i_iteration):
         self.rank_directory = self.RANK_DIR_FORMAT.format(
@@ -135,6 +148,7 @@ class PyposmatIterativeSampler(object):
                 self.rank_directory,
                 'pyposmat.results.out')
 
+        _structure_dir = self.configuration.structures['structure_directory']
         # set random seed
         np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
 
@@ -144,12 +158,10 @@ class PyposmatIterativeSampler(object):
                 filename_out = _results_filename,
                 mpi_rank = self.mpi_rank,
                 mpi_size = self.mpi_size,
-                o_log=self.log)
+                o_log=self.o_log)
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
-        _structure_dir = self.mc_sampler.configuration.structures['structure_directory']
-        self.mc_sampler.configuration.structures['structure_directory'] = \
-                os.path.join('..',_structure_dir)
+        self.mc_sampler.configuration.structures['structure_directory'] = os.path.join('..',_structure_dir)
         self.mc_sampler.configure_qoi_manager()
         self.mc_sampler.configure_task_manager()
         self.mc_sampler.configure_pyposmat_datafile_out()
@@ -161,13 +173,13 @@ class PyposmatIterativeSampler(object):
         if self.mpi_rank == 0 and i_iteration == 0:
             self.mc_sampler.print_initial_parameter_distribution()
         if self.mpi_rank == 0:
-            self.log.write(80*'-')
+            self.log(80*'-')
         MPI.COMM_WORLD.Barrier()
 
         _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
         # choose sampling type
         _mc_sample_type = _mc_config['type']
-        self.log.write("_mc_sample_type={}".format(_mc_sample_type))
+        self.log("_mc_sample_type={}".format(_mc_sample_type))
         
         # <----- paramter sampling type ---------------------------------------
         if _mc_sample_type == 'parametric':
@@ -183,6 +195,7 @@ class PyposmatIterativeSampler(object):
         # <----- kde sampling sampling type ---------------------------------------
         elif _mc_sample_type == 'kde':
             _mc_n_samples = _mc_config['n_samples']
+
             # determine number of sims for this rank
             _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
             if _mc_n_samples%self.mpi_size > self.mpi_rank:
@@ -198,6 +211,12 @@ class PyposmatIterativeSampler(object):
                     self.root_directory,
                     self.data_directory,
                     'pyposmat.kde.{}.out'.format(i_iteration))
+
+            if self.mpi_rank == 0:
+                self.log(80*'-')
+                self.log('{:^80}'.format('kde sampling'))
+                self.log(80*'-')
+                self.log('filename_in:{}'.format(_filename_in))
 
             self.mc_sampler.run_simulations(
                     i_iteration=i_iteration,
@@ -306,10 +325,10 @@ class PyposmatIterativeSampler(object):
             self.print_mpi_environment()
 
     def print_mpi_environment(self):
-        self.log.write(80*'-')
-        self.log.write('{:^80}'.format('MPI COMMUNICATION INFORMATION'))
-        self.log.write(80 * '-')
-        self.log.write('mpi_size={}'.format(self.mpi_size))
+        self.log(80*'-')
+        self.log('{:^80}'.format('MPI COMMUNICATION INFORMATION'))
+        self.log(80 * '-')
+        self.log('mpi_size={}'.format(self.mpi_size))
 
     def determine_rv_seeds(self):
         _randint_low = 0
@@ -417,8 +436,8 @@ class PyposmatIterativeSampler(object):
         _filename_kde = os.path.join(
             _dir,'pyposmat.kde.{}.out'.format(i_iteration))
         
-        self.log.write('Looking for previous kde file')
-        self.log.write('    {}'.format(_filename_kde))
+        self.log('Looking for previous kde file')
+        self.log('    {}'.format(_filename_kde))
         
         datafile_fns = []
         if os.path.exists(_filename_kde):
@@ -503,23 +522,57 @@ class PyposmatIterativeSampler(object):
         self.qoi_names = self.configuration.qoi_names
         self.error_names = self.configuration.error_names
         self.parameter_names = self.configuration.parameter_names
-    
-        self.log.write(self.parameter_names)
-        self.log.write(self.qoi_names)
-        self.log.write(self.error_names)
+   
+        self._write_parameter_names()
+        self._write_qoi_names()
+        self._write_error_names()
+
+    def _write_parameter_names(self,parameter_names=None):
+        if parameter_names is None: _parameter_names = self.parameter_names
+        else: _parameter_names = parameter_names
+
+        s = [80*'-']
+        s += ['{:^80}'.format('PARAMETER_NAMES')]
+        s += [80*'-']
+        s += [p for p in _parameter_names]
+
+        self.log("\n".join(s))
+        
+    def _write_qoi_names(self,qoi_names=None):
+        if qoi_names is None: _qoi_names = self.qoi_names
+        else: _qoi_names = qoi_names
+
+        s = [80*'-']
+        s += ['{:^80}'.format('QOI_NAMES')]
+        s += [80*'-']
+        s += [p for p in _qoi_names]
+
+        self.log("\n".join(s))
+
+    def _write_error_names(self,error_names = None):
+        if error_names is None: _error_names = self.error_names
+        else: _error_names = error_names
+
+        s = [80*'-']
+        s += ['{:^80}'.format('ERROR_NAMES')]
+        s += [80*'-']
+        s += [p for p in _error_names]
+
+        self.log("\n".join(s))
+
 
     def print_random_seeds(self):
-            self.log.write(80*'-')
-            self.log.write('{:^80}'.format('GENERATED RANDOM SEEDS'))
-            self.log.write(80*'-')
-            self.log.write('')
-            self.log.write('rv_seed={}'.format(self.rv_seed))
-            self.log.write('')
-            self.log.write('{:^8} {:^8} {:^10}'.format('rank','iter','seed'))
-            self.log.write('{} {} {}'.format(8*'-',8*'-',10*'-'))
+            self.log(80*'-')
+            self.log('{:^80}'.format('GENERATED RANDOM SEEDS'))
+            self.log(80*'-')
+            self.log('')
+            self.log('rv_seed={}'.format(self.rv_seed))
+            self.log('')
+            self.log('{:^8} {:^8} {:^10}'.format('rank','iter','seed'))
+            self.log('{} {} {}'.format(8*'-',8*'-',10*'-'))
             for i_rank in range(self.mpi_size):
                 for i_iter in range(self.n_iterations):
-                    self.log.write('{:^8} {:^8} {:>10}'.format(
+                    self.log('{:^8} {:^8} {:>10}'.format(
                                    i_rank,
                                    i_iter,
                                    self.rv_seeds[i_rank, i_iter]))

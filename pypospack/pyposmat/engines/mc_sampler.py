@@ -332,18 +332,22 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         #    raise
         
         # determine bandwidth
-        if kde_bw_type == 'Chiu1999':
-            _h = Chiu1999_h(_X)
-        elif kde_bw_type == 'Silverman1986':
+        self.log('determining kde bandwidth...')
+        if kde_bw_type == 'chiu1999':
+            try:
+                _h = Chiu1999_h(_X)
+            except ValueError as e:
+                print(_X)
+                raise
+            m = 'Chiu1999_h:{}'.format(_h)
+            self.log(m)
+        elif kde_bw_type == 'silverman1986':
             _h = Silverman1984
         else:
             m = 'kde_bw_type, {}, is not an implemented bandwidth type'
             raise PypospackBadKdeBandwidthType(m)    
 
         _rv_generator = scipy.stats.gaussian_kde(_X,_h)
-
-        m = 'Chiu1999_h:{}'.format(_h)
-        self.log(m)
 
         self.write_data_out_header()
 

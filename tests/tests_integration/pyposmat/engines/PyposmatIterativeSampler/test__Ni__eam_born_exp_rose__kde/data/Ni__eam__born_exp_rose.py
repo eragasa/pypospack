@@ -14,7 +14,15 @@ for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
     sampling[i]['n_samples'] = 10
-    sampling[i]['file'] = 'pyposmat.kde.{}.out'.format(i)
+    sampling[i]['file'] = os.path.join(
+        'data',
+        'pyposmat.kde.{}.out'.format(i+1)
+    )
+sampling[i]['file'] = os.path.join(
+    pypospack.utils.get_pypospack_root_directory(),
+    'examples','Ni__eam__born_exp_rose','01_preconditioning_3.5NN','data',
+    'pyposmat.results.0.out'
+)
 
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
