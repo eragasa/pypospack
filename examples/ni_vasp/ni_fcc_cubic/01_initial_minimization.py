@@ -32,7 +32,8 @@ if __name__ == "__main__":
     init_directory = os.getcwd()
     task_dir = os.path.join(os.getcwd(),task_name)
 
-    vasp_simulation = vasp.VaspSimulation()
+    sim_dir = task_dir
+    vasp_simulation = vasp.VaspSimulation(sim_dir=sim_dir)
     vasp_simulation.simulation_directory = task_dir
     vasp_simulation.poscar = vasp.Poscar(\
             ase.build.bulk(symbol,sg,a,cubic=True))
@@ -116,9 +117,10 @@ if __name__ == "__main__":
     
     # change directory context for execution
     os.chdir(vasp_simulation.simulation_directory)
-    result = subprocess('sbatch runjob_hpg.slurm')
-    with open(job.info,'w') as fout:
-        fout.write(result.stdout)
+    result = subprocess.run(['sbatch', 'runjob_hpg.slurm'], stdout=subprocess.PIPE)
+    print("result.stdout: {}".format(result.stdout))
+    with open('job.info', 'w') as fout:
+        fout.write(str(result.stdout))
 
     # return to original directory context
     os.chdir(init_dir)
