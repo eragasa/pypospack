@@ -2,7 +2,7 @@
 #SBATCH --job-name=Ni_fcc_5x5x5
 #SBATCH --qos=phillpot
 #SBATCH --mail-type=END
-#SBATCH --mail-user=eragasa@ufl.edu
+#SBATCH --mail-user=sullberg@ufl.edu
 #SBATCH --ntasks=16
 #SBATCH --distribution=cyclic:cyclic
 #SBATCH --time=1:00:00
@@ -17,6 +17,7 @@ echo slurm_ntasks:$SLURM_NTASKS
 echo working directory:$(pwd)
 echo hostname:$(hostname)
 echo start_time:$(date)
-module load intel openmpi vasp
-srun --mpi=pmi2 vasp_std > vasp.log
+module load intel/2016.0.109
+module load impi
+srun --mpi=pmi2 $VASP_BIN > vasp.log
 echo end_time:$(date)
