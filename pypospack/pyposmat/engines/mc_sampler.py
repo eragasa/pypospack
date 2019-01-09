@@ -278,6 +278,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             except PypospackTaskManagerError as e:
                 _n_errors += 1
             else:
+                if type(_sim_id) is float: _sim_id = int(sim_id)
                 self.pyposmat_datafile_out.write_simulation_results(
                         filename=self.pyposmat_data_out_filename,
                         sim_id=i_sample,
@@ -314,7 +315,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
     def run_kde_sampling(self,n_samples,filename_in,cluster_id=None,kde_bw_type='chiu1999'):
         """
-        cluster_id (int): cluster_id of interest
+        cluster_id (int): cluster_id of interest, if cluster_id is None, then all entries in the datafile will be used
         kde_bw_type (str): type of bandwidth
         """
         _datafile_in = PyposmatDataFile()
@@ -420,6 +421,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             except PypospackTaskManagerError as e:
                 _n_errors += 1
             else:
+                if type(_sim_id) is float: _sim_id = int(sim_id)
                 self.pyposmat_datafile_out.write_simulation_results(
                         filename=self.pyposmat_data_out_filename,
                         sim_id=i_sample,
@@ -491,6 +493,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             except PypospackTaskManagerError as e:
                 _n_errors += 1
             else:
+                if type(_sim_id) is float: _sim_id = int(sim_id)
                 self.pyposmat_datafile_out.write_simulation_results(
                         filename=self.pyposmat_data_out_filename,
                         sim_id=_sim_id,

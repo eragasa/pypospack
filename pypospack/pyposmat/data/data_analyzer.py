@@ -120,8 +120,12 @@ class PyposmatDataAnalyzer(object):
         
         self.read_data(filename=filename)
 
-    def calculate_pareto_set(self,df,v):
-        _df = copy.deepcopy(df)
+    def calculate_pareto_set(self,df=None,v=None):
+        
+        if df is None:
+            _df = self.data.df
+        else:
+            _df = copy.deepcopy(df)
 
         # define names for absolute errors
         abs_error_names = ["{}.abserr".format(k) for k in self.qoi_names]
@@ -132,12 +136,15 @@ class PyposmatDataAnalyzer(object):
 
         is_pareto_idx = pareto(_df[abs_error_names].values.tolist())
 
-        _df = copy.deepcopy(df)
         _df['is_pareto'] = 0
         _df.loc[list(is_pareto_idx),'is_pareto'] = 1
         return _df
 
     def filter_performance_requirements(self,df=None):
+        """
+        Args:
+            df (pandas.DataFrame)
+        """
         if df is None:
             _df = copy.deepcopy(self.df)
         else:
@@ -220,8 +227,15 @@ class PyposmatDataAnalyzer(object):
                 percentile=percentile,
                 qoi_names=self.qoi_names)
 
-    def write_kde_file(self,filename):
-        _qoi_constraints = self.configuration.qoi_constraints
+    def write_kde_file(self,filename,qoi_constraints=None):
+        """
+        """
+
+        if qoi_constraints is None:
+            _qoi_constraints = self.configuration.qoi_constraints
+        else:
+            _qoi_constraints = qoi_constraints
+
         kde_df = copy.deepcopy(self._df)
 
         # filtering by the qoi constraints

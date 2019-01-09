@@ -6,6 +6,12 @@ from pypospack.qoi import QoiDatabase
 # This script is written so that reporting tools can be used on the previous simulation work
 # -- EJR, Aug 2018
 
+import pypospack.utils
+_pypospack_root_directory = pypospack.utils.get_pypospack_root_directory()
+
+import os
+_pyposmat_structure_directory = os.path.join(_pypospack_root_directory,'data','MgO_structure_db')
+
 #------------------------------------------------------------------------------
 # CONFIGURAITON SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
@@ -62,13 +68,13 @@ parameter_constraints['OO_C > 0'] = 'OO_C > 0.'
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
 structure_db = OrderedDict()
-structure_db['structure_directory'] = 'structure_db'
+structure_db['structure_directory'] = _pyposmat_structure_directory
 structure_db['structures'] = OrderedDict()
 structure_db['structures']['MgO_NaCl'] = 'MgO_NaCl_unit.vasp'
-structure_db['structures']['MgO_NaCl_001s'] = 'MgO_NaCl_001_s.vasp'
-structure_db['structures']['MgO_NaCl_333_fr_s'] = 'MgO_NaCl_333_fr_a.vasp'
-structure_db['structures']['MgO_NaCl_333_fr_c'] = 'MgO_NaCl_333_fr_c.vasp'
-structure_db['structures']['MgO_NaCl_333_sch'] = 'MgO_NaCl_333_sch.vasp'
+structure_db['structures']['MgO_NaCl_001s'] = 'MgO_NaCl_001s.vasp'
+structure_db['structures']['MgO_NaCl_fr_a'] = 'MgO_NaCl_333_fr_a.vasp'
+structure_db['structures']['MgO_NaCl_fr_c'] = 'MgO_NaCl_333_fr_c.vasp'
+structure_db['structures']['MgO_NaCl_sch'] = 'MgO_NaCl_333_sch.vasp'
 #------------------------------------------------------------------------------
 # FITTING DATABASE
 #------------------------------------------------------------------------------
@@ -147,7 +153,7 @@ qoi_db.add_qoi(
         qoi_type="E_surface",
         structures=OrderedDict(
             [
-                ('slab','MgO_NaCl_001_s'),
+                ('slab','MgO_NaCl_001s'),
                 ('ideal','MgO_NaCl'),
             ],
         ),

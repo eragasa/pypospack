@@ -3,7 +3,7 @@ from collections import OrderedDict
 from pypospack.qoi import QoiManager
 from pypospack.task import TaskManager
 from pypospack.pyposmat.data.configurationfile import PyposmatConfigurationFile
-from pypospack.task.lammps import LammpsSimulationError
+from pypospack.exceptions import LammpsSimulationError
 
 class PyposmatEngine(object):
     """
@@ -52,6 +52,10 @@ class PyposmatEngine(object):
 
         if fullauto:
             self.configure()
+
+    @property
+    def structure_directory(self):
+        return self.configuration.structures['structure_directory']
 
     @property
     def structures(self):
@@ -134,6 +138,19 @@ class PyposmatEngine(object):
                 structures = _structures)
 
     def evaluate_parameter_set(self,parameters):
+        """
+        Arguments:
+        
+            parameters(OrderedDict): hashtable of parameter values with the key value defined
+                by the configuration file or the PyposmatConfigurationFile object.  Only the
+                free parameter values need to be defined.  Constrained parameter values will
+                be automatically generated
+        Returns:
+            OrderedDict: hashtable of results with the key value being defined
+                by the the either configuration file or the PyposmatConfigurationFile object
+        Exceptions:
+            LammpsSimulationError
+        """
         self.configure_task_manager()
         _parameters = copy.deepcopy(parameters)
         _potential = copy.deepcopy(self.configuration.potential)

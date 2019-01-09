@@ -1,9 +1,12 @@
 import os
 
 def get_pypospack_root_directory():
-    python_root_dir = [v.strip() for v in os.environ["PYTHONPATH"].split(':') if v.endswith('pypospack')][0]
-
-    return python_root_dir
+    _pythonpath_dirs = [v.strip() for v in os.environ["PYTHONPATH"].split(':') if v.endswith('pypospack')]
+    _pypospack_root_dir = ""
+    for d in _pythonpath_dirs:
+        if d.find('pypospack'):
+            _pypospack_root_dir = d
+    return _pypospack_root_dir
 
 
 def tail(fname, n_lines, offset=None):

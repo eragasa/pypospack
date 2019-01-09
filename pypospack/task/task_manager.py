@@ -96,12 +96,20 @@ class TaskManager(object):
         _statuses = [v.status in ['FINISHED','ERROR'] for v in obj_Tasks.values()]
         return all(_statuses) 
 
-    def evaluate_tasks(self,parameters,potential,max_time_per_simulation=10000):
+    def evaluate_tasks(self,parameters,potential,max_time_per_simulation=100):
+        """
+        parameters (OrderedDict) key-value pair of parameter names and parameter values
+        potential (OrderedDict) key-value pair of potential descriptors
+        max_time_per_simulation (int) 
+        """
         
         _sleep_time = 0.1
         _max_time_per_simulation = max_time_per_simulation
 
+        # initialize results dictions
         self.results = OrderedDict()
+
+        # each task requires potential information and parameter information provided in a dictionary
         _configuration = OrderedDict()
         _configuration['potential'] = potential
         _configuration['parameters'] = parameters
@@ -234,9 +242,15 @@ class TaskManager(object):
                 _task_name)
 
         # <-------- determine location of the structure
-        _task_structure = os.path.join(
-                self.structures['structure_directory'],
-                self.structures['structures'][task_structure])
+        _structure_dir = self.structures['structure_directory']
+        
+        try:
+            _structure_fn = self.structures['structures'][task_structure]
+        except KeyError as e:
+            print('the structure name \'{}\' is not defined'.format(task_structure))
+            raise
+
+        _task_structure = os.path.join(_structure_dir,_structure_fn)
 
         # <-------- instantiate the task
         _module_name = TaskToClassMap[_task_type]['module']

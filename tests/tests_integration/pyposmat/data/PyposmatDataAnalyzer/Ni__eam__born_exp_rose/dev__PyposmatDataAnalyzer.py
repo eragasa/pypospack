@@ -30,8 +30,13 @@ if __name__ == "__main__":
 
     # initialization
     o = PyposmatDataAnalyzer(fn_config=config_fn,fn_data=data_fn)
-
+    print(o.parameter_names)
+    results_nrows, results_ncols = o.data.df.shape
     # calculate_pareto_set
-    pareto_df = o.calculate_pareto_set(
-            df = o.data.df,v=None)
+    pareto_df = o.calculate_pareto_set(df=o.data.df)
+    pareto_nrows, pareto_ncols = pareto_df.loc[pareto_df["is_pareto"] == True].shape
 
+    print("n_results:{}".format(results_nrows))
+    print("n_pareto:{}".format(pareto_nrows))
+
+    print(pareto_df["is_pareto"])
