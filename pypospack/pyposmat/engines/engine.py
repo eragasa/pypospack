@@ -54,10 +54,6 @@ class PyposmatEngine(object):
             self.configure()
 
     @property
-    def structure_directory(self):
-        return self.configuration.structures['structure_directory']
-
-    @property
     def structures(self):
         """(collections.OrderedDict)"""
         return self.configuration.structures
@@ -115,6 +111,7 @@ class PyposmatEngine(object):
             _filename_in = filename
 
         self.configuration = PyposmatConfigurationFile(filename=_filename_in)
+        self.structure_directory = self.configuration.structures['structure_directory']
 
     def configure_qoi_manager(self,qois=None):
         if qois is not None:

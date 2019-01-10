@@ -664,12 +664,13 @@ class Potcar(object):
             if pathlib.Path(os.path.join(self.potcar_dir,s,'POTCAR')).is_file():
                 self.potcars[s] = os.path.join(self.potcar_dir,s,'POTCAR')
             # try VASP_XC_DIR/symbol_new/POTCAR
-            elif pathlib.Path(os.path.join(self.potcar_dir,s + "_new",'POTCAR')).is_file():
-                self.potcars[s] = os.path.join(self.potcar_dir,s+"_new",'POTCAR')
+            elif pathlib.Path(os.path.join(self.potcar_dir,"{}_new".format(s),'POTCAR')).is_file():
+                self.potcars[s] = os.path.join(self.potcar_dir,"{}_new".format(s),'POTCAR')
             # try VASP_XC_DIR/symbols_h/POTCAR
-            elif pathlib.Path(os.path.join(self.potcar_dir,s + "_h",'POTCAR')).is_file():
-                self.potcars[s] = os.path.join(self.potcar_dir,s+"_h",'POTCAR')
+            elif pathlib.Path(os.path.join(self.potcar_dir,"{}_h".format(s),'POTCAR')).is_file():
+                self.potcars[s] = os.path.join(self.potcar_dir,"{}_h".format(s),'POTCAR')
             else:
+                print(os.path.join(self.potcar_dir,"{}_new".format(s),'POTCAR'))
                 msg = 'cannot find a POTCAR file for {}.{}\n'.format(self.xc,s)
                 msg += 'potcar_dir:{}'.format(self.potcar_dir)
                 raise VaspPotcarError(msg)
