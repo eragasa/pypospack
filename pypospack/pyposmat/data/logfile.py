@@ -33,7 +33,7 @@ class PyposmatLogFile(object):
                         time.sleep(self.time_sleep)
 
             # write message
-            f.write(self.msg_format.format(_s+"\n"))
+            f.write(self.msg_format.format(_s))
             
             # release the lock
             fcntl.flock(f, fcntl.LOCK_UN)

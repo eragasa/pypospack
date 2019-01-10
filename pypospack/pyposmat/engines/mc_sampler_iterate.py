@@ -69,8 +69,10 @@ class PyposmatIterativeSampler(object):
         self.log_to_stdout = log_to_stdout
 
     def log(self,s):
-        if self.log_to_stdout: print(s)
-        if self.o_log is not None: self.o_log.write(s)
+        if self.log_to_stdout: 
+            print(s)
+        if self.o_log is not None: 
+            self.o_log.write(s)
 
     def run_restart(self):
         if self.configuration is None:
@@ -460,15 +462,18 @@ class PyposmatIterativeSampler(object):
         # now we need to merge the files
         _df = None
         for i,v in _datafiles_to_concatenate:
+
+            # an exception for the first iteration
             if i==0:
                 datafile = PyposmatDataFile()
                 datafile.read(filename=v)
                 _df = datafile.df
+
             else:
                 _iteration_id = '{}'.format(i_iteration)
                 datafile = PyposmatDataFile()
                 datafile.read(filename=v)
-                _df = pd.concat([_df+datafile.df).reset_index(drop=True)
+                _df = pd.concat([_df,datafile.df]).reset_index(drop=True)
 
         # create output file
         datafile = PyposmatDatafile()
@@ -486,18 +491,21 @@ class PyposmatIterativeSampler(object):
             raise
 
 
-    def analyze_results(self,i_iteration):
-        data_fn = os.path.join(\
-                self.root_directory,
-                self.data_directory,
-                'pyposmat.results.{}.out'.format(i_iteration))
-        config_fn = os.path.join(\
-                self.root_directory,
-                self.configuration_filename)
-        kde_fn = os.path.join(\
-                self.root_directory,
-                self.data_directory,
-                'pyposmat.kde.{}.out'.format(i_iteration+1))
+    def analyze_results(self,i_iteration,data_fn=None,config_fn=None,kde_fn=None):
+        if data_fn is None:
+            data_fn = os.path.join(\
+                    self.root_directory,
+                    self.data_directory,
+                    'pyposmat.results.{}.out'.format(i_iteration))
+        if config_fn is None:
+            config_fn = os.path.join(\
+                    self.root_directory,
+                    self.configuration_filename)
+        if kde_fn is None:
+            kde_fn = os.path.join(\
+                    self.root_directory,
+                    self.data_directory,
+                    'pyposmat.kde.{}.out'.format(i_iteration+1))
 
         data_analyzer = PyposmatDataAnalyzer()
         data_analyzer.read_configuration_file(filename=config_fn)
