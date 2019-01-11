@@ -186,7 +186,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 )
             )
         if self.mpi_rank == 0:
-            print(i_iteration,_n_samples,_sampling_type)
+            s = "{} {} {}".format(i_iteration,_n_samples,_sampling_type)
+            self.log(s)
 
     def write_data_out_header(self):
         self.pyposmat_datafile_out.write_header_section(

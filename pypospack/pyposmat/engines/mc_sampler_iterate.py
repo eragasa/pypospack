@@ -181,7 +181,9 @@ class PyposmatIterativeSampler(object):
         _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
         # choose sampling type
         _mc_sample_type = _mc_config['type']
-        self.log("_mc_sample_type={}".format(_mc_sample_type))
+        
+        if self.mpi_rank == 0:
+            self.log("_mc_sample_type={}".format(_mc_sample_type))
         
         # <----- paramter sampling type ---------------------------------------
         if _mc_sample_type == 'parametric':

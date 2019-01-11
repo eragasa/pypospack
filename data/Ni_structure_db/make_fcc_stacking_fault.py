@@ -55,6 +55,7 @@ if __name__ == "__main__":
     poscar = Poscar(simulation_cell)
     poscar.write('Ni_fcc_isf.vasp')
 
+    # EXTRINSIC STACKING FALT
     symbols = ['Ni']
     stacking_sequence = "ABC,ABC,ABAC,ABC,ABC"
     simulation_cell = make_fcc_stacking_fault(symbols,stacking_sequence)
