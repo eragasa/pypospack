@@ -38,39 +38,29 @@ potential_formalism['a0'] = 3.52
 potential_formalism['lattice_type'] = 'fcc'
 
 # <---------------- INITIAL PARAMETER DEFINITION
+# Some parameters are dependent upon the lattice parameter, a0, and the equilibrium
+# iteratomic distance, r_e.
 a0 = 3.52
 re = 1/(2**0.5)*a0
 
 parameter_distribution = OrderedDict()
-parameter_distribution['p_NiNi_phi0'] = [
-        'uniform',{
-            'a':+0.05,
-            'b':+4.00}]
-parameter_distribution['p_NiNi_gamma'] = [
-        'uniform',{
-            'a':2.00,
-            'b':7.00}]
-parameter_distribution['p_NiNi_r0'] = [
-        'equals',re]
-parameter_distribution['d_Ni_rho0'] = [
-        'uniform',{
-            'a':1.0,
-            'b':4.0}]
-parameter_distribution['d_Ni_beta'] = [
-        'uniform',{
-            'a':2.0000,
-            'b':7.0000}]
-parameter_distribution['d_Ni_r0'] = [
-        'equals',re]
+
+# parameters for the pair potential
+parameter_distribution['p_NiNi_phi0'] = ['uniform',{'a':+0.05,'b':+4.00}]
+parameter_distribution['p_NiNi_gamma'] = ['uniform',{'a':2.00,'b':7.00}]
+parameter_distribution['p_NiNi_r0'] = ['equals',re]
+
+# paraemters for the electron density function
+parameter_distribution['d_Ni_rho0'] = ['uniform',{'a':1.0,'b':4.0}]
+parameter_distribution['d_Ni_beta'] = ['uniform',{'a':2.0000,'b':7.0000}]
+parameter_distribution['d_Ni_r0'] = ['equals',re]
+
 # parameters - Rose Equation of State
-parameter_distribution['e_Ni_latticetype'] = [
-        'equals','fcc']
-parameter_distribution['e_Ni_ecoh'] = [
-        'equals',-4.45]
-parameter_distribution['e_Ni_B'] = [
-        'equals',188.]
-parameter_distribution['e_Ni_a0'] = [
-        'equals',a0]
+parameter_distribution['e_Ni_latticetype'] = ['equals','fcc']
+parameter_distribution['e_Ni_ecoh'] = ['equals',-4.45]
+parameter_distribution['e_Ni_B'] = ['equals',188.]
+parameter_distribution['e_Ni_a0'] = ['equals',a0]
+
 #------------------------------------------------------------------------------
 # PARAMETER CONSTRAINTS
 #------------------------------------------------------------------------------
@@ -79,6 +69,7 @@ parameter_constraints['p_NiNi_phi0 > 0'] = 'p_NiNi_phi0 > 0.'
 parameter_constraints['p_NiNi_gamma > 0'] = 'p_NiNi_gamma > 0.'
 parameter_constraints['d_Ni_rho0 > 0'] = 'd_Ni_rho0 > 0.'
 parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
+
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
