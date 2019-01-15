@@ -208,6 +208,12 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 _loc = _a
                 _scale = _b-_a
                 _rv_generators[p] = scipy.stats.uniform(loc=_loc,scale=_scale)
+            elif distribution_type == 'normal':
+                _mu = self.parameter_distribution_definition[p][1]['mu']
+                _sigma = self.parameter_distribution_definition[p][1]['sigma']
+                _loc = _mu
+                _scale = _sigma
+                _rv_generators[p] = scipy.stats.norm(loc=_loc,scale=_scale)
             else:
                 raise ValueError('unknown distribution type: {}'.format(
                     distribution_type))
@@ -600,12 +606,26 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         for p in self.parameter_distribution_definition:
             if p in self.free_parameter_names:
                 str_free = 'free'
-                print('{:^20} {:^10} {:^10} {:^10} {:^10}'.format(
-                    p,
-                    str_free,
-                    self.parameter_distribution_definition[p][0],
-                    self.parameter_distribution_definition[p][1]['a'],
-                    self.parameter_distribution_definition[p][1]['b']))
+                if self.parameter_distribution_definition[p][0] == 'uniform':
+                    print('{:^20} {:^10} {:^10} {:^10} {:^10}'.format(
+                        p,
+                        str_free,
+                        self.parameter_distribution_definition[p][0],
+                        self.parameter_distribution_definition[p][1]['a'],
+                        self.parameter_distribution_definition[p][1]['b']))
+                elif self.parameter_distribution_definition[p][0] == 'normal':
+                    print('{:^20} {:^10} {:^10} {:^10} {:^10}'.format(
+                        p,
+                        str_free,
+                        self.parameter_distribution_definition[p][0],
+                        self.parameter_distribution_definition[p][1]['mu'],
+                        self.parameter_distribution_definition[p][1]['sigma']))
+                else:
+                    _distribution_type = self.parameter_distribution_defintion[p][0]
+                    s = "incorrection parameter distribution for parameter {}.  probability distribution function, {}, is not supported"
+                    s = s.format(p,_distribution_type)
+                    raise ValueError(s)
+
             else:
                 str_free = 'not_free'
                 print('{:^20} {:^10}'.format(p,str_free))
