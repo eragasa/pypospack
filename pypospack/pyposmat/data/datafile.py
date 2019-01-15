@@ -3,7 +3,7 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 
-    
+
 class PyposmatDataFile(object):
 
     def __init__(self,filename=None):
@@ -17,10 +17,10 @@ class PyposmatDataFile(object):
 
         self.qoi_names = None
         self.error_names = None
-        
+
         self.qoi_v_names = None
         self.error_v_names = None
-        
+
         self.score_names = None
         self.qoi_references = None
         self.scaling_factors = None
@@ -121,7 +121,7 @@ class PyposmatDataFile(object):
         str_header_section += "{}\n".format(",".join(_header_line_2))
 
         return str_header_section
-    
+
     def write_header_section(self,
             parameter_names,
             qoi_names,
@@ -137,7 +137,7 @@ class PyposmatDataFile(object):
                 parameter_names = parameter_names,
                 qoi_names = qoi_names,
                 error_names = error_names)
-        
+
         with open(self.filename,'w') as f:
             f.write(_header_str)
 
@@ -150,17 +150,17 @@ class PyposmatDataFile(object):
         if filename is not None:
             self.filename = filename
         _filename = self.filename
-        
+
         _sim_result = [str(sim_id)]
         if cluster_id is not None: _sim_result += [str(int(cluster_id))]
-        
+
         if self.parameter_names is not None:
             for v in self.parameter_names:
                 try:
                     _sim_result.append(str(results['parameters'][v]))
                 except KeyError as e:
                     _sim_result.append(str(np.NaN))
-        
+
         if self.qoi_names is not None:
             for v in self.qoi_names:
                 try:
@@ -224,9 +224,9 @@ class PyposmatDataFile(object):
                     else:
                         raise
             table.append(values)
-        
+
         self.df = pd.DataFrame(data=table, columns=self._names)
-        
+
         self.parameter_names = [
                 n for i,n in enumerate(self._names) \
                     if self._types[i] == 'param']
@@ -243,7 +243,7 @@ class PyposmatDataFile(object):
         self.parameter_df = self.df[self.parameter_names]
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
-        
+
     def write(self,filename):
         fn = filename
 
@@ -293,7 +293,7 @@ class PyposmatDataFile(object):
                 self.scaling_factors = OrderedDict()
             self.scaling_factors[_sf] = OrderedDict()
             for qn in self.qoi_names:
-                self.scaling_factors[_sf][en] = scaling_factors[en]
+                self.scaling_factors[_sf][qn] = scaling_factors[qn]
 
         # normalize the errors
         _rescaled_error_df = None

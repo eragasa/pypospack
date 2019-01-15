@@ -83,7 +83,7 @@ class PyposmatDataAnalyzer(object):
 
     @property
     def qoi_targets(self):
-        return OrderedDict([(qn,qv['target'] )for qv,qv in self.configuration.qois.items()])
+        return OrderedDict([(qn,qv['target'] )for qn,qv in self.configuration.qois.items()])
 
     @property
     def df(self):
@@ -115,13 +115,13 @@ class PyposmatDataAnalyzer(object):
         self._error_names = list(self.data.error_names)
         self._qoi_names = list(self.data.qoi_names)
         self._score_names = None
-    
+
     def read_data_file(self,filename):
-        
+
         self.read_data(filename=filename)
 
     def calculate_pareto_set(self,df=None,v=None):
-        
+
         if df is None:
             _df = self.data.df
         else:
@@ -263,7 +263,7 @@ class PyposmatDataAnalyzer(object):
                     (nr,nc) = kde_df.shape
             else:
                 raise ValueError("unknown qoi_constraint method {}".format(k))
-            
+
             kde_df = kde_df.reset_index(drop=True)
             (nr,nc) = kde_df.shape
             print('after {}: {} remainings'.format(k,nr))
