@@ -451,26 +451,27 @@ class PyposmatIterativeSampler(object):
         _datafiles_fn_ranks = [os.path.join('rank_{}'.format(i),'pyposmat.results.out') for i in range(_n_ranks)]
 
         # we are concatenating the previous parameterizations and results with the new parameterizations and results
-        _datafiles_to_concatentate = []
+        _datafiles_to_concatenate = []
         if os.path.isfile(_datafile_fn_old):
             _datafiles_to_concatenate.append(_datafile_fn_old)
-        _datafiles_to_concatenate += _datafile_fn_ranks
+        _datafiles_to_concatenate += _datafiles_fn_ranks
 
         if new_datafile_fn is None:
-            _datafile_fn_new = os.path.join(_dir,'pyposmat.kde.{}.out'.format(i_iteration))
+            _datafile_fn_new = os.path.join(_dir,'pyposmat.results.{}.out'.format(i_iteration))
         else:
             _datafile_fn_new = new_datafile_fn
 
         # now we need to merge the files
         _df = None
-        for i,v in _datafiles_to_concatenate:
+
+        for i,v in enumerate(_datafiles_to_concatenate):
 
             # an exception for the first iteration
             if i==0:
                 datafile = PyposmatDataFile()
                 datafile.read(filename=v)
                 _df = datafile.df
-
+                
             else:
                 _iteration_id = '{}'.format(i_iteration)
                 datafile = PyposmatDataFile()
@@ -478,7 +479,7 @@ class PyposmatIterativeSampler(object):
                 _df = pd.concat([_df,datafile.df]).reset_index(drop=True)
 
         # create output file
-        datafile = PyposmatDatafile()
+        datafile = PyposmatDataFile()
         datafile.df = _df
         datafile.parameter_names = self.parameter_names
         datafile.qoi_names = self.qoi_names

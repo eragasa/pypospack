@@ -45,11 +45,11 @@ class PyposmatDataFile(object):
                         + list(self.parameter_names)\
                         + list(self.qoi_names)\
                         + list(self.error_names)
-        else:
-            self._names = ['sim_id']\
-                    + list(self.parameter_names)\
-                    + list(self.qoi_names)\
-                    + list(self.error_names)
+            else:
+                self._names = ['sim_id']\
+                        + list(self.parameter_names)\
+                        + list(self.qoi_names)\
+                        + list(self.error_names)
         return self._names
 
     @names.setter
@@ -65,11 +65,11 @@ class PyposmatDataFile(object):
                     + len(self.parameter_names) * ['param']\
                     + len(self.qoi_names) * ['qoi']\
                     + len(self.error_names) * ['err']
-        else:
-            self._types = ['sim_id']\
-                + len(self.parameter_names) * ['param']\
-                + len(self.qoi_names) * ['qoi']\
-                + len(self.error_names) * ['err']
+            else:
+                self._types = ['sim_id']\
+                    + len(self.parameter_names) * ['param']\
+                    + len(self.qoi_names) * ['qoi']\
+                    + len(self.error_names) * ['err']
         return self._types
 
     @types.setter

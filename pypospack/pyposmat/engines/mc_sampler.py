@@ -279,10 +279,15 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             except PypospackTaskManagerError as e:
                 _n_errors += 1
             else:
-                if type(_sim_id) is float: _sim_id = int(sim_id)
+                
+                #if type(sim_id) is float: 
+                #    _sim_id = int(sim_id)
+
+                _sim_id = "{}".format(i_sample)
+    
                 self.pyposmat_datafile_out.write_simulation_results(
                         filename=self.pyposmat_data_out_filename,
-                        sim_id=i_sample,
+                        sim_id=_sim_id,
                         results=_results)
             finally:
                 # print out summaries every 10 solutions
@@ -368,7 +373,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
             # determine parameters determined from equality constraints
             for p in self.constrained_parameter_names:
-                _constraint_type = self.parameter_disribution_definition[p][0]
+                _constraint_type = self.parameter_distribution_definition[p][0]
                 if _constraint_type  == 'equals':
                     
                     # this condition is for fitting EoS for EAM function which
@@ -422,7 +427,10 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             except PypospackTaskManagerError as e:
                 _n_errors += 1
             else:
-                if type(_sim_id) is float: _sim_id = int(sim_id)
+
+                # determine sim_id
+                _sim_id = int(i_sample)
+
                 self.pyposmat_datafile_out.write_simulation_results(
                         filename=self.pyposmat_data_out_filename,
                         sim_id=i_sample,
