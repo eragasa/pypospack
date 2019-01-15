@@ -11,8 +11,8 @@
 #SBATCH --qos=phillpot-b                # Queue you are submitting to 
 pwd; hostname; date
  
-module load intel/2018.1.163 
-module load openmpi/3.0.0
+module load intel/2018 
+module load openmpi/3.1.2
 
 OMPI_MCA_mpi_warn_on_fork=0
 export OMPI_MCA_mpi_warn_on_fork
