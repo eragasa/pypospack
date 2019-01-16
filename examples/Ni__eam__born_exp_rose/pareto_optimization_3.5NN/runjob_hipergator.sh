@@ -12,7 +12,7 @@
 pwd; hostname; date
  
 module load intel/2016.0.109 
-module load openmpi/1.10.2 
+module load openmpi/3.0.0 
 
 echo PYTHONPATH=$PYTHONPATH
 echo python=$(which python)
