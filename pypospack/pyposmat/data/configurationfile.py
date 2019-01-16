@@ -139,10 +139,10 @@ class PyposmatConfigurationFile(object):
         assert type(seed) is int
         self.configuration['mc_seed'] = seed
 
+    # this property is broken
     @property
     def parameter_distribution_definitions(self):
         return self.configuration['param_dist_def']
-
     @parameter_distribution_definitions.setter
     def parameter_distribution_definitions(self,param_def):
         assert isinstance(param_def,OrderedDict)
@@ -195,10 +195,8 @@ class PyposmatConfigurationFile(object):
         with open(filename,'r') as f:
             self.configuration = yaml.load(f, OrderedDictYAMLLoader)
 
-        # setup some convenience attributes
-
-        # set parameter_names attribute
-        self.parameter_names = [k for k,v in self.configuration['sampling_dist'].items()]
+        self.set_parameter_names_from_configuration_dictionary()
+        self.set_free_parameter_names_from_configuration_dictionary()
         
         # set qoi_names,error_names, and normalized_error_names
         _qois = self.configuration['qois']
@@ -218,6 +216,45 @@ class PyposmatConfigurationFile(object):
             self.qoi_validation_names = None
             self.error_validation_names = None
             self.normed_error_validation_names = None
+
+    def set_parameter_names_from_configuration_dictionary(self,o_config=None):
+
+        # o_config is an OrderedDictionary object.
+        # o_config is read in from a YAML file and stored as the self.config
+        if o_config is None:
+            _o_config = self.configuration
+
+        # the keys of the 'sampling_dist' are the parameter_names, they need to match
+        # the naming convention defined in the Potential
+        self.parameter_names = [k for k,v in _o_config['sampling_dist'].items()]
+
+        return self.parameter_names
+
+    def set_free_parameter_names_from_configuration_dictionary(self,o_config=None):
+        """
+        Args:
+            o_config (collections.OrderedDict): a configuration dictionary which was
+                read in using YAML for marshalling and unmarshalling of the object.  By
+                default this is set to None, which uses the existing configuration dictionary
+        """
+        # o_config is an OrderedDictionary object.
+        # o_config is read in from a YAML file and stored as the self.config
+        if o_config is None:
+            _o_config = self.configuration
+
+        # the key object is the name of the parameter
+        # the value object is a list
+        # v[0]:
+        #   'equals' = equality constraint on the parameter defined in v[1]
+        #   'uniform' = uniform distribution with lower bounds and upper bounds defined in v[1]
+        #       dictionary object with v[1]['a'] being the lower bound, and v[1]['b'] being the
+        #       upper bound
+        #   'normal' = normal distribution with the mean and standard deviation defined in 
+        #       v[1] with v[1]['mu'] being the mean and v[1]['sigma'] being the standard deviation.
+        self.free_parameter_names = \
+                [k for k,v in _o_config['sampling_dist'].items() if v[0] != 'equals']
+
+        return self.parameter_names
 
     def write(self,filename):
         self.filename_out = filename
@@ -470,3 +507,10 @@ class PyposmatConfigurationFile(object):
         
         print('\n'.join(s))
         return _all_parameters_validated
+
+    def get_free_parameter_names(self):
+        for pn in self.parameter_names:
+            print(pn)
+
+class PyposmatConfigurationFileValidator(object):
+    pass

@@ -1,6 +1,12 @@
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
+import os
+import pypospack.utils
+
+_pypospack_root_dir = pypospack.utils.get_pypospack_root_directory()
+_structure_db_dir = os.path.join(_pypospack_root_dir,'data','Ni_structure_db')
+
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
@@ -82,7 +88,7 @@ parameter_constraints['e_Ni_F0 < 0'] = 'e_Ni_F0 < 0.'
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
 structure_db = OrderedDict()
-structure_db['structure_directory'] = 'structure_db'
+structure_db['structure_directory'] = _structure_db_dir
 structure_db['structures'] = OrderedDict()
 structure_db['structures']['Ni_fcc'] = 'Ni_fcc_100_unit.gga.relaxed.vasp'
 structure_db['structures']['Ni_bcc'] = 'Ni_bcc_100_unit.gga.relaxed.vasp'

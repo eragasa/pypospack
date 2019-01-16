@@ -4,18 +4,21 @@ from pypospack.pyposmat.data import PyposmatDataFile, PyposmatDataAnalyzer
 
 
 if __name__ == "__main__":
+    import os
+    import pypospack.utils
+    _pypospack_root = pypospack.utils.get_pypospack_root_directory()
+    _data_in_directory = os.path.join(_pypospack_root,'examples','Ni__eam__born_exp_fs__sensitivityanalysis','data__from_pareto_optimization')
+    _pyposmat_data_fn = os.path.join(_data_in_directory,'pyposmat.kde.6.out')
+    _pyposmat_config_fn = os.path.join(_data_in_directory,'pyposmat.config.in')
 
-    data_file_name = "/Users/seaton/python-repos/pypospack/examples/Ni__eam__born_exp_fs__sensitivityanalysis/data__from_pareto_optiization/pyposmat.results.5.out"
-    config_file_name = "/Users/seaton/python-repos/pypospack/examples/Ni__eam__born_exp_fs__sensitivityanalysis/data__from_pareto_optiization/pyposmat.config.in"
-    data = PyposmatDataFile(filename=data_file_name)
-    data.read(data_file_name)
 
     analyzer = PyposmatDataAnalyzer()
-    analyzer.read_configuration_file(filename=config_file_name)
-    analyzer.read_data_file(filename=data_file_name)
-
+    analyzer.read_configuration_file(filename=_pyposmat_config_fn)
+    analyzer.read_data_file(filename=_pyposmat_data_fn)
     df = analyzer.calculate_d_metric(df=analyzer.datafile.df)
 
+    data = PyposmatDataFile()
+    data.read(filename=_pyposmat_data_fn)
     data.df = df
     data.subselect_by_score(score_name="d_metric", n=100)
     # print(data.sub_df)
