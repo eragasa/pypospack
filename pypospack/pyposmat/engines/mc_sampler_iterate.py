@@ -74,28 +74,6 @@ class PyposmatIterativeSampler(object):
         if self.o_log is not None: 
             self.o_log.write(s)
 
-    def run_restart(self):
-        if self.configuration is None:
-            self.configuration = PyposmatConfigurationFile()
-            self.configuration.read(self.configuration_filename)
-
-
-        # determine if there was a seed file
-        _init_fn = self.find_initial_parameters_files()
-
-        # get contents of the data directory if it exists
-        _data_dir = os.path.join(self.root_directory,self.data_directory)
-        self.i_iterations, _data_dir_fns = self.analyze_rank_directories(
-                data_dir=_data_dir)
-
-        # get contents of the rank directories
-        _root_dir = self.root_directory
-        n_ranks, _rank_data_fns = self.analyze_rank_directories(
-                root_dir=_root_dir)
-
-        if self.mpi_rank == 0:
-            pass
-
     def run_all(self):
         self.setup_mpi_environment()
         self.determine_rv_seeds()
@@ -110,20 +88,41 @@ class PyposmatIterativeSampler(object):
                 self.log(80*'-')
             MPI.COMM_WORLD.Barrier()
 
-            self.run_simulations(i)
-            
-            self.log("rank {} simulations complete".format(self.mpi_rank))
-            MPI.COMM_WORLD.Barrier()
+            if self.is_restart:
+                _results_fn = os.path.join(self.root_directory,self.data_directory,'pyposmat.results.{}.out'.format(i))
+                _kde_fn = os.path.join(self.root_directory,self.data_directory,'pyposmat.kde.{}.out'.format(i+1))
 
-            if self.mpi_rank == 0:
-                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+                _is_results_file_exists = os.path.isfile(_results_fn)
+                _is_kde_file_exists = os.path.isfile(_kde_fn)
 
-            if self.mpi_rank == 0:
-                self.log('merging files...')
-                self.merge_files(i)
-                self.log('analyzing results...')
-                self.analyze_results(i)
-            MPI.COMM_WORLD.Barrier()
+                if all([_is_results_file_exists,_is_kde_file_exists]):
+                    self.log('this iterations as already been completed')
+                else:
+                    self.run_simulations(i)
+                    MPI.COMM_WORLD.Barrier()
+
+                    if self.mpi_rank == 0:
+                        self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+
+                    if self.mpi_rank == 0:
+                        self.log('merging files...')
+                        self.merge_files(i)
+                        self.log('analyzing results...')
+                        self.analyze_results(i)
+                    MPI.COMM_WORLD.Barrier()
+            else:
+                self.run_simulations(i)
+                MPI.COMM_WORLD.Barrier()
+
+                if self.mpi_rank == 0:
+                    self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+
+                if self.mpi_rank == 0:
+                    self.log('merging files...')
+                    self.merge_files(i)
+                    self.log('analyzing results...')
+                    self.analyze_results(i)
+                MPI.COMM_WORLD.Barrier()
         self.log(80*'-')
         self.log('JOBCOMPLETE')
 
