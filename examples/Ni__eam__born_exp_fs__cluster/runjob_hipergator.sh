@@ -12,7 +12,7 @@
 pwd; hostname; date
 
 module load intel/2018.1.163
-module load openmpi/3.0.0
+module load openmpi/3.1.2
 
 echo PYTHONPATH=$PYTHONPATH
 PYTHON_BIN=$(which python)
@@ -21,7 +21,8 @@ echo python=$(which python)
 echo PATH=$PATH
 
 echo "start_time:$(date)"
-srun --mpi=pmix_v1 $PYTHON_BIN run__iterative_cluster_sampling.py
+export OMPI_MCA_pml=^ucx
+srun --mpi=pmi2 $PYTHON_BIN run__iterative_cluster_sampling.py
 # srun python mc_iterative_sampler.py --mpi=pmix_v1
 # mpiexec python mc_iterative_sampler.py
 echo "end_time:$(date)"
