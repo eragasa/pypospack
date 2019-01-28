@@ -21,8 +21,8 @@ if __name__ == "__main__":
     o_data.read(data_path)
 
     o_normalizer = StandardScaler()
-    normal_cols = o_normalizer.fit_transform(o_data.error_df)
-    normal_df = pd.DataFrame(data=normal_cols, columns=o_data.error_names)
+    normal_cols = o_normalizer.fit_transform(o_data.parameter_df)
+    normal_df = pd.DataFrame(data=normal_cols, columns=o_data.parameter_names)
 
     o_tsne = TSNE()
     tsne_cols = o_tsne.fit_transform(normal_df)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     o_cluster = KMeans(n_clusters=5)
     cluster_ids = o_cluster.fit_predict(tsne_cols)
 
-    clustered_df = copy.deepcopy(normal_df)
+    clustered_df = copy.deepcopy(o_data.qoi_df)
     clustered_df['cluster_id'] = cluster_ids
 
     centroid_df = clustered_df.groupby(['cluster_id']).median()
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     plt.xticks(rotation=80)
     ax = parallel_coordinates(centroid_df, 'cluster_id', colormap=plt.get_cmap("Set1"))
-    plt.title("Normalized Errors by tSNE+KMeans Cluster (median)")
+    plt.title("QOIs Clustered in Parameter Space by tSNE+KMeans")
     plt.tight_layout()
     plt.savefig("parallel_plot_qoi_by_cluster.png")
     plt.show()
