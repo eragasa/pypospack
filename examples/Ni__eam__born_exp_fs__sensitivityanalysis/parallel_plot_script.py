@@ -33,7 +33,9 @@ if __name__ == "__main__":
     o_cluster = KMeans(n_clusters=5)
     cluster_ids = o_cluster.fit_predict(tsne_cols)
 
-    clustered_df = copy.deepcopy(o_data.qoi_df)
+    norm_qoi_arr = o_normalizer.fit_transform(o_data.qoi_df)
+    norm_qoi_df = pd.DataFrame(data=norm_qoi_arr, columns=o_data.qoi_names)
+    clustered_df = copy.deepcopy(norm_qoi_df)
     clustered_df['cluster_id'] = cluster_ids
 
     centroid_df = clustered_df.groupby(['cluster_id']).median()
@@ -41,7 +43,7 @@ if __name__ == "__main__":
 
     plt.xticks(rotation=80)
     ax = parallel_coordinates(centroid_df, 'cluster_id', colormap=plt.get_cmap("Set1"))
-    plt.title("QOIs Clustered in Parameter Space by tSNE+KMeans")
+    plt.title("Normalized QOIs Clustered in Parameter Space by tSNE+KMeans")
     plt.tight_layout()
-    plt.savefig("parallel_plot_qoi_by_cluster.png")
+    plt.savefig("parallel_plot_norm_qoi_by_cluster.png")
     plt.show()
