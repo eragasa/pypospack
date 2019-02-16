@@ -127,7 +127,6 @@ class ParetoOptimizationVisualization(object):
         self.parameter_graph['obj_y_select'] = Select(
             value=self.parameter_names[1],
             options=self.nix(self.parameter_names[0],self.parameter_names)
-            )
         )
         self.parameter_graph['x_min_entry'] = TextInput(placeholder='Min X Value',value='')
         self.parameter_graph['x_max_entry'] = TextInput(placeholder='Max X Value',value='')
