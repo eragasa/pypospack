@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=1             # Number of cores per MPI rank 
 #SBATCH --distribution=cyclic:cyclic  # Distribute tasks cyclically on nodes 
 #SBATCH --mem-per-cpu=3000mb          # Memory per processor
-#SBATCH --time=12:00:00                # Time limit hrs:min:sec
+#SBATCH --time=24:00:00                # Time limit hrs:min:sec
 #SBATCH --output=job.out                   # Standard output and error log
 #SBATCH --error=job.err
 #SBATCH --qos=phillpot                # Queue you are submitting to 
