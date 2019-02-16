@@ -158,7 +158,7 @@ qoi_db.add_qoi(
                 ('ideal','Ni_fcc_100_unit')
             ]
         ),
-        target=1.51e-1)
+        target=1.478e-1)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.110s',
         qoi_type='E_surface',
@@ -168,7 +168,7 @@ qoi_db.add_qoi(
                 ('ideal','Ni_fcc_110_unit')
             ]
         ),
-        target=1.48e-1)
+        target=1.255e-1)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.111s',
         qoi_type='E_surface',
@@ -178,42 +178,42 @@ qoi_db.add_qoi(
                 ('ideal','Ni_fcc_111_unit')
             ]
         ),
-        target=1.25e-1)
+        target=1.514e-1)
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.isf',
         qoi_type='E_stacking_fault',
         structures=OrderedDict([
                 ('defect','Ni_fcc_isf'),
                 ('ideal','Ni_fcc_111_unit')]),
-        target=1.45e-02)
+        target=8.86e-03)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_hcp',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_hcp')]),
-        target=0.024)
+        target=0.02)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_bcc',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_bcc')]),
-        target=0.092)
-qoi_db.add_qoi(
-        qoi_name='E_Ni_fcc_sc',
-        qoi_type='phase_order',
-        structures=OrderedDict([
-                ('low','Ni_fcc'),
-                ('high','Ni_sc')]),
-        target=0.600)
+        target=0.13)
+# qoi_db.add_qoi(
+#         qoi_name='E_Ni_fcc_sc',
+#         qoi_type='phase_order',
+#         structures=OrderedDict([
+#                 ('low','Ni_fcc'),
+#                 ('high','Ni_sc')]),
+#         target=0.600)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_dia',
         qoi_type='phase_order',
         structures=OrderedDict([
                 ('low','Ni_fcc'),
                 ('high','Ni_dia')]),
-        target=1.27)
+        target=1.8)
 #------------------------------------------------------------------------------
 # QOI CONSTRAINTS
 # QOI constraints are performed in the order they are iterated through in
