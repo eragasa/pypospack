@@ -259,7 +259,7 @@ class ParetoOptimizationVisualization(object):
                                                     value='')
 
         self.param_graph['plot_width'] = self.plot_width
-        self.param_graph['plot_height'] = self.plot_graph
+        self.param_graph['plot_height'] = self.plot_height
         self.param_graph['tools'] = self.bokeh_tools
         self.param_graph['obj_figure'] = figure(
             plot_width=self.param_graph['plot_width'],
