@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
+
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
@@ -16,9 +17,12 @@ for i in range(sampling['n_iterations']):
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
 sampling[0]['file'] = 'data/pyposmat.kde.0.out'
+
+
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
+
 potential_formalism = OrderedDict()
 potential_formalism['potential_type'] = 'eam'
 potential_formalism['symbols'] = ['Ni']
@@ -67,9 +71,12 @@ parameter_distribution['e_Ni_F0'] = [
         'uniform',{
             'a':-5.00,
             'b':-0.05}]
+
+
 #------------------------------------------------------------------------------
 # PARAMETER CONSTRAINTS
 #------------------------------------------------------------------------------
+
 parameter_constraints = OrderedDict()
 parameter_constraints['p_NiNi_phi0 > 0'] = 'p_NiNi_phi0 > 0.'
 parameter_constraints['p_NiNi_gamma > 0'] = 'p_NiNi_gamma > 0.'
@@ -78,9 +85,12 @@ parameter_constraints['d_Ni_rho0 > 0'] = 'd_Ni_rho0 > 0.'
 parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
 parameter_constraints['d_Ni_r0 > 0'] = 'd_Ni_r0 > 0.'
 parameter_constraints['e_Ni_F0 < 0'] = 'e_Ni_F0 < 0.'
+
+
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
+
 structure_db = OrderedDict()
 structure_db['structure_directory'] = 'structure_db'
 structure_db['structures'] = OrderedDict()
@@ -100,9 +110,12 @@ structure_db['structures']['Ni_fcc_esf'] = 'Ni_fcc_esf.vasp'
 structure_db['structures']['Ni_fcc_vac'] = 'Ni_fcc_sc_333_vac.vasp'
 structure_db['structures']['Ni_fcc_o_int'] = 'Ni_fcc_sc_333_o_int.vasp'
 structure_db['structures']['Ni_fcc_i_int'] = 'Ni_fcc_sc_333_t_int.vasp'
+
+
 #------------------------------------------------------------------------------
 # FITTING DATABASE
 #------------------------------------------------------------------------------
+
 qoi_db = QoiDatabase()
 qoi_db.add_qoi(
         qoi_name='Ni_fcc.E_coh',
@@ -214,6 +227,8 @@ qoi_db.add_qoi(
                 ('low','Ni_fcc'),
                 ('high','Ni_dia')]),
         target=1.8)
+
+
 #------------------------------------------------------------------------------
 # QOI CONSTRAINTS
 # QOI constraints are performed in the order they are iterated through in
@@ -227,6 +242,7 @@ qoi_db.add_qoi(
 #     filter_by_pareto:
 #          filters out dominated points if set to True
 #------------------------------------------------------------------------------
+
 qoi_constraints = OrderedDict()
 qoi_constraints['qoi_constraints']=OrderedDict()
 qoi_constraints['qoi_constraints']['Ni_fcc.E_coh.abserr'] = ['<',2]
@@ -242,13 +258,15 @@ qoi_constraints['qoi_constraints']['Ni_fcc.100s'] = ['<',1.00 * abs(qoi_db.qois[
 qoi_constraints['qoi_constraints']['Ni_fcc.111s'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.111s']['target'])]
 qoi_constraints['qoi_constraints']['Ni_fcc.isf.abserr'] = ['<',1.00 * abs(qoi_db.qois['Ni_fcc.isf']['target'])]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0.]
-qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
+# qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
 qoi_constraints['filter_by__d_zerror'] = OrderedDict()
 qoi_constraints['filter_by__d_zerror']['percentile'] = .95
 qoi_constraints['select_pareto_only'] = True
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
+
+
 if __name__ == '__main__':
     from pypospack.pyposmat.data import PyposmatConfigurationFile
     pyposmat_filename_in = 'pyposmat.config.in'
