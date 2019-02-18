@@ -11,6 +11,7 @@ import numpy as np
 import scipy.stats
 from pypospack.kde import Chiu1999_h
 from pypospack.pyposmat.engines import PyposmatEngine
+from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.task.task_manager import PypospackTaskManagerError
 from pypospack.potential import PotentialObjectMap
@@ -24,15 +25,13 @@ from pypospack.exceptions import PypospackBadKdeBandwidthType
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
-            filename_in='pypospack.config.in',
-            # filename_out='pypospack.results.out',
+            filename_in='pyposmat.config.in',
             filename_out='pyposmat.results.out',
             o_log=None,
             mpi_rank=None,
             mpi_size=None,
             base_directory=None):
-        """
-        Additional attributes are set by the base class pypospack.pyposmat.engines.PyposmatEngine
+        """Additional attributes are set by the base class :obj:PyposmatEngine
 
         Args:
             filename_in (str) - path of the configuration file
@@ -40,13 +39,13 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             o_log (PyposmatLogFile) - if type(o_log) is a string, then the string is treated as a path in which to log information to.  If type(o_log) is PyposmatLogFile then it is set as an attribute for the refernce.
             mpi_rank (int)
             mpi_size (int)
-            base_directory (None)
+            base_directory (str,optional): Either the relative or full path which provides a
+        unique drive addressing space for simultaneously running simulations.
         Attributes:
             mpi_rank (int) - this is passed in
             mpi_size (int) - this is passed in
             pyposmat_data_in_filename (str) - the path of the datafile to read in
             pyposmat_data_out_filename (str) - the path of the datafile to write simulation results to
-
         """
         assert isinstance(filename_in,str)
         assert isinstance(filename_out,str)
