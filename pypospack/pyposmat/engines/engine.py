@@ -56,7 +56,7 @@ class PyposmatEngine(object):
      
     @property
     def structure_directory(self):
-        if type(self._structure_directory) is not type(None):
+        if type(self._structure_directory) is type(str):
             return self._structure_directory
         if type(self.configuration) is not type(None):
             return self.configuration.structures['structure_directory']

@@ -539,10 +539,11 @@ class PyposmatIterativeSampler(object):
         self.qoi_names = self.configuration.qoi_names
         self.error_names = self.configuration.error_names
         self.parameter_names = self.configuration.parameter_names
-   
-        self._write_parameter_names()
-        self._write_qoi_names()
-        self._write_error_names()
+  
+        if self.mpi_rank == 0:
+            self._write_parameter_names()
+            self._write_qoi_names()
+            self._write_error_names()
 
     def _write_parameter_names(self,parameter_names=None):
         if parameter_names is None: _parameter_names = self.parameter_names

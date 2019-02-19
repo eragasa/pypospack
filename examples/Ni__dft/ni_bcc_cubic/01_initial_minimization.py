@@ -93,8 +93,7 @@ if __name__ == "__main__":
             os.path.join(vasp_simulation.simulation_directory,"KPOINTS"))
 
     slurm.write_vasp_batch_script(
-            filename=os.path.join(
-                vasp_simulation.simulation_directory,"runjob_hpg.slurm"),
+            filename=os.path.join(vasp_simulation.simulation_directory,"runjob_hpg.slurm"),
             job_name=job_name,
             email=email,
             qos=qos,

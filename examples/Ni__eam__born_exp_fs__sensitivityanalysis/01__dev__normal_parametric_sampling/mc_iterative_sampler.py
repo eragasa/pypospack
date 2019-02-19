@@ -13,7 +13,8 @@ if __name__ == "__main__":
     # RUN PYPOSMAT 
     #------------------------------------------------------------------------------
     pyposmat_app = PyposmatIterativeSampler(
-        configuration_filename = pyposmat_filename_in)
+        configuration_filename = pyposmat_filename_in,
+        is_restart=True)
     pyposmat_app.data_directory = pyposmat_data_directory
     pyposmat_app.read_configuration_file()
     pyposmat_app.run_all()

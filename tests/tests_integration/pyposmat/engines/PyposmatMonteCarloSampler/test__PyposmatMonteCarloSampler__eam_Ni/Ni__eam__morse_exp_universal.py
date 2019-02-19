@@ -1,6 +1,10 @@
+import numpy as np
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
+
+a0 = 3.52
+r0 = a0*(np.sqrt(2))/4
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -23,8 +27,6 @@ Ni_eam_potential_formalism['lattice_type'] = 'fcc'
 
 # <---------------- INITIAL PARAMETER DEFINITION
 # units need to be in metal units
-a0 = 3.52
-r0 = Ni_eam_potential_formalism['a0']/(2**0.5)
 Ni_eam_parameter_distribution = OrderedDict()
 Ni_eam_parameter_distribution['p_NiNi_D0'] = [
         'uniform',{

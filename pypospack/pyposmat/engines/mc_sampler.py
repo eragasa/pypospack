@@ -125,7 +125,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
     def read_configuration_file(self,filename=None):
         PyposmatEngine.read_configuration_file(self,filename=filename)
-        self.structure_directory = self.configuration.structures['structure_directory']
+        # self.structure_directory = self.configuration.structures['structure_directory']
         self.n_iterations = self.configuration.sampling_type['n_iterations']
         self.parameter_names = [p for p in self.configuration.sampling_distribution]
         self.qoi_names = [k for k in self.configuration.qois]

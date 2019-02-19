@@ -1,6 +1,6 @@
 import pytest
 from collections import OrderedDict
-import pypospack.potfit as potfit
+#import pypospack.potfit as potfit
 import pypospack.qoi as qoi
 
 qois = ['Ecoh_min_all','a1_min_all','a2_min_all','a3_min_all',

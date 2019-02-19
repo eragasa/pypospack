@@ -103,6 +103,8 @@ if __name__ == "__main__":
     _pyposmat_data_fn = os.path.join(_data_in_directory,'pyposmat.kde.6.out')
     _pyposmat_config_fn = os.path.join(_data_in_directory,'pyposmat.config.in')
 
+    _n_samples = 1000
+
     _best_params = get_best_parameterization(
             config_fn=_pyposmat_config_fn,
             data_fn=_pyposmat_data_fn)
@@ -134,6 +136,10 @@ if __name__ == "__main__":
 
     # change the first iteration type to parametric
     _o_config.configuration['sampling_type'][0]['type'] = 'parametric'
+    for k,v in _o_config.configuration['sampling_type'].items():
+        if type(k) is int:
+            _o_config.configuration['sampling_type'][k]['n_samples'] = _n_samples
+        
     print(_o_config.configuration['sampling_type'])
     print("new pyposmat configuration file in:{}".format(_pyposmat_config_fn))
     _o_config.write(filename=_pyposmat_config_fn) 
