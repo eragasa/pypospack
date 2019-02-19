@@ -76,6 +76,11 @@ class PyposmatDataFile(object):
     def types(self, _types):
         self._types = _types
 
+    @property
+    def n_samples(self):
+        (n_rows,n_cols) = self.df.shape
+        return n_rows
+
     def get_header_string(self,
             w_cluster_id = False,
             parameter_names = None,

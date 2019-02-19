@@ -42,6 +42,7 @@ class PyposmatEngine(object):
         self.qoi_manager = None
         self.task_manager = None
 
+        self._structure_directory = None
         if base_directory is None:
             self.base_directory = os.getcwd()
         elif isinstance(base_directory,str):
@@ -52,6 +53,15 @@ class PyposmatEngine(object):
 
         if fullauto:
             self.configure()
+     
+    @property
+    def structure_directory(self):
+        if type(self._structure_directory) is not type(None):
+            return self._structure_directory
+        if type(self.configuration) is not type(None):
+            return self.configuration.structures['structure_directory']
+        else:
+            return None
 
     @property
     def structures(self):
@@ -111,7 +121,6 @@ class PyposmatEngine(object):
             _filename_in = filename
 
         self.configuration = PyposmatConfigurationFile(filename=_filename_in)
-        self.structure_directory = self.configuration.structures['structure_directory']
 
     def configure_qoi_manager(self,qois=None):
         if qois is not None:

@@ -1,4 +1,3 @@
-
 """
 pypospack exception classes
 """
@@ -53,4 +52,5 @@ class PypospackTaskManagerError(BaseException): pass
 
 class PypospackBadKdeBandwidthType(BaseException): pass
 
+class PypospackUnknownDistributionType(BaseException): pass
 class PyposmatUnknownDistributionType(BaseException): pass

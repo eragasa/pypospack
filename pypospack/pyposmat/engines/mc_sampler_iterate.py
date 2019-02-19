@@ -420,7 +420,9 @@ class PyposmatIterativeSampler(object):
         d0.read(filename=datafile_fns[0])
         df0 = d0.df
         for i in range(1,len(datafile_fns)):
-            print("merging {}...".format(datafile_fns[i]))
+            m = "merging {}...".format(datafile_fns[i])
+            self.log(m)
+
             d = PyposmatDataFile()
             d.read(filename=datafile_fns[i])
             df = d.df
@@ -430,6 +432,13 @@ class PyposmatIterativeSampler(object):
         return d0
 
     def merge_files(self,i_iteration,last_datafile_fn=None,new_datafile_fn=None):
+        """ merge the pyposmat data files
+
+        Args:
+            i_iteration(int): the current iteration which just finished
+            last_datafile_fn(str,optional): the filename of the last dataset in the data directory.
+            new_datafile_fn(str,optional): where to output the file results 
+        """
 
         _dir = self.data_directory
 
