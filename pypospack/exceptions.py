@@ -52,3 +52,5 @@ class PyposmatError(BaseException): pass
 class PypospackTaskManagerError(BaseException): pass
 
 class PypospackBadKdeBandwidthType(BaseException): pass
+
+class PyposmatUnknownDistributionType(BaseException): pass
