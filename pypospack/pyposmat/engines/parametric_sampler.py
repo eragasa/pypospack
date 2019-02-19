@@ -13,8 +13,8 @@ from collections import OrderedDict
 import numpy as np
 import scipy.stats
 
+from pypospack.pyposmat.engines import PyposmatBaseSampler
 from pypospack.exceptions import PypospackUnknownDistributionType
-
 class PyposmatParametricSampler(PyposmatBaseSampler):
     
     def initalize_sampler(self):
