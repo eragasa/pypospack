@@ -85,7 +85,7 @@ class PypospackVisualization(ParetoOptimizationVisualization):
 
 if __name__ == "__main__":
     data_dir = 'data/new_data'
-    filename = os.path.join(data_dir,'pyposmat.kde.3.out')
+    filename = os.path.join(data_dir,'pyposmat.kde.4.out')
 
     vizdemo = PypospackVisualization()
     vizdemo.load_data_file(fname= filename)
