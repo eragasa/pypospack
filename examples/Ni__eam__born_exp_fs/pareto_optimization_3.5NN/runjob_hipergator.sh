@@ -8,7 +8,7 @@
 #SBATCH --time=12:00:00                # Time limit hrs:min:sec
 #SBATCH --output=job.out                   # Standard output and error log
 #SBATCH --error=job.err
-#SBATCH --qos=phillpot-b                # Queue you are submitting to 
+#SBATCH --qos=phillpot                # Queue you are submitting to 
 pwd; hostname; date
 
 module load intel/2018.1.163
