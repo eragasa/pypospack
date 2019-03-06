@@ -16,11 +16,21 @@ class QoiManager(object):
     be done first.
 
     Args:
-        qoi_info (str,QoiDatabase,None):  If set to str, then this arguement 
-            is treated as a filename used to configure a QoiDatabase object.  If
-            QoiDatabase is passed, the reference is set to the qoi_info attribute.
-            Default value is None, where the attribute is left as None.
+        qoi_database(OrderedDict):this is a dictionary of key-value pairs, where 
+            the key value is unique qoi_id for this set of simulations, the value 
+            contains the necessary configuration information necessary for 
+            configuration of object instantiated with Qoi base class.  
+            Normally, this object is passed from the PyposmatConfigurationFile
+            object using the `qois` attribute.
+        fullauto(bool,optional): Set to True by default; this class will be
+            initialized using the information in the `qoi_database` argument.
+            The purpose of setting this to False is for development purposes
+            so that helper methods can be individually tests.
     Attributes:
+        qois(OrderedDict):this is a dictionary of key-value pairs, where the key
+            value is unique qoi_id for this set of simulations, the value 
+            contains the necessary configuration information necessary for 
+            configuration of object instantiated with Qoi base class.
         qoi_info(pypospack.qoi.QoiDatabase)
         qoi_names (list): list of qoi_names
         qoi_targets (dict): key is the qoi_name, value is the reference value
@@ -237,21 +247,26 @@ class QoiManager(object):
                 raise ValueError(msg_err+str(e))
         
         
-        for k_qoi,_ in self.qois.items():
+        for k_qoi,v_qoi in self.qois.items():
             try:
-                _qoi_id = self.qois[k_qoi]['qoi_name']
-                _obj_qoi_id = _qoi_id[:_qoi_id.rindex('.')]
-                _qoi_val = self.obj_Qoi[_obj_qoi_id].qois[_qoi_id]
+                qoi_id = self.qois[k_qoi]['qoi_name']
+                obj_qoi_id = qoi_id[:qoi_id.rindex('.')]
+                qoi_val = self.obj_Qoi[obj_qoi_id].qois[qoi_id]
             except:
+                print('k_qoi:{}'.format(k_qoi))
+                print('qoi_id:{}'.format(qoi_id))
+                print('qoi_keys:')
+                for k,v in self.qois.items():
+                    print("\t{:15}{}".format(k,self.qois[k]['qoi_name']))
                 print('all_k_qois:')
                 for k,v in self.qois.items():
                     print(k,v)
                 print('k_qoi:{}'.format(k_qoi))
                 print('v_qoi:{}'.format(self.qois[k_qoi]))
-                print('obj_qoi_id:{}'.format(_obj_qoi_id))
-                print('qoi_id:{}'.format(_qoi_id))
+                print('obj_qoi_id:{}'.format(obj_qoi_id))
                 print(self.obj_Qoi)
                 raise
-            _qoi_ref = self.qois[k_qoi]['qoi_ref']
-            self.qois[k_qoi]['qoi_val'] = _qoi_val
-            self.qois[k_qoi]['qoi_err'] = _qoi_val-_qoi_ref
+
+            qoi_ref = self.qois[k_qoi]['qoi_ref']
+            self.qois[k_qoi]['qoi_val'] = qoi_val
+            self.qois[k_qoi]['qoi_err'] = qoi_val-qoi_ref

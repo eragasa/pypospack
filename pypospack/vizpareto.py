@@ -103,3 +103,5 @@ class ParetoFittingPostProcessor(object):
     def make_kde_1d_plots(self,i_iteration,subset_type,data_type):
         data = getattr(self,subset_type)[i_iteration][data_type]
 
+if __name__ == "__main__":
+    pass

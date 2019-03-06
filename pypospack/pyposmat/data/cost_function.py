@@ -4,7 +4,7 @@ from collections import PyposmatDataFile
 
 class CostFunction(object):
 
-    def __init__(self,configuration_fn=None,datafile_fn):
+    def __init__(self,configuration_fn=None,datafile_fn=None):
 
         if configuration_fn is not None:
             self.read_configuration_file(filename=configuration_fn)
@@ -47,4 +47,4 @@ class CostFunction(object):
             _datafile = PyposmatDataFile()
             _datafile.read(datafile)
         elif isinstance(datafile,PyposmatDataFile):
-
+            pass

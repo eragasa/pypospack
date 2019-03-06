@@ -61,7 +61,7 @@ structure_db['structures']['MgO_NaCl'] = 'MgO_NaCl_unit.gga.relax.vasp'
 structure_db['structures']['MgO_NaCl_fr_a'] = 'MgO_NaCl_333_fr_a.vasp' 
 structure_db['structures']['MgO_NaCl_fr_c'] = 'MgO_NaCl_333_fr_c.vasp'
 structure_db['structures']['MgO_NaCl_sch'] = 'MgO_NaCl_333_sch.vasp'
-structure_db['structures']['MgO_NaCl_001s'] = 'MgO_NaCl_001s.vasp'
+structure_db['structures']['MgO_NaCl_001s'] = 'MgO_NaCl_001_s.vasp'
 #------------------------------------------------------------------------------
 # FITTING DATABASE
 #------------------------------------------------------------------------------

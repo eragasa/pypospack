@@ -2,6 +2,7 @@ import numpy as np
 import scipy.constants as spc
 # import pyflamestk.potentials
 #import pyflamestk.tableofelements as toe
+
 class EamCurveFitter:
   def __init__(self, element_names):
 
@@ -30,13 +31,18 @@ class EamCurveFitter:
         self.pair_potentials['{}{}'.format(el_i,el_j)] = []
 
 class EamSetflFile(object):
-    """
+    """ class to deal with setfl files
 
-    Writes an Setfl file
-    Ref:
-        https://sites.google.com/a/ncsu.edu/cjobrien/tutorials-and-guides/eam
-        http://www.ctcms.nist.gov/potentials/
-        http://lammps.sandia.gov/doc/pair_eam.html
+    SETFL files is a legacy file format for the distribution of EAM files which
+    are necessary for many codes which use molecular dynamics.
+
+    Notes:
+        .. _SETFL notes by Chris O'Brien:
+            https://sites.google.com/a/ncsu.edu/cjobrien/tutorials-and-guides/eam
+        .. _A NIST repository with information to the SETFL format:
+            http://www.ctcms.nist.gov/potentials/
+        .. _LAMMPS documentation on the SETFL format:
+            http://lammps.sandia.gov/doc/pair_eam.html
     """
 
     def __init__(self):

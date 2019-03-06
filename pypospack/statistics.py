@@ -7,7 +7,7 @@ def kullbach_lieber_divergence(f,g,n):
 
     This functions does a monte carlo estimation of the Kullbach-Lieber
     divergence pre-metric between two probability distribution functions
-    f and g.
+    f and g.  
 
     Arguments:
 
@@ -60,4 +60,5 @@ def kullbach_lieber_divergence(f,g,n):
     var_d = np.var(log_f_divide_g)/n
 
     return d, var_d
+
 

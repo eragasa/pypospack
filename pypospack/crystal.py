@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""This module provides the base classes for pypospack."""
+"""Crystallographic classes and methods for pypospack.
+
+This module represents simulation cells are crystallographic representions and 
+classes and methods to support this represention.
+
+Attributes:
+    iso_chemical_symbols(list): list of chemical symbols
+    atom_info(dict): dictionary of chemical symbols, and a dictionary of their values
+"""
 __author__ = "Eugene J. Ragasa"
 __copyright__ = "Copyright (C) 2016,2017"
 __license__ = "Simplified BSD License"
@@ -29,6 +37,17 @@ atom_info['Ni'] = {'atomic_mass':58.6934}
 atom_info['Al'] = {'atomic_mass':26.981539}
 
 def get_amu(symbol):
+    """ get atomic mass unit
+
+    this method gets the the atomic mass unit for a given chemical symbol.
+
+    Args:
+        symbol(str): the ISO chemical symbol of an atom
+
+    Returns:
+        float: the mass of the atom, in atomic mass units
+    """
+
     return atom_info[symbol]['atomic_mass']
 
 def cartesian2direct(x,H):
@@ -379,12 +398,12 @@ class SimulationCell(object):
         """determines if there is an atom at a position
 
         This code looks for atoms in the list of atoms in the atomic_basis.
-        Returns:
-            (tuple): tuple containing:
-                         (bool): True if a atom exists.  False if atom doesn't exist.
-                         (int): index of the atom at that position.  the index
-                             the index is negative if it is the list of interstitals.
 
+        Returns:
+            tuple: The first element if true in an atom exists at the location,
+                False if it doesn't exist.   The second element is an int which
+                indicates the index of the atom at that position.  The index is
+                negative if it is the list of interstitials.
         """
 
         return_value = (False,None)
@@ -557,24 +576,28 @@ def make_super_cell(structure, sc):
 class RadialDistributionFunction(object):
 
     def pairCorrelationFunction_3D(x, y, z, S, rMax, dr):
-        """Compute the three-dimensional pair correlation function for a set of
+        """Compute the three-dimensioanl pair correlation function
+        
+        Compute the three-dimensional pair correlation function for a set of
         spherical particles contained in a cube with side length S.  This simple
         function finds reference particles such that a sphere of radius rMax drawn
         around the particle will fit entirely within the cube, eliminating the need
         to compensate for edge effects.  If no such particles exist, an error is
         returned.  Try a smaller rMax...or write some code to handle edge effects! ;)
+
         Arguments:
-            x               an array of x positions of centers of particles
-            y               an array of y positions of centers of particles
-            z               an array of z positions of centers of particles
-            S               length of each side of the cube in space
-            rMax            outer diameter of largest spherical shell
-            dr              increment for increasing radius of spherical shell
-        Returns a tuple: (g, radii, interior_indices)
-            g(r)            a numpy array containing the correlation function g(r)
-            radii           a numpy array containing the radii of the
-                            spherical shells used to compute g(r)
-            reference_indices   indices of reference particles
+            x(numpy.ndarray): an array of x positions of centers of particles
+            y(numpy.ndarray): an array of y positions of centers of particles
+            z(numpy.ndarray): an array of z positions of centers of particles
+            S(list):length of each side of the cube in space
+            rMax(float): outer diameter of largest spherical shell
+            dr(float): increment for increasing radius of spherical shell
+        
+        Returns:
+            tuple: first element is a numpy array containing the correlation 
+                function g(r) radii. the second element is a numpy array 
+                containing the radii of the spherical shells used to compute 
+                g(r).  the final element are the indices of the refence particles
         """
         from numpy import zeros, sqrt, where, pi, mean, arange, histogram
 

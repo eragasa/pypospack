@@ -13,7 +13,7 @@ class MultiObjectiveProblem(object):
         self.obj_func
 
 class ObjectiveFunction(object):
-
+    pass
 
 class MultiobjectiveParameterOptimization(object):
     pass

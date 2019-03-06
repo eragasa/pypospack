@@ -198,12 +198,11 @@ class PyposmatClusterAnalysis(object):
         pass
 
     def init_from_ordered_dict(d, o_logger=None):
-        """
-        constructor from a OrderedDict
+        """constructor from a OrderedDict
 
-        Arguments:
-        ==========
-        d(collections.OrderedDict):
+        Arg:
+            d(collections.OrderedDict): ordered dict
+            o_logger(PyposmatLogFile): pyposmat log file object
 
         """
 
@@ -265,24 +264,20 @@ class PyposmatClusterAnalysis(object):
         d['pyposmat_data_fn'] =self.data_fn
 
     def read_configuration(self,filename):
-        """
-        read in pyposmat configuration file
+        """read in pyposmat configuration file
 
-        Argum ents:
-        ==========
-        filename(str):
+        Args:
+            filename(str): path of the configuraiton file
         """
         self.configuration_fn = filename
         self.configuration = PyposmatConfigurationFile()
         self.configuration.read(filename=filename)
 
     def read_data(self,filename):
-        """
-        read in pyposmat data filename
+        """read in pyposmat data filename
 
-        Arguments:
-        ==========
-        filename(str):
+        Args:
+            filename(str): path of the data file
         """
 
         self.data_fn = filename
@@ -561,12 +556,7 @@ import matplotlib.cm as cm
 import numpy as np
 
 class PyposmatSilhouettePlot(object):
-    """ Plot Silhouette Plots
-
-    References:
-    ===========
-    http://scikit-learn.org/stable/auto_examples/cluster/plot_kmeans_silhouette_analysis.html#sphx-glr-auto-examples-cluster-plot-kmeans-silhouette-analysis-py
-    """
+    """ Plot Silhouette Plots"""
     def __init__(self):
        self.fig = None
        self.silhouette_plot = None

@@ -5,26 +5,58 @@ import pypospack.potential
 from pypospack.io.filesystem import OrderedDictYAMLLoader  
 
 class PyposmatConfigurationFile(object):
+    """Class for reading, writing, and analyzing configuration file
+
+    Args:
+        filename(str,optional): the filename of the configuration file.  This
+           is the location which all IO will take place with.  If this
+           argument is passed, then the class will automatically read
+           the class
+
+    Notes:
+        To read a file:
+        
+        from pypospack.pyposmat import PyposmatConfigurationFile
+        o = PyposmatConfigurationFile(filename=_filename)
+
+        or
+
+        from pypospack.pyposmat import PyposmatConfigurationfile
+        o = PyposmatConfigurationFile()
+        o.read(filename=_filename)
+
+
+    """
 
     def __init__(self,filename=None):
-        assert any([
-            isinstance(filename,str),
-            type(filename) is type(None)
-            ])
+
+        # type checking the arguments
+        assert type(filename) in [type(None),str]
+      
+        # public attributes
+        self.filename = None #: str: the name for IO
 
         self.filename_in = None
         self.filename_out = None
         self.configuration = None
 
+        # private attributes
         self._parameter_names = None
         self._qoi_names = None
         self._error_names = None
 
-        if filename is not None:
-            self.read(filename=filename)
+        if filename is str:
+            if os.path.isabs(filename): 
+                self.filename = filename
+            else:
+                self.filename = os.path.abspath(filename)
+            
+        if self.filename is str:
+            self.read(filename=self.filename)
 
     @property
     def n_iterations(self):
+        """int:the number of iterations in this fitting process."""
         return self.sampling_type['n_iterations']
 
     @property
@@ -37,7 +69,22 @@ class PyposmatConfigurationFile(object):
         if self.configuration is None: self.configuration = OrderedDict()
         self.configuration['qois'] = OrderedDict()
         self.configuration['qois'] = copy.deepcopy(qois)
-    
+   
+    @property
+    def qoi_fitting(self):
+        return self.configuration['qoi_f']
+    @property
+    def qoi_fitting_values(self):
+        return OrderedDict([(k,v['target']) for k,v in self.qoi_fitting.items()])
+
+    @property
+    def qoi_testing(self):
+        return self.configuration['qoi_t']
+
+    @property
+    def qoi_testing_values(self):
+        return OrderedDict([(k,v['target']) for k,v in self.qoi_testing.items()])
+
     @property
     def qoi_targets(self):
         return OrderedDict([(k,v['target']) for k,v in self.qois.items()])
@@ -295,9 +342,7 @@ class PyposmatConfigurationFile(object):
 
     def validate(self):
         self.validate_potential(potential=self.potential)
-        self.validate_parameters(
-                potential=self.potential,
-                parameters=self.parameter_names)
+        self.validate_parameters(potential=self.potential,parameters=self.parameter_names)
         self.validate_structure_db(structures=self.structures)
         self.validate_sampling_type(sampling_type=self.sampling_type)
 
@@ -307,9 +352,7 @@ class PyposmatConfigurationFile(object):
             s = ['n_iterations must be int, {}'.format(_n_iterations)]
             print("\n".join(s))
         else:
-            s = "{:5} n_iterations:{}".format(
-                    self.get_ok_fail(True),
-                    _n_iterations)
+            s = "{:5} n_iterations:{}".format(self.get_ok_fail(True),_n_iterations)
             print(s)
 
         _mc_seed = sampling_type['mc_seed']

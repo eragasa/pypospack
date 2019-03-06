@@ -12,11 +12,15 @@ class Task(object):
             job submission scripts
         task_directory(str): the directory the task,
             will be done
-        status (str):
-    Notes: 
-    If the __init__ is overridden, the attributes
-    task_name, task_directory, and status must be 
-    set.
+        status(str): The status states of a task is provided by
+        conditions_INIT(OrderedDict)
+        conditions_CONFIG(OrderedDict)
+        conditions_READY(OrderedDict)
+        conditions_RUNNING(OrderedDict)
+        conditions_POST(OrderedDict)
+        conditions_FINISHED(OrderedDict)
+    Notes:
+
 
     """
     def __init__(self,

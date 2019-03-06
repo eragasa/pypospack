@@ -9,10 +9,11 @@ sampling = OrderedDict()
 sampling['n_iterations'] = 10
 sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
+# the default configuration for all sampling will use kde sampling
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10000
+    sampling[i]['n_samples'] = 1000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 #<---- sample from parameteric distribution
 sampling[0]['type'] = 'parametric'

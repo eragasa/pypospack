@@ -59,15 +59,20 @@ def make_super_cell(obj, scp):
 
 class VaspSimulation(object):
     """ class for managing vasp simulations
-    
-    Attribute;
-        poscar (pypospack.io.poscar): class for mananging IO of structures for 
-            vasp.
-        incar (pypospack.io.incar): class for managing IO of DFT configuration
-             for vasp
-        kpoints (pypospack.io.kpoints): defines the the grid for BZ zone 
-             integration.
-        potcar (pypospack.io.potcar)"""
+   
+    This class encapsulates are variety of object for a vasp simulation
+
+    Args:
+        sim_dir(str): the path of this simulation
+        xc(str): the exchange correlation functional
+
+    Attribute:
+        poscar (pypospack.io.poscar): class for mananging IO of structures for vasp.
+        incar (pypospack.io.incar): class for managing IO of DFT configuration for vasp
+        kpoints (pypospack.io.kpoints): defines the the grid for BZ zone integration.
+        potcar (pypospack.io.potcar): defines potential file
+
+    """
     def __init__(self,sim_dir,xc='GGA'):
         self.sim_dir = None
 

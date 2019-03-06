@@ -31,6 +31,9 @@ def filter_by_znormalized_errors(df,percentile,qoi_names):
     return df
 
 class PyposmatDataAnalyzer(object):
+    """ class to analyze the results of the simulations.
+
+    """
     def __init__(self,fn_config=None,fn_data=None):
         self._configuration = None
         self._data = None

@@ -67,13 +67,13 @@ class PyposmatPostProcessor(object):
         self.error_names = self.error_fitting_names + self.error_testing_names
 
         # determine_absolute_error_names_from_configuration_file
-        self.abs_error_fitting_names = ['{}.abserr'.format(v) for self.qoi_fitting_names]
-        self.abs_error_testing_names = ['{}.abserr'.format(v) for self.qoi_testing_names]
+        self.abs_error_fitting_names = ['{}.abserr'.format(v) for v in self.qoi_fitting_names]
+        self.abs_error_testing_names = ['{}.abserr'.format(v) for v in self.qoi_testing_names]
         self.abs_error_names = self.abs_error_fitting_names + self.abs_error_testing_names
 
         # determine_normalized_error_names_from_configuration_file
-        self.norm_error_fitting_names = ['{}.nerr'.format(v) for self.qoi_fitting_names]
-        self.norm_error_testing_names = ['{}.nerr'.format(v) for self.qoi_testing_names]
+        self.norm_error_fitting_names = ['{}.nerr'.format(v) for v in self.qoi_fitting_names]
+        self.norm_error_testing_names = ['{}.nerr'.format(v) for v in self.qoi_testing_names]
         self.norm_error_names = self.norm_error_fitting_names + self.norm_error_testing_names
 
         if self.qoi_fitting_names is not None:
@@ -128,7 +128,12 @@ class PyposmatPostProcessor(object):
             self.df[aen] = self.df[en].abs()
 
     def create_normalized_errors(self,normalization_type='by_qoi',qoi_names=None):
-        """
+        """ normalize errors
+
+        This class normalizes errors
+        
+        Args:
+            normalization_type(str): normalization type
             qoi_names (str,list): allows both string arguments as well as a list of string.
         If a list of strings is provided, it will create normalized errors based on the 
         list of string.  If qoi_name is set to 'all', it will calculate normalized error based on
@@ -157,7 +162,7 @@ class PyposmatPostProcessor(object):
     def normalize_error_by_qoi(self,qoi_name,df=None):
         if df is None:
             _df = copy.deepcopy(self.df)
-        elif isinstance(df,pd.DataFrame)
+        elif isinstance(df,pd.DataFrame):
             nerr_name = self.NORMALIZED_ERROR_STR_FORMAT.format(q)
             err_name = self.ERROR_STR_FORMAT.format(q)
             self.df[nerr_name] = self.df[err_name]/self.qoi_targets[q] - 1.

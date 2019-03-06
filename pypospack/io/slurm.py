@@ -13,7 +13,7 @@ class SlurmSubmissionScript(object):
 
     def process_configuration_dictionary(self,slurm_dict):
         assert type(slurm_dict) == OrderedDict
-        self.configuration =copy.deepcopy(slurm_dict)
+        self.configuration = copy.deepcopy(slurm_dict)
 
         if 'job_name' not in self.configuration:
             self.configuration['job_name'] = 'default_job'
@@ -115,12 +115,13 @@ def write_phonts_batch_script(filename,job_name,email,qos,ntasks,time,
 
 def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
         output='job.out',
-        error='job.err'
+        error='job.err',
         vasp_bin=None):
 
-    _intel_compiler_string =
-    _mpi_compiler_string =
-    if vasp_bin=None:
+    intel_compiler_string = ""
+    mpi_compiler_string = ""
+    
+    if vasp_bin is None:
         _vasp_bin = os.environ['VASP_BIN']
     else:
         _vasp_bin = vasp_bin
@@ -153,7 +154,7 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
 
     s += 'module load intel/2016.0.109\n'
     s += 'module load impi\n'
-    s += 'srun --mpi=pmi2 $VASP_BIN > vasp.log\n" 
+    s += 'srun --mpi=pmi2 $VASP_BIN > vasp.log\n' 
     s += 'echo end_time:$(date)\n'
 
     with open(filename,'w') as f:

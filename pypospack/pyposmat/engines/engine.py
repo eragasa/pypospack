@@ -6,25 +6,31 @@ from pypospack.pyposmat.data.configurationfile import PyposmatConfigurationFile
 from pypospack.exceptions import LammpsSimulationError
 
 class PyposmatEngine(object):
-    """
-        Args:
-            filename_in(str):
-            filename_out(str):
-            base_directory(str): This is the base directory from which the
-                PyposmatEngine will create and run simulations.  By default
-                this is set to None, which means it will use the current
-                working directory as the base directory.
-            fullauto(bool):
-        Attributes:
-            pyposmat_filename_in(str)
-            pyposmat_filename_out(str)
-            base_directory(str)
-            rank_directory(str): This reflect the MPI rank of the processsor
-                that the PyposmatEngine is running on.  If there is no MPI
-                available, this is automatically set to rank0000.
-            configuration(pypospack.pyposmat.PyposmatConfigurationFile)
-            qoi_manager(pypospack.qoi.QoiManager)
-            task_mamanger(pypospack.task.TaskManager)
+    """class for evaluating a simulation
+
+    This class combines the two classes QoiManager, which manages classes used
+    to manage the classes used in modelling and calculating material properties,
+    and TaskManager, which manages classes used to manage the classes used in
+    specific simulations.
+
+    Args:
+        filename_in(str): path in
+        filename_out(str): path out 
+        base_directory(str): This is the base directory from which the
+            PyposmatEngine will create and run simulations.  By default
+            this is set to None, which means it will use the current
+            working directory as the base directory.
+        fullauto(bool):
+    Attributes:
+        pyposmat_filename_in(str): path in
+        pyposmat_filename_out(str) path out
+        base_directory(str): the base directory
+        rank_directory(str): This reflect the MPI rank of the processsor
+            that the PyposmatEngine is running on.  If there is no MPI
+            available, this is automatically set to rank0000.
+        configuration(pypospack.pyposmat.PyposmatConfigurationFile)
+        qoi_manager(pypospack.qoi.QoiManager)
+        task_mamanger(pypospack.task.TaskManager)
     """
     def __init__(self,
             filename_in = 'pypospack.config.in',
@@ -114,21 +120,19 @@ class PyposmatEngine(object):
     def read_configuration_file(self,filename=None):
         assert isinstance(filename,str) or filename is None
 
-        _filename_in = None
         if filename is None:
             _filename_in = self.pyposmat_filename_in
         else:
             _filename_in = filename
 
-        self.configuration = PyposmatConfigurationFile(filename=_filename_in)
-
+        self.configuration = PyposmatConfigurationFile()
+        self.configuration.read(filename=_filename_in)
     def configure_qoi_manager(self,qois=None):
-        if qois is not None:
-            _qois = qois
-        else:
-            _qois= self.configuration.qois
+
+        if qois is None:
+            qois = self.configuration.qois
         
-        self.qoi_manager = QoiManager(qoi_database=_qois,fullauto=True)
+        self.qoi_manager = QoiManager(qoi_database=qois,fullauto=True)
     
     def configure_task_manager(self):
         # <-------- local variables

@@ -27,26 +27,69 @@ from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
 from pypospack.pyposmat.engines import PyposmatClusterSampler
 
 class PyposmatIterativeSampler(object):
+    """  Iterative Sampler which wraps multiple simulation algorithms.
+
+    This class wraps multiple simulation algorithms so that they can be run in an iterative manner.
+    Since this class has so many configuration options, the attributes of this class is set
+    by a YAML based configuration file.  The class PyposmatConfigurationFile aids in the creation
+    and reading of these options.  These attributes are public and be set programmatically within
+    a script.
+
+    Notes:
+        config_fn = 'data/pyposmat.config.in'
+
+        engine = PyposmatIterativeSampler(configuration_filename=config_fn)
+        engine.read_configuration_file()
+        engine.run_all()
+
+    Args:
+        configuration_filename(str): the filename of the YAML configuration file
+        is_restart(bool,optional): When set to True, this argument controls the restart behavior
+            of this class.  By default, is set to False
+        is_auto(bool,optional): When set to True, this agument will automatically configure the
+            class.  By default this is set to False, mostly because this software is currently in
+            development, and this necessary to to write integration testing
+        log_fn(str,optional): This the filename path where to set logging, by default it is set
+           as `pyposmat.log` contained in the configurable data directory
+        log_to_stdout(bool,optional): When set to True, all log messages will be directed to
+           standard out as well as the log file
+
+    Attributes:
+        mpi_comm(MPI.Intracomm)
+        mpi_rank(int)
+        mpi_size(int)
+        mpi_nprocs(int)
+        i_iteration(int)
+        n_iterations(int)
+        rv_seed(int)
+        rv_seeds(np.ndarray)
+        configuration_filename = configuration(filename)
+        configuration(PyposmatConfigurationFile)
+        mc_sampler(PyposmatMonteCarloSampler)
+        root_directory(str)
+        data_directory(str)
+        is_restart(bool)
+        start_iteration=0
+        
     """
-    PyposmatIterativeSampler
 
-    The Pyposmat Iterative Sampler wraps multiple simulation algorithms so that they can be run in an
-    iterative manner.  Since PyposmatIterativeSampler has so many configuration options, the attributes of the 
-    PyposmatIterativeSampler are set by a YAML based configuration file.  However, these attributes are made
-    public and can be set programmatically within a script.
-
-
-    """
     def __init__(self,
             configuration_filename,
             is_restart=False,
+            is_auto=False,
             log_fn=None,
             log_to_stdout=True):
+
+        # formats should not contain a trailing end line chracter
+        self.SECTION_HEADER_FORMAT = "\n".join([80*'=',"{:^80}",80*"="])
         self.RANK_DIR_FORMAT = 'rank_{}'
+
+
         self.mpi_comm = None
         self.mpi_rank = None
         self.mpi_size = None
         self.mpi_nprocs = None
+        self.i_iteration = None
         self.n_iterations = None
         self.rv_seed = None
         self.rv_seeds = None
@@ -60,175 +103,170 @@ class PyposmatIterativeSampler(object):
         self.is_restart = is_restart
         self.start_iteration = 0
 
-        if log_fn is None:
-            self.log_fn = os.path.join(self.root_directory, self.data_directory, 'pyposmat.log')
-        else:
-            self.log_fn = log_fn
-        self.o_log = PyposmatLogFile(filename=self.log_fn)
-        
+        self.log_fn = log_fn
         self.log_to_stdout = log_to_stdout
+        self.o_log = None
+        self.initialize_logger(log_fn=log_fn,log_to_stdout=log_to_stdout)
 
-    def log(self,s):
-        if self.log_to_stdout: 
-            print(s)
-        if self.o_log is not None: 
-            self.o_log.write(s)
 
     def run_all(self):
-        self.setup_mpi_environment()
-        self.determine_rv_seeds()
-        MPI.COMM_WORLD.Barrier()
+        """runs all iterations
 
+        This method runs all iterations
+
+        """
+        self.setup_mpi_environment()
+        self.initialize_data_directory()
         self.start_iteration = 0
         for i in range(self.start_iteration,self.n_iterations):
-            if self.mpi_rank == 0:
-                self.log(80*'-')
-                self.log('{:80}'.format('BEGIN ITERATION {}/{}'.format(
-                               i+1, self.n_iterations)))
-                self.log(80*'-')
-            MPI.COMM_WORLD.Barrier()
+            self.i_iteration = i
+
+            # log iteration information
+            self.log_iteration_information(i_iteration=i)
 
             if self.is_restart:
-                _results_fn = os.path.join(self.root_directory,self.data_directory,'pyposmat.results.{}.out'.format(i))
-                _kde_fn = os.path.join(self.root_directory,self.data_directory,'pyposmat.kde.{}.out'.format(i+1))
+                results_fn = os.path.join(self.data_directory,'pyposmat.results.{}.out'.format(i))
+                kde_fn = os.path.join(self.data_directory,'pyposmat.kde.{}.out'.format(i))
 
-                _is_results_file_exists = os.path.isfile(_results_fn)
-                _is_kde_file_exists = os.path.isfile(_kde_fn)
-
-                if all([_is_results_file_exists,_is_kde_file_exists]):
+                if all([os.path.isfile(results_fn),os.path.isfile(kde_fn)]):
                     self.log('this iterations as already been completed')
                 else:
-                    self.run_simulations(i)
-                    MPI.COMM_WORLD.Barrier()
+                    break
 
-                    if self.mpi_rank == 0:
-                        self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+            self.run_simulations(i)
+            MPI.COMM_WORLD.Barrier()
 
-                    if self.mpi_rank == 0:
-                        self.log('merging files...')
-                        self.merge_files(i)
-                        self.log('analyzing results...')
-                        self.analyze_results(i)
-                    MPI.COMM_WORLD.Barrier()
-            else:
-                self.run_simulations(i)
-                MPI.COMM_WORLD.Barrier()
+            if self.mpi_rank == 0:
+                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
 
-                if self.mpi_rank == 0:
-                    self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
-
-                if self.mpi_rank == 0:
-                    self.log('merging files...')
-                    self.merge_files(i)
-                    self.log('analyzing results...')
-                    self.analyze_results(i)
-                MPI.COMM_WORLD.Barrier()
+            if self.mpi_rank == 0:
+                self.merge_files(i)
+                self.analyze_results(i)
+            MPI.COMM_WORLD.Barrier()
         self.log(80*'-')
         self.log('JOBCOMPLETE')
 
-    def run_simulations(self,i_iteration):
-        self.rank_directory = self.RANK_DIR_FORMAT.format(
-                self.mpi_rank)
+    def initialize_sampler(self,config_fn,results_fn,mpi_rank=None,mpi_size=None,o_log=None):
+        """ initialize the sampling object 
 
-        # if the directory exists delete it
-        if os.path.isdir(self.rank_directory):
-            shutil.rmtree(self.rank_directory)
-        os.makedirs(self.rank_directory)
+        This method initializes the `mc_sampler` attribute with a sampler.
 
-        # change execution context for this rank
-        # this provides a directory for each worker directory so that the
-        # disk IO writes don't conflict
-        os.chdir(self.rank_directory)
+        Note:
+            This breakout is part of a larger effort within PYPOSPACK, to have 
+            more object-oriented approach for parametric sampling.  The goal 
+            eventually is to implement an instance of PyposmatBaseSampler, and 
+            allow users of this software library to be able to extend this 
+            software by simply extending the base class.
+        Args:
+            config_fn(str): path to the configuration file
+            results_fn(str): path to the results file
+            mpi_rank(int,optional): the MPI rank of executing this method
+            mpi_size(int,optional): the size of the MPI execution group
+            o_log(PyposmatLogFile,str,optional): the log file.  If a string is 
+                passed, then the sampling class will initialize a separate log 
+                file with the string of path created.  If a log file object is 
+                passed, then sampling object will use that instance of the 
+                object to log information.  By defaut, it will pass the 
+                attribute, `o_log`.
+        """
+        
+        assert type(config_fn) is str
+        assert type(results_fn) is str
+        assert type(mpi_rank) in [type(None),int]
+        assert type(mpi_size) in [type(None),int]
+        assert type(o_log) in [type(None),PyposmatLogFile,str]
 
-        _config_filename = os.path.join(
-                self.root_directory,
-                self.configuration_filename)
+        # check to see if the paths provided are absolute paths
+        print(config_fn)
+        print(results_fn)
+        assert os.path.isabs(config_fn)
+        assert os.path.isabs(results_fn)
 
-        _results_filename = os.path.join(
-                self.root_directory,
-                self.rank_directory,
-                'pyposmat.results.out')
+        if mpi_rank is None: mpi_rank = self.mpi_rank
+        if mpi_size is None: mpi_size = self.mpi_size
 
-        _structure_dir = self.configuration.structures['structure_directory']
-        # set random seed
-        np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
-
-        # initialize()
         self.mc_sampler = PyposmatMonteCarloSampler(
-                filename_in = _config_filename,
-                filename_out = _results_filename,
-                mpi_rank = self.mpi_rank,
-                mpi_size = self.mpi_size,
-                o_log=self.o_log)
+                filename_in = config_fn,
+                filename_out = results_fn,
+                mpi_rank = mpi_rank,
+                mpi_size = mpi_size,
+                o_log=o_log)
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
-        self.mc_sampler.configuration.structures['structure_directory'] = os.path.join('..',_structure_dir)
+        
+        # we have to be able to find the structure directory
+        self.mc_sampler.configuration.structures['structure_directory'] = self.structure_directory
         self.mc_sampler.configure_qoi_manager()
         self.mc_sampler.configure_task_manager()
         self.mc_sampler.configure_pyposmat_datafile_out()
-        #pyposmat_datafile_out = PyposmatDataFile(filename_out)
 
-        if self.mpi_rank == 0:
-            self.mc_sampler.print_structure_database()
-            self.mc_sampler.print_sampling_configuration()
-        if self.mpi_rank == 0 and i_iteration == 0:
-            self.mc_sampler.print_initial_parameter_distribution()
-        if self.mpi_rank == 0:
-            self.log(80*'-')
-        MPI.COMM_WORLD.Barrier()
+        self.log_more_iteration_information()
 
-        _mc_config = self.mc_sampler.configuration.sampling_type[i_iteration]
-        # choose sampling type
-        _mc_sample_type = _mc_config['type']
-        
+    def initialize_rank_directory(self):
+        """ create the rank directory
+
+        This method defines the rank directory as an absolute path and stores it in
+        the attribute `rank_directory`.  If a current directory exists there, then
+        it is deleted with alll it's contents and then recreated.
+
+        """
+        rank_directory = os.path.join(self.root_directory,self.RANK_DIR_FORMAT.format(self.mpi_rank))
+      
+        # find the directory, delete it and it's constants and then recreates ot
+        if os.path.isdir(rank_directory):
+            shutil.rmtree(rank_directory)
+        os.mkdir(rank_directory)
+
+        self.rank_directory = rank_directory
+
+    def run_simulations(self,i_iteration):
+        """ run simulation for a single iteration
+
+        Each rank is given a different execution context so that the disk IO 
+        don't conflict
+        """
+        self.initialize_rank_directory()
+        config_filename = self.configuration_filename
+        results_filename = os.path.join(self.rank_directory,'pyposmat.results.out')
+        bad_parameters_filename = os.path.join(self.rank_directory,'pyposmat.bad_parameters.out')
+
+        # change execution context for this rank
+        os.chdir(self.rank_directory)
+
+        # set random seed
+        self.determine_rv_seeds()
+        self.log_random_seeds(i_iteration=i_iteration)
+
+        sampling_type = self.configuration.sampling_type[i_iteration]['type']
         if self.mpi_rank == 0:
-            self.log("_mc_sample_type={}".format(_mc_sample_type))
+            self.log("sampling_type={}".format(sampling_type))
         
-        # <----- paramter sampling type ---------------------------------------
-        if _mc_sample_type == 'parametric':
-            _mc_n_samples = _mc_config['n_samples']
-            # determine number of sims for this rank
-            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
-            if _mc_n_samples%self.mpi_size > self.mpi_rank:
-                _n_samples_per_rank += 1
-            self.mc_sampler.run_simulations(
-                    i_iteration=i_iteration,
-                    n_samples=_n_samples_per_rank)
+        # <----- parameter sampling type ---------------------------------------
+        if sampling_type== 'parametric':
+            self.initialize_sampler(
+                    config_fn=config_filename,
+                    results_fn=results_filename,
+                    mpi_rank=self.mpi_rank,
+                    mpi_size=self.mpi_size,
+                    o_log=self.o_log)
+
+            self.run_parametric_sampling(i_iteration=i_iteration)
         
         # <----- kde sampling sampling type ---------------------------------------
-        elif _mc_sample_type == 'kde':
-            _mc_n_samples = _mc_config['n_samples']
+        elif sampling_type == 'kde':
+            self.initialize_sampler(
+                    config_fn=config_filename,
+                    results_fn=results_filename,
+                    mpi_rank=self.mpi_rank,
+                    mpi_size=self.mpi_size,
+                    o_log=self.o_log)
+            
+            self.run_kde_sampling(i_iteration=i_iteration)
 
-            # determine number of sims for this rank
-            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
-            if _mc_n_samples%self.mpi_size > self.mpi_rank:
-                _n_samples_per_rank += 1
-            _filename_in = ''
-            if 'file' in _mc_config:
-                _filename_in = os.path.join(
-                    self.root_directory,
-                    _mc_config['file']
-                )
-            else:
-                _filename_in = os.path.join(
-                    self.root_directory,
-                    self.data_directory,
-                    'pyposmat.kde.{}.out'.format(i_iteration))
-
-            if self.mpi_rank == 0:
-                self.log(80*'-')
-                self.log('{:^80}'.format('kde sampling'))
-                self.log(80*'-')
-                self.log('filename_in:{}'.format(_filename_in))
-
-            self.mc_sampler.run_simulations(
-                    i_iteration=i_iteration,
-                    n_samples=_n_samples_per_rank,
-                    filename=_filename_in)
 
         # <----- sampling from a file type ---------------------------------------
         # get parameters from file
-        elif _mc_sample_type == 'from_file':
+        elif sampling_type == 'from_file':
             
             _filename_in = os.path.join(
                 self.root_directory,
@@ -314,45 +352,265 @@ class PyposmatIterativeSampler(object):
         # return to root directory
         os.chdir(self.root_directory)
 
-    def get_results_dict(self):
-        rd = OrderedDict()
-        rd['mpi'] = OrderedDict()
-        rd['mpi']['size'] = self.mpi_size
+    def initialize_data_directory(self,data_directory=None):
+        """ determine the absolute path of the data directory and create it
+
+        This method sets the `data_directory` attribute of the class and creates
+        the `data directory` if the data directory already exists.
+
+        Args:
+            data_directory(str):the path of the data directory, the path can be 
+                expressed in either a relative path, or an absolute path
+        Returns:
+            (str) the absolute path of the data directory
+        Raises:
+            OSError: if the directory is not able to be created
+            
+        """
+
+        assert type(data_directory) in [type(None),str]
+        assert type(self.data_directory) in [type(None),str]
+
+        # determine the data directory path
+        if data_directory is None:
+            if self.data_directory is None:
+                self.data_directory = os.path.join(self.root_directory,'data')
+            else:
+                if os.path.isabs(self.data_directory):
+                    self.data_directory = data_directory
+                else:
+                    self.data_directory = os.path.join(self.root_directory,self.data_directory)
+        elif os.path.isabs(data_directory):
+            # absolute path
+            self.data_directory = data_directory
+        else:
+            # create a absolute path from the relative path
+            self.data_directory = os.path.join(self.root_directory,data_directory)
+            self.data_directory = os.path.abspath(self.data_directory)
+
+        # create data directory
+        try:
+            os.mkdir(self.data_directory)
+            self.log('created the data directory.')
+            self.log('\tdata_directory;{}'.format(self.data_directory))
+            return (True, self.data_directory)
+        except FileExistsError as e:
+            self.log('attempted to create data directory, directory already exists.')
+            self.log('\tdata_directory:{}'.format(self.data_directory))
+            return (True, self.data_directory)
+        except OSError as e:
+            self.log('attempted to create data directory, cannot create directory.')
+            self.log('\tdata_directory:{}'.format(self.data_directory))
+            return (False, self.data_directory)
+
+    def run_parametric_sampling(self,i_iteration):
+        """ run parametric sampling 
+
+        Args:
+            i_iteration(int): what iteration of the sampling is happening
+        """
+
+        assert type(i_iteration) is int
+        assert type(self.mc_sampler) is PyposmatMonteCarloSampler
+
+        self.mc_sampler.run_simulations(
+                i_iteration=i_iteration,
+                n_samples=self.determine_number_of_samples_per_rank(i_iteration=i_iteration))
+
+    def run_kde_sampling(self,i_iteration):
+        """ run kde sampling
+
+        Args:
+            i_iteration(int): the iteration which to sampling for
+        """
+        assert type(i_iteration) is int
+        assert type(self.mc_sampler) is PyposmatMonteCarloSampler
+
+
+        if 'file' in self.configuration.sampling_type[i_iteration]:
+            filename = os.path.join(self.root_directory,
+                                       self.configuration.sampling_type[i_iteration]['file'])
+        else:
+            if os.path.isabs(self.data_directory):
+                filename = os.path.join(self.data_directory,
+                                        'pyposmat.kde.{}.out'.format(i_iteration))
+            else:
+                filename = os.path,join(self.root_directory,
+                                        self.data_directory,
+                                        'pyposmat.kde.{}.out'.format(i_iteration))
+
+        if self.mpi_rank == 0:
+            self.log(80*'-')
+            self.log('{:^80}'.format('kde sampling'))
+            self.log(80*'-')
+            self.log('filename_in:{}'.format(filename))
+        MPI.COMM_WORLD.Barrier()
+
+        self.mc_sampler.run_simulations(
+                i_iteration=i_iteration,
+                n_samples=self.determine_number_of_samples_per_rank(i_iteration=i_iteration),
+                filename=filename)
+
+    def determine_number_of_samples_per_rank(self,i_iteration,N_samples=None):
+        """ determine the number of samples per rank
+
+        The total number of samples needs to be broken up between the ranks, but roughly
+        divided the work evenly.
+
+        Args:
+            i_iteration(int): which iteration we are in the simulation
+            N_samples(int,optional): the total number of samples we are using for 
+                this iteration.  If a number is provided, it will override 
+                the number of simulations specified in the configuration file.
+        Returns:
+            (int): the number of samples for this rank
+        """
+
+        assert type(i_iteration) is int
+        assert type(N_samples) in [type(None),int]
+        assert type(self.configuration) is PyposmatConfigurationFile
+
+        if N_samples is None:
+            N_samples = self.configuration.sampling_type[i_iteration]['n_samples']
+         
+        N_samples_per_rank = int(N_samples/self.mpi_size)
+        if N_samples%self.mpi_size > self.mpi_rank:
+            N_samples_per_rank += 1
+
+        return N_samples_per_rank
+
+    def initialize_logger(self,log_fn=None,log_to_stdout=None):
+        """initialize log object
+        
+        Args:
+            log_fn(str,optional)
+
+        """
+
+        assert type(log_fn) in [type(None),str]
+        assert type(log_to_stdout) in [type(None),bool]
+
+        if log_fn is None:
+            self.log_fn = os.path.join(self.root_directory, self.data_directory, 'pyposmat.log')
+        else:
+            self.log_fn = log_fn
+        self.o_log = PyposmatLogFile(filename=self.log_fn)
+        
+        self.log_to_stdout = log_to_stdout
 
     def setup_mpi_environment(self):
         self.mpi_comm = MPI.COMM_WORLD
         self.mpi_rank = self.mpi_comm.Get_rank()
         self.mpi_size = self.mpi_comm.Get_size()
         self.mpi_procname = MPI.Get_processor_name()
-        if self.mpi_rank == 0:
-            self.print_mpi_environment()
+        self.log_mpi_environment()
+    
+    # random seed management
+    def determine_rv_seeds(self,seed=None,i_iteration=None):
+        """ set the random variable seed across simulations 
+        
+        Args:
+           seed(int,optional)=a seed to determine the rest of the seeds for
+               different ranks and iterations.
+        """
+        RAND_INT_LOW = 0
+        RAND_INT_HIGH = 2147483647
 
-    def print_mpi_environment(self):
-        self.log(80*'-')
-        self.log('{:^80}'.format('MPI COMMUNICATION INFORMATION'))
-        self.log(80 * '-')
-        self.log('mpi_size={}'.format(self.mpi_size))
+        assert type(seed) in [type(None),int]
+        assert type(i_iteration) in [type(None),int]
 
-    def determine_rv_seeds(self):
-        _randint_low = 0
-        _randint_high = 2147483647
+        if type(i_iteration) is type(None):
+            i_iteration = self.i_iteration
 
-        # set original seed
+        # set the seed attribute
+        if type(seed) is int:
+            self.rv_seed == seed
+
+        
+        # set the seed attribute, if the seed attribute is none
         if self.rv_seed is None:
             self.rv_seed = np.random.randint(
-                    low=_randint_low,
-                    high=_randint_high)
+                    low=RAND_INT_LOW,
+                    high=RAND_INT_HIGH)
+                  
+        # if the rv_seed was determined in the script, then all ranks will
+        # have the same rv_seed attribute
         np.random.seed(self.rv_seed)
 
-        # determine rank seed
+        # each rank, will need it's own seed.  So we sample from the freshly
+        # generated random number generator, which is identical across ranks
         self.rv_seeds = np.random.randint(
             low=0,
             high=2147483647,
             size=(int(self.mpi_size),self.n_iterations)
             )
 
+        # now restart the seed for this rank
+        np.random.seed(self.rv_seeds[self.mpi_rank,i_iteration])
+
+    # logging methods 
+    def log(self,s):
+        if self.log_to_stdout: 
+            print(s)
+        if self.o_log is not None: 
+            self.o_log.write(s)
+
+    def log_iteration_information(self,i_iteration):
+        """log iteration information
+        
+        Args:
+            i_iteration_id(int):the iteration number
+        Returns:
+            (str) the log string
+        """
         if self.mpi_rank == 0:
-            self.print_random_seeds()
+            s = self.SECTION_HEADER_FORMAT.format(
+                        'Begin Iteration {}/{}'.format(i_iteration+1,self.n_iterations))
+            self.log(s)
+        MPI.COMM_WORLD.Barrier()
+        
+        if self.mpi_rank == 0:
+            return "\n".join(s)
+    
+    def log_more_iteration_information(self): 
+        #TODO: this logging needs to go into a separate logging method. -EJR
+        if self.mpi_rank == 0:
+            self.mc_sampler.print_structure_database()
+            self.mc_sampler.print_sampling_configuration()
+        if self.mpi_rank == 0 and self.i_iteration == 0:
+            self.mc_sampler.print_initial_parameter_distribution()
+        if self.mpi_rank == 0:
+            self.log(80*'-')
+        MPI.COMM_WORLD.Barrier()
+
+    def log_mpi_environment(self):
+        if self.mpi_rank == 0:
+            m = [self.SECTION_HEADER_FORMAT.format('MPI communication information')]
+                
+            m += ['mpi_size={}'.format(self.mpi_size)]
+
+        MPI.COMM_WORLD.Barrier()
+
+    def log_random_seeds(self,i_iteration):
+        if self.mpi_rank == 0:
+            self.log(80*'-')
+            self.log('{:^80}'.format('GENERATED RANDOM SEEDS'))
+            self.log(80*'-')
+            self.log('global_seed:{}'.format(str(self.rv_seed)))
+            self.log('seeds_for_this_iteration:')
+            self.log('{:^8} {:^8}'.format('rank','seed'))
+            self.log('{} {}'.format(8*'-',8*'-'))
+        MPI.COMM_WORLD.Barrier()
+        for i_rank in range(self.mpi_size):
+            if self.mpi_rank == i_rank:
+                self.log('{:^8} {:>10}'.format(i_rank,self.rv_seeds[i_rank,i_iteration]))
+        MPI.COMM_WORLD.Barrier()
+
+    def get_results_dict(self):
+        rd = OrderedDict()
+        rd['mpi'] = OrderedDict()
+        rd['mpi']['size'] = self.mpi_size
+
 
     def analyze_data_directories(self,data_dir=None):
         _d = data_dir
@@ -414,23 +672,7 @@ class PyposmatIterativeSampler(object):
                     return _init_fn
                 else:
                     return None
-
-    def merge_pypospack_datafiles(datafile_fns):
-        d0 = PyposmatDataFile()
-        d0.read(filename=datafile_fns[0])
-        df0 = d0.df
-        for i in range(1,len(datafile_fns)):
-            m = "merging {}...".format(datafile_fns[i])
-            self.log(m)
-
-            d = PyposmatDataFile()
-            d.read(filename=datafile_fns[i])
-            df = d.df
-
-            df0 = pd.concat([df0,df]).drop_duplicates().reset_index(drop=True)
-        d0.df = df0
-        return d0
-
+ 
     def merge_files(self,i_iteration,last_datafile_fn=None,new_datafile_fn=None):
         """ merge the pyposmat data files
 
@@ -501,6 +743,57 @@ class PyposmatIterativeSampler(object):
         except FileNotFoundError as e:
             raise
 
+ 
+    def merge_files(self,i_iteration,last_datafile_fn=None,new_datafile_fn=None):
+        """ merge the pyposmat data files
+
+        Args:
+            i_iteration(int): the current iteration which just finished
+            last_datafile_fn(str,optional): the filename of the last dataset in the data directory.
+            new_datafile_fn(str,optional): where to output the file results 
+        """
+
+        if last_datafile_fn is None:
+            last_datafile_fn = os.path.join(self.data_directory,
+                                            'pyposmat.kde.{}.out'.format(i_iteration))
+
+        if new_datafile_fn is None:
+            new_datafile_fn = os.path.join(self.data_directory,
+                                           'pyposmat.results.{}.out'.format(i_iteration))
+
+        data_dir = self.data_directory
+        rank_dirs = [v for v in os.listdir(self.root_directory) if v.startswith('rank_')]
+        filenames = [os.path.join(self.root_directory,v,'pyposmat.results.out') for v in rank_dirs]
+
+        data = None
+        for i,v in enumerate(filenames):
+            data_new = None
+            if i == 0:
+                data = PyposmatDataFile()
+                data.read(filename=v)
+            else:
+                data_new = PyposmatDataFile()
+                data_new.read(filename=v)
+
+                data.df = pd.concat([data.df,data_new.df])
+
+        nrows = len(data.df)
+        sim_id_fmt = '{:0>2}_{:0>6}'
+        sim_id_str = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
+
+        data.df['sim_id'] = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
+
+        data_old = PyposmatDataFile()
+        try:
+            data_old.read(filename=last_datafile_fn)
+            data_old.df = pd.concat([data_old.df,data.df])
+            data_old.write(filename=new_datafile_fn)
+        except FileNotFoundError as e:
+            if i_iteration == 0:
+                data.write(filename=new_datafile_fn)
+            else:
+                raise
+
 
     def analyze_results(self,i_iteration,data_fn=None,config_fn=None,kde_fn=None):
         if data_fn is None:
@@ -523,17 +816,29 @@ class PyposmatIterativeSampler(object):
         data_analyzer.read_data_file(filename=data_fn)
         data_analyzer.write_kde_file(filename=kde_fn)
 
-    def read_configuration_file(self,filename=None):
-        assert isinstance(filename,str) or filename is None
+    @property
+    def structure_directory(self):
 
-        if filename is None:
-            _filename_in = self.configuration_filename
-        else:
+        d = self.configuration.structures['structure_directory']
+
+        if not os.path.isabs(d):
+            d = os.path.join(self.root_directory,d)
+
+        return d
+
+    def read_configuration_file(self,filename=None):
+
+        assert type(filename) in [type(None),str]
+        assert type(self.configuration_filename) in [type(None),str]
+        
+        if filename is not None:
             self.configuration_filename = filename
-            _filename_in = filename
+
+        if not os.path.isabs(self.configuration_filename):
+            self.configuration_filename = os.path.abspath(self.configuration_filename)
 
         self.configuration = PyposmatConfigurationFile()
-        self.configuration.read(filename=_filename_in)
+        self.configuration.read(filename=self.configuration_filename)
         
         self.n_iterations = self.configuration.n_iterations
         self.qoi_names = self.configuration.qoi_names
@@ -579,21 +884,6 @@ class PyposmatIterativeSampler(object):
         self.log("\n".join(s))
 
 
-    def print_random_seeds(self):
-            self.log(80*'-')
-            self.log('{:^80}'.format('GENERATED RANDOM SEEDS'))
-            self.log(80*'-')
-            self.log('')
-            self.log('rv_seed={}'.format(self.rv_seed))
-            self.log('')
-            self.log('{:^8} {:^8} {:^10}'.format('rank','iter','seed'))
-            self.log('{} {} {}'.format(8*'-',8*'-',10*'-'))
-            for i_rank in range(self.mpi_size):
-                for i_iter in range(self.n_iterations):
-                    self.log('{:^8} {:^8} {:>10}'.format(
-                                   i_rank,
-                                   i_iter,
-                                   self.rv_seeds[i_rank, i_iter]))
 
 
 if __name__ == "__main__":

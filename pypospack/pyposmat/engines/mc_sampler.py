@@ -149,6 +149,18 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 self.constrained_parameter_names.append(p)
 
     def run_simulations(self,i_iteration,n_samples=None,filename=None):
+        """
+
+        Args:
+            i_iteration(int): the iteration cycle we are on.
+            n_samples(int,optional): the number of parameters to evaluate
+            filename(str,optional): the filename
+        """
+
+        assert type(i_iteration) is int
+        assert type(n_samples) in [type(None),int]
+        assert type(filename) in [type(None),str]
+
         i = i_iteration
         _sampling_type = self.configuration.sampling_type[i]['type']
         _n_samples = self.configuration.sampling_type[i]['n_samples']

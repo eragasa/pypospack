@@ -48,6 +48,14 @@ func_pair_name = 'bornmayer'
 func_density_name = 'eam_dens_exp'
 func_embedding_name = 'eam_embed_eos_rose'
 
+lattice_info = OrderedDict()
+lattice_info['Ni'] = OrderedDict()
+lattice_info['Ni']['equlibrium_interatomic_distance']
+lattice_info['Ni']['cohesive_energy']
+lattice_info['Ni']['bulk_modulus']
+lattice_info['Ni']['lattice_parameter']
+lattice_info['Ni']['bulk_modulus']
+
 parameters = OrderedDict()
 parameters['p_NiNi_phi0'] = 1.0
 parameters['p_NiNi_gamma'] = 2.0
