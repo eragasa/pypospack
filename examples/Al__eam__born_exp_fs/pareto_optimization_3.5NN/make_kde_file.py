@@ -1,5 +1,7 @@
 import os
 from pypospack.pyposmat.data import PyposmatDataFile, PyposmatConfigurationFile
+import numpy as np
+
 
 if __name__ == "__main__":
     data_fn = "../preconditioning_3.5NN/data/pyposmat.kde.4.out"
@@ -15,9 +17,14 @@ if __name__ == "__main__":
     e_coh_max = o_config.qoi_targets["Al_fcc.E_coh"] + 2
     e_coh_min = o_config.qoi_targets["Al_fcc.E_coh"] - 2
 
-    o_data.df["Al_fcc.a0"].clip(a0_min, a0_max, inplace=True)
-    o_data.df["Al_fcc.E_coh"].clip(e_coh_min, e_coh_max, inplace=True)
+    print("n points initial: {}".format(len(o_data.df)))
+    o_data.df = o_data.df[o_data.df["Al_fcc.a0"] > a0_min]
+    o_data.df = o_data.df[o_data.df["Al_fcc.a0"] < a0_max]
+    o_data.df = o_data.df[o_data.df["Al_fcc.E_coh"] > e_coh_min]
+    o_data.df = o_data.df[o_data.df["Al_fcc.E_coh"] < e_coh_max]
+    print("n points final: {}".format(len(o_data.df)))
 
+    print()
     print("a0 target: {}".format(o_config.qoi_targets["Al_fcc.a0"]))
     print("a0 min: {}".format(o_data.df["Al_fcc.a0"].min()))
     print("a0 max: {}".format(o_data.df["Al_fcc.a0"].max()))
