@@ -198,7 +198,7 @@ qoi_db.add_qoi(
         structures=OrderedDict([
                 ('defect','Ni_fcc_isf'),
                 ('ideal','Ni_fcc_111_unit')]),
-        target=8.86e-03)
+        target=-8.86e-03)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_hcp',
         qoi_type='phase_order',
