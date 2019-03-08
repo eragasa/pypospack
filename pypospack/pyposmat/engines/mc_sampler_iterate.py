@@ -339,7 +339,6 @@ class PyposmatIterativeSampler(object):
             
             self.run_kde_sampling(i_iteration=i_iteration)
 
-
         # <----- sampling from a file type ---------------------------------------
         # get parameters from file
         elif sampling_type == 'from_file':
@@ -480,6 +479,26 @@ class PyposmatIterativeSampler(object):
         self.mc_sampler.run_simulations(
                 i_iteration=i_iteration,
                 n_samples=self.determine_number_of_samples_per_rank(i_iteration=i_iteration))
+
+    def run_kde_sampling(self,i_iteration):
+        """ run kde sampling
+
+        Args:
+            i_iteration(int): what iteration of the sampling is happening
+        """
+
+        assert type(i_iteration) is int
+        assert type(self.mc_sampler) is PyposmatMonteCarloSampler
+
+        kde_filename = os.path.join(self.data_directory,
+                                    'pyposmat.kde.{}.out'.format(i_iteration))
+        n_samples_per_rank = self.determine_number_of_samples_per_rank(i_iteration=i_iteration)
+
+        self.mc_sampler.run_simulations(
+                i_iteration=i_iteration,
+                n_samples=n_samples_per_rank,
+                filename=kde_filename
+        )
 
     def run_file_sampling(self,i_iteration):
         """ run kde sampling
