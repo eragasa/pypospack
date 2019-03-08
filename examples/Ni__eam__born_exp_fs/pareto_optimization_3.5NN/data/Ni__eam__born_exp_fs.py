@@ -32,13 +32,13 @@ potential_formalism['density_type'] = 'eam_dens_exp'
 potential_formalism['embedding_type'] = 'eam_embed_fs'
 
 # <---------------- THESE ARE NECESSARY FOR DETERMINING THE SETFL FILE
-potential_formalism['N_r'] = 10000
-potential_formalism['r_max'] = 10.0
-potential_formalism['r_cut'] = 10.0
-potential_formalism['N_rho'] = 10000
-potential_formalism['rho_max'] = 1000.0
-potential_formalism['a0'] = 3.52
-potential_formalism['lattice_type'] = 'fcc'
+potential_formalism['N_r'] = 10000 # number of points for the interatomic distance
+potential_formalism['r_max'] = 10.0 # the upper range of the interatomic distance
+potential_formalism['r_cut'] = 10.0 # the point where to mollify r to zero
+potential_formalism['N_rho'] = 10000 # number of points for the embedding function
+potential_formalism['rho_max'] = 1000.0 # the maximum for rho_max
+potential_formalism['a0'] = 3.52 # the lattice parameter for a0
+potential_formalism['lattice_type'] = 'fcc'# the lattice type for fcc metals
 
 # <---------------- INITIAL PARAMETER DEFINITION
 # units need to be in metal units

@@ -24,6 +24,7 @@ from pypospack.pyposmat.data import PyposmatDataAnalyzer
 
 # --- pyposmat data samplers
 from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
+from pypospack.pyposmat.engines import PyposmatFileSampler
 from pypospack.pyposmat.engines import PyposmatClusterSampler
 
 class PyposmatIterativeSampler(object):
@@ -177,8 +178,6 @@ class PyposmatIterativeSampler(object):
         assert type(o_log) in [type(None),PyposmatLogFile,str]
 
         # check to see if the paths provided are absolute paths
-        print(config_fn)
-        print(results_fn)
         assert os.path.isabs(config_fn)
         assert os.path.isabs(results_fn)
 
@@ -199,6 +198,83 @@ class PyposmatIterativeSampler(object):
         self.mc_sampler.configure_qoi_manager()
         self.mc_sampler.configure_task_manager()
         self.mc_sampler.configure_pyposmat_datafile_out()
+
+        self.log_more_iteration_information()
+
+    def initialize_file_sampler(self,
+                                config_fn,
+                                results_fn,
+                                i_iteration=0,
+                                mpi_rank=None,
+                                mpi_size=None,
+                                o_log=None):
+        """ initialize the sampling object 
+
+        This method initializes the `mc_sampler` attribute with a sampler.
+
+        Note:
+            This breakout is part of a larger effort within PYPOSPACK, to have 
+            more object-oriented approach for parametric sampling.  The goal 
+            eventually is to implement an instance of PyposmatBaseSampler, and 
+            allow users of this software library to be able to extend this 
+            software by simply extending the base class.
+        Args:
+            config_fn(str): path to the configuration file
+            results_fn(str): path to the results file
+            i_iteration(int,optional): the iteration to sample the file from,
+                by default this is set to zero.
+            mpi_rank(int,optional): the MPI rank of executing this method
+            mpi_size(int,optional): the size of the MPI execution group
+            o_log(PyposmatLogFile,str,optional): the log file.  If a string is 
+                passed, then the sampling class will initialize a separate log 
+                file with the string of path created.  If a log file object is 
+                passed, then sampling object will use that instance of the 
+                object to log information.  By defaut, it will pass the 
+                attribute, `o_log`.
+        """
+
+        assert type(config_fn) is str
+        assert type(results_fn) is str
+        assert type(mpi_rank) in [type(None),int]
+        assert type(mpi_size) in [type(None),int]
+        assert type(o_log) in [type(None),PyposmatLogFile,str]
+
+        # check to see if the paths provided are absolute paths
+        assert os.path.isabs(config_fn)
+        assert os.path.isabs(results_fn)
+
+        if mpi_rank is None: mpi_rank = self.mpi_rank
+        if mpi_size is None: mpi_size = self.mpi_size
+
+        # get the absolute path of the datafile we are sampling from
+        data_in_fn = None
+        if os.path.isabs(self.configuration.sampling_type[i_iteration]['file']):
+            data_in_fn = self.configuration.sampling_type[i_iteration]['file']
+        else:
+            data_in_fn = os.path.join(
+                   self.root_directory,
+                   self.configuration.sampling_type[i_iteration]['file']
+            )
+
+        
+        data_out_fn = results_fn
+
+        self.mc_sampler = PyposmatFileSampler(
+                config_fn = config_fn,
+                data_in_fn = data_in_fn,
+                data_out_fn = data_out_fn,
+                mpi_rank = mpi_rank,
+                mpi_size = mpi_size,
+                o_log=o_log,
+                fullauto=False)
+        self.mc_sampler.create_base_directories()
+        self.mc_sampler.read_configuration_file()
+        
+        # we have to be able to find the structure directory
+        self.mc_sampler.configuration.structures['structure_directory'] = self.structure_directory
+        self.mc_sampler.configure_qoi_manager()
+        self.mc_sampler.configure_task_manager()
+        self.mc_sampler.configure_datafile_out()
 
         self.log_more_iteration_information()
 
@@ -267,28 +343,16 @@ class PyposmatIterativeSampler(object):
         # <----- sampling from a file type ---------------------------------------
         # get parameters from file
         elif sampling_type == 'from_file':
-            
-            _filename_in = os.path.join(
-                self.root_directory,
-                _mc_config['file']
-            )
-           
-            data = PyposmatDataFile()
-            data.read(filename=_filename_in)
-            _nrows,_ncols = data.df.shape
-            
-            #_mc_n_samples = _mc_config['n_samples']
-            _mc_n_samples = _nrows
 
-            # determine number of sims for this rank
-            _n_samples_per_rank = int(_mc_n_samples/self.mpi_size)
-            if _mc_n_samples%self.mpi_size > self.mpi_rank:
-                _n_samples_per_rank += 1
-            self.mc_sampler.run_simulations(
-                    i_iteration=i_iteration,
-                    n_samples=_n_samples_per_rank,
-                    filename=_filename_in
-            )
+            self.initialize_file_sampler(
+                    config_fn=config_filename,
+                    results_fn=results_filename,
+                    mpi_rank=self.mpi_rank,
+                    mpi_size=self.mpi_size,
+                    o_log=self.o_log)
+            
+            self.run_file_sampling(i_iteration=i_iteration)
+
         # <----- kde with clusters sampling type ---------------------------------------
         elif _mc_sample_type == 'kde_w_clusters':
             cluster_fn = "pyposmat.cluster.{}.out".format(i_iteration)
@@ -417,14 +481,14 @@ class PyposmatIterativeSampler(object):
                 i_iteration=i_iteration,
                 n_samples=self.determine_number_of_samples_per_rank(i_iteration=i_iteration))
 
-    def run_kde_sampling(self,i_iteration):
+    def run_file_sampling(self,i_iteration):
         """ run kde sampling
 
         Args:
             i_iteration(int): the iteration which to sampling for
         """
         assert type(i_iteration) is int
-        assert type(self.mc_sampler) is PyposmatMonteCarloSampler
+        assert type(self.mc_sampler) is PyposmatFileSampler
 
 
         if 'file' in self.configuration.sampling_type[i_iteration]:
@@ -441,7 +505,7 @@ class PyposmatIterativeSampler(object):
 
         if self.mpi_rank == 0:
             self.log(80*'-')
-            self.log('{:^80}'.format('kde sampling'))
+            self.log('{:^80}'.format('file sampling'))
             self.log(80*'-')
             self.log('filename_in:{}'.format(filename))
         MPI.COMM_WORLD.Barrier()
@@ -450,6 +514,7 @@ class PyposmatIterativeSampler(object):
                 i_iteration=i_iteration,
                 n_samples=self.determine_number_of_samples_per_rank(i_iteration=i_iteration),
                 filename=filename)
+
 
     def determine_number_of_samples_per_rank(self,i_iteration,N_samples=None):
         """ determine the number of samples per rank

@@ -46,8 +46,8 @@ parameter_distribution['SiSiSi_gamma'] = ['uniform',{'a': 1.0, 'b':2.0}]
 parameter_distribution['SiSiSi_costheta0'] = ['equals',-1/3.]
 parameter_distribution['SiSiSi_A'] = ['uniform',{'a': 6.0, 'b':20.0}]
 parameter_distribution['SiSiSi_B'] = ['uniform',{'a': 0.5, 'b':1.0}]
-parameter_distribution['SiSiSi_p'] = ['equals',4.0]
-parameter_distribution['SiSiSi_q'] = ['equals',0.0]
+parameter_distribution['SiSiSi_p'] = ['uniform',{'a':3.0,'b':4.4}]
+parameter_distribution['SiSiSi_q'] = ['uniform',{'a':0.0,'b':1.0}]
 parameter_distribution['SiSiSi_tol'] = ['equals',0.0]
 
 #------------------------------------------------------------------------------
@@ -76,6 +76,11 @@ structure_db['structures']['Si_vac'] = 'Si_dia_333_vac.vasp'
 # doi:10.1088/0953-8984/25/5/055801
 # reference values from Table 2 and Table 3
 qoi_db = QoiDatabase()
+qoi_db.add_qoi(
+        qoi_name='Si_dia.a0',
+        qoi_type='Ecoh_min_all',
+        structures=OrderedDict([('ideal','Si_dia')]),
+        target=-4.63)
 qoi_db.add_qoi(
         qoi_name='Si_dia.a0',
         qoi_type='a11_min_all',
@@ -127,8 +132,8 @@ qoi_constraints = OrderedDict()
 #for qoi_name, qoi_info in qoi_db.qois.items():
 #    qoi_constraints[qoi_name] = abs(qoi_info['target']) * 0.20
 qoi_constraints['filter_by_pareto'] = True
-qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-qoi_constraints['filter_by__d_zerror']['percentile'] = .95 # keep 95%
+#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+#qoi_constraints['filter_by__d_zerror']['percentile'] = .95 # keep 95%
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
 # this is currently creating a race condition, where the file is being written

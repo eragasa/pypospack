@@ -114,8 +114,10 @@ class PyposmatConfigurationFile(object):
 
     @property
     def qoi_validation_targets(self):
-        return OrderedDict([(k,v['target']) for k,v in self.qois_validation.items()])
-
+        if type(self.qois_validation) is type(None):
+            return None
+        else:
+            return OrderedDict([(k,v['target']) for k,v in self.qois_validation.items()])
 
     @property
     def qoi_constraints(self):
@@ -208,7 +210,10 @@ class PyposmatConfigurationFile(object):
 
     @property
     def reference_potentials(self):
-        return self.configuration['reference_potentials']
+        if 'reference_potentials' not in self.configuration:
+            return None
+        else:
+            return self.configuration['reference_potentials']
 
     @reference_potentials.setter
     def reference_potentials(self,potentials):

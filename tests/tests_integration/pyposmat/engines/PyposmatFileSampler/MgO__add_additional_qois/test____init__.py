@@ -1,7 +1,8 @@
 import os
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.engines import PyposmatFileSampler
-from pypospack.pyposmat.engines import PyposmatEngineError
+#from pypospack.exceptions import PyposmatEngineError
+
 n_smallest = 10
 
 for v in os.environ["PYTHONPATH"].split(":"):
