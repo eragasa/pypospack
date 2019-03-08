@@ -141,8 +141,13 @@ class PyposmatIterativeSampler(object):
                 self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
 
             if self.mpi_rank == 0:
+                self.log("MERGING FILES")
                 self.merge_files(i)
+
+            if self.mpi_rank == 0:
+                self.log("ANALYZE RESULTS")
                 self.analyze_results(i)
+
             MPI.COMM_WORLD.Barrier()
         self.log(80*'-')
         self.log('JOBCOMPLETE')
@@ -766,77 +771,6 @@ class PyposmatIterativeSampler(object):
             new_datafile_fn(str,optional): where to output the file results 
         """
 
-        _dir = self.data_directory
-
-        datafile = None
-        
-        # filename of old datafile file
-        # In default use, 'pyposmat.kde.{i}.out' is used to define the KDE distribution for the ith iteration,
-        # Unless the last_datafile_fn is specifically specified, we assume that this is the file used
-        if last_datafile_fn is None:
-            _datafile_fn_old = os.path.join(_dir,'pyposmat.kde.{}.out'.format(i_iteration))
-        else:
-            _datafile_fn_old = last_datafile_fn
-
-        # filenames from each rank of the simulations
-        # each rank has it's own disk space for the purposes of concurrency, at the end of the iteration it is
-        # necessary to concatenate these files
-        _n_ranks = self.mpi_size
-        _datafiles_fn_ranks = [os.path.join('rank_{}'.format(i),'pyposmat.results.out') for i in range(_n_ranks)]
-
-        # we are concatenating the previous parameterizations and results with the new parameterizations and results
-        _datafiles_to_concatenate = []
-        if os.path.isfile(_datafile_fn_old):
-            _datafiles_to_concatenate.append(_datafile_fn_old)
-        _datafiles_to_concatenate += _datafiles_fn_ranks
-
-        if new_datafile_fn is None:
-            _datafile_fn_new = os.path.join(_dir,'pyposmat.results.{}.out'.format(i_iteration))
-        else:
-            _datafile_fn_new = new_datafile_fn
-
-        # now we need to merge the files
-        _df = None
-
-        for i,v in enumerate(_datafiles_to_concatenate):
-
-            # an exception for the first iteration
-            if i==0:
-                datafile = PyposmatDataFile()
-                datafile.read(filename=v)
-                _df = datafile.df
-                
-            else:
-                _iteration_id = '{}'.format(i_iteration)
-                datafile = PyposmatDataFile()
-                datafile.read(filename=v)
-                _df = pd.concat([_df,datafile.df]).reset_index(drop=True)
-
-        # create output file
-        datafile = PyposmatDataFile()
-        datafile.df = _df
-        datafile.parameter_names = self.parameter_names
-        datafile.qoi_names = self.qoi_names
-        datafile.error_names = self.error_names
-
-        if not os.path.exists(self.data_directory):
-            os.mkdir(self.data_directory)
-        
-        try:
-            datafile.write(filename=_datafile_fn_new)
-        except FileNotFoundError as e:
-            raise
-
- 
-    def merge_files(self,i_iteration,last_datafile_fn=None,new_datafile_fn=None):
-        """ merge the pyposmat data files
-
-        Args:
-            i_iteration(int): the current iteration which just finished
-            last_datafile_fn(str,optional): the filename of the last dataset in the data directory.
-            new_datafile_fn(str,optional): where to output the file results 
-        """
-
         if last_datafile_fn is None:
             last_datafile_fn = os.path.join(self.data_directory,
                                             'pyposmat.kde.{}.out'.format(i_iteration))
@@ -867,16 +801,25 @@ class PyposmatIterativeSampler(object):
 
         data.df['sim_id'] = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
 
-        data_old = PyposmatDataFile()
-        try:
-            data_old.read(filename=last_datafile_fn)
-            data_old.df = pd.concat([data_old.df,data.df])
-            data_old.write(filename=new_datafile_fn)
-        except FileNotFoundError as e:
-            if i_iteration == 0:
-                data.write(filename=new_datafile_fn)
-            else:
-                raise
+        self.log(self.configuration.sampling_type[i_iteration]['type'])
+        if self.configuration.sampling_type[i_iteration]['type'] == "from_file":
+            data_new = PyposmatDataFile()
+            data_new.read(filename=filenames[0])
+            data_new.df = data.df
+            data_new.write(filename=new_datafile_fn)
+        else:
+            self.log("merging with candidates from previous simulations")
+            self.log("\tfilename:{}".format(last_datafile_fn))
+            data_old = PyposmatDataFile()
+            try:
+                data_old.read(filename=last_datafile_fn)
+                data_old.df = pd.concat([data_old.df,data.df])
+                data_old.write(filename=new_datafile_fn)
+            except FileNotFoundError as e:
+                if i_iteration == 0:
+                    data.write(filename=new_datafile_fn)
+                else:
+                    raise
 
 
     def analyze_results(self,i_iteration,data_fn=None,config_fn=None,kde_fn=None):
