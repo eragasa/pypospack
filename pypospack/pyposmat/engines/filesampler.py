@@ -8,6 +8,11 @@ from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatLogFile
 from pypospack.pyposmat.engines import PyposmatEngine
 
+# necessary errors which this class needs to handle
+from pypospack.exceptions import LammpsSimulationError
+from pypospack.exceptions import PyposmatBadParameterError
+from pypospack.exceptions import PypospackBadKdeBandwidthType
+
 class PyposmatFileSampler(PyposmatEngine):
     """ samples from a datafile
 

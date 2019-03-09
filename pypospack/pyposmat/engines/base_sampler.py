@@ -34,16 +34,6 @@ from pypospack.exceptions import PypospackBadKdeBandwidthType
 from pypospack.exceptions import PypospackTaskManagerError
 
 class PyposmatBaseSampler(PyposmatEngine):
-    def __init__(self,
-            config_fn='pyposmat.config.in',
-            results_fn='pyposmat.results.out',
-            bad_parameters_fn='pyposmat.bad_parameters.out',
-            data_in_fn=None,
-            o_config = None,
-            o_log = None,
-            mpi_rank=None,
-            mpi_size=None,
-            base_directory=None):
         """ Base Sampling Engine to build other engines upon
 
         Args:
@@ -58,6 +48,16 @@ class PyposmatBaseSampler(PyposmatEngine):
             data_out(:obj:PyposmatDataFile): object for write out a data file
 
         """
+    def __init__(self,
+            config_fn='pyposmat.config.in',
+            results_fn='pyposmat.results.out',
+            bad_parameters_fn='pyposmat.bad_parameters.out',
+            data_in_fn=None,
+            o_config = None,
+            o_log = None,
+            mpi_rank=None,
+            mpi_size=None,
+            base_directory=None):
         
         # check types for the attributes
         assert type(config_fn) is str
