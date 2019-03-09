@@ -34,20 +34,20 @@ from pypospack.exceptions import PypospackBadKdeBandwidthType
 from pypospack.exceptions import PypospackTaskManagerError
 
 class PyposmatBaseSampler(PyposmatEngine):
-        """ Base Sampling Engine to build other engines upon
+    """ Base Sampling Engine to build other engines upon
 
-        Args:
-            config_fn (str): filename of the configuration file
-            data_out_fn (str): filename where to output the the simulation results
-        Attributes:
-            config_fn(str): filename of the configuration file
-            data_in_fn(str):filename where to get previous simulation results
-            data_out_fn(str):filename where to output the current simulation results
-            parameters_fn(str):filename where to output current simulation results
-            data_in(:obj:PyposmatDataFile): object for reading in a data file
-            data_out(:obj:PyposmatDataFile): object for write out a data file
+    Args:
+        config_fn (str): filename of the configuration file
+        data_out_fn (str): filename where to output the the simulation results
+    Attributes:
+        config_fn(str): filename of the configuration file
+        data_in_fn(str):filename where to get previous simulation results
+        data_out_fn(str):filename where to output the current simulation results
+        parameters_fn(str):filename where to output current simulation results
+        data_in(:obj:PyposmatDataFile): object for reading in a data file
+        data_out(:obj:PyposmatDataFile): object for write out a data file
 
-        """
+    """
     def __init__(self,
             config_fn='pyposmat.config.in',
             results_fn='pyposmat.results.out',
