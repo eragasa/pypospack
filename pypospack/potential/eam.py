@@ -77,24 +77,12 @@ class EamPotential(Potential):
         self.setfl = None
 
         if filename is None:
-
-            # If the filename is not specified, then the EamPotential must be calibrated
-            # by specifying the number
-            if type(func_pair) is not str:
-                s = "If filename is not specified, then func_pair must be a string"
-                raise ValueError(s)
-            if type(func_density) is not str:
-                s = "If filename is not specified, then func_density must be a string"
-                raise ValueError(s)
-            if type(func_embedding) is not str:
-                s = "If filename is not specified, then func_embeddding must be a string"
-                raise ValueError(s)
-
             self.set_obj_pair(func_pair=func_pair)
             self.set_obj_density(func_density=func_density)
             self.set_obj_embedding(func_embedding=func_embedding)
         else:
-            raise NotImplementedError()
+            pass
+            #raise NotImplementedError()
 
         Potential.__init__(self,
                 symbols=symbols,
@@ -244,6 +232,9 @@ class EamPotential(Potential):
         print(msg)
 
     def set_obj_pair(self,func_pair):
+
+        assert isinstance(func_pair,str)
+
         if func_pair == 'morse':
             self.obj_pair = MorsePotential(symbols=self.symbols)
         elif func_pair == 'bornmayer':
@@ -269,6 +260,9 @@ class EamPotential(Potential):
             raise ValueError(s)
 
     def set_obj_density(self,func_density):
+
+        assert isinstance(func_density,str)
+
         if func_density == 'eam_dens_exp':
             self.obj_density = ExponentialDensityFunction(symbols=self.symbols)
         else:
@@ -286,6 +280,8 @@ class EamPotential(Potential):
             raise ValueError(msg_err)
 
     def set_obj_embedding(self,func_embedding):
+
+        assert isinstance(func_embedding,str)
 
         # this programming is a little sloppy.  some software architecture needs to be implemented here
         # for a more clean object oriented approach
