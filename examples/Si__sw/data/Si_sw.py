@@ -12,14 +12,9 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 1000
+    sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
-# sampling[0]['type'] = 'from_file'
-# sampling[0]['file'] = 'data/pyposmat.kde.00.out' 
-# sample from a kde
-# sampling[0]['type'] = 'kde'
-# sampling[0]['file'] = 'data/pyposmat.kde.00.out'
 
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM

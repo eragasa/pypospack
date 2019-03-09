@@ -1,6 +1,13 @@
 import os
 import shutil
 
+def remove_slurm_output_files(job_out='job.out',job_err='job.err'):
+    if os.path.isfile(job_out):
+        os.remove(job_out)
+
+    if os.path.isfile(job_err):
+        os.remove(job_err)
+
 def remove_rank_directories(directory=None):
     if directory is None:
         rank_directories = [os.path.join(os.getcwd(),d) for d in os.listdir() if d.startswith('rank_')]
@@ -27,6 +34,7 @@ def remove_data_files(data_directory=None):
 
 
 if __name__ == "__main__":
+    remove_slurm_output_files()
     remove_rank_directories()
     remove_data_files(data_directory='data')
 
