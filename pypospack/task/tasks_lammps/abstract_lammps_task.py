@@ -2,6 +2,7 @@
 
 """
 import os,copy,importlib,subprocess
+import shutil
 from collections import OrderedDict
 
 import pypospack.io.vasp as vasp
