@@ -261,8 +261,8 @@ qoi_constraints['qoi_constraints']['E_Ni_fcc_bcc'] = ['>',0.]
 # qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
-qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-qoi_constraints['filter_by__d_zerror']['percentile'] = .95
+#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+#qoi_constraints['filter_by__d_zerror']['percentile'] = .95
 qoi_constraints['select_pareto_only'] = True
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
 

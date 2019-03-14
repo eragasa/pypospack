@@ -196,7 +196,8 @@ qoi_db.add_qoi(
 #        structures=OrderedDict([
 #                ('low','Ni_fcc'),
 #                ('high','Ni_hcp')]),
-#        target=0.024)
+#
+#target=0.024)
 #qoi_db.add_qoi(
 #        qoi_name='E_Ni_fcc_bcc',
 #        qoi_type='phase_order',
@@ -249,9 +250,9 @@ qoi_constraints['qoi_constraints']=OrderedDict()
 #qoi_constraints['qoi_constraints']['E_Ni_fcc_sc'] = ['>',0.]
 #qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
 #qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
-qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-qoi_constraints['filter_by__d_zerror']['percentile'] = .95
-#qoi_constraints['select_pareto_only'] = True
+#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+#qoi_constraints['filter_by__d_zerror']['percentile'] = .95
+# qoi_constraints['select_pareto_only'] = True
 #qoi_constraints['filter_by_percentile'] = [80,'pct']
 if __name__ == '__main__':
     from pypospack.pyposmat.data import PyposmatConfigurationFile
