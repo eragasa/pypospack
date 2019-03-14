@@ -5,7 +5,7 @@ from pypospack.pyposmat.data import PyposmatDataFile
 
 if __name__ == "__main__":
     src_dir='data'
-    dst_dir='analysis_Si_sw_vac'
+    dst_dir='analysis'
     
     if not os.path.exists(dst_dir):
         os.mkdir(dst_dir)
@@ -76,7 +76,10 @@ if __name__ == "__main__":
         aen = "{}.abserr".format(q)
         en = "{}.err".format(q)
         for i in range(n_iterations):
-            kde_data[i].df[aen] = kde_data[i].df[en].abs()
+            try:
+                kde_data[i].df[aen] = kde_data[i].df[en].abs()
+            except AttributeError as e:
+                print('i:{}'.format(i))
         config.latex_labels[aen] = OrderedDict()
         config.latex_labels[aen]['name'] = r"$|$"+config.latex_labels[q]['name']+r"$|$"
 
