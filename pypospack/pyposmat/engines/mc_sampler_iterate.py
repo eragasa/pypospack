@@ -149,8 +149,9 @@ class PyposmatIterativeSampler(object):
                 self.analyze_results(i)
 
             MPI.COMM_WORLD.Barrier()
-        self.log(80*'-')
-        self.log('JOBCOMPLETE')
+        if self.mpi_rank == 0
+            self.log(80*'-')
+            self.log('JOBCOMPLETE')
 
     def initialize_sampler(self,config_fn,results_fn,mpi_rank=None,mpi_size=None,o_log=None):
         """ initialize the sampling object 

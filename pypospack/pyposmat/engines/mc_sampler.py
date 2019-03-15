@@ -336,10 +336,46 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         kde_options['silverman1984']['reference'] = 'Silverman, B.W. (1986). Density Estimation for Statistics and Data Analysis. London: Chapman & Hall/CRC. p. 48'
         kde_options['silverman1984']['isbn'] = '0-412-24620-1'
 
-    def run_kde_sampling(self,n_samples,filename_in,cluster_id=None,kde_bw_type='chiu1999'):
+    def determine_kde_bandwidth(self,X,kde_bw_type):
+        """ determine kde bandwidth
+
+        Args:
+            X(np.ndarray): array of data to determine the KDE bandwidth
+            kde_bw_type(str): the method of estimating the optimal bandwidth
         """
-        cluster_id (int): cluster_id of interest, if cluster_id is None, then all entries in the datafile will be used
-        kde_bw_type (str): type of bandwidth
+
+        if self.mpi_rank == 0:
+            self.log('determine kde bandwidth...')
+
+        if kde_bw_type == 'chiu1999':
+            try:
+                h = Chiu1999_h(X)
+            except ValueError as e:
+                print(X)
+                raise
+
+        elif kde_bw_type == 'silverman1985':
+            h = Silverman1986
+        else:
+            m = 'kde_bw_type, {}, is not an implemented bandwidth type'
+            raise PypospackBadKdeBandwidthType(m)    
+
+        if self.mpi_rank == 0:
+            self.log('{}:{}'.format(kde_bw_type,h))
+        self.kde_bw_type = kde_bw_type
+        self.kde_bw = h
+
+        return self.kde_bw
+
+    def run_kde_sampling(self,n_samples,filename_in,cluster_id=None,kde_bw_type='chiu1999'):
+        """ sample from a KDE distribution
+
+        Args:
+            n_samples(int): the number of samples to draw from the KDE distribution
+            filename_in(str): the path to the datafile from which the parameters will be drawn from
+            cluster_id(int): if we need to use a specific cluster_id, we specify it here.  
+                otherwise, it will be drawn from all parameters contained within the set.
+            kde_bw_type(str): the method of estimating the optimal bandwidth
         """
         _datafile_in = PyposmatDataFile()
         _datafile_in.read(filename_in)
@@ -352,26 +388,10 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             _datafile_in.df = _datafile_in.df.loc[_datafile_in.df['cluster_id'] == cluster_id]
             _X = _datafile_in.df[self.free_parameter_names].loc[_datafile_in.df['cluster_id'] == cluster_id].values.T
             # self.log.write("cluster_id {c} _X.shape={x}".format(c=cluster_id, x=_X.shape))
-        #except LinAlgError as e:
-        #    raise
-        
-        # determine bandwidth
-        self.log('determining kde bandwidth...')
-        if kde_bw_type == 'chiu1999':
-            try:
-                _h = Chiu1999_h(_X)
-            except ValueError as e:
-                print(_X)
-                raise
-            m = 'Chiu1999_h:{}'.format(_h)
-            self.log(m)
-        elif kde_bw_type == 'silverman1986':
-            _h = Silverman1984
-        else:
-            m = 'kde_bw_type, {}, is not an implemented bandwidth type'
-            raise PypospackBadKdeBandwidthType(m)    
 
-        _rv_generator = scipy.stats.gaussian_kde(_X,_h)
+        kde_bw = self.determine_kde_bandwidth(X=_X,kde_bw_type=kde_bw_type)
+
+        _rv_generator = scipy.stats.gaussian_kde(_X,kde_bw)
 
         self.write_data_out_header()
 
@@ -470,8 +490,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
         d = OrderedDict()
         d['kde_bandwidth'] = OrderedDict()
-        d['kde_bandwidth']['type'] = kde_bw_type
-        d['kde_bandwidth']['h'] = _h
+        d['kde_bandwidth']['type'] = self.kde_bw_type
+        d['kde_bandwidth']['h'] = self.kde_bw
     
     def run_file_sampling(self,filename_in):
 
