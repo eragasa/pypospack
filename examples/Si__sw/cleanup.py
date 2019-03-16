@@ -34,6 +34,13 @@ def remove_data_files(data_directory=None):
 
 
 if __name__ == "__main__":
+    files_to_delete = ['pyposmat.pareto.out','subselect.d_metric.out','rugplot.png']
+
+    for f in files_to_delete:
+        try:
+            os.remove(f)
+        except:
+            pass
     remove_slurm_output_files()
     remove_rank_directories()
     remove_data_files(data_directory='data')

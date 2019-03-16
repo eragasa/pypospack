@@ -11,6 +11,24 @@ def get_qoi_targets(o_config):
         (k,v['target']) for k,v in o_config.qois.items()]
     )
 
+def show_qoi_targets(config_fn,
+                     data_fn):
+
+    o_config = PyposmatConfigurationFile()
+    o_config.read(filename=config_fn)
+
+    o_data = PyposmatDataFile()
+    o_data.read(filename=data_fn)
+
+    for qoi_name, qoi_target in o_config.qoi_targets.items():
+        try:
+            qoi_avg = o_data.df[qoi_name].mean()
+        except KeyError as e:
+            qoi_avg = 'no value'
+        s = "{:20} {:10} {:10}".format(qoi_name,qoi_target,qoi_avg)
+        print(s)
+
+
 import matplotlib.pyplot as plt
 def make_rug_plot(config_fn,
                   data_fn,
@@ -65,51 +83,27 @@ if __name__ == "__main__":
    
     if not os.path.isdir(plot_directory):
         os.mkdir(plot_directory)
-
     for i in range(n_iterations):
         config_fn = os.path.join(data_directory,'pyposmat.config.in')
-        data_fn = os.path.join(data_directory,'pyposmat.kde.{}.out'.format(i+1))
-        plot_fn = os.path.join(data_directory,"rugplot_{}.png".format(i))
+        results_data_fn = os.path.join(data_directory,'pyposmat.results.{}.out'.format(i))
+        kde_data_fn = os.path.join(data_directory,'pyposmat.kde.{}.out'.format(i+1))
+        plot_fn = os.path.join(plot_directory,"rugplot_{}.png".format(i))
+
+        print(80*'=')
+        print("{:^80}".format('ITERATION {}'.format(i)))
+
+        results_data = PyposmatDataFile()
+        results_data.read(filename=results_data_fn)
+        results_n_rows,results_n_cols = results_data.df.shape
+
+        kde_data = PyposmatDataFile()
+        kde_data.read(filename=kde_data_fn)
+        kde_n_rows,kde_n_cols=kde_data.df.shape
+        print('total_number_of_candidates:{}'.format(results_n_rows))
+        print('remaining_number_of_candiddates:{}'.format(kde_n_rows))
+
+        show_qoi_targets(config_fn=config_fn,data_fn=kde_data_fn)
 
         make_rug_plot(config_fn=config_fn,
-                      data_fn=data_fn,
+                      data_fn=kde_data_fn,
                       plot_fn=plot_fn)
-    if False:
-        from pypospack.pareto import pareto
-
-        df = copy.deepcopy(datafile.df)
-        nr,nc = df.shape
-        _nsimulations = OrderedDict()
-        _nsimulations['start'] = nr
-        abs_error_names = ["{}.abserr".format(q) for q in datafile.qoi_names]
-        for q in datafile.qoi_names:
-            qe = "{}.err".format(q)
-            qne = "{}.abserr".format(q)
-            df[qne] = df[qe].abs()
-        names = list(df.columns.values)
-        abs_err_idx = [names.index(n) for n in abs_error_names]
-        pareto_idx = pareto(df[abs_error_names].values.tolist())
-        datafile.df = df.loc[pareto_idx,datafile.names]
-        datafile.write("results.pareto.out")
-
-        #pareto_idx = pareto_bruteforce(df[abs_error_names].values.tolist())
-
-            #print(pareto_set)
-        if make_rugplots:
-            rugplots_fn = "rugplot.png"
-            datafile = PyposmatDataFile()
-            datafile.read("results.pareto.out")
-            datafile.qoi_references = OrderedDict()
-            datafile.qoi_references['TARGET'] = copy.deepcopy(qoi_targets)
-            datafile.score_by_d_metric(scaling_factors='TARGET')
-            datafile.subselect_by_score(
-                    score_name='d_metric',
-                    n=_n_potentials)
-            subselect_fn = datafile.write_subselect()
-
-            datafile=PyposmatDataFile()
-            datafile.read(filename=_data_fn)
-            print(datafile.df[datafile.error_names])
-            make_rug_plot(o_config=config,
-                          o_data=datafile,
-                          fn=rugplots_fn)
