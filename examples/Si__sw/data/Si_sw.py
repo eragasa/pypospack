@@ -12,7 +12,7 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10000
+    sampling[i]['n_samples'] = 100
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
 
@@ -72,7 +72,7 @@ structure_db['structures']['Si_vac'] = 'Si_dia_333_vac.vasp'
 # reference values from Table 2 and Table 3
 qoi_db = QoiDatabase()
 qoi_db.add_qoi(
-        qoi_name='Si_dia.a0',
+        qoi_name='Si_dia.E_coh',
         qoi_type='Ecoh_min_all',
         structures=OrderedDict([('ideal','Si_dia')]),
         target=-4.63)
@@ -127,8 +127,10 @@ qoi_constraints = OrderedDict()
 #for qoi_name, qoi_info in qoi_db.qois.items():
 #    qoi_constraints[qoi_name] = abs(qoi_info['target']) * 0.20
 qoi_constraints['filter_by_pareto'] = True
-#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-#qoi_constraints['filter_by__d_zerror']['percentile'] = .95 # keep 95%
+qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+qoi_constraints['filter_by__d_zerror']['percentile'] = .95 # keep 95%
+
+latex_labels = OrderedDict()
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
 # this is currently creating a race condition, where the file is being written

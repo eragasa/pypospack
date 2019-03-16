@@ -25,6 +25,9 @@ class PyposmatDataFile(object):
         self.qoi_references = None
         self.scaling_factors = None
 
+        self.normalized_names = None
+        self.normalization_type = None
+
         self.df = None
         self.parameter_df = None
         self.error_df = None
@@ -249,6 +252,23 @@ class PyposmatDataFile(object):
         self.error_df = self.df[self.error_names]
         self.qoi_df = self.df[self.qoi_names]
 
+    def create_normalized_errors(self,normalize_type='by_qoi_target',qoi_targets=None):
+        normalize_types = ['by_qoi_target']
+
+        assert normalize_type in normalize_types
+        assert isinstance(qoi_targets,OrderedDict) or type(qoi_targets) is type(None)
+
+        if normalize_type == 'by_qoi_target':
+            assert isinstance(qoi_targets,OrderedDict)
+            for qn in self.qoi_names:
+                en = "{}.err".format(qn)
+                nen = "{}.nerr".format(qn)
+                q = qoi_targets[qn]
+                self.df[nen]=self.df[en]/q - q
+
+            self.normalized_names = ["{}.nerr".format(qn) for qn in self.qoi_names]
+            self.normalization_type = 'by_qoi_type'
+
     def write(self,filename):
         fn = filename
 
@@ -376,7 +396,8 @@ class PyposmatDataFile(object):
         for row in self.sub_df.iterrows():
             _row = [a for i,a in enumerate(row[1])] #unpack tuple
             try:
-                _row[0] = int(_row[0]) # row[0] is the sim_id
+                if not isinstance(_row[0],str):
+                    _row[0] = int(_row[0]) # row[0] is the sim_id
             except ValueError as e:
                 raise
             #pass
