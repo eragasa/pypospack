@@ -130,7 +130,7 @@ class PyposmatIterativeSampler(object):
             kde_fn = os.path.join(self.data_directory,'pyposmat.kde.{}.out'.format(i+1))
 
             if os.path.isfile(results_fn) and os.path.isfile(kde_fn):
-                if self.mpi_rank == 0
+                if self.mpi_rank == 0:
                     self.log('iteration {}: is complete'.format(i))
                 self.start_iteration = i+1
             else:
