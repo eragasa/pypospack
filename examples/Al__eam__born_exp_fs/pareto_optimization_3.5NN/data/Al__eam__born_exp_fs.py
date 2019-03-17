@@ -185,7 +185,7 @@ qoi_db.add_qoi(
         structures=OrderedDict([
                 ('defect','Al_fcc_isf'),
                 ('ideal','Al_fcc_111_unit')]),
-        target=-9.86e-03)
+        target=9.86e-03)
 qoi_db.add_qoi(
         qoi_name='E_Al_fcc_hcp',
         qoi_type='phase_order',
@@ -193,6 +193,7 @@ qoi_db.add_qoi(
                 ('low','Al_fcc'),
                 ('high','Al_hcp')]),
         target=0.03)
+
 qoi_db.add_qoi(
         qoi_name='E_Al_fcc_bcc',
         qoi_type='phase_order',
