@@ -109,6 +109,36 @@ class PyposmatIterativeSampler(object):
         self.o_log = None
         self.initialize_logger(log_fn=log_fn,log_to_stdout=log_to_stdout)
 
+        if self.is_restart:
+            self.delete_mpi_rank_directories()
+
+    def delete_mpi_rank_directories(self):
+        if self.mpi_rank == 0:
+            self.log('Deleting previous rank directories')
+            mpi_rank_directories = [d for d in os.listdir(self.root_directory) if d.startswith('rank_')]
+            for d in mpi_rank_directories:
+                try:
+                    shutil.rmtree(os.path.join(self.root_directory,d))
+                except:
+                    raise
+        MPI.COMM_WORLD.Barrier()
+
+    def determine_last_iteration_completed(self):
+
+        for i in range(self.n_iterations):
+            results_fn = os.path.join(self.data_directory,'pyposmat.results.{}.out'.format(i))
+            kde_fn = os.path.join(self.data_directory,'pyposmat.kde.{}.out'.format(i+1))
+
+            if os.path.isfile(results_fn) and os.path.isfile(kde_fn):
+                if self.mpi_rank == 0
+                    self.log('iteration {}: is complete'.format(i))
+                self.start_iteration = i+1
+            else:
+                self.start_iteration = i
+                break
+
+        MPI.COMM_WORLD.Barrier()
+        return self.start_iteration
 
     def run_all(self):
         """runs all iterations
@@ -118,52 +148,37 @@ class PyposmatIterativeSampler(object):
         """
         self.setup_mpi_environment()
         self.initialize_data_directory()
+
         self.start_iteration = 0
+
+        if is_restart:
+            self.determine_last_iteration_completed()
+
+        if self.mpi_rank == 0:
+            self.log("starting at simulation: {}".format(self.start_iteration))
+        MPI.COMM_WORLD.Barrier()
+
         for i in range(self.start_iteration,self.n_iterations):
             self.i_iteration = i
 
             # log iteration information
             self.log_iteration_information(i_iteration=i)
 
-            if self.is_restart:
-                results_fn = os.path.join(self.data_directory,'pyposmat.results.{}.out'.format(i))
-                kde_fn = os.path.join(self.data_directory,'pyposmat.kde.{}.out'.format(i))
+            self.run_simulations(i)
+            MPI.COMM_WORLD.Barrier()
 
-                if all([os.path.isfile(results_fn),os.path.isfile(kde_fn)]):
-                    if self.mpi_rank == 0:
-                        self.log('this iterations as already been completed')
-                else:
-                    self.run_simulations(i)
-                    MPI.COMM_WORLD.Barrier()
+            if self.mpi_rank == 0:
+                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
 
-                    if self.mpi_rank == 0:
-                        self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+            if self.mpi_rank == 0:
+                self.log("MERGING FILES")
+                self.merge_files(i)
 
-                    if self.mpi_rank == 0:
-                        self.log("MERGING FILES")
-                        self.merge_files(i)
+            if self.mpi_rank == 0:
+                self.log("ANALYZE RESULTS")
+                self.analyze_results(i)
 
-                    if self.mpi_rank == 0:
-                        self.log("ANALYZE RESULTS")
-                        self.analyze_results(i)
-
-                    MPI.COMM_WORLD.Barrier()
-            else:
-                self.run_simulations(i)
-                MPI.COMM_WORLD.Barrier()
-
-                if self.mpi_rank == 0:
-                    self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
-
-                if self.mpi_rank == 0:
-                    self.log("MERGING FILES")
-                    self.merge_files(i)
-
-                if self.mpi_rank == 0:
-                    self.log("ANALYZE RESULTS")
-                    self.analyze_results(i)
-
-                MPI.COMM_WORLD.Barrier()
+            MPI.COMM_WORLD.Barrier()
 
         if self.mpi_rank == 0:
             self.log(80*'-')
