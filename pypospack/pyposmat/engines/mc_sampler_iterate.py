@@ -130,25 +130,40 @@ class PyposmatIterativeSampler(object):
                 kde_fn = os.path.join(self.data_directory,'pyposmat.kde.{}.out'.format(i))
 
                 if all([os.path.isfile(results_fn),os.path.isfile(kde_fn)]):
-                    self.log('this iterations as already been completed')
+                    if self.mpi_rank == 0:
+                        self.log('this iterations as already been completed')
                 else:
-                    break
+                    self.run_simulations(i)
+                    MPI.COMM_WORLD.Barrier()
 
-            self.run_simulations(i)
-            MPI.COMM_WORLD.Barrier()
+                    if self.mpi_rank == 0:
+                        self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
 
-            if self.mpi_rank == 0:
-                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+                    if self.mpi_rank == 0:
+                        self.log("MERGING FILES")
+                        self.merge_files(i)
 
-            if self.mpi_rank == 0:
-                self.log("MERGING FILES")
-                self.merge_files(i)
+                    if self.mpi_rank == 0:
+                        self.log("ANALYZE RESULTS")
+                        self.analyze_results(i)
 
-            if self.mpi_rank == 0:
-                self.log("ANALYZE RESULTS")
-                self.analyze_results(i)
+                    MPI.COMM_WORLD.Barrier()
+            else:
+                self.run_simulations(i)
+                MPI.COMM_WORLD.Barrier()
 
-            MPI.COMM_WORLD.Barrier()
+                if self.mpi_rank == 0:
+                    self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+
+                if self.mpi_rank == 0:
+                    self.log("MERGING FILES")
+                    self.merge_files(i)
+
+                if self.mpi_rank == 0:
+                    self.log("ANALYZE RESULTS")
+                    self.analyze_results(i)
+
+                MPI.COMM_WORLD.Barrier()
 
         if self.mpi_rank == 0:
             self.log(80*'-')
