@@ -151,7 +151,7 @@ class PyposmatIterativeSampler(object):
 
         self.start_iteration = 0
 
-        if is_restart:
+        if self.is_restart:
             self.determine_last_iteration_completed()
 
         if self.mpi_rank == 0:
