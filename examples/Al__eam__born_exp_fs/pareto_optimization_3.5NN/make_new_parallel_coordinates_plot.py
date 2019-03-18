@@ -83,7 +83,7 @@ class PyposmatParallelCoordinates(object):
 
 if __name__ == "__main__":
     # define the data directory
-    data_directory = 'data'
+    data_directory = 'data/positive_isf_target'
 
     # read configuration file
     config_fn = os.path.join(data_directory,'pyposmat.config.in')
@@ -212,5 +212,5 @@ if __name__ == "__main__":
         ]
     )
     plt.show()
-#    fig.savefig(plot_fn)
-#    exit()
+    fig.savefig(plot_fn)
+    exit()

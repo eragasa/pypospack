@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
 
-
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
@@ -15,14 +14,10 @@ for i in range(sampling['n_iterations']):
     sampling[i]['type'] = 'kde'
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
-#<---- sample from parameteric distribution
 sampling[0]['type'] = 'parametric'
-
-
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
-
 potential_formalism = OrderedDict()
 potential_formalism['potential_type'] = 'eam'
 potential_formalism['symbols'] = ['Al']
@@ -71,12 +66,9 @@ parameter_distribution['e_Al_F0'] = [
         'uniform',{
             'a':-5.00,
             'b':-0.05}]
-
-
 #------------------------------------------------------------------------------
 # PARAMETER CONSTRAINTS
 #------------------------------------------------------------------------------
-
 parameter_constraints = OrderedDict()
 parameter_constraints['p_AlAl_phi0 > 0'] = 'p_AlAl_phi0 > 0.'
 parameter_constraints['p_AlAl_gamma > 0'] = 'p_AlAl_gamma > 0.'
@@ -85,12 +77,9 @@ parameter_constraints['d_Al_rho0 > 0'] = 'd_Al_rho0 > 0.'
 parameter_constraints['d_Al_beta > 0'] = 'd_Al_beta > 0.'
 parameter_constraints['d_Al_r0 > 0'] = 'd_Al_r0 > 0.'
 parameter_constraints['e_Al_F0 < 0'] = 'e_Al_F0 < 0.'
-
-
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
-
 structure_db = OrderedDict()
 structure_db['structure_directory'] = 'structure_db'
 structure_db['structures'] = OrderedDict()
@@ -110,12 +99,9 @@ structure_db['structures']['Al_fcc_esf'] = 'Al_fcc_esf.vasp'
 structure_db['structures']['Al_fcc_vac'] = 'Al_fcc_sc_333_vac.vasp'
 structure_db['structures']['Al_fcc_o_int'] = 'Al_fcc_sc_333_o_int.vasp'
 structure_db['structures']['Al_fcc_i_int'] = 'Al_fcc_sc_333_t_int.vasp'
-
-
 #------------------------------------------------------------------------------
 # FITTING DATABASE
 #------------------------------------------------------------------------------
-
 qoi_db = QoiDatabase()
 qoi_db.add_qoi(
         qoi_name='Al_fcc.E_coh',
@@ -127,7 +113,106 @@ qoi_db.add_qoi(
         qoi_type='a11_min_all',
         structures=OrderedDict([('ideal','Al_fcc')]),
         target=4.05)
-
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.c11',
+#        qoi_type='c11',
+#        structures=OrderedDict([('ideal','Al_fcc')]),
+#        target=114.)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.c12',
+#        qoi_type='c12',
+#        structures=OrderedDict([('ideal','Al_fcc')]),
+#        target=62.)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.c44',
+#        qoi_type='c44',
+#        structures=OrderedDict([('ideal','Al_fcc')]),
+#        target=32.)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.B',
+#        qoi_type='bulk_modulus',
+#        structures=OrderedDict([('ideal','Al_fcc')]),
+#        target=79.)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.G',
+#        qoi_type='shear_modulus',
+#        structures=OrderedDict([('ideal','Al_fcc')]),
+#        target=26.)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.vac',
+#        qoi_type='E_formation',
+#        structures=OrderedDict(
+#            [
+#                ('defect','Al_fcc_vac'),
+#                ('ideal','Al_fcc')
+#            ]
+#        ),
+#        target=0.68)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.100s',
+#        qoi_type='E_surface',
+#        structures=OrderedDict(
+#            [
+#                ('slab','Al_fcc_100_s'),
+#                ('ideal','Al_fcc_100_unit')
+#            ]
+#        ),
+#        target=5.89e-2)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.110s',
+#        qoi_type='E_surface',
+#        structures=OrderedDict(
+#            [
+#                ('slab','Al_fcc_110_s'),
+#                ('ideal','Al_fcc_110_unit')
+#            ]
+#        ),
+#        target=6.28e-2)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.111s',
+#        qoi_type='E_surface',
+#        structures=OrderedDict(
+#            [
+#                ('slab','Al_fcc_111_s'),
+#                ('ideal','Al_fcc_111_unit')
+#            ]
+#        ),
+#        target=5.43e-2)
+#qoi_db.add_qoi(
+#        qoi_name='Al_fcc.isf',
+#        qoi_type='E_stacking_fault',
+#        structures=OrderedDict([
+#                ('defect','Al_fcc_isf'),
+#                ('ideal','Al_fcc_111_unit')]),
+#        target=-9.86e-03)
+#qoi_db.add_qoi(
+#        qoi_name='E_Al_fcc_hcp',
+#        qoi_type='phase_order',
+#        structures=OrderedDict([
+#                ('low','Al_fcc'),
+#                ('high','Al_hcp')]),
+#        target=0.03)
+#qoi_db.add_qoi(
+#        qoi_name='E_Al_fcc_bcc',
+#        qoi_type='phase_order',
+#        structures=OrderedDict([
+#                ('low','Al_fcc'),
+#                ('high','Al_bcc')]),
+#        target=0.08)
+# qoi_db.add_qoi(
+#        qoi_name='E_Ni_fcc_sc',
+#        qoi_type='phase_order',
+#        structures=OrderedDict([
+#                ('low','Ni_fcc'),
+#                ('high','Ni_sc')]),
+#        target=0.600)
+#qoi_db.add_qoi(
+#        qoi_name='E_Al_fcc_dia',
+#        qoi_type='phase_order',
+#        structures=OrderedDict([
+#                ('low','Al_fcc'),
+#                ('high','Al_dia')]),
+#        target=0.89)
 
 #------------------------------------------------------------------------------
 # QOI CONSTRAINTS
@@ -142,13 +227,28 @@ qoi_db.add_qoi(
 #     filter_by_pareto:
 #          filters out dominated points if set to True
 #------------------------------------------------------------------------------
-
 qoi_constraints = OrderedDict()
 qoi_constraints['qoi_constraints']=OrderedDict()
-qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-qoi_constraints['filter_by__d_zerror']['percentile'] = .95
-
-
+#qoi_constraints['qoi_constraints']['Al_fcc.E_coh.abserr'] = ['<',3]
+#qoi_constraints['qoi_constraints']['Al_fcc.a0.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.a0']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.c11.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.c11']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.c12.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.c12']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.c44.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.c44']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.B.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.c11']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.G.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.c12']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.vac'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.c12']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.110s'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.110s']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.100s'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.100s']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.111s'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.111s']['target'])]
+#qoi_constraints['qoi_constraints']['Al_fcc.isf.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.isf']['target'])]
+#qoi_constraints['qoi_constraints']['E_Al_fcc_bcc'] = ['>',-1.]
+#qoi_constraints['qoi_constraints']['E_Al_fcc_sc'] = ['>',0.]
+#qoi_constraints['qoi_constraints']['E_Al_fcc_hcp'] = ['>',-1.]
+#qoi_constraints['qoi_constraints']['E_Al_fcc_dia'] = ['>',-1.]
+#qoi_constraints['filter_by__d_zerror'] = OrderedDict()
+#qoi_constraints['filter_by__d_zerror']['percentile'] = .95
+#qoi_constraints['select_pareto_only'] = True
+#qoi_constraints['filter_by_percentile'] = [80,'pct']
 if __name__ == '__main__':
     from pypospack.pyposmat.data import PyposmatConfigurationFile
     pyposmat_filename_in = 'pyposmat.config.in'

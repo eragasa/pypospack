@@ -4,7 +4,7 @@ import numpy as np
 
 
 if __name__ == "__main__":
-    data_fn = "../preconditioning_3.5NN/data/pyposmat.kde.4.out"
+    data_fn = "../preconditioning_3.5NN/data/pyposmat.kde.3.out"
     config_fn = "../preconditioning_3.5NN/data/pyposmat.config.in"
 
     o_data = PyposmatDataFile()

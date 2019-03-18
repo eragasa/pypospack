@@ -8,11 +8,11 @@
 #SBATCH --time=12:00:00                # Time limit hrs:min:sec
 #SBATCH --output=job.out                   # Standard output and error log
 #SBATCH --error=job.err
-#SBATCH --qos=phillpot-b                # Queue you are submitting to 
+#SBATCH --qos=phillpot                # Queue you are submitting to 
 pwd; hostname; date
 
-module load intel/2018.1.163
-module load openmpi/3.1.2
+module load intel/2016.0.109
+module load impi/5.1.1
 
 echo PYTHONPATH=$PYTHONPATH
 PYTHON_BIN=$(which python)
@@ -21,7 +21,7 @@ echo python=$(which python)
 echo PATH=$PATH
 
 echo "start_time:$(date)"
-export OMPI_MCA_pml=^ucx
+#export OMPI_MCA_pml=^ucx
 srun --mpi=pmi2 $PYTHON_BIN mc_iterative_sampler.py
 # srun python mc_iterative_sampler.py --mpi=pmix_v1
 # mpiexec python mc_iterative_sampler.py
