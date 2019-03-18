@@ -1,4 +1,5 @@
 import json
+from collections import OrderedDict
 
 
 class PyposmatReferenceDataFile(object):
@@ -42,4 +43,5 @@ class PyposmatReferenceDataFile(object):
             raw_json = json.load(f)
         # set the private attributes which the properties pull from
         self._bibtex = raw_json.pop("bibtex", None)
-        self._qois =  raw_json
+        qois =  raw_json.pop("qois", None)
+        self._qois = OrderedDict(qois)
