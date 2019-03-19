@@ -186,13 +186,13 @@ qoi_db.add_qoi(
                 ('defect','Al_fcc_isf'),
                 ('ideal','Al_fcc_111_unit')]),
         target=9.86e-03)
-qoi_db.add_qoi(
-        qoi_name='E_Al_fcc_hcp',
-        qoi_type='phase_order',
-        structures=OrderedDict([
-                ('low','Al_fcc'),
-                ('high','Al_hcp')]),
-        target=0.03)
+#qoi_db.add_qoi(
+#        qoi_name='E_Al_fcc_hcp',
+#        qoi_type='phase_order',
+#        structures=OrderedDict([
+#                ('low','Al_fcc'),
+#                ('high','Al_hcp')]),
+#        target=0.03)
 
 qoi_db.add_qoi(
         qoi_name='E_Al_fcc_bcc',
@@ -245,7 +245,7 @@ qoi_constraints['qoi_constraints']['Al_fcc.111s'] = ['<',2.00 * abs(qoi_db.qois[
 qoi_constraints['qoi_constraints']['Al_fcc.isf.abserr'] = ['<',2.00 * abs(qoi_db.qois['Al_fcc.isf']['target'])]
 qoi_constraints['qoi_constraints']['E_Al_fcc_bcc'] = ['>',0.]
 #qoi_constraints['qoi_constraints']['E_Al_fcc_sc'] = ['>',0.]
-qoi_constraints['qoi_constraints']['E_Al_fcc_hcp'] = ['>',0.]
+#qoi_constraints['qoi_constraints']['E_Al_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Al_fcc_dia'] = ['>',0.]
 qoi_constraints['filter_by__d_zerror'] = OrderedDict()
 qoi_constraints['filter_by__d_zerror']['percentile'] = .95
