@@ -8,23 +8,23 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 
 results_PunMishin2015 = OrderedDict([
     ('sim_id','PunMishin2015'),
-    ('Ni_fcc.E_coh', -4.449999985713825),
-    ('Ni_fcc.a0', 3.52000004514173),
-    ('Ni_fcc.c11', 241.341629134211),
-    ('Ni_fcc.c12', 150.824244634751),
-    ('Ni_fcc.c44', 127.34413217099),
-    ('Ni_fcc.B', 180.996706134571),
-    ('Ni_fcc.G', 45.25869224972999),
-    ('Ni_fcc.vac', 1.5722909444763218),
-    ('Ni_fcc.100s', 0.12083783763315925),
-    ('Ni_fcc.110s', 0.1306411055698218),
-    ('Ni_fcc.111s', 0.1097944617790805),
-    ('Ni_fcc.esf', 4.50280507300032e-14),
-    ('Ni_fcc.isf', 0.008398360367557003),
-    ('E_Ni_fcc_hcp', 0.02213171443965045),
-    ('E_Ni_fcc_bcc', 0.06728584869762066),
-    ('E_Ni_fcc_sc', 0.7235998449031951),
-    ('E_Ni_fcc_dia', 1.4164289731208752)
+    ('Al_fcc.E_coh', -4.449999985713825),
+    ('Al_fcc.a0', 3.52000004514173),
+    ('Al_fcc.c11', 241.341629134211),
+    ('Al_fcc.c12', 150.824244634751),
+    ('Al_fcc.c44', 127.34413217099),
+    ('Al_fcc.B', 180.996706134571),
+    ('Al_fcc.G', 45.25869224972999),
+    ('Al_fcc.vac', 1.5722909444763218),
+    ('Al_fcc.100s', 0.12083783763315925),
+    ('Al_fcc.110s', 0.1306411055698218),
+    ('Al_fcc.111s', 0.1097944617790805),
+    ('Al_fcc.esf', 4.50280507300032e-14),
+    ('Al_fcc.isf', 0.008398360367557003),
+    ('E_Al_fcc_hcp', 0.02213171443965045),
+    ('E_Al_fcc_bcc', 0.06728584869762066),
+    ('E_Al_fcc_sc', 0.7235998449031951),
+    ('E_Al_fcc_dia', 1.4164289731208752)
 ])
 
 results_Mishin1999 = OrderedDict([
@@ -70,20 +70,21 @@ results_Angelo1995 = OrderedDict([
 
 ref_data = OrderedDict()
 ref_data['PunMishin2015'] = results_PunMishin2015
-ref_data['Mishin1999'] = results_Mishin1999
-ref_data['Angelo1995'] = results_Angelo1995
+# ref_data['Mishin1999'] = results_Mishin1999
+# ref_data['Angelo1995'] = results_Angelo1995
 
 ref_data_colors = OrderedDict()
 ref_data_colors['PunMishin2015']= 'red'
-ref_data_colors['Mishin1999'] = 'blue'
-ref_data_colors['Angelo1995'] = 'green'
+# ref_data_colors['Mishin1999'] = 'blue'
+# ref_data_colors['Angelo1995'] = 'green'
 
 class PyposmatParallelCoordinates(object):
     pass
 
 if __name__ == "__main__":
     # define the data directory
-    data_directory = 'data/positive_isf_target'
+    data_directory = 'data/no_hcp_positive_isf'
+    #data_directory = 'data/no_hcp_negative_isf'
 
     # read configuration file
     config_fn = os.path.join(data_directory,'pyposmat.config.in')
@@ -91,14 +92,13 @@ if __name__ == "__main__":
     config.read(filename=config_fn)
 
     # read the associated datafile
-    datafile_fn = os.path.join(data_directory,'pyposmat.kde.5.out')
+    datafile_fn = os.path.join(data_directory,'pyposmat.kde.7.out')
     datafile=PyposmatDataFile()
     datafile.read(filename=datafile_fn)
 
     plot_fn = 'parallelcoordinates_fs.png'
 
-    #excluded_qoi_names = ['Ni_fcc.esf','Ni_fcc.isf','E_Ni_fcc_hcp']
-    excluded_qoi_names = []
+    excluded_qoi_names = ['Al_fcc.esf', 'E_Al_fcc_hcp']
     qoi_names = [q for q in config.qoi_names if q not in excluded_qoi_names]
     print('qoi_names is length:{}'.format(len(qoi_names)))
     error_names = ["{}.err".format(q) for q in qoi_names]
@@ -141,23 +141,25 @@ if __name__ == "__main__":
     if is_plot_all_data:
         parallel_coordinates(
                 data_df[normed_error_names],
-                'Ni_fcc.E_coh.nerr',
+                'Al_fcc.E_coh.nerr',
                 color='grey'
                 )
 
     parallel_coordinates(
             subselect_df[normed_error_names],
-            'Ni_fcc.E_coh.nerr',
+            'Al_fcc.E_coh.nerr',
             color='k'
             )
 
     parallel_coordinates(
             reference_df[normed_error_names],
-            'Ni_fcc.E_coh.nerr',
+            'Al_fcc.E_coh.nerr',
             )
     plt.gca().legend_.remove()
 
     #fig.savefig(plot_fn)
+    plt.xticks(rotation=80)
+    plt.tight_layout()
     plt.show()
     exit()
     (nr,nc)=df.shape
