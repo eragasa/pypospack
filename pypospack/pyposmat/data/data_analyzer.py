@@ -96,7 +96,8 @@ class PyposmatAnalysisResults(object):
             )
             raise TypeError(m)
 
-class NewPyposmatDataAnalyzer(object):
+
+class PyposmatDataAnalyzer(object):
     """ class to analyze the results of the simulations 
     
     Args:
@@ -379,86 +380,76 @@ class NewPyposmatDataAnalyzer(object):
 
         descriptive_statistics = self.get_descriptive_statistics()
 
-        filter_set_info = OrderedDict() 
-        for filter_type,filter_info in self.configuration.qoi_constraints.items():
+        self.filter_set_info = OrderedDict() 
+        for filter_type, filter_info in self.configuration.qoi_constraints.items():
            
             if self.is_debug:
                 print('filter_type:{}'.format(filter_type))
                 print('filter_info:{}'.format(filter_info))
             if filter_type in ['qoi_constraints']:
                 is_survive_idx, filter_info = self.filter_by_qoi_constraints()
-                filter_set_info['filter_by_qoi_constraints'] = OrderedDict()
-                filter_set_info['filter_by_qoi_constraints']['is_survive_idx'] = is_survive_idx
-                filter_set_info['filter_by_qoi_constraints']['filter_info'] = qoi_constraint_info
 
-            elif filter_type in ['select_pareto_only','filter_by_pareto_membership']:
-                is_survive_idx, filter_info = self.filter_by_pareto_membership()
-                filter_set_info['filter_by_pareto_membership'] = OrderedDict()
-                filter_set_info['filter_by_pareto_membership']['is_survive_idx'] = is_survive_idx
-                filter_set_info['filter_by_pareto_membership']['filter_info'] = pareto_set_info
-
-            elif filter_type in ['filter_by__d_zerror','filter_by_d_zerror']:
-                pct_to_keep = filter_info['percentile']
-                weights = self.get_weights_by_z_error_normalization()
-
-                is_survive_idx,cost_function_info = self.filter_by_cost_function(
-                        loss_function_type='abs_error',
-                        cost_function_type='weighted_sum',
-                        weights=weights,
-                        pct_to_keep=pct_to_keep
-                )
-                
-                temp_filter_info = OrderedDict()
-                temp_filter_info['loss_function_type'] = 'abs_error'
-                temp_filter_info['cost_function_type'] = 'weighted_sum'
-                temp_filter_info['weighting_scheme'] = 'scale_by_z_normalization'
-                temp_filter_info['weights'] = weights
-                temp_filter_info['pct_to_keep'] = pct_to_keep
-                filter_set_info['filter_by_cost_function'] = OrderedDict()
-                filter_set_info['filter_by_cost_function']['is_survive_idx'] = is_survive_idx
-                filter_set_info['filter_by_cost_function']['filter_info'] = temp_filter_info
-                filter_set_info['filter_by_cost_function']['filter_info']['loss_function_type']
-
-            elif filter_type in ['filter_by_cost_function']:
-
-                # get weights based on the weighting scheme
-                weighting_scheme_type = filter_info['weighting_scheme_type']
-                assert weighting_scheme_type in self.weighting_scheme_types
-
-                weighting_to_method_map = OrderedDict([
-                    ('scale_by_qoi_target',self.get_weights_by_qoi_target_normalization),
-                    ('scale_by_z_normalization',self.get_weights_by_z_error_normalization)
+                self.filter_set_info['filter_by_qoi_constraints'] = OrderedDict([
+                    ('is_survive_idx', is_survive_idx),
+                    ('filter_info', new_filter_info)
                 ])
 
-                try:
-                    weights = weighting_to_method_map[weighting_scheme_type]()
-                except KeyError as e:
-                    m = "{}: unknown weighting scheme".format(weighting_scheme_type)
-                    raise
-               
-                print(weights)
-                exit()
+            elif filter_type in ['select_pareto_only','filter_by_pareto_membership']:
+                is_survive_idx, new_filter_info = self.filter_by_pareto_membership()
                 
-                if filter_info['cost_function_type'] == 'weighted_sum':
-                    pass
+                self.filter_set_info['filter_by_pareto_membership'] = OrderedDict([
+                    ('is_survive_idx',is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
 
-                if filter_info['loss_function_type'] == 'absolute_error':
-                    pass
-                elif filter_info['loss_function_type'] == 'squared_error':
-                    pass
+            elif filter_type in ['filter_by__d_zerror','filter_by_d_zerror']:
 
+                pct_to_keep = filter_info['pct_to_keep']
+                is_survive_idx, new_filter_info = self.filter_by_cost_function(
+                        loss_function_type='abs_error',
+                        cost_function_type='weighted_sum',
+                        weighting_scheme_type='scale_by_z_normalization',
+                        pct_to_keep=pct_to_keep
+                )
+             
+                self.filter_set_info['filter_by_cost_function'] = OrderedDict([
+                    ('is_survive_idx',is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
+
+            elif filter_type in ['filter_by_cost_function']:
+ 
+                is_survive_idx, new_filter_info = self.filter_by_cost_function(
+                        loss_function_type=filter_info['loss_function_type'],
+                        cost_function_type=filter_info['cost_function_type'],
+                        weighting_scheme_type=filter_info['weighting_scheme_type'],
+                        pct_to_keep=filter_info['pct_to_keep']
+                )
+
+                self.filter_set_info['filter_by_cost_function'] = OrderedDict([
+                    ('is_survive_idx',is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
             else:
                 m =  "unknown filtering type to constraint candidate potentials."
                 m += "filter_type={}".format(filter_type)
                 raise PyposmatUnknownQoiFilterType(m)
 
-        all_is_survive_idx = [v['is_survive_idx'] for v in filter_set_info.values()]
-        filter_set_info['is_survive_idx'] = set.intersection(*all_is_survive_idx)
-        filter_set_info['n_potentials_start'] = n_potentials_start
-        filter_set_info['n_potentials_final'] = len(filter_set_info['is_survive_idx'])
+        all_is_survive_idx = [v['is_survive_idx'] for v in self.filter_set_info.values()]
+        self.filter_set_info['is_survive_idx'] = set.intersection(*all_is_survive_idx)
+        self.filter_set_info['n_potentials_start'] = self.results_df.shape[0]
+        self.filter_set_info['n_potentials_final'] = len(self.filter_set_info['is_survive_idx'])
 
-        return filter_set_info['is_survive_idx'], filter_set_info
-    
+        return self.filter_set_info['is_survive_idx'], self.filter_set_info
+   
+    def write_kde_file(self,filename):
+        names = ['sim_id'] + self.parameter_names + self.qoi_names + self.error_names
+       
+        kde_data = PyposmatDataFile()
+        kde_data.read(filename=self.results_data_fn)
+        kde_data.df = kde_data.df.iloc[list(self.filter_set_info['is_survive_idx'])]
+        kde_data.write(filename=filename)
+
     def str__filter_by_cost_function_filter_info(self,filter_info):
         s = ""
         for k,v in filter_info.items():
@@ -490,12 +481,41 @@ class NewPyposmatDataAnalyzer(object):
         
         return weights
 
+    def get_weights_by_qoi_target_normalization(self,df=None):
+        """ determine weights using qoi target normalization
+
+        Args:
+            df(pandas.DataFrame,None):  The dataframe constraining the data.  The default
+                value is Noen, which sets the arguement value to the property results_df.
+        """
+
+        assert df is None or isinstance(pd.DataFrame)
+
+        if df is None:
+            df = self.results_df
+
+        weights = OrderedDict([(k,abs(1/v)) for k,v in self.configuration.qoi_targets.items()])
+        sum_weights = sum([v for v in weights.values()])
+        for qoi_name, qoi_weight in weights.items():
+            weights[qoi_name] = qoi_weight/sum_weights
+
+        return weights
+
+    def str__cost_function_weights(self,weights):
+        
+        assert isinstance(weights,OrderedDict)
+
+        s = "{:^20} {:^10}\n".format('qoi_name','qoi_weight')
+        s += "{} {}\n".format(20*'-',10*'-')
+        for qoi_name, qoi_weight in weights.items():
+            s+= "{:^20} {:^10.4e}\n".format(qoi_name,qoi_weight)
+        return s
 
     def filter_by_cost_function(self,
                                 df=None,
                                 loss_function_type='abs_error',
                                 cost_function_type='weighted_sum',
-                                weights=None,
+                                weighting_scheme_type='scale_by_qoi_target',
                                 pct_to_keep=None):
         """
         Args:
@@ -508,35 +528,51 @@ class NewPyposmatDataAnalyzer(object):
         assert df is None or isinstance(df,pd.DataFrame)
         assert loss_function_type in self.loss_function_types
         assert cost_function_type in self.cost_function_types
-        assert isinstance(weights,OrderedDict)
-        assert all([k in self.qoi_names for k in weights])
-        assert all([isinstance(v,float) for v in weights.values()])
+        assert weighting_scheme_type in self.weighting_scheme_types
         assert isinstance(pct_to_keep,float) and pct_to_keep <= 1
 
         if df is None:
             df = self.results_df
 
+        weighting_to_method_map = OrderedDict([
+            ('scale_by_qoi_target',self.get_weights_by_qoi_target_normalization),
+            ('scale_by_z_normalization',self.get_weights_by_z_error_normalization)
+        ])
 
-        if loss_function_type == 'abs_error':
-            loss_error_names = ['{}.abserr'.format(v) for v in self.qoi_names]
-            for v in self.qoi_names:
-                df['{}.abserr'.format(v)] = df['{}.err'.format(v)].abs()
-            weights_df = pd.DataFrame(
-                    pd.Series([v for v in weights.values()],
-                              index=['{}.abserr'.format(k) for k in weights],
-                              name=0
-                    )
+        loss_function_to_method_map = OrderedDict([
+            ('abs_error',self.create_absolute_errors),
+            ('squared_error',self.create_squared_errors)
+        ])
+
+        cost_function_to_method_map = OrderedDict([
+            ('weighted_sum',self.get_weighted_cost_function)
+        ])
+
+        try:
+            weights = weighting_to_method_map[weighting_scheme_type]()
+        except KeyError as e:
+            m = "{}: unknown weighting scheme".format(weighting_scheme_type)
+            raise
+
+        assert all([k in self.qoi_names for k in weights])
+        assert all([isinstance(v,float) for v in weights.values()])
+
+        try:
+            loss_error_names, loss_function_df = loss_function_to_method_map[loss_function_type]()
+        except KeyError as e:
+            m = "{}: unknown loss function type".format(loss_error_names)
+            raise
+
+        try:
+            df['cost'] = cost_function_to_method_map[cost_function_type](
+                    df=loss_function_df,
+                    weights=weights,
+                    loss_error_names=loss_error_names
             )
-        elif loss_function_type == "squared_name":
-            loss_error_names = ['{}.sqerr'.format(v) for v in self.qoi_names]
-            for v in self.qoi_names:
-                df['{}.sqerr'.format(v)] = df['{}.err'.format(v)].square()
-        else:
-             s = "{} is an unsupported loss_function_type".format(loss_function_type)
-             raise ValueError(m)
 
-        if cost_function_type == 'weighted_sum':
-            df['cost'] = df[loss_error_names].dot(weights_df)
+        except KeyError as e:
+            m = '{}: unknown cost function type'.format(loss_error_names)
+            raise
 
         n_potentials_begin, n_cols = df.shape
         n_potentials_final = int(n_potentials_begin*pct_to_keep)
@@ -552,7 +588,47 @@ class NewPyposmatDataAnalyzer(object):
         filter_info['n_potentials_begin'] = n_potentials_begin
         filter_info['n_potentials_final'] = n_potentials_final
         return set(is_survive_idx),filter_info
+
+    def create_absolute_errors(self,df=None): 
         
+        if df is None:
+            df = self.results_df
+
+        loss_error_names = ['{}.abserr'.format(v) for v in self.qoi_names]
+        error_names = ['{}.err'.format(v) for v in self.qoi_names]
+
+        df[loss_error_names] = df[error_names].abs()
+
+        return loss_error_names, df[loss_error_names]
+
+    def create_squared_errors(self,df=None):
+
+        if df is None:
+            df = self.results_df
+
+        loss_error_names = ['{}.sqerr'.format(v) for v in self.qoi_names]
+        error_names = ['{}.err'.format(v) for v in self.qoi_names]
+
+        df[loss_error_names] = df[error_names].square()
+
+        return loss_error_names, df[loss_error_names]
+
+    def get_weighted_cost_function(self,weights,loss_error_names,df=None):
+
+        if df is None:
+            df = self.results_df
+
+        weights_df = pd.DataFrame(
+                pd.Series([v for v in weights.values()],
+                          index=['{}.abserr'.format(k) for k in weights],
+                          name=0
+                )
+        )
+
+        df['cost'] = df[loss_error_names].dot(weights_df)
+       
+        return df['cost']
+
     def filter_by_pareto_membership(self,df=None,v=None):
         """ filter by pareto membership
 
@@ -648,7 +724,7 @@ class NewPyposmatDataAnalyzer(object):
         
         
 
-class PyposmatDataAnalyzer(object):
+class OldPyposmatDataAnalyzer(object):
     """ class to analyze the results of the simulations.
 
     """

@@ -870,10 +870,24 @@ class PyposmatIterativeSampler(object):
                     self.data_directory,
                     'pyposmat.kde.{}.out'.format(i_iteration+1))
 
-        data_analyzer = PyposmatDataAnalyzer()
-        data_analyzer.read_configuration_file(filename=config_fn)
-        data_analyzer.read_data_file(filename=data_fn)
+        data_analyzer = PyposmatDataAnalyzer(
+                config_fn=config_fn,
+                results_data_fn=data_fn,
+                mpi_rank=self.mpi_rank,
+                mpi_size=self.mpi_size)
+
+        data_analyzer.analyze_results(i_iteration)
+        #for k in data_analyzer.filter_set_info:
+        #    print(k)
+        #    if k in ['is_survive_idx','n_potentials_start','n_potentials_final']:
+        #        pass
+        #    else:
+        #        print(data_analyzer.filter_set_info[k]['filter_info'])
         data_analyzer.write_kde_file(filename=kde_fn)
+        #data_analyzer = PyposmatDataAnalyzer()
+        #data_analyzer.read_configuration_file(filename=config_fn)
+        #data_analyzer.read_data_file(filename=data_fn)
+        #data_analyzer.write_kde_file(filename=kde_fn)
 
     @property
     def structure_directory(self):

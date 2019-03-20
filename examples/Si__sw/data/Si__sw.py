@@ -12,7 +12,7 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 10000
+    sampling[i]['n_samples'] = 100
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
 
@@ -126,9 +126,13 @@ qoi_constraints = OrderedDict()
 #qoi_constraints['qoi_constraints'] = OrderedDict()
 #for qoi_name, qoi_info in qoi_db.qois.items():
 #    qoi_constraints[qoi_name] = abs(qoi_info['target']) * 0.20
-qoi_constraints['filter_by_pareto'] = True
-qoi_constraints['filter_by__d_zerror'] = OrderedDict()
-qoi_constraints['filter_by__d_zerror']['percentile'] = .95 # keep 95%
+qoi_constraints['filter_by_pareto_membership'] = True
+qoi_constraints['filter_by_cost_function'] = OrderedDict([
+    ('weighting_scheme_type','scale_by_qoi_target'),
+    ('loss_function_type','abs_error'),
+    ('cost_function_type','weighted_sum'),
+    ('pct_to_keep',0.95)
+])
 
 latex_labels = OrderedDict()
 #------------------------------------------------------------------------------
