@@ -147,7 +147,10 @@ class PyposmatIterativeSampler(object):
 
         """
         self.setup_mpi_environment()
-        self.initialize_data_directory()
+
+        if self.mpi_rank == 0:
+            self.initialize_data_directory()
+        MPI.COMM_WORLD.Barrier()
 
         self.start_iteration = 0
 
@@ -169,15 +172,16 @@ class PyposmatIterativeSampler(object):
 
             if self.mpi_rank == 0:
                 self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
+            MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:
                 self.log("MERGING FILES")
                 self.merge_files(i)
+            MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:
                 self.log("ANALYZE RESULTS")
                 self.analyze_results(i)
-
             MPI.COMM_WORLD.Barrier()
 
         if self.mpi_rank == 0:
@@ -425,7 +429,6 @@ class PyposmatIterativeSampler(object):
                             kde_fn
                     )
                     o.write_cluster_file(filename=kde_fn, i_iteration=i_iteration)
-
             MPI.COMM_WORLD.Barrier()
 
             o.configure_pyposmat_datafile_in(filename=pyposmat_datafile_in)
@@ -502,6 +505,7 @@ class PyposmatIterativeSampler(object):
             self.log('attempted to create data directory, cannot create directory.')
             self.log('\tdata_directory:{}'.format(self.data_directory))
             return (False, self.data_directory)
+
 
     def run_parametric_sampling(self,i_iteration):
         """ run parametric sampling 
