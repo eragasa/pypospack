@@ -15,6 +15,7 @@ import numpy as np
 from pypospack.exceptions import BadParameterException
 from pypospack.eamtools import EamSetflFile
 
+
 def determine_symbol_pairs(symbols):
     """determine symbol pairs
 
@@ -108,6 +109,9 @@ eam_embedding_functions = [
         'eam_embed_eos_rose'
 ]
 
+eam_eos_embedding_functions = [
+        'eam_embed_eos_rose'
+]
 
 from pypospack.potential.eam import EamPotential
 def PotentialObjectMap(potential_type='all'):

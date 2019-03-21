@@ -96,6 +96,10 @@ class TaskManager(object):
         _statuses = [v.status in ['FINISHED','ERROR'] for v in obj_Tasks.values()]
         return all(_statuses) 
 
+    def make_eam_setfl_file(self,potential,filename):
+        pass
+
+
     def evaluate_tasks(self,parameters,potential,max_time_per_simulation=100):
         """
         parameters (OrderedDict) key-value pair of parameter names and parameter values
@@ -160,6 +164,7 @@ class TaskManager(object):
                         _configuration['bulk_structure_filename'] = _structure_filename
                     
                     o_task.on_init(configuration=_configuration)
+
                 elif o_task.status == 'CONFIG':
                     try:
                         o_task.on_config(
