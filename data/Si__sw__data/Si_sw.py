@@ -129,6 +129,8 @@ qoi_constraints = OrderedDict()
 qoi_constraints['filter_by_pareto'] = True
 #qoi_constraints['filter_by__d_zerror'] = OrderedDict()
 #qoi_constraints['filter_by__d_zerror']['percentile'] = .95 # keep 95%
+
+latex_labels = OrderedDict()
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
 # this is currently creating a race condition, where the file is being written

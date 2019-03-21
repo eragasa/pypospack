@@ -1,4 +1,6 @@
+import os
 from collections import OrderedDict
+import pypospack.utils
 from pypospack.qoi import QoiDatabase
 
 
@@ -16,7 +18,11 @@ for i in range(sampling['n_iterations']):
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
-sampling[0]['file'] = 'data/pyposmat.kde.0.out'
+sampling[0]['file'] = os.path.join(pypospack.utils.get_pypospack_root_directory(),
+                                   'examples','Ni__eam__born_exp_fs',
+                                   'preconditioning_3.5NN','data',
+                                   'pyposmat.kde.10.out')
+
 
 
 #-----------------------------------------------------------------------------

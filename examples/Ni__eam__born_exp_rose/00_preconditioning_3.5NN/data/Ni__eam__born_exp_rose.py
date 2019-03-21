@@ -1,6 +1,17 @@
 import os
 from collections import OrderedDict
+import pypospack.crystal
 from pypospack.qoi import QoiDatabase
+
+a0 = 3.52
+
+#print(pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,0))
+#print(pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,1))
+#print(pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,2))
+#print(pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,3))
+#print(pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,3.5))
+#print(pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,4))
+
 
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
@@ -31,7 +42,7 @@ potential_formalism['embedding_type'] = 'eam_embed_eos_rose'
 # <---------------- THESE ARE NECESSARY FOR DETERMINING THE SETFL FILE
 potential_formalism['N_r'] = 10000
 potential_formalism['r_max'] = 10.0
-potential_formalism['r_cut'] = 10.0
+potential_formalism['r_cut'] = pypospack.crystal.get_fcc_nearest_neighbor_distance(a0,3.5)
 potential_formalism['N_rho'] = 10000
 potential_formalism['rho_max'] = 1000.0
 potential_formalism['a0'] = 3.52

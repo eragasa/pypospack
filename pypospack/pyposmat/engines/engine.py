@@ -6,6 +6,7 @@ from pypospack.pyposmat.data.configurationfile import PyposmatConfigurationFile
 from pypospack.exceptions import LammpsSimulationError
 
 class PyposmatEngine(object):
+    EAM_EOS_EMBEDDING_FUNCTIONS = ['eam_embed_eos_rose']
     """class for evaluating a simulation
 
     This class combines the two classes QoiManager, which manages classes used
@@ -127,6 +128,7 @@ class PyposmatEngine(object):
 
         self.configuration = PyposmatConfigurationFile()
         self.configuration.read(filename=_filename_in)
+
     def configure_qoi_manager(self,qois=None):
 
         if qois is None:
@@ -147,6 +149,37 @@ class PyposmatEngine(object):
                 tasks = _tasks,
                 structures = _structures)
 
+    def write_eam_setfl_file(self,parameters,potential,setfl_fn):
+       
+        from pypospack.potential import EamPotential
+        is_debug = False
+
+        assert isinstance(parameters,OrderedDict)
+        assert isinstance(potential,OrderedDict)
+        assert isinstance(setfl_fn,str)
+
+        if is_debug:
+            print(parameters)
+            print(potential)
+            print(setfl_fn)
+
+        p = EamPotential(
+                symbols=potential['symbols'],
+                func_pair=potential['pair_type'],
+                func_density=potential['density_type'],
+                func_embedding=potential['embedding_type']
+        )
+        p.write_setfl_file(
+                filename=setfl_fn,
+                symbols=potential['symbols'],
+                Nr=potential['N_r'],
+                rmax=potential['r_max'],
+                rcut=potential['r_cut'],
+                Nrho=potential['N_rho'],
+                rhomax=potential['rho_max'],
+                parameters=parameters
+        )
+    
     def evaluate_parameter_set(self,parameters):
         """
         Arguments:
@@ -164,8 +197,24 @@ class PyposmatEngine(object):
         self.configure_task_manager()
         _parameters = copy.deepcopy(parameters)
         _potential = copy.deepcopy(self.configuration.potential)
-        
+     
+        # if the filename is EAM, it is faster to create a single EAM file, and
+        # then use that file everywhere
+        if _potential['potential_type'] == 'eam':
+            setfl_fn = os.path.join(
+                    os.getcwd(),
+                    '{}.eam.alloy'.format("".join(_potential['symbols']))
+            )
+            if _potential['embedding_type'] in self.EAM_EOS_EMBEDDING_FUNCTIONS:
+                self.write_eam_setfl_file(
+                        parameters=_parameters,
+                        potential=_potential,
+                        setfl_fn=setfl_fn
+                )
+                assert os.path.isfile(setfl_fn)
+
         try:
+            _potential['setfl_filename'] = setfl_fn
             self.task_manager.evaluate_tasks(
                     parameters=_parameters,
                     potential=_potential)

@@ -644,3 +644,20 @@ class RadialDistributionFunction(object):
         return (g_average, radii, interior_indices)
         # Number of particles in shell/total number of particles/volume of shell/number density
         # shell volume = 4/3*pi(r_outer**3-r_inner**3)
+
+def get_fcc_nearest_neighbor_distance(a0,NN):
+    assert isinstance(a0,float)
+    assert isinstance(NN,int) or isinstance(NN,float)
+
+    nn_distances = [
+        0,
+        0.707 * a0,
+        1.000 * a0,
+        1.225 * a0,
+        1.414 * a0,
+        1.581 * a0
+    ]
+
+    import math
+    return nn_distances[math.ceil(NN)] \
+            + (NN%1)*(nn_distances[math.floor(NN)]-nn_distances[math.ceil(NN)])
