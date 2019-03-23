@@ -148,9 +148,7 @@ class PyposmatIterativeSampler(object):
         """
         self.setup_mpi_environment()
 
-        if self.mpi_rank == 0:
-            self.initialize_data_directory()
-        MPI.COMM_WORLD.Barrier()
+        self.initialize_data_directory()
 
         self.start_iteration = 0
 
@@ -308,6 +306,7 @@ class PyposmatIterativeSampler(object):
                 mpi_size = mpi_size,
                 o_log=o_log,
                 fullauto=False)
+
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
         
@@ -357,7 +356,8 @@ class PyposmatIterativeSampler(object):
         sampling_type = self.configuration.sampling_type[i_iteration]['type']
         if self.mpi_rank == 0:
             self.log("sampling_type={}".format(sampling_type))
-        
+        MPI.COMM_WORLD.Barrier()
+
         # <----- parameter sampling type ---------------------------------------
         if sampling_type== 'parametric':
             self.initialize_sampler(
@@ -492,20 +492,21 @@ class PyposmatIterativeSampler(object):
             self.data_directory = os.path.abspath(self.data_directory)
 
         # create data directory
-        try:
-            os.mkdir(self.data_directory)
-            self.log('created the data directory.')
-            self.log('\tdata_directory;{}'.format(self.data_directory))
-            return (True, self.data_directory)
-        except FileExistsError as e:
-            self.log('attempted to create data directory, directory already exists.')
-            self.log('\tdata_directory:{}'.format(self.data_directory))
-            return (True, self.data_directory)
-        except OSError as e:
-            self.log('attempted to create data directory, cannot create directory.')
-            self.log('\tdata_directory:{}'.format(self.data_directory))
-            return (False, self.data_directory)
-
+        if self.mpi_rank == 0:
+            try:
+                os.mkdir(self.data_directory)
+                self.log('created the data directory.')
+                self.log('\tdata_directory;{}'.format(self.data_directory))
+                return (True, self.data_directory)
+            except FileExistsError as e:
+                self.log('attempted to create data directory, directory already exists.')
+                self.log('\tdata_directory:{}'.format(self.data_directory))
+                return (True, self.data_directory)
+            except OSError as e:
+                self.log('attempted to create data directory, cannot create directory.')
+                self.log('\tdata_directory:{}'.format(self.data_directory))
+                return (False, self.data_directory)
+        MPI.COMM_WORLD.Barrier()
 
     def run_parametric_sampling(self,i_iteration):
         """ run parametric sampling 
@@ -527,13 +528,19 @@ class PyposmatIterativeSampler(object):
         Args:
             i_iteration(int): what iteration of the sampling is happening
         """
+        is_debug = False
 
         assert type(i_iteration) is int
         assert type(self.mc_sampler) is PyposmatMonteCarloSampler
 
+        
         kde_filename = os.path.join(self.data_directory,
                                     'pyposmat.kde.{}.out'.format(i_iteration))
         n_samples_per_rank = self.determine_number_of_samples_per_rank(i_iteration=i_iteration)
+
+        if is_debug:
+            print('cwd:{}'.format(os.getcwd()))
+            print('mpi_rank={},kde_filename={}'.format(self.mpi_rank,kde_filename))
 
         self.mc_sampler.run_simulations(
                 i_iteration=i_iteration,
@@ -542,7 +549,7 @@ class PyposmatIterativeSampler(object):
         )
 
     def run_file_sampling(self,i_iteration):
-        """ run kde sampling
+        """ run file sampling
 
         Args:
             i_iteration(int): the iteration which to sampling for
@@ -881,17 +888,8 @@ class PyposmatIterativeSampler(object):
                 mpi_size=self.mpi_size)
 
         data_analyzer.analyze_results(i_iteration)
-        #for k in data_analyzer.filter_set_info:
-        #    print(k)
-        #    if k in ['is_survive_idx','n_potentials_start','n_potentials_final']:
-        #        pass
-        #    else:
-        #        print(data_analyzer.filter_set_info[k]['filter_info'])
+        self.log(data_analyzer.str__analysis_results())
         data_analyzer.write_kde_file(filename=kde_fn)
-        #data_analyzer = PyposmatDataAnalyzer()
-        #data_analyzer.read_configuration_file(filename=config_fn)
-        #data_analyzer.read_data_file(filename=data_fn)
-        #data_analyzer.write_kde_file(filename=kde_fn)
 
     @property
     def structure_directory(self):

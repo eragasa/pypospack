@@ -334,32 +334,6 @@ class PyposmatDataAnalyzer(object):
 
         return descriptive_statistics
 
-    def str__descriptive_statistics(self,descriptive_statistics):
-        """ convert desciprtive statistics to a display to string
-
-        Args:
-            descriptive_statistics(OrderedDict): a nested ordered dictionary containing
-                the descriptive statistics of the last simulation
-        Rerturn:
-            str
-        """
-        
-        len_qoi_names = '{:20}'
-        len_qoi_target = '{:+10.4e}'
-        len_qoi_mean = '{:+10.4e}'
-        len_qoi_std = '{:+10.4e}'
-        QOI_HEADER_FORMAT = '{:^20} {:^11} {:^11} {:^11}\n'
-
-        QOI_ROW_FORMAT = " ".join([len_qoi_names,len_qoi_target,len_qoi_mean,len_qoi_std])+"\n"
-
-        s = 80*"-" + "\n"
-        s += "{:^80}\n".format('Descriptive Statistics')
-        s += 80*"-" + "\n"
-        s += "\n"
-        s += QOI_HEADER_FORMAT.format('qoi_names','qoi_target','mean','std')
-        for k,v in descriptive_statistics['qois'].items():
-            s += QOI_ROW_FORMAT.format(k,v['target'],v['mean'],v['std'])
-        return s
 
     def analyze_results(self,i_iteration,filename=None,o_data=None):
 
@@ -379,13 +353,16 @@ class PyposmatDataAnalyzer(object):
             print(sim_ids)
 
         descriptive_statistics = self.get_descriptive_statistics()
+        self.descriptive_statistics = self.get_descriptive_statistics()
 
         self.filter_set_info = OrderedDict() 
+
         for filter_type, filter_info in self.configuration.qoi_constraints.items():
            
             if self.is_debug:
                 print('filter_type:{}'.format(filter_type))
                 print('filter_info:{}'.format(filter_info))
+
             if filter_type in ['qoi_constraints']:
                 is_survive_idx, filter_info = self.filter_by_qoi_constraints()
 
@@ -404,12 +381,23 @@ class PyposmatDataAnalyzer(object):
 
             elif filter_type in ['filter_by__d_zerror','filter_by_d_zerror']:
 
-                pct_to_keep = filter_info['pct_to_keep']
+                try:
+                    n_potentials_min = filter_info['n_potentials_min']
+                except KeyError as e:
+                    n_potential_min = None
+
+                try:
+                    n_potentials_max = filter_info['n_potentials_max']
+                except KeyError as e:
+                    n_potentials_max = None
+
                 is_survive_idx, new_filter_info = self.filter_by_cost_function(
                         loss_function_type='abs_error',
                         cost_function_type='weighted_sum',
                         weighting_scheme_type='scale_by_z_normalization',
-                        pct_to_keep=pct_to_keep
+                        pct_to_keep=filter_info['pct_to_keep'],
+                        n_potentials_min=n_potentials_min,
+                        n_potentials_max=n_potentials_max,
                 )
              
                 self.filter_set_info['filter_by_cost_function'] = OrderedDict([
@@ -418,12 +406,24 @@ class PyposmatDataAnalyzer(object):
                 ])
 
             elif filter_type in ['filter_by_cost_function']:
+
+                try:
+                    n_potentials_min = filter_info['n_potentials_min']
+                except KeyError as e:
+                    n_potential_min = None
+
+                try:
+                    n_potentials_max = filter_info['n_potentials_max']
+                except KeyError as e:
+                    n_potentials_max = None
  
                 is_survive_idx, new_filter_info = self.filter_by_cost_function(
                         loss_function_type=filter_info['loss_function_type'],
                         cost_function_type=filter_info['cost_function_type'],
                         weighting_scheme_type=filter_info['weighting_scheme_type'],
-                        pct_to_keep=filter_info['pct_to_keep']
+                        pct_to_keep=filter_info['pct_to_keep'],
+                        n_potentials_min=n_potentials_min,
+                        n_potentials_max=n_potentials_max
                 )
 
                 self.filter_set_info['filter_by_cost_function'] = OrderedDict([
@@ -450,19 +450,6 @@ class PyposmatDataAnalyzer(object):
         kde_data.df = kde_data.df.iloc[list(self.filter_set_info['is_survive_idx'])]
         kde_data.write(filename=filename)
 
-    def str__filter_by_cost_function_filter_info(self,filter_info):
-        s = ""
-        for k,v in filter_info.items():
-            if k not in ['n_potentials_start','n_potentials_end','weights']:
-                s += "{}:{}\n".format(k,v)
-            if k == 'weights':
-                s += "{:^20} {:^20}\n".format('qoi_name','qoi_weight')
-                s += "{} {}\n".format(20*'-',20*'-')
-                for qoi_name, qoi_weight in v.items():
-                    s += "{:^20} {:20.4}\n".format(qoi_name,qoi_weight)
-            else:
-                s += "{}:{}\n".format(k,v)
-        return s
 
     def get_weights_by_z_error_normalization(self,df=None):
         """ determine weights using z normalization
@@ -501,22 +488,15 @@ class PyposmatDataAnalyzer(object):
 
         return weights
 
-    def str__cost_function_weights(self,weights):
-        
-        assert isinstance(weights,OrderedDict)
-
-        s = "{:^20} {:^10}\n".format('qoi_name','qoi_weight')
-        s += "{} {}\n".format(20*'-',10*'-')
-        for qoi_name, qoi_weight in weights.items():
-            s+= "{:^20} {:^10.4e}\n".format(qoi_name,qoi_weight)
-        return s
 
     def filter_by_cost_function(self,
                                 df=None,
                                 loss_function_type='abs_error',
                                 cost_function_type='weighted_sum',
                                 weighting_scheme_type='scale_by_qoi_target',
-                                pct_to_keep=None):
+                                pct_to_keep=None,
+                                n_potentials_min=50,
+                                n_potentials_max=10000):
         """
         Args:
             df(pandas,DataFrame): a pandas dataframe object contain the results of the this
@@ -576,6 +556,8 @@ class PyposmatDataAnalyzer(object):
 
         n_potentials_begin, n_cols = df.shape
         n_potentials_final = int(n_potentials_begin*pct_to_keep)
+        n_potentials_final = min(n_potentials_begin,max(n_potentials_min,n_potentials_final))
+        n_potentials_final = min(n_potentials_max,n_potentials_final)
         is_survive_idx = df['cost'].nsmallest(n_potentials_final).index
         is_survive_idx = is_survive_idx.values.tolist()
         is_survive_idx.sort()
@@ -625,9 +607,9 @@ class PyposmatDataAnalyzer(object):
                 )
         )
 
-        df['cost'] = df[loss_error_names].dot(weights_df)
+        cost_df = df[loss_error_names].dot(weights_df)
        
-        return df['cost']
+        return cost_df
 
     def filter_by_pareto_membership(self,df=None,v=None):
         """ filter by pareto membership
@@ -709,7 +691,98 @@ class PyposmatDataAnalyzer(object):
 
         return is_survive_idx,qoi_constraint_info
 
-    def str__qoi_constraint_info(self,qoi_constraint_info):
+    def str__analysis_results(self):
+        
+        filter_to_str_method_map = OrderedDict([
+            ('filter_by_pareto_membership',self.str__filter_by_pareto_membership),
+            ('filter_by_cost_function',self.str__filter_by_cost_function),
+            ('filter_by_qoi_constraints',self.str__filter_by_qoi_constraints)
+        ])
+
+        s = ""
+        s += '{}\n'.format(self.str__descriptive_statistics(
+            descriptive_statistics=self.descriptive_statistics
+        ))
+
+        s += 80*'-' + "\n"
+        s += '{:^80}\n'.format('qoi filtering summary')
+        for k,v in self.filter_set_info.items():
+            if k in ['n_potentials_start','n_potentials_final']:
+                pass
+            else:
+                try:
+                    s += '{}\n'.format(filter_to_str_method_map[k](v['filter_info']))
+                except KeyError as e:
+                    s += '{} {}\n'.format(k,v)
+        return(s)
+
+        s += "n_potentials_start:{}\n".format(self.filter_set_info['n_potentials_start'])
+        s += "n_potentials_final:{}\n".format(self.filter_set_info['n_potentials_final'])
+
+    def str__filter_by_pareto_membership(self,filter_info):
+        s = 80*'-' + "\n"
+        s += "{:<80}\n".format('filter_by_pareto_membership')
+        s += len('filter_by_pareto_membership')*'-' + "\n"
+        for k,v in filter_info.items():
+            s += "{}:{}\n".format(k,v)
+
+        return s
+    def str__cost_function_weights(self,weights):
+        
+        assert isinstance(weights,OrderedDict)
+
+        s = "{:^20} {:^10}\n".format('qoi_name','qoi_weight')
+        s += "{} {}\n".format(20*'-',10*'-')
+        for qoi_name, qoi_weight in weights.items():
+            s+= "{:^20} {:^10.4e}\n".format(qoi_name,qoi_weight)
+        return s
+
+    def str__filter_by_cost_function(self,filter_info):
+        s = ""
+        for k,v in filter_info.items():
+            if k in ['n_potentials_start','n_potentials_end','weights','is_filter_idx']:
+                pass
+            else:
+                s += "{}:{}\n".format(k,v)
+
+        s += "{:^20} {:^20}\n".format('qoi_name','qoi_weight')
+        s += "{} {}\n".format(20*'-',20*'-')
+        for qoi_name, qoi_weight in filter_info['weights'].items():
+            s += "{:^20} {:20.4}\n".format(qoi_name,qoi_weight)
+
+        s += "n_potentials_start:{}\n".format(filter_info['n_potentials_start'])
+        s += "n_potentials_final:{}\n".format(filter_info['n_potentials_final'])
+
+        return s
+
+    def str__descriptive_statistics(self,descriptive_statistics):
+        """ convert desciprtive statistics to a display to string
+
+        Args:
+            descriptive_statistics(OrderedDict): a nested ordered dictionary containing
+                the descriptive statistics of the last simulation
+        Rerturn:
+            str
+        """
+        
+        len_qoi_names = '{:20}'
+        len_qoi_target = '{:+10.4e}'
+        len_qoi_mean = '{:+10.4e}'
+        len_qoi_std = '{:+10.4e}'
+        QOI_HEADER_FORMAT = '{:^20} {:^11} {:^11} {:^11}\n'
+
+        QOI_ROW_FORMAT = " ".join([len_qoi_names,len_qoi_target,len_qoi_mean,len_qoi_std])+"\n"
+
+        s = 80*"-" + "\n"
+        s += "{:^80}\n".format('Descriptive Statistics')
+        s += 80*"-" + "\n"
+        s += "\n"
+        s += QOI_HEADER_FORMAT.format('qoi_names','qoi_target','mean','std')
+        for k,v in descriptive_statistics['qois'].items():
+            s += QOI_ROW_FORMAT.format(k,v['target'],v['mean'],v['std'])
+        return s
+
+    def str__filter_by_qoi_constraints(self,qoi_constraint_info):
         n_potentials_start = qoi_constraint_info['n_potentials_start']
         s = 'n_potentials_start={}\n'.format(n_potentials_start)
         for k,v in qoi_constraint_info['constraints'].items():

@@ -131,7 +131,9 @@ qoi_constraints['filter_by_cost_function'] = OrderedDict([
     ('weighting_scheme_type','scale_by_qoi_target'),
     ('loss_function_type','abs_error'),
     ('cost_function_type','weighted_sum'),
-    ('pct_to_keep',0.95)
+    ('pct_to_keep',0.95),
+    ('n_potential_min',50),
+    ('n_potential_max',10000)
 ])
 
 latex_labels = OrderedDict()
