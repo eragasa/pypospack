@@ -12,7 +12,7 @@ sampling['mc_seed'] = None
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 1000
+    sampling[i]['n_samples'] = 100
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
 
@@ -136,7 +136,7 @@ qoi_constraints['filter_by_cost_function'] = OrderedDict([
     ('cost_function_type','weighted_sum'),
     ('pct_to_keep',0.95),
     ('n_potentials_min',50),
-    ('n_potentials_max',10000)
+    ('n_potentials_max',100)
 ])
 
 latex_labels = OrderedDict()
