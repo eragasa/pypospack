@@ -364,7 +364,7 @@ class PyposmatDataAnalyzer(object):
                 print('filter_info:{}'.format(filter_info))
 
             if filter_type in ['qoi_constraints']:
-                is_survive_idx, filter_info = self.filter_by_qoi_constraints()
+                is_survive_idx, new_filter_info = self.filter_by_qoi_constraints()
 
                 self.filter_set_info['filter_by_qoi_constraints'] = OrderedDict([
                     ('is_survive_idx', is_survive_idx),
@@ -430,6 +430,7 @@ class PyposmatDataAnalyzer(object):
                     ('is_survive_idx',is_survive_idx),
                     ('filter_info', new_filter_info)
                 ])
+
             else:
                 m =  "unknown filtering type to constraint candidate potentials."
                 m += "filter_type={}".format(filter_type)
@@ -437,8 +438,13 @@ class PyposmatDataAnalyzer(object):
 
         all_is_survive_idx = [v['is_survive_idx'] for v in self.filter_set_info.values()]
         self.filter_set_info['is_survive_idx'] = set.intersection(*all_is_survive_idx)
-        self.filter_set_info['n_potentials_start'] = self.results_df.shape[0]
-        self.filter_set_info['n_potentials_final'] = len(self.filter_set_info['is_survive_idx'])
+
+        n_potentials_start = self.results_df.shape[0]
+        n_potentials_final = len(self.filter_set_info['is_survive_idx'])
+        pct_to_keep = n_potentials_final/n_potentials_start
+        self.filter_set_info['n_potentials_start'] = n_potentials_start
+        self.filter_set_info['n_potentials_final'] = n_potentials_final
+        self.filter_set_info['pct_to_keep'] = pct_to_keep
 
         return self.filter_set_info['is_survive_idx'], self.filter_set_info
    
@@ -554,9 +560,9 @@ class PyposmatDataAnalyzer(object):
             m = '{}: unknown cost function type'.format(loss_error_names)
             raise
 
-        n_potentials_begin, n_cols = df.shape
-        n_potentials_final = int(n_potentials_begin*pct_to_keep)
-        n_potentials_final = min(n_potentials_begin,max(n_potentials_min,n_potentials_final))
+        n_potentials_start, n_cols = df.shape
+        n_potentials_final = int(n_potentials_start*pct_to_keep)
+        n_potentials_final = min(n_potentials_start,max(n_potentials_min,n_potentials_final))
         n_potentials_final = min(n_potentials_max,n_potentials_final)
         is_survive_idx = df['cost'].nsmallest(n_potentials_final).index
         is_survive_idx = is_survive_idx.values.tolist()
@@ -567,8 +573,12 @@ class PyposmatDataAnalyzer(object):
         filter_info['loss_function_type'] = loss_function_type
         filter_info['cost_function_type'] = cost_function_type
         filter_info['weights'] = weights
-        filter_info['n_potentials_begin'] = n_potentials_begin
+        filter_info['pct_to_keep'] = pct_to_keep
+        filter_info['n_potentials_min'] = n_potentials_min
+        filter_info['n_potentials_max'] = n_potentials_max
+        filter_info['n_potentials_start'] = n_potentials_start
         filter_info['n_potentials_final'] = n_potentials_final
+
         return set(is_survive_idx),filter_info
 
     def create_absolute_errors(self,df=None): 
@@ -700,24 +710,37 @@ class PyposmatDataAnalyzer(object):
         ])
 
         s = ""
+        # formatted output for descriptive statistics
         s += '{}\n'.format(self.str__descriptive_statistics(
             descriptive_statistics=self.descriptive_statistics
         ))
 
+        # formatted output for filtering information
         s += 80*'-' + "\n"
         s += '{:^80}\n'.format('qoi filtering summary')
+
+        keys_to_skip = [
+                'n_potentials_start','n_potentials_final','is_survive_idx','pct_to_keep'
+        ]
         for k,v in self.filter_set_info.items():
-            if k in ['n_potentials_start','n_potentials_final']:
+            if k in keys_to_skip:
                 pass
             else:
                 try:
                     s += '{}\n'.format(filter_to_str_method_map[k](v['filter_info']))
                 except KeyError as e:
                     s += '{} {}\n'.format(k,v)
-        return(s)
+                    raise
 
+        # formatted output for final results
+        s += 80*'-' + "\n"
+        s += 'final analysis\n'
+        s += len('final_analysis')*'-' + "\n"
         s += "n_potentials_start:{}\n".format(self.filter_set_info['n_potentials_start'])
         s += "n_potentials_final:{}\n".format(self.filter_set_info['n_potentials_final'])
+        s += "pct_to_keep:{}\n".format(self.filter_set_info['pct_to_keep'])
+
+        return(s)
 
     def str__filter_by_pareto_membership(self,filter_info):
         s = 80*'-' + "\n"
@@ -727,6 +750,7 @@ class PyposmatDataAnalyzer(object):
             s += "{}:{}\n".format(k,v)
 
         return s
+
     def str__cost_function_weights(self,weights):
         
         assert isinstance(weights,OrderedDict)
@@ -738,18 +762,24 @@ class PyposmatDataAnalyzer(object):
         return s
 
     def str__filter_by_cost_function(self,filter_info):
-        s = ""
-        for k,v in filter_info.items():
-            if k in ['n_potentials_start','n_potentials_end','weights','is_filter_idx']:
-                pass
-            else:
-                s += "{}:{}\n".format(k,v)
+        is_debug = False
 
-        s += "{:^20} {:^20}\n".format('qoi_name','qoi_weight')
-        s += "{} {}\n".format(20*'-',20*'-')
-        for qoi_name, qoi_weight in filter_info['weights'].items():
-            s += "{:^20} {:20.4}\n".format(qoi_name,qoi_weight)
+        if is_debug:
+            for k,v in filter_info.items():
+                print('{}:{}'.format(k,v))
 
+        s = 80*'-' + "\n"
+        s += "{:<80}\n".format('filter_by_cost_function')
+        s += len('filter_by_cost_function')*'-' + "\n"
+
+        s += 'loss_function_type:{}\n'.format(filter_info['loss_function_type'])
+        s += 'cost_function_type:{}\n'.format(filter_info['cost_function_type'])
+        
+        s += self.str__cost_function_weights(weights=filter_info['weights'])
+
+        s += "pct_to_keep:{}\n".format(filter_info['pct_to_keep'])
+        s += "n_potentials_min:{}\n".format(filter_info['n_potentials_min'])
+        s += "n_potentials_max:{}\n".format(filter_info['n_potentials_max'])
         s += "n_potentials_start:{}\n".format(filter_info['n_potentials_start'])
         s += "n_potentials_final:{}\n".format(filter_info['n_potentials_final'])
 
@@ -783,276 +813,18 @@ class PyposmatDataAnalyzer(object):
         return s
 
     def str__filter_by_qoi_constraints(self,qoi_constraint_info):
-        n_potentials_start = qoi_constraint_info['n_potentials_start']
-        s = 'n_potentials_start={}\n'.format(n_potentials_start)
+        s = 80*'-' + "\n"
+        s += "{:<80}\n".format('filter_by_qoi_constraints')
+        s += len('filter_by_qoi_constraints')*'-' + "\n"
+
+        s += '{:20} {:10} {:10}\n'.format('short_description','n_survived','pct_survived')
         for k,v in qoi_constraint_info['constraints'].items():
             short_description = v['short_description']
             n_survived = v['n_survived']
-            pct_survived = n_survived/n_potentials_start
-            s += '{} {} {}\n'.format(short_description,n_survived,pct_survived)
+            pct_survived = v['pct_survived']
+            s += '{:20} {:10} {:10.4%}\n'.format(short_description,n_survived,pct_survived)
+        s += 'n_potentials_start={}\n'.format(qoi_constraint_info['n_potentials_start'])
         s += "n_potentials_final={}\n".format(qoi_constraint_info['n_potentials_final'])
         s += "pct_potentials_final={}\n".format(qoi_constraint_info['pct_potentials_final'])
         return s
          
-        
-        
-
-class OldPyposmatDataAnalyzer(object):
-    """ class to analyze the results of the simulations.
-
-    """
-    def __init__(self,fn_config=None,fn_data=None):
-        self._configuration = None
-        self._data = None
-        self.obj_log = None
-
-        if fn_config is not None:
-            self.fn_config = fn_config
-            self.read_configuration_file(fn_config)
-        if fn_data is not None:
-            self.fn_data = fn_data
-            self.read_data_file(fn_data)
-
-    @property
-    def configuration(self):
-        return self._configuration
-
-    @configuration.setter
-    def configuration(self,configuration):
-        assert type(configuration) is PyposmatConfigurationFile
-        self._configuration = configuration
-
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self,data):
-        self._data = data
-
-    @property
-    def datafile(self):
-        return self._data
-
-    @datafile.setter
-    def datafile(self,datafile):
-        assert type(datafile) is PyposmatDataFile
-        self._data = datafile
-
-    @property
-    def parameter_names(self):
-        return self._parameter_names
-
-    @property
-    def qoi_names(self):
-        return self._qoi_names
-
-    @property
-    def error_names(self):
-        return self._error_names
-
-    @property
-    def qoi_targets(self):
-        return OrderedDict([(qn,qv['target'] )for qn,qv in self.configuration.qois.items()])
-
-    @property
-    def df(self):
-        return self._df
-
-    def log(self,m):
-        if self.obj_log is None:
-            print(m)
-
-    def read_configuration(self,filename):
-        self._configuration = PyposmatConfigurationFile()
-        self._configuration.read(filename=filename)
-
-        m = "configuration:{}".format(filename)
-        self.log(m)
-
-    def read_configuration_file(self,filename):
-        self.read_configuration(filename=filename)
-
-    def read_data(self,filename):
-        self._data = PyposmatDataFile()
-        self._data.read(filename=filename)
-
-        m = "data:{}".format(filename)
-        self.log(m)
-
-        self._df = copy.deepcopy(self.data.df)
-        self._parameter_names = list(self.data.parameter_names)
-        self._error_names = list(self.data.error_names)
-        self._qoi_names = list(self.data.qoi_names)
-        self._score_names = None
-
-    def read_data_file(self,filename):
-
-        self.read_data(filename=filename)
-
-    def calculate_pareto_set(self,df=None,v=None):
-
-        if df is None:
-            _df = self.data.df
-        else:
-            _df = copy.deepcopy(df)
-
-        # define names for absolute errors
-        abs_error_names = ["{}.abserr".format(k) for k in self.qoi_names]
-        for i,qn in enumerate(self.qoi_names):
-            en  = "{}.err".format(qn)
-            aen = "{}.abserr".format(qn)
-            _df[aen] = _df[en].abs()
-
-        is_pareto_idx = pareto(_df[abs_error_names].values.tolist())
-
-        _df['is_pareto'] = 0
-        _df.loc[list(is_pareto_idx),'is_pareto'] = 1
-        return _df
-
-    def filter_performance_requirements(self,df=None):
-        """
-        Args:
-            df (pandas.DataFrame)
-        """
-        if df is None:
-            _df = copy.deepcopy(self.df)
-        else:
-            _df = copy.deepcopy(df)
-
-        _df[self.error_names] = _df[self.error_names].abs()
-
-        _qoi_constraints = copy.deepcopy(
-                self.configuration.qoi_constraints['filter_by_qoi_error']
-            )
-
-        is_survive_idx = []
-        for k,v in _qoi_constraints.items():
-            if k in self.error_names:
-                is_survive_idx.append(_df.index[_df[k] < v])
-                print('{} < {}: {}'.format(
-                        k,
-                        v,
-                        len(_df.index[_df[k] < v])
-                    ))
-        is_survive_sets = [set(v) for v in is_survive_idx]
-        is_survive_idx = list(set.intersection(*is_survive_sets))
-        if df is None:
-            self._df['is_survive'] = 0
-            if len(is_survive_idx) > 0:
-                self._df.loc[is_survive_idx,'is_survive'] = 1
-            return self._df
-        else:
-            _df = copy.deepcopy(df)
-            _df.reset_index(drop=True)
-            _df['is_survive'] = 0
-            if len(is_survive_idx) > 0:
-                _df.loc[is_survive_idx,'is_survive'] = 1
-            return _df
-
-    def calculate_d_metric(self,df):
-        _df = copy.deepcopy(df)
-
-        _qois = self.configuration.qois
-        _error_names = self.error_names
-        for i,en in enumerate(self.error_names):
-            q= self.qoi_targets[self.qoi_names[i]]
-
-            _df[en] = np.abs(_df[en]/q)
-            _df[en] = np.square(_df[en])
-
-        _df['d_metric'] = np.sqrt(_df[_error_names].sum(axis=1))
-        _df[_error_names] = df[_error_names]
-        return _df
-
-    def filter_with__qoi_constraints(self,kde_df,qoi_constraints):
-        _df = copy.deepcopy(kde_df)
-        m = [80*'-',"filtering by qoi_constraints",80*'-']
-        self.log("\n".join(m))
-
-        for qn in self.datafile.qoi_names:
-            aen = "{}.abserr".format(qn)
-            en = "{}.err".format(qn)
-            _df[aen] = _df[en].abs()
-
-        for qoic_n,qoic_v in qoi_constraints.items():
-            nr0,nc0 =_df.shape
-            if qoic_v[0] == '<':
-                _df = _df[_df[qoic_n] < qoic_v[1]]
-            elif qoic_v[0] == '>':
-                _df = _df[_df[qoic_n] > qoic_v[1]]
-            elif qoic_v[0] == '=':
-                _df = _df[_df[qoic_n] == qoic_v[1]]
-            else:
-                raise ValueError('unknown operator, {}'.format(k))
-            nr1,nc0 =_df.shape
-            m = "{:>20} {:^3} {:<10} {:10} {:10} {:10}".format(qoic_n,qoic_v[0],qoic_v[1],nr1,nr0,nr0-nr1)
-            self.log(m)
-        return _df
-
-    def filter_by_znormalized_errors(self,kde_df,qoi_constraints):
-        percentile = qoi_constraints['percentile']
-        return filter_by_znormalized_errors(
-                df=kde_df,
-                percentile=percentile,
-                qoi_names=self.qoi_names)
-
-    def write_kde_file(self,filename,qoi_constraints=None):
-        """
-        """
-
-        if qoi_constraints is None:
-            _qoi_constraints = self.configuration.qoi_constraints
-        else:
-            _qoi_constraints = qoi_constraints
-
-        kde_df = copy.deepcopy(self._df)
-
-        # filtering by the qoi constraints
-        for k,v in _qoi_constraints.items():
-
-            if k == 'qoi_constraints':
-                kde_df = self.filter_with__qoi_constraints(kde_df,v)
-            elif k == "filter_by__d_zerror":
-                kde_df = self.filter_by_znormalized_errors(kde_df,v)
-            elif k == 'filter_by_pareto' or k == 'select_pareto_only':
-                kde_df = self.calculate_pareto_set(kde_df,v)
-                kde_df = kde_df.loc[kde_df['is_pareto'] == 1]
-            elif k == 'filter_by_dmetric':
-                    (nr,nc) = kde_df.shape
-                    kde_df = self.calculate_d_metric(kde_df)
-                    (nr,nc) = kde_df.shape
-                    if v[1] == 'pct':
-                        pct_to_keep = v[0]/100
-                        n = int((nr * pct_to_keep) //1)
-                    else:
-                        n = min(v[0],nr)
-                    kde_df = kde_df.nsmallest(n,'d_metric')
-                    for en in self.error_names:
-                        print(en,kde_df[en].max())
-                    (nr,nc) = kde_df.shape
-            else:
-                raise ValueError("unknown qoi_constraint method {}".format(k))
-
-            kde_df = kde_df.reset_index(drop=True)
-            (nr,nc) = kde_df.shape
-            print('after {}: {} remainings'.format(k,nr))
-        names = ['sim_id'] \
-                + self.parameter_names \
-                + self.qoi_names\
-                + self.error_names
-        types = ['sim_id'] \
-                + len(self.parameter_names)*['param']\
-                + len(self.qoi_names)*['qoi']\
-                + len(self.error_names)*['err']
-        str_list = []
-        str_list.append(','.join(names))
-        str_list.append(','.join(types))
-        for i_row, row in kde_df[names].iterrows():
-            str_list.append(','.join([str(v) for v in row.values.tolist()]))
-
-        with open(filename,'w') as f:
-            f.write("\n".join(str_list))
-
-if __name__ == "__main__":
-    pass

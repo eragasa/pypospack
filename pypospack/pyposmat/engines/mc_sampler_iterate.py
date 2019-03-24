@@ -91,7 +91,6 @@ class PyposmatIterativeSampler(object):
         self.mpi_size = None
         self.mpi_nprocs = None
         self.i_iteration = None
-        self.n_iterations = None
         self.rv_seed = None
         self.rv_seeds = None
 
@@ -111,6 +110,39 @@ class PyposmatIterativeSampler(object):
 
         if self.is_restart:
             self.delete_mpi_rank_directories()
+
+    @property
+    def structure_directory(self):
+        if self.configuration is None:
+            return None
+        else:
+            d = self.configuration.structures['structure_directory']
+
+            if not os.path.isabs(d):
+                d = os.path.join(self.root_directory,d)
+
+            return d
+
+    @property
+    def n_iterations(self):
+        if self.configuration is None:
+            return None
+        else:
+            return self.configuration.n_iterations
+
+    @property
+    def qoi_names(self):
+        if self.configuration is None:
+            return None
+        else:
+            return self.configuration.qoi_names
+
+    @property
+    def error_names(self):
+        if self.configuration is None:
+            return None
+        else:
+            return self.configuration.error_names
 
     def delete_mpi_rank_directories(self):
         if self.mpi_rank == 0:
@@ -168,11 +200,9 @@ class PyposmatIterativeSampler(object):
             self.run_simulations(i)
             MPI.COMM_WORLD.Barrier()
 
-            if self.mpi_rank == 0:
-                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
-            MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:
+                self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
                 self.log("MERGING FILES")
                 self.merge_files(i)
             MPI.COMM_WORLD.Barrier()
@@ -441,6 +471,7 @@ class PyposmatIterativeSampler(object):
             o.configure_task_manager()
             o.configure_pyposmat_datafile_out()
             MPI.COMM_WORLD.Barrier()
+
             # run simulations
             o.run_simulations(i_iteration=i_iteration,
                               n_samples=_mc_n_samples,
@@ -497,15 +528,12 @@ class PyposmatIterativeSampler(object):
                 os.mkdir(self.data_directory)
                 self.log('created the data directory.')
                 self.log('\tdata_directory;{}'.format(self.data_directory))
-                return (True, self.data_directory)
             except FileExistsError as e:
                 self.log('attempted to create data directory, directory already exists.')
                 self.log('\tdata_directory:{}'.format(self.data_directory))
-                return (True, self.data_directory)
             except OSError as e:
                 self.log('attempted to create data directory, cannot create directory.')
                 self.log('\tdata_directory:{}'.format(self.data_directory))
-                return (False, self.data_directory)
         MPI.COMM_WORLD.Barrier()
 
     def run_parametric_sampling(self,i_iteration):
@@ -534,13 +562,16 @@ class PyposmatIterativeSampler(object):
         assert type(self.mc_sampler) is PyposmatMonteCarloSampler
 
         
-        kde_filename = os.path.join(self.data_directory,
-                                    'pyposmat.kde.{}.out'.format(i_iteration))
+        kde_filename = os.path.join(
+                self.data_directory,
+                'pyposmat.kde.{}.out'.format(i_iteration)
+        )
         n_samples_per_rank = self.determine_number_of_samples_per_rank(i_iteration=i_iteration)
 
         if is_debug:
             print('cwd:{}'.format(os.getcwd()))
-            print('mpi_rank={},kde_filename={}'.format(self.mpi_rank,kde_filename))
+            print('mpi_rank:{},kde_filename:{}'.format(self.mpi_rank,kde_filename))
+            print('n_samples_per_rank:{}'.format(n_samples_per_rank))
 
         self.mc_sampler.run_simulations(
                 i_iteration=i_iteration,
@@ -701,8 +732,8 @@ class PyposmatIterativeSampler(object):
             self.log(s)
         MPI.COMM_WORLD.Barrier()
         
-        if self.mpi_rank == 0:
-            return "\n".join(s)
+        #if self.mpi_rank == 0:
+        #    return "\n".join(s)
     
     def log_more_iteration_information(self): 
         #TODO: this logging needs to go into a separate logging method. -EJR
@@ -865,7 +896,28 @@ class PyposmatIterativeSampler(object):
                     raise
 
 
-    def analyze_results(self,i_iteration,data_fn=None,config_fn=None,kde_fn=None):
+    def analyze_results(self,
+                        i_iteration,
+                        data_fn=None,
+                        config_fn=None,
+                        kde_fn=None):
+        """ analyze the results of the simulation
+
+        this method analyzes the results of the simulation, and does post simulation
+        tasks, such as filtering by qoi performance, pareto optimization, etc.
+
+        Args:
+            data_fn(str): the path of the data file.  By default this is set to none 
+                where the the file will be determine by i_iteration and internal 
+                attributes
+            config_fn(str): the path of the data file.  By default this is set to none 
+                where the the file will be determine by i_iteration and internal 
+                attributes
+            kde_fn(str): the path of the data file.  By default this is set to none 
+                where the the file will be determine by i_iteration and internal 
+                attributes
+        """
+
         if data_fn is None:
             data_fn = os.path.join(\
                     self.root_directory,
@@ -891,15 +943,6 @@ class PyposmatIterativeSampler(object):
         self.log(data_analyzer.str__analysis_results())
         data_analyzer.write_kde_file(filename=kde_fn)
 
-    @property
-    def structure_directory(self):
-
-        d = self.configuration.structures['structure_directory']
-
-        if not os.path.isabs(d):
-            d = os.path.join(self.root_directory,d)
-
-        return d
 
     def read_configuration_file(self,filename=None):
 
@@ -915,11 +958,6 @@ class PyposmatIterativeSampler(object):
         self.configuration = PyposmatConfigurationFile()
         self.configuration.read(filename=self.configuration_filename)
         
-        self.n_iterations = self.configuration.n_iterations
-        self.qoi_names = self.configuration.qoi_names
-        self.error_names = self.configuration.error_names
-        self.parameter_names = self.configuration.parameter_names
-  
         if self.mpi_rank == 0:
             self._write_parameter_names()
             self._write_qoi_names()
