@@ -123,7 +123,10 @@ qoi_db.add_qoi(
 #------------------------------------------------------------------------------
 #<----------------- qoi performance constraints
 qoi_constraints = OrderedDict()
-#qoi_constraints['qoi_constraints'] = OrderedDict()
+qoi_constraints['qoi_constraints'] = OrderedDict()
+qoi_constraints['qoi_constraints']['Si_dia.c11'] = ['>',0.0]
+qoi_constraints['qoi_constraints']['Si_dia.c12'] = ['>',0.0]
+qoi_constraints['qoi_constraints']['Si_dia.c44'] = ['>',0.0]
 #for qoi_name, qoi_info in qoi_db.qois.items():
 #    qoi_constraints[qoi_name] = abs(qoi_info['target']) * 0.20
 qoi_constraints['filter_by_pareto_membership'] = True
@@ -131,7 +134,9 @@ qoi_constraints['filter_by_cost_function'] = OrderedDict([
     ('weighting_scheme_type','scale_by_qoi_target'),
     ('loss_function_type','abs_error'),
     ('cost_function_type','weighted_sum'),
-    ('pct_to_keep',0.95)
+    ('pct_to_keep',0.95),
+    ('n_potentials_min',500),
+    ('n_potentials_max',10000)
 ])
 
 latex_labels = OrderedDict()
