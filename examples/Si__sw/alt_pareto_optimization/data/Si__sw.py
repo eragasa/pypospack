@@ -6,7 +6,7 @@ from pypospack.qoi import QoiDatabase
 #------------------------------------------------------------------------------
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
-sampling['n_iterations'] = 10
+sampling['n_iterations'] = 20
 sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
