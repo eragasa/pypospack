@@ -57,3 +57,6 @@ class PypospackUnknownDistributionType(BaseException): pass
 class PyposmatUnknownDistributionType(BaseException): pass
 
 class PyposmatUnknownQoiFilterType(BaseException): pass
+
+class PypospackBadEamEosError(BaseException): pass
+

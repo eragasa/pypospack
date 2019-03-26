@@ -22,6 +22,8 @@ from numpy.linalg import LinAlgError
 from pypospack.exceptions import LammpsSimulationError
 from pypospack.exceptions import PyposmatBadParameterError
 from pypospack.exceptions import PypospackBadKdeBandwidthType
+from pypospack.exceptions import PypospackBadEamEosError
+
 
 class PyposmatMonteCarloSampler(PyposmatEngine):
     def __init__(self,
@@ -292,6 +294,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 _n_errors += 1
             except PypospackTaskManagerError as e:
                 _n_errors += 1
+            except PypospackBadEamEosError as e:
+                _n_errors += 1
             else:
                 
                 #if type(sim_id) is float: 
@@ -460,6 +464,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                 _n_errors += 1
             except PypospackTaskManagerError as e:
                 _n_errors += 1
+            except PypospackBadEamEosError as e:
+                _n_errors += 1
             else:
 
                 # determine sim_id
@@ -534,6 +540,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             except LammpsSimulationError as e:
                 _n_errors += 1
             except PypospackTaskManagerError as e:
+                _n_errors += 1
+            except PypospackBadEamEosError as e:
                 _n_errors += 1
             else:
                 if type(_sim_id) is float: _sim_id = int(sim_id)
