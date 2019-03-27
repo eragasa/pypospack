@@ -95,7 +95,7 @@ if __name__ == "__main__":
     datafile=PyposmatDataFile()
     datafile.read(filename=datafile_fn)
 
-    plot_fn = 'parallelcoordinates_fs.png'
+    plot_fn = 'parallelcoordinates_Ni_rose.png'
 
     #excluded_qoi_names = ['Ni_fcc.esf','Ni_fcc.isf','E_Ni_fcc_hcp']
     excluded_qoi_names = []
@@ -157,9 +157,16 @@ if __name__ == "__main__":
             )
     plt.gca().legend_.remove()
 
-    #fig.savefig(plot_fn)
+    plt.xticks(rotation=80)
+    plt.tight_layout()
     plt.show()
+    plt.savefig(plot_fn)
     exit()
+
+
+
+
+
     (nr,nc)=df.shape
     print("We have {} potentials...".format(nr))
     for iqn,qn in enumerate(qoi_names):
