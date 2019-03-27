@@ -339,7 +339,7 @@ class PyposmatConfigurationFile(object):
         ENDC = '\033[0m'
 
         if b:
-            s = '['+OKGREEN+'OK'+ENDC+']'
+            s = '['+OKGREEN+'OK'+ENDC+']  '
         else:
             s = '['+FAIL+'FAIL'+ENDC+']'
 
@@ -544,7 +544,28 @@ class PyposmatConfigurationFile(object):
 
         # checking if all parameters for the potential are defined
         s = ['checking if required parameters are defined']
+        all_parameters = set.union(
+                set(parameters),
+                set(_obj_potential.parameter_names)
+        )
+        for pn in all_parameters:
+            pn_in_parameter_set = pn in parameters
+            pn_in_potential_definition = pn in _obj_potential.parameter_names
+            pn_is_ok = pn_in_parameter_set and pn_in_potential_definition
+            s.append(
+                '{:8} {:20} {:6} {:6}'.format(
+                    self.get_ok_fail(pn_is_ok),
+                    pn,
+                    self.get_ok_fail(pn_in_parameter_set),
+                    self.get_ok_fail(pn_in_potential_definition)
+                )
+            )
+
         _all_parameters_validated = True
+        s.append('{:5} {}'.format(
+            self.get_ok_fail(set(parameters)==set(_obj_potential.parameter_names)),
+            'parameters passed are the same as the parameters required'
+        ))
         for _parameter_name in _obj_potential.parameter_names:
             s.append('{:5} {:15}'.format(
                 self.get_ok_fail(_parameter_name in parameters),
@@ -552,7 +573,19 @@ class PyposmatConfigurationFile(object):
             )
             if _parameter_name not in parameters:
                 _all_parameters_validated = False
-        
+       
+        s.append(
+                'parameters in parameter set'
+        )
+
+        for pn in parameters:
+            s.append(
+                '{:5} {:15}'.format(
+                    self.get_ok_fail(pn in _obj_potential.parameter_names),
+                    pn
+                )
+            )
+
         print('\n'.join(s))
         return _all_parameters_validated
 

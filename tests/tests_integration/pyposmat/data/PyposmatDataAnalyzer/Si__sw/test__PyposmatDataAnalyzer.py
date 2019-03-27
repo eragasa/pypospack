@@ -5,9 +5,7 @@ from collections import OrderedDict
 import pypospack.utils
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
-from pypospack.pyposmat.data.data_analyzer import NewPyposmatDataAnalyzer
-
-class PyposmatDataAnalyzer(NewPyposmatDataAnalyzer): pass
+from pypospack.pyposmat.data.data_analyzer import PyposmatDataAnalyzer
 
 def get_testing_set():
     testing_set = OrderedDict()
@@ -109,6 +107,27 @@ def test__initialize_configuration__with_object_and_path():
     with pytest.raises(TypeError) as e:
         o.initialize_configuration(config_fn=testing_set['config_fn'],
                                   o_config=o_config)
+
+def test__property__n_potentials_start():
+    testing_set = get_testing_set()
+    config_fn = testing_set['config_fn']
+    results_data_fn = testing_set['results_fn']
+
+    o = PyposmatDataAnalyzer(config_fn=config_fn,results_data_fn=results_data_fn)
+
+    assert isinstance(o.n_potentials_start,int)
+
+def dev__property__n_potentials_start():
+    print(80*'-')
+    print('{:^80}'.format('property -> n_potentials_start'))
+    testing_set = get_testing_set()
+    config_fn = testing_set['config_fn']
+    results_data_fn = testing_set['results_fn']
+
+    o = PyposmatDataAnalyzer(config_fn=config_fn,results_data_fn=results_data_fn)
+
+    print("type(o.n_potentials_start)):{}".format(type(o.n_potentials_start)))
+    print("o.n_potentials_start:{}".format(o.n_potentials_start))
 
 if __name__ == "__main__":
     #dev__initialize_configuration__with_path()

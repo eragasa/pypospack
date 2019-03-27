@@ -24,27 +24,6 @@ def get_testing_set():
     )
     return testing_set
 
-def test__property__n_potentials_start():
-    testing_set = get_testing_set()
-    config_fn = testing_set['config_fn']
-    results_data_fn = testing_set['results_fn']
-
-    o = PyposmatDataAnalyzer(config_fn=config_fn,results_data_fn=results_data_fn)
-
-    assert isinstance(o.n_potentials_start,int)
-
-def dev__property__n_potentials_start():
-    print(80*'-')
-    print('{:^80}'.format('property -> n_potentials_start'))
-    testing_set = get_testing_set()
-    config_fn = testing_set['config_fn']
-    results_data_fn = testing_set['results_fn']
-
-    o = PyposmatDataAnalyzer(config_fn=config_fn,results_data_fn=results_data_fn)
-
-    print("type(o.n_potentials_start)):{}".format(type(o.n_potentials_start)))
-    print("o.n_potentials_start:{}".format(o.n_potentials_start))
-
 def dev__analyze_results():
     print(80*'-')
     print('{:^80}'.format('method -> analyze_results'))

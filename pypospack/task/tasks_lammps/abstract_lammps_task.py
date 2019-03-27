@@ -167,14 +167,23 @@ class AbstractLammpsSimulation(Task):
             if all([self.potential.obj_pair is None,
                     self.potential.obj_density is None,
                     self.potential.obj_embedding is None,
-                    self.potential.setfl_filename_src is not None]):
-                _eam_setfl_filename_src = self.potential.setfl_filename_src
-                _eam_setfl_filename_dst = os.path.join(
+                    isinstance(self.potential.setfl_filename_src,str)]):
+                eam_setfl_filename_src = self.potential.setfl_filename_src
+                eam_setfl_filename_dst = os.path.join(
                         self.task_directory,
                         self.lammps_setfl_filename)
-                shutil.copyfile(
-                        src=_eam_setfl_filename_src,
-                        dst=_eam_setfl_filename_dst)
+                try:
+                    shutil.copyfile(
+                            src=eam_setfl_filename_src,
+                            dst=eam_setfl_filename_dst)
+                except FileNotFoundError as e:
+                    print('o.potential.obj_pair:{}'.format(self.potential.obj_pair))
+                    print('o.potential.obj_density:{}'.format(self.potential.obj_density))
+                    print('o.potential.obj_embedding:{}'.format(self.potential.obj_embedding))
+                    print('eam_setfl_filename_src:{}'.format(eam_setfl_filename_src))
+                    print('eam_setfl_filename_dst:{}'.format(eam_setfl_filename_dst))
+                    raise
+            
             elif all([self.potential.obj_pair is not None,
                       self.potential.obj_density is not None,
                       self.potential.obj_embedding is not None]):

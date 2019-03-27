@@ -13,7 +13,7 @@ __version__ = 20171102
 
 
 def function_morse_potential(r, D0, a, r0):
-    assert isinstance(r, np.ndarray)
+    assert isinstance(r, np.ndarray) or isinstance(r, float)
     assert isinstance(D0, float)
     assert isinstance(a, float)
     assert isinstance(r0, float)
