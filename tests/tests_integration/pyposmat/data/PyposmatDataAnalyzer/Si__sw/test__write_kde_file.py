@@ -39,5 +39,6 @@ def dev__write_kde_file():
 
     o.write_kde_file(filename=kde_data_fn)
 
+    print(o.kde_data.df['sim_id'])
 if __name__ == "__main__":
     dev__write_kde_file()
