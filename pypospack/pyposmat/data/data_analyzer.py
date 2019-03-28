@@ -694,8 +694,12 @@ class PyposmatDataAnalyzer(object):
             constraint_info['pct_survived'] = n_survived/n_potentials_start
             qoi_constraint_info['constraints'][k] = constraint_info
 
-        is_survive_idx = set.intersection(*[set(v) for v in is_survive_idx])
-        n_potentials_final = len(is_survive_idx)
+        if len(is_survive_idx) > 0:
+            is_survive_idx = set.intersection(*[set(v) for v in is_survive_idx])
+            n_potentials_final = len(is_survive_idx)
+        else:
+            n_potentials_final = n_potentials_start
+
         qoi_constraint_info['n_potentials_final'] = n_potentials_final
         qoi_constraint_info['pct_potentials_final'] = n_potentials_final/n_potentials_start
 
