@@ -212,7 +212,7 @@ class PyposmatEngine(object):
                         setfl_fn=setfl_fn
                 )
                 assert os.path.isfile(setfl_fn)
-            _potential['setfl_filename'] = setfl_fn
+                _potential['setfl_filename'] = setfl_fn
 
         try:
             self.task_manager.evaluate_tasks(

@@ -6,21 +6,20 @@ import pypospack.utils
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatDataAnalyzer
-#from pypospack.pyposmat.data.data_analyzer import NewPyposmatDataAnalyzer
-#class PyposmatDataAnalyzer(NewPyposmatDataAnalyzer):pass
+from pypospack.pyposmat.data.data_analyzer import PyposmatDataAnalyzer
 
 def get_testing_set():
 
     testing_set = OrderedDict()
-    testing_set['i_iteration'] = 4
+    testing_set['i_iteration'] = 1
     testing_set['config_fn']= os.path.join(
             pypospack.utils.get_pypospack_root_directory(),
-            'examples/Si__sw/data',
+            'examples/Si__sw/alt_pareto_optimization/data',
             'pyposmat.config.in'
     )
     testing_set['results_fn'] = os.path.join(
             pypospack.utils.get_pypospack_root_directory(),
-            'examples/Si__sw/data',
+            'examples/Si__sw/alt_pareto_optimization/data',
             'pyposmat.results.{}.out'.format(testing_set['i_iteration'])
     )
     return testing_set

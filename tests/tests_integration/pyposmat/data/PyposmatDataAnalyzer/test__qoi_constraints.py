@@ -94,6 +94,26 @@ def dev__get_weights_by_z_error_normalization():
         assert k in o.qoi_names
         assert isinstance(v,float)
 
+    print(o.str__cost_function_weights(weights=weights))
+
+def dev_get_weights_by_qoi_target_normalization():
+    testing_set = get_testing_set()
+    config_fn = testing_set['config_fn']
+    results_data_fn = testing_set['results_fn']
+
+    assert os.path.isfile(config_fn)
+    assert os.path.isfile(results_data_fn)
+
+    o = PyposmatDataAnalyzer(config_fn=config_fn,results_data_fn=results_data_fn)
+    weights = o.get_weights_by_qoi_target_normalization()
+
+    assert isinstance(weights,OrderedDict)
+    for k,v in weights.items():
+        assert k in o.qoi_names
+        assert isinstance(v,float)
+   
+    print(o.str__cost_function_weights(weights=weights))
+
 def test__filter_by_pareto_set_membership():
     testing_set = get_testing_set()
     config_fn = testing_set['config_fn']
@@ -202,6 +222,7 @@ if __name__ == "__main__":
     #dev__property__n_potentials_start()
     #dev__get_descriptive_statistics()
     #dev__get_weights_by_z_error_normalization()
+    dev_get_weights_by_qoi_target_normalization()
     #dev__analyze_results()
     #dev__filter_by_pareto_set_membership()
     dev__filter_by_qoi_constraints()

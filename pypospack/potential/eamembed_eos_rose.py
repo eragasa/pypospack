@@ -3,6 +3,9 @@ from collections import OrderedDict
 import numpy as np
 from pypospack.potential import EamEmbeddingEquationOfState
 from scipy.optimize import brentq
+from pypospack.exceptions import PypospackBadEamEosError
+
+
 
 def rose_equation_of_state(a,a0,e_coh):
     """
@@ -263,12 +266,16 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
         
                 # for each rho, we need to determine the lattice parameter which produces
                 # the rho for an atom in the corresponding lattice type.
-                a = brentq(
-                        f=rhofxn,
-                        a=a_min,
-                        b=a_max,
-                        args=[parameters,rhostar,s,r],
-                        xtol=a_tol)
+                try:
+                    a = brentq(
+                            f=rhofxn,
+                            a=a_min,
+                            b=a_max,
+                            args=[parameters,rhostar,s,r],
+                            xtol=a_tol)
+                except ValueError as e:
+                    # this error is thrown due to the brent bounding bracket [a, b] not including a zero
+                    raise PypospackBadEamEosError
 
                 # here we determine astar as in equation 5 in Foiles. Phys Rev B (33) 12. Jun 1986 
                 # 160.22 is the conversion with _esub in eV, _B in GPa, and _omega in Angs^3

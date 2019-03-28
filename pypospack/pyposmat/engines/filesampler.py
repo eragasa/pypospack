@@ -12,6 +12,8 @@ from pypospack.pyposmat.engines import PyposmatEngine
 from pypospack.exceptions import LammpsSimulationError
 from pypospack.exceptions import PyposmatBadParameterError
 from pypospack.exceptions import PypospackBadKdeBandwidthType
+from pypospack.exceptions import PypospackTaskManagerError 
+
 
 class PyposmatFileSampler(PyposmatEngine):
     """ samples from a datafile
@@ -420,7 +422,7 @@ class PyposmatFileSampler(PyposmatEngine):
                     n_errors += 1
                 except LammpsSimulationError as e:
                     n_errors += 1
-                except PyposmatTaskManagerError as e:
+                except PypospackTaskManagerError as e:
                     n_errors += 1
                 else:
                     results = OrderedDict()
