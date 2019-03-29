@@ -142,6 +142,7 @@ class PyposmatDataAnalyzer(object):
         # public attributes are set to NoneType objects for debugging purposes
         self.configuration = None
         self.results_data = None
+        self.kde_data = None
         self.config_fn = None
         self.results_data_fn = None
         self.analysis_fn = None
@@ -451,10 +452,10 @@ class PyposmatDataAnalyzer(object):
     def write_kde_file(self,filename):
         names = ['sim_id'] + self.parameter_names + self.qoi_names + self.error_names
        
-        kde_data = PyposmatDataFile()
-        kde_data.read(filename=self.results_data_fn)
-        kde_data.df = kde_data.df.iloc[list(self.filter_set_info['is_survive_idx'])]
-        kde_data.write(filename=filename)
+        self.kde_data = PyposmatDataFile()
+        self.kde_data.read(filename=self.results_data_fn)
+        self.kde_data.df = self.kde_data.df.iloc[list(self.filter_set_info['is_survive_idx'])]
+        self.kde_data.write(filename=filename)
 
 
     def get_weights_by_z_error_normalization(self,df=None):

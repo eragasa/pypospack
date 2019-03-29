@@ -222,14 +222,14 @@ class PyposmatDataFile(object):
             tokens = line.strip().split(',')
             values = []
             for i,v in enumerate(self._names):
-                try:
-                    values.append(float(tokens[i]))
-                except ValueError as e:
-                    if v.endswith('latticetype'):
-                        values.append(tokens[i])
-                    elif v.endswith('sim_id'):
-                        values.append(tokens[i])
-                    else:
+                if v == 'sim_id':
+                    values.append(tokens[i])
+                elif v == 'latticetype':
+                    values.append(tokens[i])
+                else:
+                    try:
+                        values.append(float(tokens[i]))
+                    except:
                         raise
             table.append(values)
 
