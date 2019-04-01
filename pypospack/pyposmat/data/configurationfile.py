@@ -193,6 +193,7 @@ class PyposmatConfigurationFile(object):
     def parameter_distribution_definitions(self):
         return self.configuration['param_dist_def']
     @parameter_distribution_definitions.setter
+
     def parameter_distribution_definitions(self,param_def):
         assert isinstance(param_def,OrderedDict)
         self.configuration['param_dist_def'] = OrderedDict()

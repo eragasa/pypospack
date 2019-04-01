@@ -62,10 +62,12 @@ from pypospack.potential.pair import PairPotential
 from pypospack.potential.pair_morse import MorsePotential
 from pypospack.potential.pair_buckingham import BuckinghamPotential
 from pypospack.potential.pair_bornmayer import BornMayerPotential
+from pypospack.potential.pair_general_lj import GeneralizedLennardJonesPotential
 pair_potentials = [
         'buckingham',
         'morse',
         'bornmayer'
+        'general_lj'
 ]
 
 #------------------------------------------------------------------------------
@@ -132,6 +134,10 @@ def PotentialObjectMap(potential_type='all'):
     potential_map['bornmayer']['module'] = 'pypospack.potential'
     potential_map['bornmayer']['class'] = 'BornMayerPotential'
 
+    potential_map['general_lj'] = OrderedDict()
+    potential_map['general_lj']['module'] = 'pypospack.potential'
+    potential_map['general_lj']['class'] = 'GeneralizedLennardJonesPotential'
+
     potential_map['tersoff'] = OrderedDict()
     potential_map['tersoff']['module'] = 'pypospack.potential'
     potential_map['tersoff']['class'] = 'TersoffPotential'
@@ -167,24 +173,26 @@ def PotentialObjectMap(potential_type='all'):
         class_name = potential_map[potential_type]['class']
         return module_name,class_name
 
-def get_potential_map():
-    """ get the potential map
+# uncommented on April Fools Day, 2019
+if False:
+    def get_potential_map():
+        """ get the potential map
 
-    Support for interatomic potentials requires a mapping from the
-    potential formalism to the class supporting the function.  Additional
-    potentials to be supported can either be added here, or provided
-    using any module available on the PYTHONPATH.
+        Support for interatomic potentials requires a mapping from the
+        potential formalism to the class supporting the function.  Additional
+        potentials to be supported can either be added here, or provided
+        using any module available on the PYTHONPATH.
 
-    Returns:
-        (dict): the key is the name of the potential formalism, the value is a list where the first element contains the module. second element contains the class supporting the function
+        Returns:
+            (dict): the key is the name of the potential formalism, the value is a list where the first element contains the module. second element contains the class supporting the function
 
-    """
-    potential_map = {\
-            'buckingham':['pypospack.potential','Buckingham'],
-            'eam':['pypospack.potential','EmbeddedAtomModel'],
-            'morse':['pypospack.potential','MorsePotential'],
-            'tersoff':['pypospack.potential','Tersoff']}
-    return copy.deepcopy(potential_map)
+        """
+        potential_map = {\
+                'buckingham':['pypospack.potential','Buckingham'],
+                'eam':['pypospack.potential','EmbeddedAtomModel'],
+                'morse':['pypospack.potential','MorsePotential'],
+                'tersoff':['pypospack.potential','Tersoff']}
+        return copy.deepcopy(potential_map)
 
 def get_supported_potentials():
     supported_potentials = list(get_potential_map().keys())

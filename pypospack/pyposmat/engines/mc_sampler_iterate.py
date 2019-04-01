@@ -900,7 +900,8 @@ class PyposmatIterativeSampler(object):
                         i_iteration,
                         data_fn=None,
                         config_fn=None,
-                        kde_fn=None):
+                        kde_fn=None,
+                        analysis_fn=None):
         """ analyze the results of the simulation
 
         this method analyzes the results of the simulation, and does post simulation
@@ -932,17 +933,41 @@ class PyposmatIterativeSampler(object):
                     self.root_directory,
                     self.data_directory,
                     'pyposmat.kde.{}.out'.format(i_iteration+1))
+        if analysis_fn is None:
+            analysis_fn = os.path.join(
+                    self.root_directory,
+                    self.data_directory,
+                    'pyposmat.analysis.out')
 
-        data_analyzer = PyposmatDataAnalyzer(
-                config_fn=config_fn,
-                results_data_fn=data_fn,
-                mpi_rank=self.mpi_rank,
-                mpi_size=self.mpi_size)
+        data_analyzer = PyposmatDataAnalyzer()
+        data_analyzer.initialize_configuration(config_fn=config_fn)
 
-        data_analyzer.analyze_results(i_iteration)
-        self.log(data_analyzer.str__analysis_results())
+        data_analyzer.analyze_results_data(i_iteration,filename=data_fn)
+
+        assert isinstance(data_analyzer.results_statistics, OrderedDict)
+
+        if os.path.isfile(analysis_fn):
+            data_analyzer.read_analysis_file(filename=analysis_fn)
+
+        self.log(data_analyzer.str__results_descriptive_statistics(
+                statistics=data_analyzer.results_statistics
+            )
+        )
+        self.log(
+            data_analyzer.str__qoi_filtering_summary()
+        )
+
         data_analyzer.write_kde_file(filename=kde_fn)
+        data_analyzer.analyze_kde_data(i_iteration,filename=kde_fn)
 
+        assert isinstance(data_analyzer.kde_statistics,OrderedDict)
+        self.log(data_analyzer.str__kde_descriptive_statistics(
+                statistics=data_analyzer.kde_statistics
+            )
+        )
+
+        data_analyzer.update_analysis(i_iteration)
+        data_analyzer.write_analysis_file(filename=analysis_fn)
 
     def read_configuration_file(self,filename=None):
 

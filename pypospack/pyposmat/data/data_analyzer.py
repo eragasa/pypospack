@@ -4,10 +4,11 @@ __copyright__ = "Copyright (C) 2016,2017"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
-import os, copy
+import os, copy, yaml
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+from pypospack.io.filesystem import OrderedDictYAMLLoader
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pareto import pareto
@@ -148,6 +149,10 @@ class PyposmatDataAnalyzer(object):
         self.analysis_fn = None
         self.analysis = None
      
+        self.descriptive_statistics = None
+        self.results_statistics = None
+        self.kde_statistics = None
+
         # set debug level
         self.is_debug = False
         
@@ -207,6 +212,16 @@ class PyposmatDataAnalyzer(object):
     def n_potentials_start(self):
         if isinstance(self.results_data,PyposmatDataFile):
             return self.results_df.shape[0]
+        else:
+            return None
+
+    @property
+    def qoi_constraints(self):
+        if isinstance(self.configuration,PyposmatConfigurationFile):
+            if 'qoi_constraints' in self.configuration.qoi_constraints:
+                return self.configuration.qoi_constraints['qoi_constraints']
+            else:
+                return None
         else:
             return None
 
@@ -295,28 +310,57 @@ class PyposmatDataAnalyzer(object):
             )
             raise TypeError(m)
 
-    @property
-    def qoi_constraints(self):
-        if isinstance(self.configuration,PyposmatConfigurationFile):
-            if 'qoi_constraints' in self.configuration.qoi_constraints:
-                return self.configuration.qoi_constraints['qoi_constraints']
-            else:
-                return None
+    def initialize_kde_data(self,kde_data_fn=None,o_kde_data=None):
+        if kde_data_fn is not None and o_kde_data is not None:
+            m = (
+                "must either provide the path to kde_data_fn or a PyposmatDataFile"
+                "instance to to o_kde_data"
+            )
+            raise TypeError(m)
+        # default behavior
+        elif kde_data_fn is None and o_kde_data is None:
+            self.kde_data = PyposmatDataFile()
+            self.kde_data.read(filename=self.kde_data_fn)
+        # a path is provided
+        elif isinstance(kde_data_fn,str):
+            self.kde_data_fn = kde_data_fn
+            self.kde_data = PyposmatDataFile()
+            self.kde_data.read(filename=self.kde_data_fn)
+        # an object is provided
+        elif isinstance(o_kde_data,PyposmatDataFile):
+            self.kde_data_fn = None
+            self.kde_data = o_kde_data
         else:
-            return None
-   
-    def read_analysis_file(self,filename=None):
-        """ read the pypospack analysis file
+            m = (
+                "must either provide the path to kde_data_fn or a PyposmatDataFile"
+                "instance to to o_kde_data"
+            )
+            raise TypeError(m)
 
-        Args:
-            filename(str,None): By default this is set to None, which uses the attribute
-               analysis_fn
+    def read_analysis_file(self,filename):
+        assert isinstance(filename,str)
 
-        """
-        if isinstance(filename,str):
-            self.analysis_fn = filename
-            self.analysis = PyposmatAnalysisFile(o_config=self.configuration)
-            self.analysis.read(filename=filename)
+        self.analysis_fn = filename
+
+        with open(filename,'r') as f:
+            self.analysis = yaml.load(f, OrderedDictYAMLLoader)
+
+    def write_analysis_file(self,filename):
+        assert isinstance(filename,str)
+
+        self.analysis_fn = filename
+
+        with open(filename,'w') as f:
+            yaml.dump(self.analysis, f, default_flow_style=False)
+
+    def update_analysis(self,i_iteration):
+        if self.analysis is None:
+            self.analysis = OrderedDict()
+
+        self.analysis[i_iteration] = OrderedDict()
+        self.analysis[i_iteration]['results_statistics'] = self.results_statistics
+        self.analysis[i_iteration]['filter_info'] = None
+        self.analysis[i_iteration]['kde_statistics'] = self.kde_statistics
 
     def get_descriptive_statistics(self,df=None):
 
@@ -335,7 +379,140 @@ class PyposmatDataAnalyzer(object):
 
         return descriptive_statistics
 
+    def analyze_results_data(self,i_iteration,filename=None,o_data=None):
 
+        assert isinstance(i_iteration,int)
+        assert filename is None or isinstance(filename,str)
+        assert o_data is None or isinstance(o_data, PyposmatDataFile)
+
+        if isinstance(filename,str) or isinstance(o_data,PyposmatDataFile):
+            self.initialize_results_data(results_data_fn=filename,o_results_data=o_data)
+
+        assert isinstance(self.results_data,PyposmatDataFile)
+        assert i_iteration < self.configuration.n_iterations
+
+        if False:
+            # don't have testing files to analyze of multiple iterations
+            sim_ids = self.results_df['sim_id'].values.tolist()
+            print(sim_ids)
+
+        self.results_statistics = self.get_descriptive_statistics()
+
+        self.filter_set_info = OrderedDict() 
+
+        for filter_type, filter_info in self.configuration.qoi_constraints.items():
+           
+            if self.is_debug:
+                print('filter_type:{}'.format(filter_type))
+                print('filter_info:{}'.format(filter_info))
+
+            if filter_type in ['qoi_constraints']:
+                is_survive_idx, new_filter_info = self.filter_by_qoi_constraints()
+
+                self.filter_set_info['filter_by_qoi_constraints'] = OrderedDict([
+                    ('is_survive_idx', is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
+
+            elif filter_type in ['select_pareto_only','filter_by_pareto_membership']:
+                is_survive_idx, new_filter_info = self.filter_by_pareto_membership()
+                
+                self.filter_set_info['filter_by_pareto_membership'] = OrderedDict([
+                    ('is_survive_idx',is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
+
+            elif filter_type in ['filter_by__d_zerror','filter_by_d_zerror']:
+
+                try:
+                    n_potentials_min = filter_info['n_potentials_min']
+                except KeyError as e:
+                    n_potential_min = None
+
+                try:
+                    n_potentials_max = filter_info['n_potentials_max']
+                except KeyError as e:
+                    n_potentials_max = None
+
+                is_survive_idx, new_filter_info = self.filter_by_cost_function(
+                        loss_function_type='abs_error',
+                        cost_function_type='weighted_sum',
+                        weighting_scheme_type='scale_by_z_normalization',
+                        pct_to_keep=filter_info['pct_to_keep'],
+                        n_potentials_min=n_potentials_min,
+                        n_potentials_max=n_potentials_max,
+                )
+             
+                self.filter_set_info['filter_by_cost_function'] = OrderedDict([
+                    ('is_survive_idx',is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
+
+            elif filter_type in ['filter_by_cost_function']:
+
+                try:
+                    n_potentials_min = filter_info['n_potentials_min']
+                except KeyError as e:
+                    n_potential_min = None
+
+                try:
+                    n_potentials_max = filter_info['n_potentials_max']
+                except KeyError as e:
+                    n_potentials_max = None
+ 
+                is_survive_idx, new_filter_info = self.filter_by_cost_function(
+                        loss_function_type=filter_info['loss_function_type'],
+                        cost_function_type=filter_info['cost_function_type'],
+                        weighting_scheme_type=filter_info['weighting_scheme_type'],
+                        pct_to_keep=filter_info['pct_to_keep'],
+                        n_potentials_min=n_potentials_min,
+                        n_potentials_max=n_potentials_max
+                )
+
+                self.filter_set_info['filter_by_cost_function'] = OrderedDict([
+                    ('is_survive_idx',is_survive_idx),
+                    ('filter_info', new_filter_info)
+                ])
+
+            else:
+                m =  "unknown filtering type to constraint candidate potentials."
+                m += "filter_type={}".format(filter_type)
+                raise PyposmatUnknownQoiFilterType(m)
+
+        all_is_survive_idx = [v['is_survive_idx'] for v in self.filter_set_info.values()]
+        self.filter_set_info['is_survive_idx'] = set.intersection(*all_is_survive_idx)
+
+        n_potentials_start = self.results_df.shape[0]
+        n_potentials_final = len(self.filter_set_info['is_survive_idx'])
+        pct_to_keep = n_potentials_final/n_potentials_start
+        self.filter_set_info['n_potentials_start'] = n_potentials_start
+        self.filter_set_info['n_potentials_final'] = n_potentials_final
+        self.filter_set_info['pct_to_keep'] = pct_to_keep
+
+        return self.filter_set_info['is_survive_idx'], self.filter_set_info
+   
+    def analyze_kde_data(self,i_iteration,filename=None,o_data=None):
+
+        assert isinstance(i_iteration,int)
+        assert filename is None or isinstance(filename,str)
+        assert o_data is None or isinstance(o_data, PyposmatDataFile)
+
+        if isinstance(filename,str) and o_data is None:
+            self.initialize_kde_data(kde_data_fn=filename)
+        elif isinstance(o_data, PyposmatDataFile) and filename is None:
+            self.initialize_kde_data(o_kde_data=o_data)
+        elif filename is None and o_data is None:
+            self.initilaize_kde_data()
+        else:
+            m = (
+                "cannot specify both the arguments: filename and o_data"
+            )
+            raise TypeError(m)
+
+        assert isinstance(self.kde_data,PyposmatDataFile)
+
+        self.kde_statistics = self.get_descriptive_statistics(df=self.kde_data.df)
+   
     def analyze_results(self,i_iteration,filename=None,o_data=None):
 
         assert isinstance(i_iteration,int)
@@ -343,7 +520,7 @@ class PyposmatDataAnalyzer(object):
         assert o_data is None or isinstance(o_data, PyposmatDataFile)
 
         if isinstance(filename,str) or isinstance(o_data,PyposmatDataFile):
-            self.initialize_data_file(results_data_fn=filename,o_results_data=o_data)
+            self.initialize_results_data(results_data_fn=filename,o_results_data=o_data)
 
         assert isinstance(self.results_data,PyposmatDataFile)
         assert i_iteration < self.configuration.n_iterations
@@ -354,7 +531,7 @@ class PyposmatDataAnalyzer(object):
             print(sim_ids)
 
         descriptive_statistics = self.get_descriptive_statistics()
-        self.descriptive_statistics = self.get_descriptive_statistics()
+        self.results_statistics = self.get_descriptive_statistics()
 
         self.filter_set_info = OrderedDict() 
 
@@ -706,6 +883,38 @@ class PyposmatDataAnalyzer(object):
 
         return is_survive_idx,qoi_constraint_info
 
+    def str__qoi_filtering_summary(self):
+        filter_to_str_method_map = OrderedDict([
+            ('filter_by_pareto_membership',self.str__filter_by_pareto_membership),
+            ('filter_by_cost_function',self.str__filter_by_cost_function),
+            ('filter_by_qoi_constraints',self.str__filter_by_qoi_constraints)
+        ])
+
+        s = 80*'-' + "\n"
+        s += '{:^80}\n'.format('qoi filtering summary')
+
+        keys_to_skip = [
+                'n_potentials_start','n_potentials_final','is_survive_idx','pct_to_keep'
+        ]
+        for k,v in self.filter_set_info.items():
+            if k in keys_to_skip:
+                pass
+            else:
+                try:
+                    s += '{}\n'.format(filter_to_str_method_map[k](v['filter_info']))
+                except KeyError as e:
+                    s += '{} {}\n'.format(k,v)
+                    raise
+
+        s += 80*'-' + "\n"
+        s += 'final analysis\n'
+        s += len('final_analysis')*'-' + "\n"
+        s += "n_potentials_start:{}\n".format(self.filter_set_info['n_potentials_start'])
+        s += "n_potentials_final:{}\n".format(self.filter_set_info['n_potentials_final'])
+        s += "pct_to_keep:{}\n".format(self.filter_set_info['pct_to_keep'])
+
+        return s
+
     def str__analysis_results(self):
         
         filter_to_str_method_map = OrderedDict([
@@ -790,7 +999,37 @@ class PyposmatDataAnalyzer(object):
 
         return s
 
-    def str__descriptive_statistics(self,descriptive_statistics):
+    def str__kde_descriptive_statistics(self,statistics=None):
+        assert isinstance(statistics, OrderedDict) or statistics is None
+
+        if statistics is None:
+            statistics=self.kde_statistics
+
+        assert isinstance(statistics, OrderedDict)
+
+        s = 80*"-" + "\n"
+        s += "{:^80}\n".format('Kde Descriptive Statistics')
+        s += 80*"-" + "\n"
+        s += "\n"
+        s += self.str__descriptive_statistics(statistics=statistics)
+
+        return s
+
+    def str__results_descriptive_statistics(self,statistics):
+        assert isinstance(statistics, OrderedDict) or statistics is None
+
+        if statistics is None:
+            statistics=self.result_statistics
+
+        assert isinstance(statistics, OrderedDict)
+        s = 80*"-" + "\n"
+        s += "{:^80}\n".format('Results Descriptive Statistics')
+        s += 80*"-" + "\n"
+        s += "\n"
+        s += self.str__descriptive_statistics(statistics)
+
+        return s
+    def str__descriptive_statistics(self,statistics):
         """ convert desciprtive statistics to a display to string
 
         Args:
@@ -805,15 +1044,10 @@ class PyposmatDataAnalyzer(object):
         len_qoi_mean = '{:+10.4e}'
         len_qoi_std = '{:+10.4e}'
         QOI_HEADER_FORMAT = '{:^20} {:^11} {:^11} {:^11}\n'
-
         QOI_ROW_FORMAT = " ".join([len_qoi_names,len_qoi_target,len_qoi_mean,len_qoi_std])+"\n"
 
-        s = 80*"-" + "\n"
-        s += "{:^80}\n".format('Descriptive Statistics')
-        s += 80*"-" + "\n"
-        s += "\n"
-        s += QOI_HEADER_FORMAT.format('qoi_names','qoi_target','mean','std')
-        for k,v in descriptive_statistics['qois'].items():
+        s = QOI_HEADER_FORMAT.format('qoi_names','qoi_target','mean','std')
+        for k,v in statistics['qois'].items():
             s += QOI_ROW_FORMAT.format(k,v['target'],v['mean'],v['std'])
         return s
 
