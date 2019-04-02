@@ -596,7 +596,7 @@ class PyposmatDataAnalyzer(object):
                 value is None, which sets the argument value to the property results_df.
         """
         # args: df is not used in this weighting scheme
-        return self.configuration.qoi_constraints['weights']
+        return self.configuration.qoi_constraints['filter_by_cost_function']['weights']
 
 
     def filter_by_cost_function(self,

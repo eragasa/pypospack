@@ -18,12 +18,7 @@ for i in range(sampling['n_iterations']):
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'from_file'
-sampling[0]['file'] = os.path.join(pypospack.utils.get_pypospack_root_directory(),
-                                   'examples','Ni__eam__born_exp_fs',
-                                   'preconditioning_3.5NN','data',
-                                   'pyposmat.kde.10.out')
-
-
+sampling[0]['file'] = 'data/pyposmat.kde.0.out'
 
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
@@ -204,7 +199,7 @@ qoi_db.add_qoi(
         structures=OrderedDict([
                 ('defect','Ni_fcc_isf'),
                 ('ideal','Ni_fcc_111_unit')]),
-        target=-8.86e-03)
+        target=8.86e-03)
 qoi_db.add_qoi(
         qoi_name='E_Ni_fcc_hcp',
         qoi_type='phase_order',
@@ -269,8 +264,34 @@ qoi_constraints['qoi_constraints']['E_Ni_fcc_hcp'] = ['>',0.]
 qoi_constraints['qoi_constraints']['E_Ni_fcc_dia'] = ['>',0.]
 #qoi_constraints['filter_by__d_zerror'] = OrderedDict()
 #qoi_constraints['filter_by__d_zerror']['percentile'] = .95
-qoi_constraints['select_pareto_only'] = True
-#qoi_constraints['filter_by_percentile'] = [80,'pct']
+#qoi_constraints['select_pareto_only'] = True
+qoi_constraints['filter_by_pareto_membership'] = True
+manual_weights = OrderedDict([
+    ('Ni_fcc.E_coh', 0.0667),
+    ('Ni_fcc.a0', 0.0667),
+    ('Ni_fcc.c11', 0.0667),
+    ('Ni_fcc.c12', 0.0667),
+    ('Ni_fcc.c44', 0.0667),
+    ('Ni_fcc.B', 0.0667),
+    ('Ni_fcc.G', 0.0667),
+    ('Ni_fcc.vac', 0.0667),
+    ('Ni_fcc.100s', 0.0667),
+    ('Ni_fcc.110s', 0.0667),
+    ('Ni_fcc.111s', 0.067),
+    ('Ni_fcc.isf', 0.0667),
+    ('E_Ni_fcc_bcc', 0.0667),
+    ('E_Ni_fcc_hcp', 0.0667),
+    ('E_Ni_fcc_dia', 0.0667),
+])
+qoi_constraints['filter_by_cost_function'] = OrderedDict([
+    ('weighting_scheme_type', 'scale_by_manual_weights'),
+    ('weights', manual_weights),
+    ('loss_function_type', 'abs_error'),
+    ('cost_function_type', 'weighted_sum'),
+    ('pct_to_keep', 0.95),
+    ('n_potentials_min', 500),
+    ('n_potentials_max', 10000)
+])
 
 
 if __name__ == '__main__':
