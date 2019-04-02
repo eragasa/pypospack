@@ -12,90 +12,7 @@ from pypospack.io.filesystem import OrderedDictYAMLLoader
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pareto import pareto
-
 from pypospack.exceptions import PyposmatUnknownQoiFilterType
-def filter_by_pareto_set_membership(df,error_names):
-    pass
-
-def filter_by_znormalized_errors(df,percentile,qoi_names):
-    for qn in qoi_names:
-        en = "{}.err".format(qn)
-        zen = "{}.zerr".format(qn)
-        df[zen] = (df[en]-df[en].mean())/df[en].std()
-
-    zerror_names = ["{}.zerr".format(q) for q in qoi_names]
-    df['z_err_dist'] = np.sqrt(np.square(df[zerror_names]).sum(axis=1))
-
-    nr0,nc0 = df.shape
-    nr1 = int(percentile*nr0//1)
-    df=df.nsmallest(nr1,"z_err_dist").reset_index(drop=True)
-
-    return df
-
-class PyposmatAnalysisResults(object):
-
-    def __init__(self,config_fn=None,o_config=None):
-
-        assert config_fn is None or isintance(config_fn,str)
-        assert o_config is None or isintance(o_config,PyposmatConfigurationFile)
-
-        self.is_debug = False
-        self.config_fn = None
-        self.configuration = None
-        self.iteration_results = OrderedDict()
-
-        self.initialize_configuration(config_fn=config_fn,o_config=o_config)
-
-    def read(self,filename):
-        pass
-
-    def write(self,filename):
-        pass
-
-    def initialize_configuration(self,config_fn=None,o_config=None):
-        """ read the configuration file
-
-        Must provide either the path of the configuration file through the config_fn
-        argument, or provide an instance of a PyposmatConfigurationFile object.  If no
-        arguments are provided, it will read the config_fn attribute as the path of the
-        configuration file.
-
-        Args:
-            config_fn(str,None): the path of the configuration file to read.  By default,
-               this attribute is None.
-            o_config(str,None): an instance of a PyposmatConfigurationFile object.  By default,
-               this attribute is None.
-
-        """
-
-        assert config_fn is None or isinstance(config_fn,str)
-        assert o_config is None or isinstance(o_config,PyposmatConfigurationFile)
-
-        if config_fn is not None and o_config is not None:
-            m = (
-                "must either provide the path to config_fn or a PyposmatConfigurationFile "
-                "instance to to o_config"
-            )
-            raise TypeError(m)
-        # default behavior
-        elif (config_fn is None) and (o_config is None):
-            self.configuration = PyposmatConfigurationFile()
-            self.configuration.read(filename=self.config_fn)
-        # a path is provided
-        elif isinstance(config_fn,str):
-            self.config_fn = config_fn
-            self.configuration = PyposmatConfigurationFile()
-            self.configuration.read(filename=self.config_fn)
-        # an object is provided
-        elif isinstance(o_config,PyposmatConfigurationFile):
-            self.config_fn = None
-            self.configuration = o_config
-        else:
-            m = (
-                "must either provide the path to config_fn or a PyposmatConfigurationFile "
-                "instance to to o_config"
-            )
-            raise TypeError(m)
 
 
 class PyposmatDataAnalyzer(object):
@@ -122,7 +39,7 @@ class PyposmatDataAnalyzer(object):
     
     loss_function_types = ['abs_error','squared_error']
     cost_function_types = ['weighted_sum','weighted_sum_product']
-    weighting_scheme_types = ['scale_by_qoi_target','scale_by_z_normalization']
+    weighting_scheme_types = ['scale_by_qoi_target','scale_by_z_normalization', 'scale_by_manual_weights']
     
     def __init__(self,
                  config_fn=None,
@@ -659,7 +576,6 @@ class PyposmatDataAnalyzer(object):
             df(pandas.DataFrame,None):  The dataframe constraining the data.  The default
                 value is Noen, which sets the arguement value to the property results_df.
         """
-
         assert df is None or isinstance(pd.DataFrame)
 
         if df is None:
@@ -671,6 +587,16 @@ class PyposmatDataAnalyzer(object):
             weights[qoi_name] = qoi_weight/sum_weights
 
         return weights
+
+    def get_weights_by_manual(self, df=None):
+        """ determine weights using preconfigured values
+
+        Args:
+            df(pandas.DataFrame,None): The dataframe constaining the data.  The default
+                value is None, which sets the argument value to the property results_df.
+        """
+        # args: df is not used in this weighting scheme
+        return self.configuration.qoi_constraints['weights']
 
 
     def filter_by_cost_function(self,
@@ -700,7 +626,8 @@ class PyposmatDataAnalyzer(object):
 
         weighting_to_method_map = OrderedDict([
             ('scale_by_qoi_target',self.get_weights_by_qoi_target_normalization),
-            ('scale_by_z_normalization',self.get_weights_by_z_error_normalization)
+            ('scale_by_z_normalization',self.get_weights_by_z_error_normalization),
+            ('scale_by_manual_weights', self.get_weights_by_manual)
         ])
 
         loss_function_to_method_map = OrderedDict([
