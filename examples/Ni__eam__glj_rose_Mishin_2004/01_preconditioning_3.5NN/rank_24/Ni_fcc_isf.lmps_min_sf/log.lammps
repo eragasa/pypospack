@@ -1,0 +1,187 @@
+LAMMPS (11 Aug 2017)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /home/sullberg/repos/pypospack/examples/Ni__eam__born_exp_rose/01_preconditioning_3.5NN/rank_24/Ni_fcc_isf.lmps_min_sf/lammps.structure
+  triclinic box = (0 0 0) to (2.4837 4.3019 28.3913) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  28 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 58.6934
+
+group Ni type 1
+28 atoms in group Ni
+
+pair_style eam/alloy
+pair_coeff * * /home/sullberg/repos/pypospack/examples/Ni__eam__born_exp_rose/01_preconditioning_3.5NN/rank_24/Ni_fcc_isf.lmps_min_sf/Ni.eam.alloy Ni
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+
+# ---- run minimization
+reset_timestep 0
+thermo 100
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+fix 1 all box/relax aniso 0.0 vmax 0.001
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 11
+  ghost atom cutoff = 11
+  binsize = 5.5, bins = 1 1 6
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair eam/alloy, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 4.356 | 4.356 | 4.356 Mbytes
+Step PotEng Lx Ly Lz Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+       0   -129.82102       2.4837       4.3019      28.3913            0            0            0    60.268634     52.97628    52.235826    75.593796 -0.00059183901 -0.00021899908   0.32171394   -129.82102 
+     100   -129.82103     2.483716    4.3019223    28.391879            0            0            0 -0.00023577955 -0.0025731366 -0.0026359139 0.0045017119 -2.3100433e-08 -7.2897855e-11 -0.0001082607   -129.82103 
+     200   -129.82103     2.483716    4.3019223    28.391879            0            0            0 2.9535772e-09 1.5354589e-08 -7.96023e-09 1.4663729e-09 3.2329298e-11 2.2866765e-11 1.4499987e-08   -129.82103 
+     284   -129.82103     2.483716    4.3019223    28.391879            0            0            0 1.2913098e-09 1.0471136e-09 2.1205712e-09 7.0624461e-10 1.5216467e-11 -2.0898538e-11 -8.620998e-10   -129.82103 
+Loop time of 0.275865 on 1 procs for 284 steps with 28 atoms
+
+97.7% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+        -129.821024348     -129.821025216     -129.821025216
+  Force two-norm initial, final = 0.0204326 5.13021e-13
+  Force max component initial, final = 0.0143127 4.01512e-13
+  Final line search alpha, max atom move = 1 4.01512e-13
+  Iterations, force evaluations = 284 568
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.24308    | 0.24308    | 0.24308    |   0.0 | 88.11
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.0081892  | 0.0081892  | 0.0081892  |   0.0 |  2.97
+Output  | 4.4107e-05 | 4.4107e-05 | 4.4107e-05 |   0.0 |  0.02
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.02456    |            |       |  8.90
+
+Nlocal:    28 ave 28 max 28 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    2894 ave 2894 max 2894 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    7320 ave 7320 max 7320 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 7320
+Ave neighs/atom = 261.429
+Neighbor list builds = 0
+Dangerous builds = 0
+unfix 1
+fix 2 all setforce 0 0 NULL
+min_style cg
+minimize 1e-20 1e-20 1000 100000
+Per MPI rank memory allocation (min/avg/max) = 4.481 | 4.481 | 4.481 Mbytes
+Step PotEng Lx Ly Lz Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+     284   -129.82103     2.483716    4.3019223    28.391879            0            0            0 1.309337e-09 9.9243774e-10 2.1304395e-09 8.0513377e-10 -2.2822142e-11 2.1751305e-11 -7.6686372e-10   -129.82103 
+     289   -129.82103     2.483716    4.3019223    28.391879            0            0            0 1.1055402e-09 8.5238334e-10 1.9790246e-09 4.8521268e-10 1.5887446e-11 2.8397881e-11 -8.541531e-10   -129.82103 
+Loop time of 0.00487208 on 1 procs for 5 steps with 28 atoms
+
+100.0% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+        -129.821025216     -129.821025216     -129.821025216
+  Force two-norm initial, final = 2.46115e-13 4.20898e-14
+  Force max component initial, final = 9.63118e-14 1.6348e-14
+  Final line search alpha, max atom move = 1 1.6348e-14
+  Iterations, force evaluations = 5 10
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.0046473  | 0.0046473  | 0.0046473  |   0.0 | 95.39
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00016189 | 0.00016189 | 0.00016189 |   0.0 |  3.32
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 1.9073e-06 | 1.9073e-06 | 1.9073e-06 |   0.0 |  0.04
+Other   |            | 6.104e-05  |            |       |  1.25
+
+Nlocal:    28 ave 28 max 28 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    2894 ave 2894 max 2894 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    7320 ave 7320 max 7320 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 7320
+Ave neighs/atom = 261.429
+Neighbor list builds = 0
+Dangerous builds = 0
+
+# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "tot_energy = ${tot_energy}"
+tot_energy = -129.821025215533
+print "num_atoms = ${natoms}"
+num_atoms = 28
+print "a11 = ${a11}"
+a11 = 2.48371597753132
+print "a22 = ${a22}"
+a22 = 4.30192226465484
+print "a33 = ${a33}"
+a33 = 28.3918788024643
+print "a12 = ${tilt_xy}"
+a12 = 0
+print "a13 = ${tilt_xz}"
+a13 = 0
+print "a23 = ${tilt_yz}"
+a23 = 0
+print "tot_press = ${tot_press}"
+tot_press = 1.10554019298464e-09
+print "pxx = ${press_xx}"
+pxx = 8.52383338148922e-10
+print "pyy = ${press_yy}"
+pyy = 1.97902455613203e-09
+print "pzz = ${press_zz}"
+pzz = 4.85212684672966e-10
+print "pxy = ${press_xy}"
+pxy = 1.58874455462304e-11
+print "pxz = ${press_xz}"
+pxz = 2.83978806528108e-11
+print "pyz = ${press_yz}"
+pyz = -8.54153095850156e-10
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
+Total wall time: 0:00:00

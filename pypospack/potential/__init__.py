@@ -88,7 +88,11 @@ from pypospack.potential.eam_embedding_eos import EamEmbeddingEquationOfState
 # These are analyical EAM density functions
 #------------------------------------------------------------------------------
 from pypospack.potential.eamdens_exponential import ExponentialDensityFunction
-eam_density_functions = ['eam_dens_exp']
+from pypospack.potential.eamdens_mishin2003 import Mishin2003DensityFunction
+eam_density_functions = [
+    'eam_dens_exp',
+    'eam_dens_mishin2003'
+]
 
 #------------------------------------------------------------------------------
 # These are analytical EAM embedding functions
@@ -149,6 +153,10 @@ def PotentialObjectMap(potential_type='all'):
     potential_map['eam_dens_exp'] = OrderedDict()
     potential_map['eam_dens_exp']['module'] = 'pypospack.potential'
     potential_map['eam_dens_exp']['class'] = 'ExponentialDensityFunction'
+
+    potential_map['eam_dens_mishin2003'] = OrderedDict()
+    potential_map['eam_dens_mishin2003']['module'] = 'pypospack.potential'
+    potential_map['eam_dens_mishin2003']['class'] = 'Mishin2003DensityFunction'
 
     potential_map['eam_embed_bjs'] = OrderedDict()
     potential_map['eam_embed_bjs']['module'] = 'pypospack.potential'

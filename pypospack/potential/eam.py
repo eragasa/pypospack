@@ -5,6 +5,7 @@ from pypospack.potential import Potential
 from pypospack.potential import PairPotential
 from pypospack.potential import EamDensityFunction
 from pypospack.potential import ExponentialDensityFunction
+from pypospack.potential import Mishin2003DensityFunction
 from pypospack.potential import EamEmbeddingFunction
 from pypospack.potential import FinnisSinclairEmbeddingFunction
 from pypospack.potential import EamEmbeddingEquationOfState
@@ -13,7 +14,7 @@ from pypospack.eamtools import EamSetflFile
 
 from pypospack.potential import BornMayerPotential
 from pypospack.potential import MorsePotential
-
+from pypospack.potential import GeneralizedLennardJonesPotential
 class EamPotential(Potential):
     """embedded energy method potential
 
@@ -239,6 +240,8 @@ class EamPotential(Potential):
             self.obj_pair = MorsePotential(symbols=self.symbols)
         elif func_pair == 'bornmayer':
             self.obj_pair = BornMayerPotential(symbols=self.symbols)
+        elif func_pair == 'generalized_lj':
+            self.obj_pair =  GeneralizedLennardJonesPotential(symbols=self.symbols)
         else:
             s  = ["func_pair must be a PairPotential"]
             s += ["    type(func_pair)={}".format(str(type(func_pair)))]
@@ -265,6 +268,8 @@ class EamPotential(Potential):
 
         if func_density == 'eam_dens_exp':
             self.obj_density = ExponentialDensityFunction(symbols=self.symbols)
+        elif func_density == 'eam_dens_mishin2003':
+            self.obj_density = Mishin2003DensityFunction(symbols=self.symbols)
         else:
             msg_err = "func_dens must be an EamDensityfunction"
             raise ValueError(msg_err)

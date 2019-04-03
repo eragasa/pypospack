@@ -12,28 +12,7 @@ __license__ = "Simplified BSD License"
 __version__ = 20171102
 
 
-def function_mishin2003_density(r,A0,B0,C0,y,gamma):
-    """
-    Reference:
-        Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
-    """
-    assert isinstance(r, np.ndarray) or isinstance(r, float)
-    assert isinstance(A0, float)
-    assert isinstance(B0, float)
-    assert isinstance(C0, float)
-    assert isinstance(y, float)
-    assert isinstance(gamma, float)
-
-    z = r - r0
-
-    assert type(z) is type(r)
-
-    exp_gamma_z = np.exp(-gamma*z)
-    density = A0*z**y*exp_gamma_z*(1+B0*exp_gamma_z)+C0
-
-    return density
-
-def function_generalized_lj_pair(r,b1,b2,r0,V0,delta):
+def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     """
     Reference:
         Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
@@ -41,10 +20,11 @@ def function_generalized_lj_pair(r,b1,b2,r0,V0,delta):
     assert isinstance(r, np.ndarray) or isinstance(r, float)
     assert isinstance(b1, float)
     assert isinstance(b2, float)
+    assert isinstance(r1, float)
     assert isinstance(V0, float)
     assert isinstance(delta, float)
 
-    z = r - r0
+    z = r/r1
 
     assert type(z) is type(r)
 
@@ -63,7 +43,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
 
 
     def __init__(self, symbols):
-        self.pair_potential_parameters=['b1','b2','r0','V0','delta']
+        self.pair_potential_parameters=['b1','b2','r1','V0','delta']
         self.potential_type_name='general_lj'
         PairPotential.__init__(self,
                                symbols=symbols,
@@ -90,7 +70,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
     def evaluate(self, r, parameters, r_cut=None,h=None,mollifier_type=None):
         """evaluate the pair potential
 
-        This method evaluates the MorsePotential
+        This method evaluates the generalized lennard jones potential
         Args:
             r(np.ndarray): A numpy array of interatomic distances which to evaluate.
             parameters(OrderedDict): A dictionary of parameters on which to evaluate the interatomic potential.
@@ -120,10 +100,10 @@ class GeneralizedLennardJonesPotential(PairPotential):
             # <------------------------extract the paramters for symbol pair
             b1 = self.parameters['{}{}_b1'.format(s[0],s[1])]
             b2 = self.parameters['{}{}_b2'.format(s[0],s[1])]
-            r0= self.parameters['{}{}_r0'.format(s[0],s[1])]
+            r1 = self.parameters['{}{}_r1'.format(s[0],s[1])]
             V0 = self.parameters['{}{}_V0'.format(s[0],s[1])]
             delta = self.parameters['{}{}_delta'.format(s[0],s[1])]
-            parameters = (b1,b2,r0,V0,delta)
+            parameters = (b1,b2,r1,V0,delta)
             # <------------------------determine radial cutoff
             if '{}{}_rcut'.format(s[0], s[1]) in self.parameters:
                 rc = self.parameters['{}{}_rcut'.format(s[0].s[1])]
