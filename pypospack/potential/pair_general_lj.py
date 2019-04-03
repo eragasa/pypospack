@@ -7,7 +7,7 @@ import numpy as np
 from pypospack.potential import PairPotential
 from pypospack.potential import determine_symbol_pairs
 __author__ = "Eugene J. Ragasa"
-__copyright__ = "Copyright (C) 2017"
+__copyright__ = "Copyright (C) 2019"
 __license__ = "Simplified BSD License"
 __version__ = 20171102
 
@@ -38,7 +38,7 @@ def function_mishin2003_density(r,A0,B0,C0,y,gamma):
 
     exp_gamma_z = np.exp(-gamma*z)
     density = A0*z**y*exp_gamma_z*(1+B0*exp_gamma_z)+C0
-    
+
     return density
 
 def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
@@ -56,7 +56,7 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
 
     assert type(z) is type(r)
 
-    phi = (V0/(b2-b1))*((b2/(z**b1))-(b1/(z**b2)))+delta 
+    phi = (V0/(b2-b1))*((b2/(z**b1))-(b1/(z**b2)))+delta
 
     assert type(phi) is type(r)
 
@@ -71,7 +71,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
 
 
     def __init__(self, symbols):
-        self.pair_potential_parameters=['b1,b2,r1,V0,delta']
+        self.pair_potential_parameters=['b1','b2','r1','V0','delta']
         self.potential_type_name='general_lj'
         PairPotential.__init__(self,
                                symbols=symbols,
@@ -168,7 +168,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
                 self.potential_evaluations[_pair_name] = copy.deepcopy(V)
 
         return self.potential_evaluations
-   
+
     # same as parent class
     def lammps_potential_section_to_string(self):
         """needs to be overridden"""
@@ -182,7 +182,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
     # same as parent class
     def phonts_potential_section_to_string(self):
         """needs to be overridden"""
-        raise NotImplementedError 
+        raise NotImplementedError
 
     # same as parent class
     def write_lammps_potential_file(self):
