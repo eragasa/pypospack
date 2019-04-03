@@ -33,7 +33,7 @@ def function_mishin2003_density(r,A0,B0,C0,y,gamma):
 
     return density
 
-def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
+def function_generalized_lj_pair(r,b1,b2,r0,V0,delta):
     """
     Reference:
         Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
@@ -63,7 +63,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
 
 
     def __init__(self, symbols):
-        self.pair_potential_parameters=['b1','b2','r1','V0','delta']
+        self.pair_potential_parameters=['b1','b2','r0','V0','delta']
         self.potential_type_name='general_lj'
         PairPotential.__init__(self,
                                symbols=symbols,
@@ -120,10 +120,10 @@ class GeneralizedLennardJonesPotential(PairPotential):
             # <------------------------extract the paramters for symbol pair
             b1 = self.parameters['{}{}_b1'.format(s[0],s[1])]
             b2 = self.parameters['{}{}_b2'.format(s[0],s[1])]
-            r1 = self.parameters['{}{}_r1'.format(s[0],s[1])]
+            r0= self.parameters['{}{}_r0'.format(s[0],s[1])]
             V0 = self.parameters['{}{}_V0'.format(s[0],s[1])]
             delta = self.parameters['{}{}_delta'.format(s[0],s[1])]
-            parameters = (b1,b2,r1,V0,delta)
+            parameters = (b1,b2,r0,V0,delta)
             # <------------------------determine radial cutoff
             if '{}{}_rcut'.format(s[0], s[1]) in self.parameters:
                 rc = self.parameters['{}{}_rcut'.format(s[0].s[1])]
