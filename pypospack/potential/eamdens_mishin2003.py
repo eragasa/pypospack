@@ -8,10 +8,28 @@ import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamDensityFunction
 
-def function_exponential_density(r, rho0, beta,r0):
+def function_mishin2003_density(r,A0,B0,C0,y,gamma):
+    """
+    Reference:
+        Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
+    """
+    assert isinstance(r, np.ndarray) or isinstance(r, float)
+    assert isinstance(A0, float)
+    assert isinstance(B0, float)
+    assert isinstance(C0, float)
+    assert isinstance(y, float)
+    assert isinstance(gamma, float)
 
-    return rho0 * np.exp(-beta*(r-r0))
-class ExponentialDensityFunction(EamDensityFunction):
+    z = r - r0
+
+    assert type(z) is type(r)
+
+    exp_gamma_z = np.exp(-gamma*z)
+    density = A0*z**y*exp_gamma_z*(1+B0*exp_gamma_z)+C0
+
+    return density
+
+class Mishin2003DensityFunction(EamDensityFunction):
     """
     Args:
         symbols(list of str)
@@ -30,19 +48,18 @@ class ExponentialDensityFunction(EamDensityFunction):
         r(numpy.ndarray)
     """
 
-    density_function_parameters = ['rho0','beta','r0']
+    density_function_parameters = ['A0','B0','C0','y','gamma']
     def __init__(self,symbols):
-        self.density_func_parameters = ['rho0','beta','r0']
         EamDensityFunction.__init__(
                 self,
                 symbols=symbols,
-                potential_type='eamdens_exp')
-
+                potential_type='eamdens_mishin2003')
+        self.density_function = function_mishin2003_density
 
     def _init_parameter_names(self):
         self.parameter_names = []
         for s in self.symbols:
-            for p in self.density_func_parameters:
+            for p in self.density_function_parameters:
                 pn = "{}_{}".format(s,p)
                 self.parameter_names.append(pn)
 
@@ -96,29 +113,37 @@ class ExponentialDensityFunction(EamDensityFunction):
             if pv is None:
                 return False
 
-        def func_dens_exp(r, rho0, beta,r0):
-            return rho0 * np.exp(-beta*(r-r0))
-
         self.density_evaluations = OrderedDict()
+
+        # each species has a unique density function
         for s in self.symbols:
-            rho0 = self.parameters['{}_rho0'.format(s)]
-            beta = self.parameters['{}_beta'.format(s)]
-            r0 = self.parameters['{}_r0'.format(s)]
+            A0 = self.parameters['{}_A0'.format(s)]
+            B0 = self.parameters['{}_B0'.format(s)]
+            C0 = self.parameters['{}_C0'.format(s)]
+            y = self.parameters['{}_y'.format(s)]
+            gamma = self.parameters['{}_gamma'.format(s)]
 
+            parameters = [A0,B0,C0,y,gamma]
             if r_cut is None:
-                _rho = func_dens_exp(r,rho0,beta,r0)
-                self.density_evaluations[s] = copy.deepcopy(_rho)
+                density = self.density_function(r,*parameters)
+                self.density_evaluations[s] = copy.deepcopy(density)
             else:
-                _rho = func_dens_exp(r,rho0,beta,r0)
-                _rcut = np.max(r[np.where(r<r_cut)])
-                _h = r[1] - r[0]
-                _rho_rc = func_dens_exp(_rcut,rho0,beta,r0)
-                _rho_rc_p1 = func_dens_exp(_rcut+_h,rho0,beta,r0)
-                _rho_rc_m1 = func_dens_exp(_rcut-_h,rho0,beta,r0)
-                _drhodr_at_rc = (_rho_rc_p1 - _rho_rc)/_h
+                density = self.density_function(r,rho0,beta,r0)
+                rcut = np.max(r[np.where(r<r_cut)])
+                rcut_step = r[1] - r[0]
+                density_rc = self.density_function(rcut,*parameters)
+                density_rc_p1 = self.density_function(
+                    rcut + rcut_step,
+                    *parameters
+                )
+                density_rc_m1 = self.density_function(
+                    rcut-rcut_step,
+                    *parameters
+                )
+                drhodr_at_rc = (density_rc_p1 - density_rc)/rcut_step
 
-                _rho = _rho - _rho_rc -_drhodr_at_rc * (r-_rcut)
-                _rho[np.where(r>=_rcut)] = 0
+                density = density - density_rc -drhodr_at_rc * (r-rcut)
+                density[np.where(r>=_rcut)] = 0
                 self.density_evaluations[s] = copy.deepcopy(_rho)
 
         return copy.deepcopy(self.density_evaluations)

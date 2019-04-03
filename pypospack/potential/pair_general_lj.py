@@ -1,5 +1,5 @@
 """
-this module impplements the morse potential
+this module impplements the generalized lennard jones potential
 """
 import copy
 from collections import OrderedDict
@@ -11,14 +11,6 @@ __copyright__ = "Copyright (C) 2019"
 __license__ = "Simplified BSD License"
 __version__ = 20171102
 
-
-def function_morse_potential(r, D0, a, r0):
-    assert isinstance(r, np.ndarray) or isinstance(r, float)
-    assert isinstance(D0, float)
-    assert isinstance(a, float)
-    assert isinstance(r0, float)
-
-    return D0*(np.exp(-2*a*(r-r0))-2*np.exp(-a*(r-r0)))
 
 def function_mishin2003_density(r,A0,B0,C0,y,gamma):
     """

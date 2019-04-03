@@ -31,6 +31,8 @@ def dev____init__():
     print('o.parameter_names:{}'.format(o.parameter_names))
     for k,v in o.parameters.items():
         print("{}:{}".format(k,v))
+
+
 @pytest.mark.parametrize("testing_set",testing_sets,ids=testing_names)
 def test____init__(testing_set):
     o = GeneralizedLennardJonesPotential(symbols=testing_set['symbols'])
