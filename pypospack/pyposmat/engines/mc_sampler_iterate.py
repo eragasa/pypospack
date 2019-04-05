@@ -27,6 +27,9 @@ from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
 from pypospack.pyposmat.engines import PyposmatFileSampler
 from pypospack.pyposmat.engines import PyposmatClusterSampler
 
+# --- pyposmat error classes
+from pypospack.exceptions import PyposmatSamplingTypeError
+
 class PyposmatIterativeSampler(object):
     """  Iterative Sampler which wraps multiple simulation algorithms.
 
@@ -73,6 +76,8 @@ class PyposmatIterativeSampler(object):
         start_iteration=0
         
     """
+
+    parameter_sampling_types = ['parametric','kde','from_file','kde_w_clusters']
 
     def __init__(self,
             configuration_filename,
@@ -424,7 +429,7 @@ class PyposmatIterativeSampler(object):
             self.run_file_sampling(i_iteration=i_iteration)
 
         # <----- kde with clusters sampling type ---------------------------------------
-        elif _mc_sample_type == 'kde_w_clusters':
+        elif sampling_type == 'kde_w_clusters':
             cluster_fn = "pyposmat.cluster.{}.out".format(i_iteration)
             pyposmat_datafile_in = os.path.join(
                 self.root_directory,
@@ -478,10 +483,13 @@ class PyposmatIterativeSampler(object):
                               filename=pyposmat_datafile_in)
             MPI.COMM_WORLD.Barrier()
         else:
-            m = "unknown sampling type: {}".format(
-               _mc_sample_type
+            error_dict = OrderedDict([
+                ('i_iteration',i_iteration),
+                ('sampling_type',sampling_type)]
             )
-            raise ValueError(m)
+            m = "unknown parameter sampling type: {}".format(sampling_type)
+            m += "the valid sampling types are: {}".format(",".join(self.parameter_sampling_types))
+            raise PyposmatSamplingTypeError(m,error_dict)
         
         # return to root directory
         os.chdir(self.root_directory)
@@ -894,7 +902,6 @@ class PyposmatIterativeSampler(object):
                     data.write(filename=new_datafile_fn)
                 else:
                     raise
-
 
     def analyze_results(self,
                         i_iteration,

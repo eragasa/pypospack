@@ -1,23 +1,21 @@
 import os
 from collections import OrderedDict
 from pypospack.qoi import QoiDatabase
+
 import pypospack.utils
 
+pypospack_root_dir = pypospack.utils.get_pypospack_root_directory()
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
-sampling['n_iterations'] = 10
+sampling['n_iterations'] = 1
 sampling['mc_seed'] = None
-# <---------------- INITIAL DEFAULT CONFIGURATION
-for i in range(sampling['n_iterations']):
-    sampling[i] = OrderedDict()
-    sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 100
-# <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
-sampling[0]['type'] = 'parametric'
-
+sampling[0] = OrderedDict()
+sampling[0]['type'] = 'from_file'
+sampling[0]['file'] = os.path.join('data','pyposmat.reference.in')
+sampling[0]['n_samples'] = 4
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
 #-----------------------------------------------------------------------------
@@ -59,8 +57,7 @@ parameter_constraints = OrderedDict()
 #------------------------------------------------------------------------------
 structure_db = OrderedDict()
 structure_db['structure_directory'] = os.path.join(
-        pypospack.utils.get_pypospack_root_directory(),
-        'data','Si__structure_db'
+        pypospack_root_dir,'data','Si__structure_db'
 )
 structure_db['structures'] = OrderedDict()
 structure_db['structures']['Si_dia'] = 'Si_dia_unit.vasp'
@@ -140,8 +137,8 @@ qoi_constraints['filter_by_cost_function'] = OrderedDict([
     ('loss_function_type','abs_error'),
     ('cost_function_type','weighted_sum'),
     ('pct_to_keep',0.95),
-    ('n_potentials_min',50),
-    ('n_potentials_max',100)
+    ('n_potentials_min',500),
+    ('n_potentials_max',10000)
 ])
 
 latex_labels = OrderedDict()

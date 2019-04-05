@@ -270,15 +270,6 @@ class PyposmatDataAnalyzer(object):
         with open(filename,'w') as f:
             yaml.dump(self.analysis, f, default_flow_style=False)
 
-    def update_analysis(self,i_iteration):
-        if self.analysis is None:
-            self.analysis = OrderedDict()
-
-        self.analysis[i_iteration] = OrderedDict()
-        self.analysis[i_iteration]['results_statistics'] = self.results_statistics
-        self.analysis[i_iteration]['filter_info'] = None
-        self.analysis[i_iteration]['kde_statistics'] = self.kde_statistics
-
     def get_descriptive_statistics(self,df=None):
 
         assert df is None or isinstance(df,pd.DataFrame)
@@ -408,6 +399,22 @@ class PyposmatDataAnalyzer(object):
 
         return self.filter_set_info['is_survive_idx'], self.filter_set_info
    
+    def update_analysis(self,i_iteration):
+        if self.analysis is None:
+            self.analysis = OrderedDict()
+
+        #filter_set_info = OrderedDict()
+        #for filter_name in filter_set_info.keys():
+        #    filter_set_info[filter_name] = OrderedDict()
+        #    for k,v in filter_set_info[filter_name].items():
+        #        if k != 'is_survive_idx':
+        #            filter_set_info[filter_name][k] = v
+
+        self.analysis[i_iteration] = OrderedDict()
+        self.analysis[i_iteration]['results_statistics'] = self.results_statistics
+        self.analysis[i_iteration]['filter_info'] = self.filter_set_info
+        self.analysis[i_iteration]['kde_statistics'] = self.kde_statistics
+
     def analyze_kde_data(self,i_iteration,filename=None,o_data=None):
 
         assert isinstance(i_iteration,int)

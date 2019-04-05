@@ -61,5 +61,5 @@ if __name__ == "__main__":
             f.write(",".join(
                 [pot_name] \
                 + [str(pot_parameters[k]) for k in parameter_names]
-                )
+                ) + "\n"
             )

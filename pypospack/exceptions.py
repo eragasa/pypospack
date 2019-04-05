@@ -24,6 +24,8 @@ class BaseException(Exception):
 class BadPreprocessorTypeException(BaseException): pass
 
 class PyposmatBadParameterError(BaseException): pass
+
+class PyposmatSamplingTypeError(BaseException): pass
 class BadParameterException(PyposmatBadParameterError): 
     pass
 # old class saved here just in case
