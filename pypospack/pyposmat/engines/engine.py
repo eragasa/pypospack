@@ -107,7 +107,7 @@ class PyposmatEngine(object):
         # <-------- create the base directory if the base directory does
         #           not exist
         if not os.path.exists(self.base_directory):
-            os.mkdirs(self.base_directory)
+            os.mkdir(self.base_directory)
 
         # <-------- the rank directory is determined by the MPI rank
         #           this is not implemented yet

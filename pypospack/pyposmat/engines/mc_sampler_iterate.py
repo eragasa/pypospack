@@ -17,6 +17,7 @@ from collections import OrderedDict
 # --- pyposmat data format imports
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
+from pypospack.pyposmat.data import PyposmatBadParametersFile
 from pypospack.pyposmat.data import PyposmatLogFile
 
 # --- pyposmat analysis algorithms
@@ -89,7 +90,6 @@ class PyposmatIterativeSampler(object):
         # formats should not contain a trailing end line chracter
         self.SECTION_HEADER_FORMAT = "\n".join([80*'=',"{:^80}",80*"="])
         self.RANK_DIR_FORMAT = 'rank_{}'
-
 
         self.mpi_comm = None
         self.mpi_rank = None
@@ -209,7 +209,8 @@ class PyposmatIterativeSampler(object):
             if self.mpi_rank == 0:
                 self.log("ALL SIMULATIONS COMPLETE FOR ALL RANKS")
                 self.log("MERGING FILES")
-                self.merge_files(i)
+                self.merge_data_files(i)
+                self.merge_error_files(i)
             MPI.COMM_WORLD.Barrier()
 
             if self.mpi_rank == 0:
@@ -266,12 +267,12 @@ class PyposmatIterativeSampler(object):
                 o_log=o_log)
         self.mc_sampler.create_base_directories()
         self.mc_sampler.read_configuration_file()
-        
         # we have to be able to find the structure directory
         self.mc_sampler.configuration.structures['structure_directory'] = self.structure_directory
         self.mc_sampler.configure_qoi_manager()
         self.mc_sampler.configure_task_manager()
         self.mc_sampler.configure_pyposmat_datafile_out()
+        self.mc_sampler.configure_pyposmat_badparameters_file()     
 
         self.log_more_iteration_information()
 
@@ -350,6 +351,7 @@ class PyposmatIterativeSampler(object):
         self.mc_sampler.configure_qoi_manager()
         self.mc_sampler.configure_task_manager()
         self.mc_sampler.configure_datafile_out()
+        self.mc_sampler.configure_pyposmat_badparameters_file()     
 
         self.log_more_iteration_information()
 
@@ -379,7 +381,7 @@ class PyposmatIterativeSampler(object):
         self.initialize_rank_directory()
         config_filename = self.configuration_filename
         results_filename = os.path.join(self.rank_directory,'pyposmat.results.out')
-        bad_parameters_filename = os.path.join(self.rank_directory,'pyposmat.bad_parameters.out')
+        bad_parameters_filename = os.path.join(self.rank_directory,'pyposmat.badparameters.out')
 
         # change execution context for this rank
         os.chdir(self.rank_directory)
@@ -844,7 +846,7 @@ class PyposmatIterativeSampler(object):
                 else:
                     return None
  
-    def merge_files(self,i_iteration,last_datafile_fn=None,new_datafile_fn=None):
+    def merge_data_files(self,i_iteration,last_datafile_fn=None,new_datafile_fn=None):
         """ merge the pyposmat data files
 
         Args:
@@ -883,7 +885,6 @@ class PyposmatIterativeSampler(object):
 
         data.df['sim_id'] = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
 
-        self.log(self.configuration.sampling_type[i_iteration]['type'])
         if self.configuration.sampling_type[i_iteration]['type'] == "from_file":
             data_new = PyposmatDataFile()
             data_new.read(filename=filenames[0])
@@ -900,6 +901,57 @@ class PyposmatIterativeSampler(object):
             except FileNotFoundError as e:
                 if i_iteration == 0:
                     data.write(filename=new_datafile_fn)
+                else:
+                    raise
+
+    def merge_error_files(self,i_iteration):
+        """ merge the pyposmat data files
+
+        Args:
+            i_iteration(int): the current iteration which just finished
+            last_datafile_fn(str,optional): the filename of the last dataset in the data directory.
+            new_datafile_fn(str,optional): where to output the file results 
+        """
+
+        badparameters_fn = os.path.join(self.data_directory,'pyposmat.badparameters.out')
+
+        data_dir = self.data_directory
+        rank_dirs = [v for v in os.listdir(self.root_directory) if v.startswith('rank_')]
+        filenames = [os.path.join(self.root_directory,v,'pyposmat.badparameters.out') for v in rank_dirs]
+
+        # consolidate rank directories
+        badparameters_new = None
+        for i,v in enumerate(filenames):
+            if i == 0:
+                badparameters_new = PyposmatBadParametersFile(o_config=self.configuration)
+                badparameters_new.read(filename=v)
+            else:
+                badparameters_next = PyposmatBadParametersFile(o_config=self.configuration)
+                badparameters_next.read(filename=v)
+
+                badparameters_new.df = pd.concat([badparameters_new.df,badparameters_next.df])
+
+        # determine the sim_id for bad parameters of the sim_id
+        nrows = len(badparameters_new.df)
+        sim_id_fmt = '{:0>2}_{:0>6}'
+        sim_id_str = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
+        badparameters_new.df['sim_id'] = sim_id_str
+
+        if self.configuration.sampling_type[i_iteration]['type'] == "from_file":
+            badparameters_new.write(filename=badparameters_fn)
+
+        else:
+            self.log("merging with candidates from previous simulations")
+            self.log("\tfilename:{}".format(badparameters_fn))
+            badparameters = PyposmatBadParametersFile(o_config=self.configuration)
+
+            try:
+                badparameters.read(filename=badparameters_fn)
+                badparameters.df = pd.concat([badparameters.df,badparameters_new.df])
+                badparameters.write(filename=badparameters_fn)
+            except FileNotFoundError as e:
+                if i_iteration == 0:
+                    badparameters_new.write(filename=badparameters_fn)
                 else:
                     raise
 

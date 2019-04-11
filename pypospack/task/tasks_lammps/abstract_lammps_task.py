@@ -380,7 +380,7 @@ class AbstractLammpsSimulation(Task):
                     m = m.format(_poll_result)
 
                 self.conditions_ERROR['lmps_bin_err'] = m
-                raise LammpsSimulationError(m)
+                raise LammpsSimulationError(m,parameters=self.potential.parameters)
             else:
                 if self.conditions_ERROR is None:
                     self.conditions_ERROR= OrderedDict()
@@ -413,13 +413,16 @@ class AbstractLammpsSimulation(Task):
         os.chdir(self.task_directory)
         
         # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
-        self.process = subprocess.Popen(
-                cmd_str,
-                shell=True,
-                cwd=self.task_directory,
-                preexec_fn=os.getpgrp)
-                #preexec_fn=os.setsid)
-        self.process_info = OrderedDict()
+        #self.process = subprocess.Popen(
+        #        cmd_str,
+        #        shell=True,
+        #        cwd=self.task_directory,
+        #        preexec_fn=os.getpgrp)
+        #        #preexec_fn=os.setsid)
+        #self.process_info = OrderedDict()
+
+        # NEW CODE
+        self.process = subprocess.Popen("exec " + cmd_str, shell=True)
         os.chdir(_cwd)
 
     def post(self):
