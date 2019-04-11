@@ -131,15 +131,16 @@ class TaskManager(object):
                     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
                     # https://www.codeday.top/2017/06/28/25301.html
                     try:
-                        pid = o_task.process.pid
-                        pgid = os.getpgid(pid)
-                        if pgid == pid:
-                            os.killpg(pgid,signal.SIGTERM)
-                        else:
-                            os.kill(pgid,signal.SIGTERM)
+                        o_task.process.kill()
+                        #pid = o_task.process.pid
+                        #pgid = os.getpgid(pid)
+                        #if pgid == pid:
+                        #    os.killpg(pgid,signal.SIGTERM)
+                        #else:
+                        #    os.kill(pgid,signal.SIGTERM)
                     except: 
                         pass
-                raise PypospackTaskManagerError('simulation time exceeded')
+                raise PypospackTaskManagerError('simulation time exceeded',parameters=parameters)
             
             # iterate over each task, and try to progress the status
             # INIT -> CONFIG

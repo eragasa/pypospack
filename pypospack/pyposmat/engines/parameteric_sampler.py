@@ -75,7 +75,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         self.mpi_size=mpi_size
         self.pyposmat_data_in_filename = None
         self.pyposmat_data_out_filename = filename_out
-        self.pyposmat_badparameters_filename = 'pyposmat.badparameters.out'
+        self.pyposmat_data_bad_filename = 'pypospack.badparameters.out'
         
         try:
             self.configure_logger(o_log)
@@ -130,9 +130,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             assert type(filename) is str
             self.pyposmat_badparameters_filename = filename
 
-        self.pyposmat_badparameters = PyposmatBadParametersFile(
-                filename=self.pyposmat_badparameters_filename,
-                o_config=self.configuration)
+        self.pyposmat_badparameters = PyposmatBadParametersFile(filename)
 
     def read_configuration_file(self,filename=None):
         PyposmatEngine.read_configuration_file(self,filename=filename)
@@ -209,7 +207,8 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
     def write_badparameters_header(self):
         self.pyposmat_badparameters.write_header_section(
-                filename=self.pyposmat_badparameters_filename)
+                filename=self.pyposmat_badparameters_filename,
+                parameter_names=self.parameter_names)
 
     def write_data_out_header(self):
         self.pyposmat_datafile_out.write_header_section(
@@ -250,14 +249,12 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     distribution_type))
 
         self.write_data_out_header()
-        self.write_badparameters_header()
-
         time_start_iteration = time.time()
         _n_errors = 0
 
         for i_sample in range(n_samples):
             # determin sim_id
-            sim_id = self.get_sim_id(i=i_sample)
+            self.get_sim_id(i=i_sample)
 
             # new OrderedDict to hold in parameter values
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
@@ -310,7 +307,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
                     if eval(_eval_str) is False:
                         m = "failed parameter constraint, {}".format(k)
-                        raise PyposmatBadParameterError(m,parameters=_parameters)
+                        raise PyposmatBadParameterError()
             
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except PyposmatBadParameterError as e:
@@ -424,14 +421,13 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         _rv_generator = scipy.stats.gaussian_kde(_X,kde_bw)
 
         self.write_data_out_header()
-        self.write_badparameters_header()
 
         time_start_iteration = time.time()
         _n_errors = 0
         
         for i_sample in range(n_samples):
             # determine sim_id 
-            sim_id = self.get_sim_id(i=i_sample)
+            sim_id = str(i_sample)
             
             # new OrderedDict to hold in parameter values
             _parameters = OrderedDict([(p,None) for p in self.parameter_names])
@@ -479,7 +475,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
 
             try:
-                # now we check parameter inequality constraints
+                # now we check parameter constraints
                 for k,v in self.parameter_constraints.items():
                     _eval_str = v
                     for pn,pv in _parameters.items():
@@ -487,14 +483,13 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
                     if eval(_eval_str) is False:
                         s = 'parameter constraint failed, {}'.format(k)
-                        raise PyposmatBadParameterError(s,parameters=_parameters)
+                        raise PyposmatBadParameterError(s)
+
                 _results = self.evaluate_parameter_set(parameters=_parameters)
             except PyposmatBadParameterError as e:
                 self.pyposmat_badparameters.write_simulation_exception(sim_id=sim_id,exception=e)
                 _n_errors += 1
             except LammpsSimulationError as e:
-                assert isinstance(self.pyposmat_badparameters,PyposmatBadParametersFile)
-                assert isinstance(self.pyposmat_badparameters.parameter_names,list)
                 self.pyposmat_badparameters.write_simulation_exception(sim_id=sim_id,exception=e)
                 _n_errors += 1
             except PypospackTaskManagerError as e:
@@ -540,8 +535,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         # configure random number generator
 
         self.write_data_out_header()
-        self.write_badparameters_header()
-        
+
         time_start_iteration = time.time()
 
         _n_errors = 0

@@ -1,4 +1,6 @@
+import os
 from collections import OrderedDict
+import pypospack.utils
 from pypospack.qoi import QoiDatabase
 
 #------------------------------------------------------------------------------
@@ -6,7 +8,7 @@ from pypospack.qoi import QoiDatabase
 #------------------------------------------------------------------------------
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
-sampling['n_iterations'] = 10
+sampling['n_iterations'] = 20
 sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
@@ -56,7 +58,10 @@ parameter_constraints = OrderedDict()
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
 structure_db = OrderedDict()
-structure_db['structure_directory'] = 'structure_db'
+structure_db['structure_directory'] = os.path.join(
+        pypospack.utils.get_pypospack_root_directory(),
+        'data','Si__structure_db'
+)
 structure_db['structures'] = OrderedDict()
 structure_db['structures']['Si_dia'] = 'Si_dia_unit.vasp'
 structure_db['structures']['Si_vac'] = 'Si_dia_333_vac.vasp'

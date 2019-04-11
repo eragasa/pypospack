@@ -3,181 +3,134 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 
+from pypospack.exceptions import BaseException
+from pypospack.pyposmat.data import PyposmatConfigurationFile
 
 class PyposmatBadParametersFile(object):
 
-    def __init__(self,filename=None):
+    def __init__(self,
+                 filename = 'pyposmat.badparameters.out',
+                 config_fn=None,
+                 o_config=None,):
+        assert filename is None or isinstance(filename,str)
+        assert config_fn is None or isinstance(config_fn,str)
+        assert o_config is None or isinstance(o_config,PyposmatConfigurationFile)
+
         self.filename = filename
-
+        self._parameter_names = None 
         self.w_cluster_id = False
-
-        self._names = None
-        self._types = None
-        self.parameter_names = None
-
-        self.qoi_names = None
-        self.error_names = None
-
-        self.qoi_v_names = None
-        self.error_v_names = None
-
-        self.score_names = None
-        self.qoi_references = None
-        self.scaling_factors = None
 
         self.df = None
         self.parameter_df = None
-        self.error_df = None
-        self.qoi_df = None
-        self.rescaled_error_df = None
 
-        self.sub_indices = None
-        self.sub_df = None
-        self.sub_parameter_df = None
-        self.sub_qoi_df = None
-        self.sub_error_df = None
+        self.initialize_configuration(config_fn=config_fn,o_config=o_config)
+
+    def initialize_configuration(self,config_fn,o_config):
+        if isinstance(config_fn,str) and o_config is None:
+            self.configuration = PyposmatConfigurationFile()
+            self.configuration.read(filename=config_fn)
+        elif isinstance(o_config,PyposmatConfigurationFile) and config_fn is None:
+            self.configuration = o_config
+        elif config_fn is None and o_config is None:
+            self.configuration = None
+        elif isinstance(o_config,PyposmatConfigurationFile) and isinstance(config_fn,str):
+            m = (
+                    "Cannot configure the PyposmatDataAnalyzer with both options "
+                    "o_config and config_fn both being specified.  Choose only one."
+            )
+            raise TypeError(m)
+        else:
+            m = (
+                    "wrong types:\n"
+                    "\to_config:{}\n"
+                    "\tconfig_fn:{}\n"
+            )
+            m = m.format(type(o_config),type(config_fn))
+            raise TypeError(m)
+
+    @property
+    def parameter_names(self):
+
+        if isinstance(self.configuration,PyposmatConfigurationFile):
+            return self.configuration.parameter_names
+        else:
+            return None
 
     @property
     def names(self):
+
+        names = ['sim_id']
         if self.df is not None:
             if 'cluster_id' in self.df.columns:
-                self._names = ['sim_id','cluster_id']\
-                        + list(self.parameter_names)\
-                        + list(self.qoi_names)\
-                        + list(self.error_names)
-            else:
-                self._names = ['sim_id']\
-                        + list(self.parameter_names)\
-                        + list(self.qoi_names)\
-                        + list(self.error_names)
-        return self._names
+                names += ['cluster_id']
+        names += self.parameter_names
+        names += ['reason']
 
-    @names.setter
-    def names(self, _names):
-        # This should do more checks
-        self._names = _names
+        return names
 
     @property
     def types(self):
+        types = ['sim_id']
         if self.df is not None:
             if 'cluster_id' in self.df.columns:
-                self._types = ['sim_id','cluster_id']\
-                    + len(self.parameter_names) * ['param']\
-                    + len(self.qoi_names) * ['qoi']\
-                    + len(self.error_names) * ['err']
-            else:
-                self._types = ['sim_id']\
-                    + len(self.parameter_names) * ['param']\
-                    + len(self.qoi_names) * ['qoi']\
-                    + len(self.error_names) * ['err']
-        return self._types
-
-    @types.setter
-    def types(self, _types):
-        self._types = _types
+                names += ['cluster_id']
+        types += len(self.parameter_names)*['param']
+        types += ['reason']
+        
+        return types
 
     @property
     def n_samples(self):
         (n_rows,n_cols) = self.df.shape
         return n_rows
 
-    def get_header_string(self,
-            w_cluster_id = False,
-            parameter_names = None):
+    def get_header_string(self):
 
-        _header_line_1 = ['sim_id']
-        _header_line_2 = ['sim_id']
+        header_line_1 = ['sim_id']\
+                + self.parameter_names\
+                + ['reason']
+        header_line_2 = ['sim_id']\
+                + len(self.parameter_names)*['param']\
+                + ['reason']
 
-        if w_cluster_id is True:
-            self.w_cluster_id = True
-            _header_line_1 = ['cluster_id']
-            _header_line_2 = ['cluster_id']
-
-        if parameter_names is not None:
-            self.parameter_names = list(parameter_names)
-            _header_line_1 += list(parameter_names)
-            _header_line_2 += len(parameter_names)*['param']
-
-        _header_line_1 += ['reason']
-        _header_line_2 += ['reason']
-
-        str_header_section  = "{}\n".format(",".join(_header_line_1))
-        str_header_section += "{}\n".format(",".join(_header_line_2))
+        str_header_section  = "{}\n".format(",".join(header_line_1))
+        str_header_section += "{}\n".format(",".join(header_line_2))
 
         return str_header_section
 
-    def write_header_section(self,
-                             parameter_names,
-                             w_cluster_id=False,
-                             filename=None):
+    def write_header_section(self,filename=None):
 
-        assert isinstance(parameter_names,list)
-        assert type(w_cluster_id) is bool
-        assert type(filename) in [type(None),str]
+        assert isinstance(self.parameter_names,list)
+        assert filename is None or isinstance(filename,str)
 
         if filename is not None:
             self.filename=filename
 
-        _header_str = self.get_header_string(
-                w_cluster_id=w_cluster_id,
-                parameter_names = parameter_names)
+        header_str = self.get_header_string()
 
         with open(self.filename,'w') as f:
-            f.write(_header_str)
+            f.write(header_str)
 
-    def write_simulation_results(self,
-            sim_id,
-            results,
-            cluster_id = None,
-            filename=None):
+    def write_simulation_exception(self,sim_id, exception):
+        is_debug = False
+        assert isinstance(exception,BaseException)
+        assert isinstance(self.parameter_names,list)
 
-        if filename is not None:
-            self.filename = filename
-        _filename = self.filename
+        if not isinstance(sim_id,str):
+            sim_id=str(sim_id)
+        s_reason = exception.explain()
+        
+        s = ",".join(
+                [sim_id] \
+                + [str(exception.kwargs['parameters'][k]) for k in self.parameter_names] \
+                + [s_reason]
+        ) + "\n"
 
-        _sim_result = [str(sim_id)]
-        if cluster_id is not None: _sim_result += [str(int(cluster_id))]
+        if is_debug:
+            print(s)
 
-        if self.parameter_names is not None:
-            for v in self.parameter_names:
-                try:
-                    _sim_result.append(str(results['parameters'][v]))
-                except KeyError as e:
-                    _sim_result.append(str(np.NaN))
-
-        if self.qoi_names is not None:
-            for v in self.qoi_names:
-                try:
-                    _sim_result.append(str(results['qois'][v]))
-                except KeyError as e:
-                    _sim_result.append(str(np.NaN))
-
-        if self.error_names is not None:
-            for v in self.error_names:
-                try:
-                    _sim_result.append(str(results['errors'][v]))
-                except KeyError as e:
-                    _sim_result.append(str(np.NaN))
-
-        if self.qoi_v_names is not None:
-            for v in self.qoi_v_names:
-                try:
-                    _sim_result.append(str(results['qoi_v_names'][v]))
-                except KeyError as e:
-                    _sim_result.append(str(np.NaN))
-
-        if self.error_v_names is not None:
-            for v in self.error_v_names:
-                try:
-                    _sim_result.append(str(results['error_v_names'][v]))
-                except KeyError as e:
-                    _sim_result.append(str(np.NaN))
-
-        _str_sim_results = ",".join(_sim_result)
-
-        with open(_filename,'a') as f:
-            f.write(_str_sim_results+"\n")
-
+        with open(self.filename,'a') as f:
+            f.write(s)
 
     def read(self,filename=None):
         if filename is not None:
@@ -205,28 +158,15 @@ class PyposmatBadParametersFile(object):
                         values.append(tokens[i])
                     elif v.endswith('sim_id'):
                         values.append(tokens[i])
+                    elif v.endswith('reason'):
+                        values.append(tokens[i])
                     else:
+                        print(v)
+                        print(tokens[i])
                         raise
             table.append(values)
 
         self.df = pd.DataFrame(data=table, columns=self._names)
-
-        self.parameter_names = [
-                n for i,n in enumerate(self._names) \
-                    if self._types[i] == 'param']
-        self.qoi_names = [
-                n for i,n in enumerate(self._names) \
-                        if self._types[i] == 'qoi']
-        self.error_names = [
-                n for i,n in enumerate(self._names) \
-                        if self._types[i] == 'err']
-        self.score_names = [
-                n for i,n in enumerate(self._names) \
-                        if self._types[i] == 'score']
-
-        self.parameter_df = self.df[self.parameter_names]
-        self.error_df = self.df[self.error_names]
-        self.qoi_df = self.df[self.qoi_names]
 
     def write(self,filename):
         fn = filename
@@ -237,98 +177,6 @@ class PyposmatBadParametersFile(object):
 
         with open (fn, 'w') as f:
             f.write("\n".join(s))
-
-    def score_by_sum_if_less_than_median(
-            self,
-            error_df=None,
-            err_type='abs'):
-
-        _abs_error_df = self.error_df.copy(deep=True)
-        _abs_error_df = _abs_error_df.loc[:,_abs_error_df.columns != 'sim_id'].abs()
-        _sub_medians = _abs_error_df - _abs_error_df.median(axis=0)
-        _scores = _sub_medians.copy(deep=True)
-        _scores[_scores > 0] = 0 # no points if greater than median
-        _scores[_scores < 0 ] = 1 # one point if less than median
-        _metric = _scores.sum(axis=1)
-
-        # calculate the metric
-        self.names.append('sum_b_lt_median')
-        self.score_names.append('sum_b_lt_median')
-        self.types.append('score')
-        self.df['sum_b_lt_median'] = np.copy(_metric)
-
-    def score_by_d_metric(
-            self,
-            error_df=None,
-            scaling_factors='DFT',
-            err_type='abs'):
-
-        _sf = 'd_metric'
-        if type(scaling_factors) == str:
-            _qoi_ref = scaling_factors
-            if self.scaling_factors is None:
-                self.scaling_factors = OrderedDict()
-            self.scaling_factors[_sf] = OrderedDict()
-            for qn in self.qoi_names:
-                en = '{qoi_name}.err'.format(qoi_name=qn)
-                self.scaling_factors[_sf][en] = 1/self.qoi_references[_qoi_ref][qn]
-        elif isinstance(scaling_factors,dict):
-            if self.scaling_factors is None:
-                self.scaling_factors = OrderedDict()
-            self.scaling_factors[_sf] = OrderedDict()
-            for qn in self.qoi_names:
-                self.scaling_factors[_sf][qn] = scaling_factors[qn]
-
-        # normalize the errors
-        _rescaled_error_df = None
-        if err_type == 'abs':
-            if error_df is None:
-                _rescaled_error_df = self.error_df.copy(deep=True)
-            else:
-                _rescaled_error_df = error_df.copy(deep=True)
-            for col in _rescaled_error_df:
-                if col != 'sim_id':
-                    sf = self.scaling_factors[_sf][col]
-                    _rescaled_error_df[col] = sf*_rescaled_error_df[col].abs()
-        self.rescaled_error_df = _rescaled_error_df.copy(deep=True)
-
-        # calculate the metric
-        _d_metric = np.sqrt(np.square(
-                _rescaled_error_df.loc[:,_rescaled_error_df.columns != 'sim_id']
-            ).sum(axis=1))
-        self.names.append('d_metric')
-        self.score_names.append('d_metric')
-        self.types.append('score')
-        self.df['d_metric'] = np.copy(_d_metric)
-
-    def subselect_by_score(
-            self,
-            score_name,
-            n=1000):
-        """
-            Args:
-                scaling_factors(dict): the key is the error name, the value
-                    is a scalar vaue from which the errors will be divided for
-                    the purposes of scaling.
-                n(int): the number of points to return
-                result(str): should be either results, pareto or culled.
-                    Default is culled.
-        """
-
-        # determine sub population
-        if score_name == 'd_metric':
-            self.sub_indices = self.df.nsmallest(n,'d_metric').index
-        elif score_name == 'sum_b_lt_median':
-            self.sub_indices = self.df.nlargest(n,'sum_b_lt_median').index
-        else:
-            err_msg = "{score_name} is not a valid score_name".format(
-                    score_name=score_name)
-            raise ValueError(err_msg)
-
-        self.sub_df = self.df.loc[self.sub_indices]
-        self.sub_error_df = self.error_df.loc[self.sub_indices]
-        self.sub_parameter_df = self.parameter_df.loc[self.sub_indices]
-        self.sub_qoi_df = self.qoi_df.loc[self.sub_indices]
 
     def write_subselect(self,filename=None):
         _filename = None

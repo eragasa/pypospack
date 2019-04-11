@@ -1,20 +1,20 @@
 import os
 from collections import OrderedDict
-from pypospack.qoi import QoiDatabase
 import pypospack.utils
+from pypospack.qoi import QoiDatabase
 
 #------------------------------------------------------------------------------
 # CONFIGURATION SECTION FOR PYPOSMAT PARETO FITTING
 #------------------------------------------------------------------------------
 # <---------------- SAMPLING CONFIGURATION
 sampling = OrderedDict()
-sampling['n_iterations'] = 10
+sampling['n_iterations'] = 20
 sampling['mc_seed'] = None
 # <---------------- INITIAL DEFAULT CONFIGURATION
 for i in range(sampling['n_iterations']):
     sampling[i] = OrderedDict()
     sampling[i]['type'] = 'kde'
-    sampling[i]['n_samples'] = 100
+    sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
 sampling[0]['type'] = 'parametric'
 
@@ -43,8 +43,8 @@ parameter_distribution['SiSiSi_gamma'] = ['uniform',{'a': 1.0, 'b':2.0}]
 parameter_distribution['SiSiSi_costheta0'] = ['equals',-1/3.]
 parameter_distribution['SiSiSi_A'] = ['uniform',{'a': 6.0, 'b':20.0}]
 parameter_distribution['SiSiSi_B'] = ['uniform',{'a': 0.5, 'b':1.0}]
-parameter_distribution['SiSiSi_p'] = ['uniform',{'a':3.0,'b':4.4}]
-parameter_distribution['SiSiSi_q'] = ['uniform',{'a':0.0,'b':1.0}]
+parameter_distribution['SiSiSi_p'] = ['equals',4.0]
+parameter_distribution['SiSiSi_q'] = ['equals',0.0]
 parameter_distribution['SiSiSi_tol'] = ['equals',0.0]
 
 #------------------------------------------------------------------------------
@@ -128,10 +128,7 @@ qoi_db.add_qoi(
 #------------------------------------------------------------------------------
 #<----------------- qoi performance constraints
 qoi_constraints = OrderedDict()
-qoi_constraints['qoi_constraints'] = OrderedDict()
-qoi_constraints['qoi_constraints']['Si_dia.c11'] = ['>',0.0]
-qoi_constraints['qoi_constraints']['Si_dia.c12'] = ['>',0.0]
-qoi_constraints['qoi_constraints']['Si_dia.c44'] = ['>',0.0]
+#qoi_constraints['qoi_constraints'] = OrderedDict()
 #for qoi_name, qoi_info in qoi_db.qois.items():
 #    qoi_constraints[qoi_name] = abs(qoi_info['target']) * 0.20
 qoi_constraints['filter_by_pareto_membership'] = True
@@ -140,8 +137,8 @@ qoi_constraints['filter_by_cost_function'] = OrderedDict([
     ('loss_function_type','abs_error'),
     ('cost_function_type','weighted_sum'),
     ('pct_to_keep',0.95),
-    ('n_potentials_min',50),
-    ('n_potentials_max',100)
+    ('n_potential_min',50),
+    ('n_potential_max',10000)
 ])
 
 latex_labels = OrderedDict()

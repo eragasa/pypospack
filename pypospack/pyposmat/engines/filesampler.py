@@ -414,7 +414,7 @@ class PyposmatFileSampler(PyposmatEngine):
                 try:
                     sim_id = int(float(row['sim_id']))
                 except ValueError as e:
-                    sim_id = potential_name
+                    sim_id = row['sim_id']
 
                 try:
                     evals = self.evaluate_parameter_set(parameters=parameters)

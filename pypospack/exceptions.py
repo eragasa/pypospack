@@ -24,19 +24,10 @@ class BaseException(Exception):
 class BadPreprocessorTypeException(BaseException): pass
 
 class PyposmatBadParameterError(BaseException): pass
-class BadParameterException(PyposmatBadParameterError): 
-    pass
-# old class saved here just in case
-#class BadParameterException(Exception):
-#    def __init__(self,
-#            code,
-#            parameter_name,
-#            parameter_value,
-#            parameters):
-#        self.code = code
-#        self.parameter_name = parameter_name
-#        self.parameter_value = parameter_value
-#        self.parameters = parameters
+
+class PyposmatSamplingTypeError(BaseException): pass
+
+class BadParameterException(PyposmatBadParameterError): pass
 
 class BadManifoldTypeException(BaseException): pass
 
