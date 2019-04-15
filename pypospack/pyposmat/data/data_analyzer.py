@@ -361,7 +361,7 @@ class PyposmatDataAnalyzer(object):
                 try:
                     n_potentials_min = filter_info['n_potentials_min']
                 except KeyError as e:
-                    n_potential_min = None
+                    n_potentials_min = None
 
                 try:
                     n_potentials_max = filter_info['n_potentials_max']
