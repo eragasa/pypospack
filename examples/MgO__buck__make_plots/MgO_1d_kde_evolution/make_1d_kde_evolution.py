@@ -36,6 +36,40 @@ class Pyposmat1DKdeDensityPlots(PyposmatDataFileVisualization):
         PyposmatDataFileVisualization.__init__(self)
         self.n_iterations = None
 
+    def get_linestyle(self,i=None,name=None):
+
+        assert i is None or isinstance(i,int)
+        assert name is None or isinstance(name,str)
+
+
+        linestyles = OrderedDict([
+            ('solid',               (0, ())),
+            #('loosely dotted',      (0, (1, 10))),
+            #('dotted',              (0, (1, 5))),
+            ('densely dotted',      (0, (1, 1))),
+            
+            #('loosely dashed',      (0, (5, 10))),
+            #('dashed',              (0, (5, 5))),
+            ('densely dashed',      (0, (5, 1))),
+            
+            #('loosely dashdotted',  (0, (3, 10, 1, 10))),
+            #('dashdotted',          (0, (3, 5, 1, 5))),
+            ('densely dashdotted',  (0, (3, 1, 1, 1))),
+            
+            #('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
+            #('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
+            ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
+        )
+
+        if isinstance(i,int):
+            for i_linestyle, (k,v) in enumerate(linestyles.items()):
+                if i_linestyle == i:
+                    return v
+        elif isinstance(name,str):
+            for k,v in linestyles.items():
+                if k == name:
+                    return v
+           
     def plot(self,
             x_name, 
             x_min=None,
@@ -85,7 +119,6 @@ class Pyposmat1DKdeDensityPlots(PyposmatDataFileVisualization):
                     norm = _cm_norm,
                     cmap = _cm_cmap)
 
-            i = 0
 
             if show_iterations is None:
                 _show_iterations = [k for k in self.df]
@@ -93,21 +126,26 @@ class Pyposmat1DKdeDensityPlots(PyposmatDataFileVisualization):
                 _show_iterations = show_iterations
 
             print(_show_iterations)
-            for k,df in self.df.items():
+            i_linestyle = 0
+            for i, (k,df) in enumerate(self.df.items()):
                 if i in _show_iterations:
                     print('iteration {}: working from file {}, n_rows:{}'.format(i,k,df[x_name].shape[0]))
+
                     X = np.arange(x_min,x_max,x_step)
                     kde = gaussian_kde(df[x_name])
+                    linestyle = self.get_linestyle(i_linestyle)
+                    color = _cm_map.to_rgba(i)
+
                     plot_handles[k] = ax.plot(
                             X,
                             kde(X),
-                            '-',
+                            linestyle=self.get_linestyle(i_linestyle),
                             label=plt_labels[i],
                             color = _cm_map.to_rgba(i)
                     )
+                    i_linestyle += 1
                 else:
                     print('iteration {}: skipping'.format(i))
-                i += 1
 
         elif type(self.df) is pd.DataFrame:
             print(self.filename)
@@ -173,12 +211,7 @@ if __name__ == "__main__":
         print("trying to create the plot for parameter {}".format(pn))
         plot_fn = "{}.eps".format(pn)
         try:
-            myplot.plot(
-                x_name=pn,
-                filename=plot_fn,
-                colormap = colormap,
-                show_iterations=show_iterations
-            )
+            myplot.plot(x_name=pn,filename=plot_fn,colormap = colormap, show_iterations=show_iterations)
             msg = "saving kde plot of, {}, to {}".format(pn,plot_fn)
             print(msg)
         except ZeroDivisionError as e:

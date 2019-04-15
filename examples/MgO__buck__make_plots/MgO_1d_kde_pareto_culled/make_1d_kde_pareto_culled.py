@@ -94,14 +94,14 @@ class Pyposmat1DHistogramWithDensityPlots(PyposmatDataFileVisualization):
         results_hdl= ax.plot(
                 X,
                 results_kde(X),
-                '--',
+                ':',
                 label='results')
 
         pareto_kde = gaussian_kde(self.pareto_df[x_name])
         pareto_hdl = ax.plot(
                 X,
                 pareto_kde(X),
-                '--',
+                '-.',
                 label='pareto')
 
         culled_kde = gaussian_kde(self.culled_df[x_name])
