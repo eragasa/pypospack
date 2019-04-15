@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH --job-name=Si_sw              # Job name
+#SBATCH --job-name=Si_sw_2            # Job name
 #SBATCH --mail-type=NONE              # Mail events (NONE, BEGIN, END, FAIL)
 #SBATCH --ntasks=64                   # Number of MPI ranks
 #SBATCH --cpus-per-task=1             # Number of cores per MPI rank 
