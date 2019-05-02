@@ -15,8 +15,7 @@ for i in range(sampling['n_iterations']):
     sampling[i]['type'] = 'kde'
     sampling[i]['n_samples'] = 10000
 # <---------------- OVERRIDE DEFAULT CONFIGURATION, FOR I=0
-sampling[0]['type'] = 'from_file'
-sampling[0]['file']= 'data/pyposmat.kde.0.out'
+sampling[0]['type'] = 'parametric'
 
 #-----------------------------------------------------------------------------
 # DEFINE POTENTIAL FORMALISM
@@ -46,8 +45,8 @@ parameter_distribution = OrderedDict()
 
 parameter_distribution['p_NiNi_V0'] = [
         'uniform',{
-            'a':-4e-3,
-            'b':-3e-3}]
+            'a':-4e3,
+            'b':-3e3}]
 
 parameter_distribution['p_NiNi_r1'] = [
         'uniform',{
@@ -71,28 +70,28 @@ parameter_distribution['p_NiNi_delta'] = [
 
 parameter_distribution['p_NiNi_y'] = [
         'uniform',{
-            'a':19,
-            'b':20}]
+            'a':18.0,
+            'b':21.0}]
 
 parameter_distribution['p_NiNi_gamma'] = [
          'uniform',{
             'a':1e2,
-            'b':1e3}]
+            'b':2e2}]
 
 parameter_distribution['p_NiNi_B0'] = [
          'uniform',{
             'a':1e5,
-            'b':2e5}]
+            'b':1.5e5}]
 
 parameter_distribution['p_NiNi_C0'] = [
          'uniform',{
-            'a':2e5,
-            'b':3e5}]
+            'a':0.15,
+            'b':0.25}]
 
 parameter_distribution['p_NiNi_r0'] = [
          'uniform',{
-            'a': -4,
-            'b': -3}]
+            'a': -3.5,
+            'b': -2.5}]
 
 parameter_distribution['p_NiNi_beta'] = [
          'uniform',{
