@@ -137,7 +137,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
                 # V=0, where r <= _rcut
                 V[np.where(r >= _rcut)] = 0.0
 
-                self.potential_evaluations[_pair_name] = copy.deepcopy(V)
+                self.potential_evaluations[pair_name] = copy.deepcopy(V)
 
         return self.potential_evaluations
 

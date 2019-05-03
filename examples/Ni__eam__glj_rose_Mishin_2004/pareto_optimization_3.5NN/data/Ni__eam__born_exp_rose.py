@@ -25,7 +25,12 @@ potential_formalism['potential_type'] = 'eam'
 potential_formalism['symbols'] = ['Ni']
 potential_formalism['setfl_filename'] = None
 potential_formalism['pair_type'] = 'generalized_lj'
-potential_formalism['density_type'] = 'eam_dens_mishin2003'
+#potential_formalism['density_type'] = 'eam_dens_mishin2003'
+# The units and value of the A0 fitting parameter
+# in the density function are not listed in the paper
+# use a more general density function until this is resolved
+# Seaton - May 2, 2019
+potential_formalism['density_type'] = 'eam_dens_exp'
 potential_formalism['embedding_type'] = 'eam_embed_eos_rose'
 
 # <---------------- THESE ARE NECESSARY FOR DETERMINING THE SETFL FILE
@@ -98,6 +103,22 @@ parameter_distribution['p_NiNi_beta'] = [
             'a': 0.25e-2,
             'b': 0.75e-2}]
 
+# exponential density function parameters
+parameter_distribution['d_Ni_rho0'] = [
+        'uniform', {
+            'a': 1.0,
+            'b': 4.0}]
+
+parameter_distribution['d_Ni_beta'] = [
+        'uniform', {
+            'a': 2.0,
+            'b': 7.0}]
+
+parameter_distribution['d_Ni_r0'] = [
+        'uniform', {
+            'a': 1.0,
+            'b': 5.0}]
+
 # parameters - Rose Equation of State
 parameter_distribution['e_Ni_latticetype'] = [
         'equals','fcc']
@@ -111,10 +132,10 @@ parameter_distribution['e_Ni_a0'] = [
 # PARAMETER CONSTRAINTS
 #------------------------------------------------------------------------------
 parameter_constraints = OrderedDict()
-parameter_constraints['p_NiNi_phi0 > 0'] = 'p_NiNi_phi0 > 0.'
+#parameter_constraints['p_NiNi_phi0 > 0'] = 'p_NiNi_phi0 > 0.'
 parameter_constraints['p_NiNi_gamma > 0'] = 'p_NiNi_gamma > 0.'
-parameter_constraints['d_Ni_rho0 > 0'] = 'd_Ni_rho0 > 0.'
-parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
+#parameter_constraints['d_Ni_rho0 > 0'] = 'd_Ni_rho0 > 0.'
+#parameter_constraints['d_Ni_beta > 0'] = 'd_Ni_beta > 0.'
 #------------------------------------------------------------------------------
 # STRUCTURE DATABASE DEFINITION
 #------------------------------------------------------------------------------
