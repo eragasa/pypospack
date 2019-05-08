@@ -226,11 +226,13 @@ class PyposmatDataFile(object):
                     values.append(tokens[i])
                 elif v == 'latticetype':
                     values.append(tokens[i])
+                # I think the latticetype branch is supposed to handle this but fails to
+                # Seaton 5/8/19
                 else:
                     try:
                         values.append(float(tokens[i]))
-                    except:
-                        raise
+                    except ValueError:
+                        values.append(tokens[i])
             table.append(values)
 
         self.df = pd.DataFrame(data=table, columns=self._names)

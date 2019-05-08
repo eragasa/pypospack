@@ -19,7 +19,7 @@ from pypospack.exceptions import LammpsSimulationError
 class AbstractLammpsSimulation(Task):
     """ Calculates cohesive energy
 
-    This is an abstract data class which defines the attributes and methods 
+    This is an abstract data class which defines the attributes and methods
     necessary to interact with the Workflow manager.  A default implementation
     has been created for this class.  This class calculates the energy of
     a simulation cell.  No structural or positions are calculated.
@@ -45,7 +45,7 @@ class AbstractLammpsSimulation(Task):
         potential(pypospack.potential.Potential): the potential class
         structure_filename(str)
         structure(pypospack.io.vasp.Poscar): the structure
-        config(:obj:'list' of :obj:'str'): a list of attributes required to 
+        config(:obj:'list' of :obj:'str'): a list of attributes required to
             configure this LAMMPS task.
         config_map(dict):
         potential_map(dict):
@@ -93,7 +93,7 @@ class AbstractLammpsSimulation(Task):
         # configuration
         self.configuration = OrderedDict()
         self.task_type = task_type
-        
+
         self.conditions_INIT = None
         self.conditions_CONFIG = None
         self.conditions_READY = None
@@ -108,7 +108,7 @@ class AbstractLammpsSimulation(Task):
                 restart=restart)
         self.task_requires = copy.deepcopy(task_requires)
 
-    
+
     @property
     def parameters(self):
         if self.potential is None:
@@ -119,7 +119,7 @@ class AbstractLammpsSimulation(Task):
     @parameters.setter
     def parameters(self,parameters):
         self.potential.parameters = parameters
-   
+
     @property
     def symbols(self):
         return self.potential.symbols
@@ -133,7 +133,7 @@ class AbstractLammpsSimulation(Task):
         """
         if self.potential is None:
             return
-        
+
         if parameters is not None:
             _parameters = copy.deepcopy(parameters)
             self.parameters = _parameters
@@ -141,11 +141,11 @@ class AbstractLammpsSimulation(Task):
         if parameters in self.configuration:
             _parameters = copy.deepcopy(self.configuration['parameters'])
             self.parameters = _parameters
-    
+
     def on_init(self,configuration=None):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
-       
+
         try:
             self.configure_potential(potential=self.configuration['potential'])
         except KeyError:
@@ -160,10 +160,10 @@ class AbstractLammpsSimulation(Task):
                 self.lammps_setfl_filename = "{}.eam.alloy".format(
                         "".join(self.potential.symbols))
 
-            # if setfl_filename_src is set, then we just copy the 
+            # if setfl_filename_src is set, then we just copy the
             # EAM potential file.
 
-            
+
             if all([self.potential.obj_pair is None,
                     self.potential.obj_density is None,
                     self.potential.obj_embedding is None,
@@ -183,7 +183,7 @@ class AbstractLammpsSimulation(Task):
                     print('eam_setfl_filename_src:{}'.format(eam_setfl_filename_src))
                     print('eam_setfl_filename_dst:{}'.format(eam_setfl_filename_dst))
                     raise
-            
+
             elif all([self.potential.obj_pair is not None,
                       self.potential.obj_density is not None,
                       self.potential.obj_embedding is not None]):
@@ -204,7 +204,7 @@ class AbstractLammpsSimulation(Task):
                             obj_embedding=str(type(self.potential.obj_embedding)),
                             setfl_filename=str(self.potential.setfl_filename))
                 raise ValueError(msg_err)
-        
+
         self.set_potential_parameters()
         if self.configuration['parameters'] is not None:
             self.parameters = self.configuration['parameters']
@@ -227,14 +227,14 @@ class AbstractLammpsSimulation(Task):
             if isinstance(self.potential,Potential):
                 _parameters = self.configuration['parameters']
                 self.potential.parameters = _parameters
-        
+
         # writing eam potential files
         if type(self.potential) is EamPotential:
             if self.lammps_setfl_filename is None:
                 self.lammps_setfl_filename = "{}.eam.alloy".format(
                         "".join(self.potential.symbols))
 
-            # if setfl_filename_src is set, then we just copy the 
+            # if setfl_filename_src is set, then we just copy the
             # EAM potential file.
             if all([self.potential.obj_pair is None,
                     self.potential.obj_density is None,
@@ -299,7 +299,7 @@ class AbstractLammpsSimulation(Task):
         self.update_status()
         if self.is_fullauto:
             self.on_update_status()
-   
+
     def on_post(self,configuration=None):
         self.results_processed = True
         self.update_status()
@@ -337,19 +337,19 @@ class AbstractLammpsSimulation(Task):
             self.conditions_CONFIG['parameters_processed'] = False
         else:
             self.conditions_CONFIG['parameters_processed']\
-                    = all([v is not None 
+                    = all([v is not None
                         for k,v in self.potential.parameters.items()])
 
     def get_conditions_ready(self):
         self.conditions_READY = OrderedDict()
-    
+
     def get_conditions_running(self):
         self.conditions_RUNNING = OrderedDict()
         self.conditions_RUNNING['process_initialized'] = self.process is not None
-   
+
     def get_conditions_post(self):
         self.conditions_POST = OrderedDict()
-        
+
         if self.process is None:
             _process_finished = False
         else:
@@ -361,12 +361,12 @@ class AbstractLammpsSimulation(Task):
             elif _poll_result == 1:
                 if self.conditions_ERROR is None:
                     self.conditions_ERROR=OrderedDict()
-               
+
                 lammps_out_fn = os.path.join(self.task_directory,'lammps.out')
                 with open(lammps_out_fn) as f:
                     lines = f.readlines()
                     last_line = lines[len(lines)-1]
-                
+
                 if "Neighbor list overflow" in last_line:
                     m  = "Neighbor list overflow"
                 else:
@@ -380,21 +380,21 @@ class AbstractLammpsSimulation(Task):
                     m = m.format(_poll_result)
 
                 self.conditions_ERROR['lmps_bin_err'] = m
-                raise LammpsSimulationError(m,parameters=self.potential.parameters)
+                raise LammpsSimulationError(m, parameters=self.potential.parameters)
             else:
                 if self.conditions_ERROR is None:
                     self.conditions_ERROR= OrderedDict()
                 m = 'Lammps exited with status {}.'.format(_poll_result)
-                self.conditions_ERROR['lmps_bin_err'] = m 
-                raise LammpsSimulationError(m)
-        
+                self.conditions_ERROR['lmps_bin_err'] = m
+                raise LammpsSimulationError(m, parameters=self.potential.parameters)
+
         self.conditions_POST['process_finished'] = _process_finished
 
 
     def get_conditions_finished(self):
         self.conditions_FINISHED = OrderedDict()
-        self.conditions_FINISHED['is_processed'] = self.results_processed  
-    
+        self.conditions_FINISHED['is_processed'] = self.results_processed
+
     def get_conditions_error(self):
         if self.conditions_ERROR is None:
             self.conditions_ERROR = OrderedDict()
@@ -408,10 +408,10 @@ class AbstractLammpsSimulation(Task):
         cmd_str = '{} -i lammps.in > lammps.out'.format(_lammps_bin)
 
         # change context directory
-        
+
         _cwd = os.getcwd()
         os.chdir(self.task_directory)
-        
+
         # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true/4791612#4791612
         #self.process = subprocess.Popen(
         #        cmd_str,
@@ -433,7 +433,7 @@ class AbstractLammpsSimulation(Task):
         self.results = OrderedDict()
         self.get_variables_from_lammps_output(
                 variables = lammps_result_names)
-        
+
         try:
             # calculate cohesive energy
             total_energy = self.results['tot_energy']
@@ -497,7 +497,7 @@ class AbstractLammpsSimulation(Task):
     def write_potential_file(self):
         if self.potential is None:
             return
-        
+
         _setfl_dst_filename = None
 
         # <-------- FOR EAM POTENTIALS
@@ -507,7 +507,7 @@ class AbstractLammpsSimulation(Task):
             _setfl_dst_filename = os.path.join(self.task_directory,_filename)
             _str_out = self.potential.lammps_potential_section_to_string(
                 setfl_dst_filename=_setfl_dst_filename)
-        
+
         # <-------- FOR STILLINGER WEBER POTENTIALS
         elif isinstance(self.potential,StillingerWeberPotential):
             # define the filename --- SiO.parameters, Si.parameters
@@ -516,13 +516,13 @@ class AbstractLammpsSimulation(Task):
 
             # set the name of the output file
             self.potential.lmps_parameter_filename = _p_fname
-            
+
             # get the string of potential.mod
             _str_out = self.potential.lammps_potential_section_to_string()
 
             # write out the potential parameter file
             _str_lmps_params = self.potential.lammps_parameter_file_to_string()
-            
+
             _p_fname_dst = os.path.join(self.task_directory,_p_fname)
             with open(_p_fname_dst,'w') as f:
                 f.write(_str_lmps_params)
@@ -531,12 +531,12 @@ class AbstractLammpsSimulation(Task):
             _str_out = self.potential.lammps_potential_section_to_string()
 
         _str_out += "\n"
-        
-        # <-------- EWALD CHARGE SUMMATION METHOD 
+
+        # <-------- EWALD CHARGE SUMMATION METHOD
         if self.potential.is_charge:
             _str_out += "kspace_style pppm 1.0e-5\n"
             _str_out += "\n"
-        
+
         # <-------- TREATMENT OF NEAREST NEIGHBORS
         _str_out += "neighbor 1.0 bin\n"
         _str_out += "neigh_modify every 1 delay 0 check yes\n"
@@ -547,10 +547,10 @@ class AbstractLammpsSimulation(Task):
                 self.lammps_potentialmod_filename)
         with open(_lammps_potentialmod_filename,'w') as f:
             f.write(_str_out)
-    
+
     def write_lammps_input_file(self,filename='lammps.in'):
-        """ writes LAMMPS input file 
-        
+        """ writes LAMMPS input file
+
         Args:
             filename (str): name of the input file for LAMMPS. Default is
                 'lammps.in'.
@@ -570,11 +570,11 @@ class AbstractLammpsSimulation(Task):
                 self._lammps_input_run_minimization(),
                 self._lammps_input_out_section()])
         return(str_out)
-            
+
     def write_structure_file(self,filename=None):
         if filename is not None:
             self.lammmps_structure_filename = filename
-        
+
         _filename = os.path.join(
                 self.task_directory,
                 self.lammps_structure_filename)
@@ -583,11 +583,11 @@ class AbstractLammpsSimulation(Task):
         else:
             _atom_style = 'atomic'
         _symbol_list = self.potential.symbols
-    
+
         # instatiate using lammpsstructure file
         self.lammps_structure = lammps.LammpsStructure(\
                 obj=self.structure)
-        
+
         self.lammps_structure.write(\
                 filename=_filename,
                 symbol_list=_symbol_list,
@@ -626,7 +626,7 @@ class AbstractLammpsSimulation(Task):
 
         _potential_type = _potential['potential_type']
         if _potential_type == 'eam':
-            
+
             if 'setfl_filename' not in _potential:
                 _potential['setfl_filename'] = None
                 self.configuration['potential']['setfl_filename'] = None
@@ -719,7 +719,7 @@ class AbstractLammpsSimulation(Task):
             '# ---- define settings\n'
             'compute eng all pe/atom\n'
             'compute eatoms all reduce sum c_eng\n'
-            '# ---- run minimization\n'            
+            '# ---- run minimization\n'
             'reset_timestep 0\n'
             'fix 1 all box/relax aniso 0.0 vmax 0.001\n'
             'thermo 10\n'
