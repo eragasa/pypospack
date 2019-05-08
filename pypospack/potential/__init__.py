@@ -55,18 +55,19 @@ def determine_3body_triplets(symbols):
 from pypospack.potential.potential import Potential
 from pypospack.potential.pair import PairPotential
 
-
 #------------------------------------------------------------------------------
 # These are pair potentials.
 #------------------------------------------------------------------------------
 from pypospack.potential.pair_morse import MorsePotential
 from pypospack.potential.pair_buckingham import BuckinghamPotential
 from pypospack.potential.pair_bornmayer import BornMayerPotential
+from pypospack.potential.pair_lj import LennardJonesPotential
 from pypospack.potential.pair_general_lj import GeneralizedLennardJonesPotential
 pair_potentials = [
         'buckingham',
         'morse',
         'bornmayer'
+        'lj'
         'general_lj'
 ]
 

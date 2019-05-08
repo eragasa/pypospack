@@ -9,49 +9,39 @@ from collections import OrderedDict
 from pypospack.potential import PairPotential
 from pypospack.potential import determine_symbol_pairs
 
-def func_zope_mishin_mollify(r,r_cut,h):
-    """
-    This is the cutoff function specified
+def func_lj(r,epsilon,sigma,r_cut_pair=None):
+    assert isinstance(r, np.ndarray)
+    assert isinstance(epsilon,float)
+    assert isinstance(sigma,float)
+    assert isinstance(r_cut_pair,float) or r_cut_pair is None
 
-    References:
-        Zope and Mishin, Phys. Rev. B. 68, 024102 2003
-    """
-    x = (r-r_cut)/h
-    if x >= 0.: 
-        return 0.
-    else:
-        return x**4./(1.+x**4.)
-    return psi
+    phi = 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
 
-def func_generalized_lj(r,b1,b2,r1,V0,delta,r_cut=None,h=None):
+    return phi
 
-    _psi = None  # mollifier function
-    _phi = None  # pair potential
-
-    # evaluate mollify function
-    if (r_cut is not None) and (h is not None):
-        _psi = func_zope_mishin_mollify(r,r_cut,h)
-    else:
-        _psi = 1.
-
-
-    _phi = _psi*((V0/(b2-b1))*((b2/((r/r1)**b1))-(b1/((r/r1)**b2))) + delta)
-    return _rho
-
-class GeneralizedLennardJones(PairPotential):
+class LennardJonesPotential(PairPotential):
     """Potential implementation of the generalized Leonnard Jones Function
 
     Args:
         symbols(list): a list of chemical symbols.
+
+    Notes:
+        r_cut_global = global cutoff for Lennard Jonnes interactions [Angs]
+        epsilon = controls the depth of the well
+        sigma = controls the location of the well
+        r_cut_pair_lj = pair cutoff for the LJ potential
+        r_cut_pair_colulomb = pair cutoff for the coulomb potential
     """
 
+    RCUT_GLOBAL_LJ_DEFAULT = 10.0
+    RCUT_GLBOAL_COULOMB_DEFAULT = 10.0
+    global_potential_parameters = ['r_cut_global']
+    pair_potential_parameters = ['epsilon','sigma','r_cut_pair','r_cut_coulomb']
+
     def __init__(self,symbols):
-        self.pair_potential_parameters = [
-                'b1','b2','r1','V0', 'delta','r_cut','h'
-        ]
         PairPotential.__init__(self,
                 symbols,
-                potential_type='morse',
+                potential_type='lj',
                 is_charge=False)
 
 
@@ -62,6 +52,8 @@ class GeneralizedLennardJones(PairPotential):
         )
         self.parameter_names = []
         for s in self.symbol_pairs:
+            for p in self.global_potential_parameters:
+                self.parameter_names.append(p)
             for p in self.pair_potential_parameters:
                 self.parameter_names.append(
                         self.PYPOSPACK_PAIR_FORMAT.format(
@@ -96,26 +88,30 @@ class GeneralizedLennardJones(PairPotential):
 
         # <----------------------------copy a local of the parameters 
         for k in self.parameters:
-            self.parameters[k] = parameters[k]
+            try:
+                self.parameters[k] = parameters[k]
+            except KeyError as e:
+                if k == 'r_cut_global':
+                    self.parameters[k] = None
+                elif k.endswith('r_cut_pair'):
+                    self.parameters[k] = None
+                elif k.endswith('r_cut_coulomb'):
+                    self.parameters[k] = None
+                else:
+                    raise
 
-        # <----------------------------evaluate the parameters now
+        # <-------------------------evaluate the parameters now
         self.potential_evaluations = OrderedDict()
         for s in self.symbol_pairs:
             _pair_name = '{}{}'.format(s[0],s[1])
-            _V = func_generalized_lj(
+            self.potential_evaluations[_pair_name] = func_lj(
                     r,
-                    b1 = self.parameters['{}{}_b1'.format(s[0],s[1])],
-                    b2 = self.parameters['{}{}_b2'.format(s[0],s[1])],
-                    r1 = self.parameters['{}{}_r1'.format(s[0],s[1])],
-                    V0 = self.parameters['{}{}_V0'.format(s[0],s[1])],
-                    delta = self.parameters['{}{}_delta'.format(s[0],s[1])],
-                    r_cut = self.parameters['{}{}_r_cut'.format(s[0],s[1])],
-                    h = self.parameters['{}{}_h'.format(s[0],s[1])]
+                    epsilon = self.parameters['{}{}_epsilon'.format(s[0],s[1])],
+                    sigma = self.parameters['{}{}_sigma'.format(s[0],s[1])],
+                    r_cut_pair = self.parameters['{}{}_r_cut_pair'.format(s[0],s[1])]
             )
-            
-            self.potential_evaluations[_pair_name] = copy.deepcopy(_V)
         
-        return copy.deepcopy(self.potential_evaluations)
+        return self.potential_evaluations
     
     # same as parent class
     def lammps_potential_section_to_string(self):

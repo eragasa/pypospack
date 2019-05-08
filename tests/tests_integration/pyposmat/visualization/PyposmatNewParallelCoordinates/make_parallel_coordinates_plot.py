@@ -1,3 +1,5 @@
+import os
+import pypospack.utils
 from pypospack.pyposmat.data import PyposmatDataFile, PyposmatConfigurationFile
 from pypospack.pyposmat.visualization.parallel_plot_new import PyposmatParallelCoordinatesPlot
 
