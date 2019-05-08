@@ -275,7 +275,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
                             xtol=a_tol)
                 except ValueError as e:
                     # this error is thrown due to the brent bounding bracket [a, b] not including a zero
-                    raise PypospackBadEamEosError
+                    raise PypospackBadEamEosError(parameters=parameters)
 
                 # here we determine astar as in equation 5 in Foiles. Phys Rev B (33) 12. Jun 1986 
                 # 160.22 is the conversion with _esub in eV, _B in GPa, and _omega in Angs^3
