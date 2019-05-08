@@ -1,6 +1,64 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import numpy as np
+from pypospack.pyposmat.data import PyposmatConfigurationFile
+from pypospack.pyposmat.data import PyposmatDataFile
+
+class PyposmatFigure(object):
+    def __init__(self,config=None):
+        assert config is None \
+               or isinstance(config,PyposmatConfigurationFile) \
+               or isinstance(config,str)
+
+        self.fig = None
+        self.axes = None
+
+        self.o_config = None
+        self.initialize_configuration(config=config)
+
+    def initialize_configuration(self,config):
+        assert config is None \
+               or isinstance(config,PyposmatConfigurationFile) \
+               or isinstance(config,str)
+
+        if config is None:
+            self.o_config = None
+        elif isinstance(config,PyposmatConfigurationFile):
+            self.o_config = config
+        elif isinstance(config,str):
+            self.o_config = PyposmatConfigurationFile()
+            self.o_config.read(filename,config)
+        else:
+            m = (
+                    "config must be None,PyposmatConfigurationFile, or str\n"
+                    "type(config)={}\n"
+                )
+            m = m.format(str(type(config)))
+
+            raise TypeError(m)
+
+    def initialize_figure(nrows=1,ncols=1,figsize=(4,4),sharey=True):
+
+        self.fig, self.axes = plt.subplots(nrows=nrows,
+                                           ncols=ncols, 
+                                           figsize=figsize, 
+                                           sharey=True)
+
+    def save_figure(self,filename):
+        plt.savefig(filename) 
+        self.figure
+
+class PyposmatParallelCoordinatesPlot2(PyposmatFigure):
+    """ Parallel coordinates plotting object
+
+    """
+    def __init__(self,excluded_names=[]):
+
+        assert isinstance(excluded_names,list)
+        
+        PyposmatFigure(self)
+
+        self.excluded_names=excluded_names
 
 
 class PyposmatParallelCoordinatesPlot(object):
@@ -24,6 +82,21 @@ class PyposmatParallelCoordinatesPlot(object):
         self._ncols = None  # number of data columns determined by first addition
         self._x = None  # will be set to the range of x
         self._patches = []  # store matplotlib patch objects here to generate legend at end 
+
+    @property
+    def config(self):
+        return self._config
+
+    @config.setter
+    def config(self,config):
+        if isinstance(config,str):
+            self._config = PyposmatConfigurationFile()
+            self._config.read(filename=config)
+        elif isinstance(config,PyposmatConfigurationFile):
+            self._config = config
+        else:
+            m = "type(config)={}".format(str(type(config)))
+            raise TypeError(m)
 
     def add_dataframe(self, color, label, obj, names=None):
         """Add data to the plot directly from a pandas DataFrame.
@@ -68,8 +141,14 @@ class PyposmatParallelCoordinatesPlot(object):
     def add_reference_data(self, color, label, obj=None, names=None):
         raise NotImplementedError
 
-    def make_plot(self, filename, xlabels, ylabel, title, 
-                  ylim=None, plot_origin_line=True, legend_loc="upper right"):
+    def make_plot(self, 
+                  filename, 
+                  xlabels, 
+                  ylabel, 
+                  title=None, 
+                  ylim=None, 
+                  plot_origin_line=True, 
+                  legend_loc="upper right"):
         """Finalizes the plot construction.
         
         Args:

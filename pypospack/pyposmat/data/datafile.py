@@ -84,6 +84,10 @@ class PyposmatDataFile(object):
         (n_rows,n_cols) = self.df.shape
         return n_rows
 
+    @property
+    def normalized_error_names(self):
+        return ["{}.nerr".format(qn) for qn in self.qoi_names]
+
     def get_header_string(self,
             w_cluster_id = False,
             parameter_names = None,
@@ -266,9 +270,12 @@ class PyposmatDataFile(object):
                 en = "{}.err".format(qn)
                 nen = "{}.nerr".format(qn)
                 q = qoi_targets[qn]
-                self.df[nen]=self.df[en]/q - q
 
-            self.normalized_names = ["{}.nerr".format(qn) for qn in self.qoi_names]
+                epsilon = self.df[en]
+                self.df[nen]= epsilon/q
+
+            self.normalized_names = self.normalized_error_names
+            #self.normalized_names = ["{}.nerr".format(qn) for qn in self.qoi_names]
             self.normalization_type = 'by_qoi_type'
 
     def write(self,filename):

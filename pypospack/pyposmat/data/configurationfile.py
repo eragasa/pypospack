@@ -55,6 +55,10 @@ class PyposmatConfigurationFile(object):
             self.read(filename=self.filename)
 
     @property
+    def normalized_error_names(self):
+        return ["{}.nerr".format(k) for k in self.qoi_names]
+
+    @property
     def n_iterations(self):
         """int:the number of iterations in this fitting process."""
         return self.sampling_type['n_iterations']
