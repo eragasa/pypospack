@@ -42,6 +42,18 @@ reference_potentials['PG'] = OrderedDict([
     ('SiSiSi_tol',0.0)
 ])
 
+def write_reference_parameters(filename,parameter_names,parameter_sets):
+    with open(filename,'w') as f:
+        f.write(",".join(names) + "\n")
+        f.write(",".join(types) + "\n")
+        for pot_name,pot_parameters in parameter_sets.items():
+            f.write(",".join(
+                [pot_name] \
+                + [str(pot_parameters[k]) for k in parameter_names]
+                ) + "\n"
+            )
+
+
 if __name__ == "__main__":
     import os
     reference_fn = 'pyposmat.reference.in'
@@ -54,12 +66,7 @@ if __name__ == "__main__":
     names = ['sim_id'] + parameter_names
     types = ['sim_id'] + len(parameter_names)*['param']
 
-    with open(reference_fn,'w') as f:
-        f.write(",".join(names) + "\n")
-        f.write(",".join(types) + "\n")
-        for pot_name,pot_parameters in reference_potentials.items():
-            f.write(",".join(
-                [pot_name] \
-                + [str(pot_parameters[k]) for k in parameter_names]
-                ) + "\n"
-            )
+    write_reference_parameters(filename=reference_fn,
+                               parameter_names=parameter_names,
+                               parameter_sets=reference_potentials)
+

@@ -4,10 +4,10 @@ from collections import OrderedDict
 import pypospack.utils
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
-from pypospack.pyposmat.visualization.parallel_plot_new import PyposmatParallelCoordinatesPlot
+#from pypospack.pyposmat.visualization.parallel_plot_new import PyposmatParallelCoordinatesPlot
+from parallel_coordinates_plot import PyposmatParallelCoordinatesPlot
 
 parallel_plot_config= OrderedDict()
-parallel_plot_config['args'] = OrderedDict()
 parallel_plot_config['p_3.5_q_0.5'] = OrderedDict()
 parallel_plot_config['p_4.0_q_0.0'] = OrderedDict()
 parallel_plot_config['p_q_free'   ] = OrderedDict()
@@ -53,7 +53,7 @@ parallel_plot_config['p_q_free']['config_fn'] = os.path.join(
             'pyposmat.config.in')
 
 def determine_ylimits():
-    return (-1,1)
+    return (-0.5,0.5)
 
 def make_latex_table(config,
                      data,
@@ -97,6 +97,20 @@ if __name__ == "__main__":
         shutil.rmtree(plot_dir)
     os.mkdir(plot_dir)
 
+    o_plot = PyposmatParallelCoordinatesPlot()
+    o_plot.create_subplots()
+    for k,v in parallel_plot_config.items():
+        print(v)
+        o_plot.plot(
+                config=v['config_fn'],
+                data=v['data_fn'],
+                label=v['label'],
+                color=v['color'],
+                nsmallest=20,
+                alpha=0.7
+                )
+    o_plot.show_figure()
+    exit()
     # initialization
     o_plot = PyposmatParallelCoordinatesPlot()
 
@@ -116,6 +130,9 @@ if __name__ == "__main__":
             o_data.create_normalized_errors(
                     normalize_type='by_qoi_target',
                     qoi_targets=o_config.qoi_targets)
+
+            o_data.df['score'] = o_data.df[o_config.normalized_error_names].abs().sum(axis=1)
+            
             header_fmt = "{:20} {:10} {:10} {:10} {:10} {:10}"
             row_fmt    = "{:20} {:+10.6f}  {:+10.6f}  {:+10.6f}  {:+10.6f}  {:+10.6f}"
 
@@ -140,26 +157,20 @@ if __name__ == "__main__":
                 q_max = o_data.df[nen].max()
                 q_target = 0.
                 print(row_fmt.format(nen,q_target,q_mean,q_std,q_min,q_max))
-            #if ymin is None:
-            #    ymin = o_data.df[o_data.normalized_error_names].min()
-            #else:
-            #    ymin = min(ymin,o_data.df[o_data.normalized_error_names].min())
-
-            #if ymax is None:
-            #    ymax = o_data.df[o_data.normalized_error_names].max()
-            #else:
-            #    ymax = max(ymax,o_data.df[o_data.normalized_error_names].max())
 
             o_plot.add_dataframe(
-                color=v['color'],
-                label=v['label'],
-                obj=copy.deepcopy(o_data.df),
-                names=o_data.normalized_names)
+                    data=copy.deepcopy(
+                        o_data.df.nsmallest(20,'score')[o_config.normalized_error_names]),
+                    label=v['label'],
+                    color=v['color'],
+                    alpha=0.7,
+                    names=o_config.normalized_error_names
+                    )
 
             plot_fn = v['plot_fn']
             y_limits = determine_ylimits()
             o_plot.make_plot(
-                    filename=plot_fn, 
+                    filename=v['plot_fn'], 
                     xlabels=o_config.normalized_error_names, 
                     ylabel="% error", 
                     title="Si sw", 

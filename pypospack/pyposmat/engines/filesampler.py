@@ -6,6 +6,7 @@ from collections import OrderedDict
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatLogFile
+from pypospack.pyposmat.data import PyposmatBadParametersFile
 from pypospack.pyposmat.engines import PyposmatEngine
 
 # necessary errors which this class needs to handle
@@ -64,6 +65,7 @@ class PyposmatFileSampler(PyposmatEngine):
         self.configuration_fn = config_fn
         self.datafile_in_fn = data_in_fn
         self.datafile_out_fn = data_out_fn
+        self.pyposmat_badparameters_filename = 'pyposmat.badparameters.out'
 
         self.configuration = None
         self.datafile = None
@@ -228,6 +230,15 @@ class PyposmatFileSampler(PyposmatEngine):
 
     def configure_task_manager(self):
         PyposmatEngine.configure_task_manager(self)
+
+    def configure_pyposmat_badparameters_file(self,filename=None):
+        if filename is not None:
+            assert type(filename) is str
+            self.pyposmat_badparameters_filename = filename
+
+        self.pyposmat_badparameters = PyposmatBadParametersFile(
+                filename=self.pyposmat_badparameters_filename,
+                o_config=self.configuration)
 
     def read_configuration_file(self,filename=None):
         PyposmatEngine.read_configuration_file(self,filename=filename)

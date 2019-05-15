@@ -880,10 +880,13 @@ class PyposmatIterativeSampler(object):
                 data.df = pd.concat([data.df,data_new.df])
 
         nrows = len(data.df)
-        sim_id_fmt = '{:0>2}_{:0>6}'
-        sim_id_str = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
-
-        data.df['sim_id'] = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
+        
+        if self.configuration.sampling_type[i_iteration]['type'] == 'from_file':
+            pass
+        else:
+            sim_id_fmt = '{:0>2}_{:0>6}'
+            sim_id_str = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
+            data.df['sim_id'] = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
 
         if self.configuration.sampling_type[i_iteration]['type'] == "from_file":
             data_new = PyposmatDataFile()
@@ -921,39 +924,52 @@ class PyposmatIterativeSampler(object):
 
         # consolidate rank directories
         badparameters_new = None
+        badparameters_next = None
         for i,v in enumerate(filenames):
-            if i == 0:
-                badparameters_new = PyposmatBadParametersFile(o_config=self.configuration)
-                badparameters_new.read(filename=v)
-            else:
-                badparameters_next = PyposmatBadParametersFile(o_config=self.configuration)
-                badparameters_next.read(filename=v)
+            if badparameters_new is None:
+                try:
+                    badparameters_new = PyposmatBadParametersFile(o_config=self.configuration)
+                    badparameters_new.read(filename=v)
+                except FileNotFoundError as e:
+                    self.log("no bad parameters file at {}".format(v))
 
-                badparameters_new.df = pd.concat([badparameters_new.df,badparameters_next.df])
+            else:
+                try:
+                    badparameters_next = PyposmatBadParametersFile(o_config=self.configuration)
+                    badparameters_next.read(filename=v)
+                    badparameters_new.df = pd.concat([badparameters_new.df,badparameters_next.df])
+                except FileNotFoundError as e:
+                    self.log("no bad parameters file as {}".format(v))
 
         # determine the sim_id for bad parameters of the sim_id
-        nrows = len(badparameters_new.df)
-        sim_id_fmt = '{:0>2}_{:0>6}'
-        sim_id_str = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
-        badparameters_new.df['sim_id'] = sim_id_str
-
-        if self.configuration.sampling_type[i_iteration]['type'] == "from_file":
-            badparameters_new.write(filename=badparameters_fn)
+        if badparameters_new.df is None:
+            # no previous bad paramters found
+            # TODO: need to implement something here to deal with bad parameters
+            pass
 
         else:
-            self.log("merging with candidates from previous simulations")
-            self.log("\tfilename:{}".format(badparameters_fn))
-            badparameters = PyposmatBadParametersFile(o_config=self.configuration)
+            nrows = len(badparameters_new.df)
+            sim_id_fmt = '{:0>2}_{:0>6}'
+            sim_id_str = [sim_id_fmt.format(i_iteration,i) for i in range(nrows)]
+            badparameters_new.df['sim_id'] = sim_id_str
 
-            try:
-                badparameters.read(filename=badparameters_fn)
-                badparameters.df = pd.concat([badparameters.df,badparameters_new.df])
-                badparameters.write(filename=badparameters_fn)
-            except FileNotFoundError as e:
-                if i_iteration == 0:
-                    badparameters_new.write(filename=badparameters_fn)
-                else:
-                    raise
+            if self.configuration.sampling_type[i_iteration]['type'] == "from_file":
+                badparameters_new.write(filename=badparameters_fn)
+
+            else:
+                self.log("merging with bad candidates from previous simulations")
+                self.log("\tfilename:{}".format(badparameters_fn))
+                badparameters = PyposmatBadParametersFile(o_config=self.configuration)
+
+                try:
+                    badparameters.read(filename=badparameters_fn)
+                    badparameters.df = pd.concat([badparameters.df,badparameters_new.df])
+                    badparameters.write(filename=badparameters_fn)
+                except FileNotFoundError as e:
+                    if i_iteration == 0:
+                        badparameters_new.write(filename=badparameters_fn)
+                    else:
+                        raise
 
     def analyze_results(self,
                         i_iteration,

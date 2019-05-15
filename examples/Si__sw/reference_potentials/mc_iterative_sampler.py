@@ -6,7 +6,7 @@ from pypospack.pyposmat.engines import PyposmatIterativeSampler
 
 # set to true, if you want to restart the simulation, and recover from the last iteration
 # which was completed.  
-is_restart = True
+is_restart = False
 
 if __name__ == "__main__":
     pyposmat_data_dir = 'data' 

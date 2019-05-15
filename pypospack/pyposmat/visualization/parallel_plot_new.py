@@ -1,64 +1,10 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+# from pypospack.pyposmat.visualization import PyposmatAbstractPlot
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
-
-class PyposmatFigure(object):
-    def __init__(self,config=None):
-        assert config is None \
-               or isinstance(config,PyposmatConfigurationFile) \
-               or isinstance(config,str)
-
-        self.fig = None
-        self.axes = None
-
-        self.o_config = None
-        self.initialize_configuration(config=config)
-
-    def initialize_configuration(self,config):
-        assert config is None \
-               or isinstance(config,PyposmatConfigurationFile) \
-               or isinstance(config,str)
-
-        if config is None:
-            self.o_config = None
-        elif isinstance(config,PyposmatConfigurationFile):
-            self.o_config = config
-        elif isinstance(config,str):
-            self.o_config = PyposmatConfigurationFile()
-            self.o_config.read(filename,config)
-        else:
-            m = (
-                    "config must be None,PyposmatConfigurationFile, or str\n"
-                    "type(config)={}\n"
-                )
-            m = m.format(str(type(config)))
-
-            raise TypeError(m)
-
-    def initialize_figure(nrows=1,ncols=1,figsize=(4,4),sharey=True):
-
-        self.fig, self.axes = plt.subplots(nrows=nrows,
-                                           ncols=ncols, 
-                                           figsize=figsize, 
-                                           sharey=True)
-
-    def save_figure(self,filename):
-        plt.savefig(filename) 
-        self.figure
-
-class PyposmatParallelCoordinatesPlot2(PyposmatFigure):
-    """ Parallel coordinates plotting object
-
-    """
-    def __init__(self,excluded_names=[]):
-
-        assert isinstance(excluded_names,list)
-        
-        PyposmatFigure(self)
-
-        self.excluded_names=excluded_names
 
 
 class PyposmatParallelCoordinatesPlot(object):
@@ -98,7 +44,12 @@ class PyposmatParallelCoordinatesPlot(object):
             m = "type(config)={}".format(str(type(config)))
             raise TypeError(m)
 
-    def add_dataframe(self, color, label, obj, names=None):
+    def add_dataframe(self, 
+                      data,
+                      label, 
+                      color='black',
+                      alpha=0.7,
+                      names=None):
         """Add data to the plot directly from a pandas DataFrame.
         
         Args:
@@ -109,6 +60,13 @@ class PyposmatParallelCoordinatesPlot(object):
             names (optional) (list of str): Column names to extract from the dataframe.
             - Defaults to all (except excluded) if None.
         """
+
+        assert isinstance(data,pd.DataFrame)
+        assert isinstance(label,str)
+        assert isinstance(color,str)
+        assert isinstance(alpha,float)
+        assert names is None or isinstance(names,list)
+
         if names:
             col_names = [name for name in names if name not in self._excluded_names]
         else:
@@ -119,8 +77,11 @@ class PyposmatParallelCoordinatesPlot(object):
         else:
             if ncols != self._ncols:
                 raise ValueError("additional data must have {} columns of non-excluded data".format(self._ncols))
-        obj = obj[col_names]  # remove undesirable columns
-        self._add_data(color=color, label=label, df=obj)
+        self._add_data(df=data[col_names],
+                       color=color, 
+                       label=label,
+                       alpha=alpha
+                       )
 
 
     def add_datafile(self, color, label, obj, names=None):
@@ -152,11 +113,9 @@ class PyposmatParallelCoordinatesPlot(object):
         """Finalizes the plot construction.
         
         Args:
-            filename (str): File name to save the plot as.
-            xlabels (list of str): Labels on the x axis
-            - It is critically important that the order of these labels
-              has been maintained and matches that of each data addition.
-            ylabel (str): Label for the y axis.
+            filename (str): path where to save the plot file
+            xlabels (list of str): xaxis labels
+            ylabel (str): yaxis labels.
             title (str): Plot title.
             ylim (optional) (tuple): Range of the viewport (min, max) formatted.
             plot_origin_line (optional) (bool): Plot black line across 0 if True.
@@ -181,12 +140,17 @@ class PyposmatParallelCoordinatesPlot(object):
         # set the legend
         plt.legend(handles=self._patches, loc=legend_loc)
         # set the title
-        self.fig.suptitle(title)
+        if title is not None:
+            self.fig.suptitle(title)
         # stack the subplots together
         plt.subplots_adjust(wspace=0, bottom=0.35)
         plt.savefig(filename)
 
-    def _add_data(self, color, label, df):
+    def _add_data(self, 
+                  df,
+                  color, 
+                  label,
+                  alpha=0.7):
         """Plots new data on the existing figure.
         
         Args:
@@ -205,7 +169,7 @@ class PyposmatParallelCoordinatesPlot(object):
             ax.set_xlim((self._x[i], self._x[i+1]))
             # iterate through the data
             for i_row, row in df.iterrows():
-                ax.plot(self._x, row, color=color)
+                ax.plot(self._x, row, color=color,alpha=alpha)
 
     def _init_plot(self, ncols):
         """Initialize a matplotlib plotting object.
@@ -215,5 +179,8 @@ class PyposmatParallelCoordinatesPlot(object):
         """
         self._ncols = ncols
         self._x = range(ncols)
-        self.fig, self.axes = plt.subplots(nrows=1, ncols=ncols-1, figsize=(8, 4), sharey=True)
+        self.fig, self.axes = plt.subplots(nrows=1, 
+                                           ncols=ncols-1, 
+                                           figsize=(5,2.5), 
+                                           sharey=True)
         self._is_exist = True
