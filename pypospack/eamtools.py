@@ -771,14 +771,14 @@ class SeatonSetflReader(object):
         """Elemental symbol pairs specified in the file.
         
         Returns:
-            list of str
+            tuple of str
         """
         pairs = []
-        for i, e1 in enumerate(self.elements()):
+        for i, e1 in enumerate(self.elements):
             for j, e2 in enumerate(self.elements):
                 if i <= j:
                     pairs.append("{}{}".format(e1, e2))
-        return pairs
+        return tuple(pairs)
 
     @property
     def n_rho(self):
@@ -832,8 +832,6 @@ class SeatonSetflReader(object):
 
     def read(self):
         """Reads a setfl file."""
-        assert type(path) is str
-
         body = {
             "embedding_function": {},
             "density_function": {},
@@ -868,7 +866,7 @@ class SeatonSetflReader(object):
 
         for ep in self.element_pairs:
             body["pair_function"][ep] = []
-            for i in rangw(self.n_r):
+            for i in range(self.n_r):
                 float_val = float(values[start+i])
                 body["pair_function"][ep].append(float_val)
             start += self.n_r
