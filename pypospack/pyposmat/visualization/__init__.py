@@ -14,6 +14,9 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.visualization.abstract_plot import PyposmatAbstractPlot
 from pypospack.pyposmat.visualization.datafile_visualization import PyposmatDataFileVisualization
 # specific plots
+from pypospack.pyposmat.visualization.parallel_coordinates_plot \
+        import PyposmatParallelCoordinatesPlot 
 from pypospack.pyposmat.visualization.plot_2d_density_new import Pyposmat2DDensityPlot
 from pypospack.pyposmat.visualization.plot_2d_density import Pyposmat2DDensityPlots
+from pypospack.pyposmat.visualization.qoi_plot import PyposmatQoiPlot
 

@@ -4,7 +4,7 @@ from scipy.stats import gaussian_kde
 from scipy.stats import norm
 #from pypospack.pyposmat.data import PyposmatConfigurationFile
 #from pypospack.pyposmat.data import PyposmatDataFile
-from abstract_plot import PyposmatAbstractPlot
+from pypospack.pyposmat.visualization import PyposmatAbstractPlot
 
 class PyposmatQoiPlot(PyposmatAbstractPlot):
 

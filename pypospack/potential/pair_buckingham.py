@@ -20,11 +20,15 @@ class BuckinghamPotential(PairPotential):
     """
 
     def __init__(self,symbols):
-        self.pair_potential_parameters = ['A','rho','C']
+        PAIR_POTENTIAL_PARAMETERS = ['A','rho','C']
         PairPotential.__init__(self,
                 symbols,
                 potential_type='buckingham',
                 is_charge=True)
+
+        # override the base attributes
+        self.pair_potential_parameters = PAIR_POTENTIAL_PARAMETERS
+
 
     def _init_parameter_names(self):
         self.symbol_pairs = list(determine_symbol_pairs(self.symbols))

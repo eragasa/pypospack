@@ -4,8 +4,7 @@ from collections import OrderedDict
 import pypospack.utils
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
-#from pypospack.pyposmat.visualization.parallel_plot_new import PyposmatParallelCoordinatesPlot
-from parallel_coordinates_plot import PyposmatParallelCoordinatesPlot
+from pypospack.pyposmat.visualization import PyposmatParallelCoordinatesPlot
 
 parallel_plot_config= OrderedDict()
 parallel_plot_config['p_3.5_q_0.5'] = OrderedDict()
@@ -96,7 +95,9 @@ if __name__ == "__main__":
     if os.path.isdir(plot_dir):
         shutil.rmtree(plot_dir)
     os.mkdir(plot_dir)
-
+    
+    figure_fn = os.path.join(plot_dir,'parallel_plot.eps')
+    
     o_plot = PyposmatParallelCoordinatesPlot()
     o_plot.create_subplots()
     for k,v in parallel_plot_config.items():
@@ -107,9 +108,23 @@ if __name__ == "__main__":
                 label=v['label'],
                 color=v['color'],
                 nsmallest=20,
-                alpha=0.7
-                )
+                alpha=0.7)
+
+    ref_config_fn = os.path.join(
+            pypospack.utils.get_pypospack_root_directory(),'data','Si__sw__data',
+            'reference_potentials',
+            'pyposmat.config.in')
+    ref_data_fn = os.path.join(
+            pypospack.utils.get_pypospack_root_directory(),'data','Si__sw__data',
+            'reference_potentials',
+            'pyposmat.kde.1.out')
+    o_plot.plot_reference_potentials(
+            config=ref_config_fn,
+            data=ref_data_fn,
+            linewidth=5)
+            
     o_plot.show_figure()
+    o_plot.save_figure(filename=plot_fn)
     exit()
     # initialization
     o_plot = PyposmatParallelCoordinatesPlot()

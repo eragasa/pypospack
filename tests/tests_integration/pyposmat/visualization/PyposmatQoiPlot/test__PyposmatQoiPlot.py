@@ -3,10 +3,8 @@ import pytest
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 
-from abstract_plot import PyposmatAbstractPlot
-from qoi_plot import PyposmatQoiPlot
-
-
+from pypospack.pyopsmat.visualization import PyposmatAbstractPlot
+from pypospack.pyposmat.visualization import PyposmatQoiPlot
 
 def test__init__no_args():
     o_plot = PyposmatQoiPlot()
