@@ -142,6 +142,48 @@ qoi_constraints['filter_by_cost_function'] = OrderedDict([
 ])
 
 latex_labels = OrderedDict()
+latex_labels['Si_dia.E_coh'] = OrderedDict()
+latex_labels['Si_dia.E_coh']['label'] = '$E_C$'
+latex_labels['Si_dia.E_coh']['units'] = 'eV/atom'
+latex_labels['Si_dia.a0'] =OrderedDict()
+latex_labels['Si_dia.a0']['label'] = '$a0$'
+latex_labels['Si_dia.a0']['units'] = '\\A'
+latex_labels['Si_dia.c11'] = OrderedDict()
+latex_labels['Si_dia.c11']['label'] = r'$c_{11}$'
+latex_labels['Si_dia.c11']['units'] = 'GPa'
+latex_labels['Si_dia.c12'] = OrderedDict()
+latex_labels['Si_dia.c12']['label'] = r'$c_{12}$'
+latex_labels['Si_dia.c12']['units'] = 'GPa'
+latex_labels['Si_dia.c44'] = OrderedDict()
+latex_labels['Si_dia.c44']['label'] = r'$c_{44}$'
+latex_labels['Si_dia.c44']['units'] = 'GPa'
+latex_labels['Si_dia.B'] = OrderedDict()
+latex_labels['Si_dia.B']['label'] = '$B$'
+latex_labels['Si_dia.B']['units'] = 'GPa'
+latex_labels['Si_dia.vac'] = OrderedDict()
+latex_labels['Si_dia.vac']['label'] = '$E_v$'
+latex_labels['Si_dia.vac']['units'] = 'eV'
+latex_labels['SiSiSi_epsilon'] = OrderedDict()
+latex_labels['SiSiSi_epsilon']['label'] = r'$\epsilon$'
+latex_labels['SiSiSi_sigma'] = OrderedDict()
+latex_labels['SiSiSi_sigma']['label'] = r'$\sigma$'
+latex_labels['SiSiSi_lambda'] = OrderedDict()
+latex_labels['SiSiSi_lambda']['label'] = r'$\lambda$'
+latex_labels['SiSiSi_gamma'] = OrderedDict()
+latex_labels['SiSiSi_gamma']['label'] = r'$\gamma$'
+latex_labels['SiSiSi_costheta0'] = OrderedDict()
+latex_labels['SiSiSi_costheta0']['label'] = r'$\cos(\theta)$'
+latex_labels['SiSiSi_A'] = OrderedDict()
+latex_labels['SiSiSi_A']['label'] = r'$A$'
+latex_labels['SiSiSi_B'] = OrderedDict()
+latex_labels['SiSiSi_B']['label'] = r'$B$'
+latex_labels['SiSiSi_p'] = OrderedDict()
+latex_labels['SiSiSi_p']['label'] = r'$p$'
+latex_labels['SiSiSi_q'] = OrderedDict()
+latex_labels['SiSiSi_q']['label'] = r'$q$'
+latex_labels['SiSiSi_tol'] = OrderedDict()
+latex_labels['SiSiSi_tol']['label'] = r'tol'
+
 #------------------------------------------------------------------------------
 # WRITE CONFIGURATION FILE
 # this is currently creating a race condition, where the file is being written
@@ -156,6 +198,7 @@ if __name__ == '__main__':
     configuration.structures = structure_db
     configuration.potential = potential_formalism
     configuration.sampling_type = sampling
+    configuration.latex_labels = latex_labels
     configuration.sampling_distribution = parameter_distribution
     configuration.sampling_constraints = parameter_constraints
     configuration.write(filename=pyposmat_filename_in)
