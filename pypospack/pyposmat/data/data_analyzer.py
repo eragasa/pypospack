@@ -35,6 +35,7 @@ class PyposmatDataAnalyzer(object):
             analysis
         mpi_rank(int): the MPI rank of the process running this code
         mpi_size(int): the MPI rank of the process running this code
+
     """
     
     loss_function_types = ['abs_error','squared_error']
@@ -737,15 +738,17 @@ class PyposmatDataAnalyzer(object):
         """ filter by pareto membership
 
         Calculation of pareto membership by removal of dominated points
+
         Args:
             df(pandas.DataFrame): the dataframe of results.  By default this is set to None,
                 which uses the results_df property from a PyposmatDataFile which was
                 read into this instance.
 
         Returns:
-            (list): a list of integers whic hare the indices of the of the surviving
-                candidate parameterization
-            (OrderedDict): a dictionary containing the information for Pareto membership
+            (tuple): the results of the pareto membership consisting of a :obj:`'list`  of integers 
+            which hare the indices of the of the surviving candidate parameterizations, and an
+            :obj:`OrderedDict` containing the information for Pareto membership
+
         """
 
         assert df is None or isintance(df,pd.DataFrame)
