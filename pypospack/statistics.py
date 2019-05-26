@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+""" implementation of some statistical functions
+
+This module implements some staistical tools which are not currently implemented in
+any widely deployed python package.
+
+"""
 import numpy as np
 import scipy.stats
 
@@ -9,21 +16,25 @@ def kullbach_lieber_divergence(f,g,n):
     divergence pre-metric between two probability distribution functions
     f and g.  
 
-    Arguments:
-
-    f - is a probability distribution function
-    g - is a probability distribution function
-    n - is the number of sampling points
+    Notes:
+        for `f` and `q`, the following classes are supported. scipy.stats.kde.gaussian_kde
+    Args:
+        f (:obj:`scipy.stats.gaussian_kde`): A probability distribution function
+        g (:obj:`scipy.stats.gaussian_kde`): A probability distribution function
+        n (int): The number of sampling points
 
     Returns:
+        tuple: returns a both the KLD convergence value, and the estimated error
+        of the KLD value
 
-    d - the Kullbach-Lieber Divergence value
-    var_d - the variance of the estimate of the Kullbach_Lliber Divergence
+    Raises:
+        Run
 
-    Notes:
-    for f and g, the following classes are supported.
-       scipy.stats.kde.gaussian_kde
     """
+    if isinstance(f,scipy.stats.kde.gaussian_kde):
+        raise TypeError('{} is not a supported distribution for arg f'.format(type(f)))
+    if isinstance(g,scipy.stats.kde.gaussian_kde):
+        raise TypeError('{} is not a supported distribution for arg g'.format(type(g)))
     type_f = type(f) 
     type_g = type(g)
 
@@ -32,27 +43,16 @@ def kullbach_lieber_divergence(f,g,n):
     g_x = None # initialize, will contain g(x)
 
     # draw x from f
-    if type_f == scipy.stats.kde.gaussian_kde:
-        x = f.resample(n)
-    else:
-        raise RuntimeError("{} isn't a supported distribution".format(type_f))
+    x = f.resample(n)
 
     # calculate f(x) for all x
-    if type_f == scipy.stats.kde.gaussian_kde:
-        f_x = f.__call__(x)
-    else:
-        raise RuntimeError("{} isn't a supported distribution".format(type_f))
+    f_x = f.__call__(x)
 
     # calculate g(x) for all x
-    if type_g == scipy.stats.kde.gaussian_kde:
-        g_x = g.__call__(x)
-    else:
-        raise RuntimeError("{} isn't a supported distribution".format(type_g))
+    g_x = g.__call__(x)
 
     log_f_divide_g = np.log(f_x/g_x)
 
-    #for i in range(f_x.shape[0]):
-    #    print(f_x[i],g_x[i],f_x[i]/g_x[i],log_f_divide_g[i])
     # calculate the Kullbach_Lieber divergence value
     d = np.sum(f_x*log_f_divide_g)/n
 
