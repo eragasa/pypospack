@@ -6,6 +6,52 @@ import pypospack.io.filesystem as filesystem
 # import pyflamestk.potentials
 #import pyflamestk.tableofelements as toe
 
+from pypospack.exceptions import EamSetflException
+
+
+def create_r(rmax,rN):
+    """create a vector interatomic spacings
+
+    Args:
+        rmax(float): the cutoff for the function
+        rN(int): the number of interatomic spacings
+
+    Returns:
+        (numpy.ndarray): a numpy array of interatomic spacings
+    """
+    
+    if rN%5 != 0:
+        m = "rN must be a multiple of 5 for a setfl file"
+        raise EamSetflException(m)
+
+    if rmax <= 0:
+        m = "rmax must be greater than zero"
+        raise EamSetflException(m)
+    
+    return(rmax/rN)*np.linspace(1,rN,rN)
+
+def create_rho(rhomax,rhoN):
+    """create a vector of electron densities
+
+    Args:
+        rhomax(float): the cutoff for the embedding function
+        rN(int): the number of embedding function evaluations
+
+    Returns:
+        (numpy.ndarray): a numpy array of electron densities
+
+    """
+
+    if rhoN%5 != 0:
+        m = "rhoN must be greater than zero"
+        raise EamSetflException(m)
+
+    if rhomax <= 0:
+        m = "rhomax must be greater than zero"
+        raise EamSetflException(m)
+
+    return rhomax/rhoN*np.linspace(1,rhoN,rhoN)
+
 def get_eam_radii_vector(r_max,N_r):
     assert type(r_max) == float
     assert type(N_r) == float
