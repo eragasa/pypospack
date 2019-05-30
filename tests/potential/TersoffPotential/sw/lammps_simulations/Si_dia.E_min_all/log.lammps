@@ -1,0 +1,138 @@
+LAMMPS (10 Feb 2015)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+# ORIGINAL: atom_style charge
+# REPLACE_BEGIN:
+atom_style atomic
+# REPLACE_END:
+atom_modify map array
+# ---- create atoms
+read_data lammps.structure
+  triclinic box = (0 0 0) to (5.4687 5.4687 5.4687) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  8 atoms
+# ---- define interatomic potential
+include potential.mod
+mass 1 28.0
+
+group Si type 1
+8 atoms in group Si
+
+pair_style      sw
+pair_coeff * *  Si.sw Si
+Reading potential file Si.sw with DATE: 2007-06-11
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax iso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+# energy tolerance = 1e-25, force tolerance = 1e-25
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  1 neighbor list requests
+  update every 1 steps, delay 0 steps, check yes
+  master list distance cutoff = 4.77118
+Memory usage per processor = 3.11441 Mbytes
+Step PotEng Lx Ly Lz Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz eatoms 
+       0   -34.671045       5.4687       5.4687       5.4687            0            0            0   -20445.694   -20445.694   -20445.694   -20445.694    14.705929    14.705929    14.705929   -34.671045 
+      10     -34.6928    5.4309493    5.4309493    5.4309493            0            0            0   0.27596428   0.27596428   0.27596428   0.27596428  -0.33689313  -0.33689313  -0.33689313     -34.6928 
+      16     -34.6928    5.4309498    5.4309498    5.4309498            0            0            0 9.8881709e-05 9.8881702e-05 9.8881702e-05 9.8881725e-05 -3.0845082e-05 -3.084549e-05 -3.084549e-05     -34.6928 
+Loop time of 0.000344038 on 1 procs for 16 steps with 8 atoms
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+         -34.671044598     -34.6927999993     -34.6927999993
+  Force two-norm initial, final = 6.26131 3.48129e-08
+  Force max component initial, final = 6.26131 2.9865e-08
+  Final line search alpha, max atom move = 1 2.9865e-08
+  Iterations, force evaluations = 16 26
+
+Pair  time (%) = 0.000235558 (68.4685)
+Neigh time (%) = 0 (0)
+Comm  time (%) = 1.54972e-05 (4.5045)
+Outpt time (%) = 7.15256e-06 (2.079)
+Other time (%) = 8.58307e-05 (24.948)
+
+Nlocal:    8 ave 8 max 8 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    163 ave 163 max 163 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  224 ave 224 max 224 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 224
+Ave neighs/atom = 28
+Neighbor list builds = 0
+Dangerous builds = 0
+
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable length_x equal "lx"
+variable length_y equal "ly"
+variable length_z equal "lz"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+variable ecoh equal "pe/atoms"
+#variable ecoh equal "v_etotal/v_atoms"
+# --- output
+print "pyPosMat output section"
+pyPosMat output section
+print "tot_energy = ${tot_energy}"
+tot_energy = -34.6927999993381
+print "num_atoms = ${natoms}"
+num_atoms = 8
+print "xx = ${length_x}"
+xx = 5.43094977822872
+print "yy = ${length_y}"
+yy = 5.43094977822872
+print "zz = ${length_z}"
+zz = 5.43094977822872
+print "xy = ${tilt_xy}"
+xy = 0
+print "xz = ${tilt_xz}"
+xz = 0
+print "yz = ${tilt_yz}"
+yz = 0
+print "tot_press = ${tot_press}"
+tot_press = 9.88817094287226e-05
+print "pxx = ${press_xx}"
+pxx = 9.88817016222178e-05
+print "pyy = ${press_yy}"
+pyy = 9.88817016222178e-05
+print "pzz = ${press_zz}"
+pzz = 9.88817250417323e-05
+print "pxy = ${press_xy}"
+pxy = -3.0845082094184e-05
+print "pxz = ${press_xz}"
+pxz = -3.08454898278023e-05
+print "pyz = ${press_yz}"
+pyz = -3.08454898278023e-05
+print "ecoh = ${ecoh}"
+ecoh = -4.33659999991726
+print "lammps_sim_done"
+lammps_sim_done
