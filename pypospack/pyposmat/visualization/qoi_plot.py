@@ -85,3 +85,6 @@ class PyposmatQoiPlot(PyposmatAbstractPlot):
 
     def legend(self,loc='upper right'):
         self.ax.legend(loc=loc)
+
+    def savefig(self,filename,dpi=1200,transparent=True):
+        PyposmatAbstractPlot.savefig(self,filename=filename,dpi=dpi,transparent=True)

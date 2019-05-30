@@ -15,14 +15,18 @@ import numpy as np
 from pypospack.exceptions import BadParameterException
 from pypospack.eamtools import EamSetflFile
 
-
+PYPOSPACK_PAIR_FORMAT = '{s1}{s2}_{p}'
 def determine_symbol_pairs(symbols):
     """determine symbol pairs
+
+    given a list of symbols gives a list of symbol pairs in the appropriate order expected within the pypospack package.
 
     Args:
         symbols(list of str): a list of symbols
     Returns:
-        list of list:a list of symbol pairs"""
+        (list of list):a list of symbol pairs
+        
+    """
 
     assert type(symbols) in [str,list]
     if type(symbols) is str: 
@@ -36,6 +40,26 @@ def determine_symbol_pairs(symbols):
 
     return pairs
 
+def determine_pair_parameter_names(symbols,pair_parameter_names):
+    """determine pair parameter names
+
+    gen a list of symbols and the list of parameter names for a pair potential, this function returns the list of parameters expected for the pair potential
+
+    Args:
+        symbols(list of str): a list of symbols
+        pair_parameter_names(list of str): a list of parameter_names for a pair potential.
+    Returns:
+        (list): a list of parameter names
+
+    """
+      
+
+    parameter_names = []
+    for s in determine_symbol_pairs(symbols):
+        for p in pair_parameter_names:
+            parameter_names.append(PYPOSPACK_PAIR_FORMAT.format(s1=s[0],s2=s[1],p=p))
+
+    return parameter_names
 def determine_3body_triplets(symbols):
     assert type(symbols) in [str,list]
     if type(symbols) is str:

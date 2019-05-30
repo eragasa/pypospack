@@ -11,6 +11,15 @@ __copyright__ = "Copyright (C) 2019"
 __license__ = "Simplified BSD License"
 __version__ = 20171102
 
+def func_cutoff_mishin2003(r,rc,h):
+    x = (r-rc)/h
+    psi = np.ones(r.size) * (x**4/(1+x**4))
+    
+    # define the cutoff indicator, 1 except when x > x_cut
+    cutoff_ind = np.ones(r.size)
+    cutoff_ind[r > rc] = 0
+    
+    return cutoff_ind*psi
 
 def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     """
@@ -25,7 +34,6 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     assert isinstance(delta, float)
 
     z = r/r1
-
     assert type(z) is type(r)
 
     phi = (V0/(b2-b1))*((b2/(z**b1))-(b1/(z**b2)))+delta
@@ -33,6 +41,13 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     assert type(phi) is type(r)
 
     return phi
+
+def func_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,h):
+
+    phi = function_generalized_lj_pair(r,b1,b2,r1,V0,delta)
+    psi = func_cutoff_mishin2003(r,rc,h)
+
+    return psi*phi
 
 class GeneralizedLennardJonesPotential(PairPotential):
     """Implementation of the morse potential

@@ -24,14 +24,17 @@ def plot_corr(df,plot_fn,size=10):
     ax.matshow(corr)
     plt.xticks(range(len(corr.columns)), corr.columns)
     plt.yticks(range(len(corr.columns)), corr.columns)
-    
+   
+    plt.tight_layout()
     fig.savefig(plot_fn)
-
     plt.close(fig)
 
 def covariance_analysis(config,data_directory,output_directory):
     assert isinstance(config,str) or isinstance(config,PyposmatConfigurationFile)
     assert isinstance(data_directory,str)
+
+    print('data_directory:{}'.format(data_directory))
+    print('output_directory:{}'.format(output_directory))
 
     if isinstance(config,str):
         o_config = PyposmatConfigurationFile()
@@ -53,23 +56,34 @@ def covariance_analysis(config,data_directory,output_directory):
 
         ax[0,0].matshow(data_results.df[o_config.free_parameter_names].corr())
         plt.sca(ax[0,0])
-        plt.xticks(range(len(o_config.free_parameter_names)),o_config.free_parameter_names)
-        plt.yticks(range(len(o_config.free_parameter_names)),o_config.free_parameter_names)
+        plt.xticks(
+                range(len(o_config.free_parameter_names)),
+                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
+        plt.yticks(range(len(o_config.free_parameter_names)),
+                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
 
         ax[0,1].matshow(data_results.df[o_config.qoi_names].corr())
         plt.sca(ax[0,1])
-        plt.xticks(range(len(o_config.qoi_names)),o_config.qoi_names)
-        plt.yticks(range(len(o_config.qoi_names)),o_config.qoi_names)
+        plt.xticks(range(len(o_config.qoi_names)),
+                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
+        plt.yticks(range(len(o_config.qoi_names)),o_config.qoi_names,
+                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
 
         ax[1,0].matshow(data_kde.df[o_config.free_parameter_names].corr())
         plt.sca(ax[1,0])
-        plt.xticks(range(len(o_config.free_parameter_names)),o_config.free_parameter_names)
-        plt.yticks(range(len(o_config.free_parameter_names)),o_config.free_parameter_names)
+        plt.xticks(
+                range(len(o_config.free_parameter_names)),
+                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
+        plt.yticks(
+                range(len(o_config.free_parameter_names)),
+                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
 
         ax[1,1].matshow(data_kde.df[o_config.qoi_names].corr())
         plt.sca(ax[1,1])
-        plt.xticks(range(len(o_config.qoi_names)),o_config.qoi_names)
-        plt.yticks(range(len(o_config.qoi_names)),o_config.qoi_names)
+        plt.xticks(range(len(o_config.qoi_names)),
+                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
+        plt.yticks(range(len(o_config.qoi_names)),o_config.qoi_names,
+                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
 
         if not os.path.exists(output_directory):
             os.mkdir(output_directory)

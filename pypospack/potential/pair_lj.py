@@ -11,8 +11,10 @@ from pypospack.potential import determine_symbol_pairs
 
 def func_lj(r,epsilon,sigma,r_cut_pair=None):
     assert isinstance(r, np.ndarray)
-    assert isinstance(epsilon,float)
-    assert isinstance(sigma,float)
+    assert isinstance(epsilon,float) \
+        or isinstance(epsilon,int)
+    assert isinstance(sigma,float) \
+        or isinstance(sigma,int)
     assert isinstance(r_cut_pair,float) or r_cut_pair is None
 
     phi = 4*epsilon*((sigma/r)**12 - (sigma/r)**6)

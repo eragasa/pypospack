@@ -21,6 +21,8 @@ class BaseException(Exception):
 
 #TODO: rneame *Exception names to *Error names
 
+class EamSetflException(BaseException): pass
+
 class BadPreprocessorTypeException(BaseException): pass
 
 class PyposmatBadParameterError(BaseException): pass

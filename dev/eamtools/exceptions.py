@@ -1,0 +1,2 @@
+
+class EamSetflException(BaseException): pass

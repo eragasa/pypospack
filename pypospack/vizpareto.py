@@ -11,15 +11,15 @@ import scipy.stats
 class ParetoFittingPostProcessor(object):
     """
     Attributes:
-        n_iterations (int)
-        free_param_names (:obj:`list` of :obj:`str`)
-        qoi_ref_values (:obj:`list` of :obj:`float`)
-        data_dir (str)
-        simulation_results (:obj:`list` of :obj:`pyflamestk.pareto.SimulationResults`)
-        err_idx (:obj:`list` of :obj:`int`)
-        qoi_idx (:obj:`list` of :obj:`int`)
-        param_idx (:obj:`list` of :obj:`int`)
-        free_param_idx (:obj:`list` of :obj:`int)
+        n_iterations (int): number of iterations
+        free_param_names (:obj:`list` of :obj:`str`): free parameter names
+        qoi_ref_values (:obj:`list` of :obj:`float`): qoi reference values
+        data_dir (str): data directory
+        simulation_results (:obj:`list` of :obj:`pyflamestk.pareto.SimulationResults`): simulation results
+        err_idx (:obj:`list` of :obj:`int`): error index
+        qoi_idx (:obj:`list` of :obj:`int`): qoi index
+        param_idx (:obj:`list` of :obj:`int`): parameter index
+        free_param_idx (:obj:`list` of :obj:`int): free parameter index
 
     """
     filename_results_format = "results_{:03d}.out"
@@ -48,9 +48,10 @@ class ParetoFittingPostProcessor(object):
                     self.filename_culled_format.format(i))
             # load results
             self.sim_results.append(pareto.SimulationResults())
-            self.sim_results[i].read_simulation_results(fname_results_in,
-                                                   fname_pareto_in,
-                                                   fname_culled_in)
+            self.sim_results[i].read_simulation_results(
+                    fname_results_in,
+                    fname_pareto_in,
+                    fname_culled_in)
         self.err_idx = [i for i,v in enumerate(self.sim_results[0].types) if v == 'err']
         self.qoi_idx = [i for i,v in enumerate(self.sim_results[0].types) if v == 'qoi']
         self.param_idx = [i for i,v, in enumerate(self.sim_results[0].types) if v == 'param']

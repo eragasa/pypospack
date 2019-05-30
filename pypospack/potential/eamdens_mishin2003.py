@@ -8,26 +8,50 @@ import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamDensityFunction
 
-def function_mishin2003_density(r,A0,B0,C0,y,gamma):
+def func_cutoff_mishin2003(r,rc,h):
+    x = (r-rc)/h
+
+    if isinstance(r,np.ndarray):
+        psi = np.ones(r.size) * (x**4)/(1+x**4)
+        cutoff_ind = np.ones(r.size)
+        cutoff_ind[r > rc] = 0
+        return cutoff_ind*psi
+    else:
+        if r>rc:
+            return 0
+        else:
+            return (x**4)/(1+x**4)
+    
+    # define the cutoff indicator, 1 except when x > x_cut
+    cutoff_ind = np.ones(r.size)
+    cutoff_ind[r > rc] = 0
+    
+
+def func_mishin2003_density(r,r0,A0,B0,C0,y,gamma):
     """
     Reference:
         Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
     """
-    assert isinstance(r, np.ndarray) or isinstance(r, float)
-    assert isinstance(A0, float)
-    assert isinstance(B0, float)
-    assert isinstance(C0, float)
-    assert isinstance(y, float)
-    assert isinstance(gamma, float)
 
     z = r - r0
-
-    assert type(z) is type(r)
 
     exp_gamma_z = np.exp(-gamma*z)
     density = A0*z**y*exp_gamma_z*(1+B0*exp_gamma_z)+C0
 
     return density
+
+def func_mishin2003_density_w_cutoff(r,r0,A0,B0,C0,y,gamma,rc,h):
+
+    rho = func_mishin2003_density(
+            r=r,
+            r0=r0,
+            A0=A0,
+            B0=B0,
+            C0=C0,
+            y=y,
+            gamma=gamma)
+    psi = func_cutoff_mishin2003(r=r,rc=rc,h=h)
+    return psi*rho
 
 class Mishin2003DensityFunction(EamDensityFunction):
     """

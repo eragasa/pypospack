@@ -1,44 +1,16 @@
-# -s*- coding: utf-8 -*-
-__author__ = "Eugene J. Ragasa"
-__copyright__ = "Copyright (C) 2017"
-__license__ = "Simplified BSD License"
-__version__ = "1.0"
+# -*- coding: utf-8 -*-
 """This module contains the pyposmat engine for parameterization
 
 The fitting engine is build in multiple class for managability of code 
 and to divide the code into functionality.  In general, there are classes
 which deal with reading/writing configuration files, classes to deal with
 determination of simulations to be run from the quantities of interest.
-
-Classes for Configuration Files
-===============================
-:obj:`pypospack.crystal.StructureDatabase`
-:obj:`pypospack.qoi.QoiDatabase`
-:obj:`pypospack.potential.PotentialInformation`
-
-Classes for QOI Management
-==========================
-The definition of quantities of interest (QOI) are contained in a separate 
-module where the definition of and calculation of specific quantities of 
-interest are inherited from the :obj:`pypospack.qoi.QuantityOfInterest` 
-prototype class.
-:obj:`pypospack.qoi.QoiManager`
-:obj:`pypospack.qoi.QoiDatabase`
-
-Classes for LAMMPS Simulation Management
-========================================
-The LAMMPS simulation manager are defined as series of defined simulations,
-which are run sequentially in the order required.  The simulations are defined
-as tasks, which are combined togetheer to create a workflow.
-:obj:`pypospack.lammps.SimulationManager`
-:obj:`pypospack.tasks.lammps'
-
-Classes for Structure Management
-================================
-:obj:`pypospack.crystal.StructureDatabase`
-Classes for post-processing of data
-===================================
 """
+#__author__ = "Eugene J. Ragasa"
+#__copyright__ = "Copyright (C) 2017"
+#__license__ = "Simplified BSD License"
+#__version__ = "1.0"
+
 
 import time, yaml, copy
 import os, shutil, subprocess
@@ -76,6 +48,7 @@ class AbstractFittingEngine(object):
     """ Generic Fitting Engine
 
     This fitting engine does not have an algorithm.  
+    
     Args:
         fname_config_pyposmat(string): filename of the configuration file.
            default is pyposmat.config
@@ -97,6 +70,7 @@ class AbstractFittingEngine(object):
         qois_info(pypospack.potfit.QoiDatabase)
         qoi_manager(pypospack.qoi.QoiManager)
         simulation_manager(pypospack.lammps.SimulationManager)
+
     """
 
     def __init__(self,

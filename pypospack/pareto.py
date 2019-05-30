@@ -58,6 +58,19 @@ def pareto_merge(lo, hi, i, dim):
     return lo + [hi[k] for k in survivors]
 
 def pareto(pts,chunk_sz=500,is_debug=False):
+    """ calculate the pareto set
+
+    given a set of points calculate the number of pareto points
+
+    Args:
+        pts(list): list of pareto points
+        chunk_sz(int): the chunk size to break things into
+        is_debug(bool): by default this is set to `False`
+
+    Returns:
+        (list of list)
+
+    """
     idx = list(range(len(pts)))
     sz = chunk_sz
 
@@ -69,7 +82,7 @@ def pareto(pts,chunk_sz=500,is_debug=False):
         chunks=zip(*[iter(idx)]*sz)
         idx= []
         for i,c in enumerate(chunks):
-            #print("\tworking on chunk {}".format(i))
+            if is_debug: print("\tworking on chunk {}".format(i))
             idx += pareto_bruteforce(pts,c)
 
         new_len_idx = len(idx)

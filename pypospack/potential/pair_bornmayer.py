@@ -18,11 +18,13 @@ class BornMayerPotential(PairPotential):
         symbols(list of str)
 
     """
+    potential_type = 'bornmayer'
+    pair_potential_parameters = ['phi0','gamma','r0']
     def __init__(self,symbols):
-        self.pair_potential_parameters = ['phi0','gamma','r0']
+        self.pair_potential_parameters = self.pair_potential_parameters
         PairPotential.__init__(self,
                 symbols,
-                potential_type='bornmeyer',
+                potential_type=self.potential_type,
                 is_charge=False)
 
     def _init_parameter_names(self):
