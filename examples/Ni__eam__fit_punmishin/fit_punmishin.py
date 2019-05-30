@@ -63,7 +63,7 @@ o = EamPotentialFitter(symbols)
 o.read_setfl_file(filename=setfl_fn)
 
 print('fitting the pair potential')
-o.fit_potential_pair(
+GGo.fit_potential_pair(
         func_pair_potential=potentials['pair']['NiNi']['formalism'],
         symbol_pair=['Ni','Ni'],
         param0=potentials['pair']['NiNi']['param'],
@@ -188,3 +188,5 @@ o.fit_eos_embedding_function(
         )
 print(o.parameters['p0']['embedding']['Ni'])
 print(o.parameters['popt']['embedding']['Ni'])
+
+plot_results()
