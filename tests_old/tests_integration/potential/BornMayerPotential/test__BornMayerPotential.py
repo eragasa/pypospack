@@ -1,1 +1,0 @@
-from pypospack.potential import BornMayerPotential
