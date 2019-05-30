@@ -19,6 +19,7 @@ def determine_pair_names(symbols):
     return pair_names
 
 def get_density_at_a(a,
+        rho_bar,
         func_density,
         func_density_param,
         lattice_type='fcc'):
@@ -42,7 +43,7 @@ def get_density_at_a(a,
         r = k[1]
         rho += n * func_density(r,*args)
 
-    return rho
+    return rho - rho_bar
 
 def get_pair_energy_at_a(a,
         func_pair,

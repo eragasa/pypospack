@@ -110,11 +110,11 @@ def plot_results():
     
     ax[2].plot(
             rho,
-            o.setfl.reader.embedding_function('NiNi'),
+            o.setfl_reader.embedding_function('Ni'),
             label='from_file')
     ax[2].plot(
             rho,
-            o.formalism['embedding']['Ni'](r,**o.parameters['popt']['density']['Ni']),
+            o.formalisms['embedding']['Ni'](r,**o.parameters['popt']['embedding']['Ni']),
             label='fitted')
     plt.show()
 
@@ -158,7 +158,7 @@ def func_zopemishin_embedding_function(rho,a0,B0,E0,beta,lattice_type='fcc'):
     a = np.zeros(len(rho_))
     for i,rhostar in enumerate(rho_):
         a[i] = brentq(f=get_density_at_a,a=a_min,b=a_max,
-                args=(func_density,func_density_param),
+                args=(rhostar,func_density,func_density_param),
                 xtol=a_tol)
     
     E_eos = func_zopemishin_eos(a,a0,B0,E0,beta)
@@ -188,3 +188,4 @@ o.fit_eos_embedding_function(
         )
 print(o.parameters['p0']['embedding']['Ni'])
 print(o.parameters['popt']['embedding']['Ni'])
+plot_results()
