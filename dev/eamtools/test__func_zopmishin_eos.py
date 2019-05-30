@@ -1,6 +1,11 @@
-from collections import OrderedDict()
+import os
 import inspect
+from collections import OrderedDict
 
+import pypospack.utils
+from pypospack.potential.eam_embedding_eos import get_density_at_a
+from pypospack.potential.eam_embedding_eos import get_pair_energy_at_a
+from pypospack.potential.eamembed_eos_zopemishin import func_zopemishin_eos
 from pypospack.potential.eamdens_mishin2003 import func_mishin2003_density_w_cutoff
 from pypospack.potential.pair_general_lj import func_generalized_lj_w_cutoff
 
@@ -59,7 +64,7 @@ def get_density_at_a(a,
         rho = np.zeros(len(r))
     else:
         rho = 0.
-    arg_names = [k for in inspect.getargspec(func_density)[0] if k != 'r')]
+    arg_names = [k for k in inspect.getargspec(func_density)[0] if k != 'r']
     args = [func_density_param for k in arg_names]
     for k in zip(n_NN,d_NN):
         n = k[0]
@@ -85,21 +90,21 @@ def get_pair_energy(a,
         phi = np.zeros(len(a))
     else:
         phi = 0.
-    arg_names =[k for inspect.getargspec(func_density)[0] if k != 'r')]
+    arg_names =[k for k in inspect.getargspec(func_density)[0] if k != 'r']
     args = [func_pair_param[k] for k in arg_names]
     for k in zip(n_NN,d_NN):
         n = k[0]
         r = k[1]
         phi += n * func_pair(r,*args)
   
-    return = 0.5 * phi
+    return 0.5 * phi
 
-def func_zopemishin_embedding_function(rho,a0,B0,E0,B0,E0,r0,beta,lattice_type='fcc'):
+def func_zopemishin_embedding_function(rho,a0,B0,E0,r0,beta,lattice_type='fcc'):
 
 
     a_min=0
     a_max=10000
-    a-tel=1.e-8
+    a_tol=1.e-8
 
     if isinstance(rho,np.ndarray):
         rho_ = rho.tolist()
@@ -119,11 +124,11 @@ def func_zopemishin_embedding_function(rho,a0,B0,E0,B0,E0,r0,beta,lattice_type='
 
     return E_embedding
 
-def func_zopemishin_eos(a,a0,B0,E0,B0,E0,r0,beta,lattice_type='fcc'):
+def func_zopemishin_eos(a,a0,B0,E0,r0,beta,lattice_type='fcc'):
     x = a/a0-1 
     omega = get_omega(a0)
     alpha = (-(9*Omega0*B0)/E0)**0.5
-    E = E0 * (1+alpha*x+beta*(alpha**3)*(x**3)*(2x+3)/((x+1)**2)) * np.exp(-alpha*x)
+    E = E0 * (1+alpha*x+beta*(alpha**3)*(x**3)*(2*x+3)/((x+1)**2)) * np.exp(-alpha*x)
 
     return E
 

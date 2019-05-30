@@ -107,11 +107,11 @@ def test__read_setfl_filename(symbols,setfl_filename):
 
     assert isinstance(o.setfl_reader,SeatonSetflReader)
 
-@pyptest.mark.parametrize(
+@pytest.mark.parametrize(
         'symbols,setfl_fn,func_pair_potential,symbol_pair,param0',
         [
             (  
-                ['Ni','Al']
+                ['Ni','Al'],
                 potentials['setfl_fn'],
                 potentials['pair']['NiNi']['formalism'],
                 ['Ni','Ni'],
@@ -124,7 +124,7 @@ def test__fit_potential_pair(symbols,setfl_fn,func_pair_potential,symbol_pair,pa
     o.read_setfl_file(filename=setfl_fn)
 
     o.fit_potential_pair(
-            func_pair_potential=funct_pair_potential,
+            func_pair_potential=func_pair_potential,
             symbol_pair=symbol_pair,
             param0=param0,
             rlow=1.5)
@@ -139,4 +139,4 @@ if __name__ == "__main__":
             func_pair_potential=potentials['pair']['NiNi']['formalism'],
             symbol_pair=['Ni','Ni'],
             param0=potentials['pair']['NiNi']['param'],
-            rlow=)
+            rlow=2.)
