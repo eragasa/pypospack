@@ -255,6 +255,7 @@ class SimulationCell(object):
 
     """ 
     def __init__(self, obj=None):
+        self.ptol = 1e-3
 
         if obj is None:
             self._noncopy_init()
@@ -435,7 +436,7 @@ class SimulationCell(object):
             err_msg = err_msg.format(symbol,position)
             err_msg += 'atomic basis:\n'
             for i,a in enumerate(self.atomic_basis):
-                err_msg += ",".join([i,a,a.symbol,a.position])
+                err_msg += ",".join([str(i),a,a.symbol,a.position])
             raise ValueError(err_msg)
         else:
             self.atomic_basis.append(Atom(symbol,position))
