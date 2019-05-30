@@ -1,7 +1,6 @@
-import copy
+import copy,yaml
 from collections import OrderedDict
 from pypospack.io.filesystem import OrderedDictYAMLLoader
-
 
 class QoiDatabase(object):
     """ Qoi Database 

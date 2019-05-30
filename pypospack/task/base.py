@@ -71,7 +71,6 @@ class Task(object):
         self.get_conditions_post()
         self.get_conditions_finished()
         self.get_conditions_error()
-
         self.all_conditions_INIT \
                 = all([v for k,v in self.conditions_INIT.items()])
         self.all_conditions_CONFIG \
@@ -92,16 +91,23 @@ class Task(object):
         if self.all_conditions_INIT and self.all_conditions_CONFIG\
                 and self.all_conditions_READY:
             self.status = 'READY'
-        if self.all_conditions_INIT and self.all_conditions_CONFIG\
-                and self.all_conditions_READY and self.all_conditions_RUNNING:
+        if self.all_conditions_INIT \
+                and self.all_conditions_CONFIG\
+                and self.all_conditions_READY \
+                and self.all_conditions_RUNNING:
             self.status = 'RUNNING'
-        if self.all_conditions_INIT and self.all_conditions_CONFIG\
-                and self.all_conditions_READY and self.all_conditions_RUNNING\
+        if self.all_conditions_INIT \
+                and self.all_conditions_CONFIG\
+                and self.all_conditions_READY \
+                and self.all_conditions_RUNNING\
                 and self.all_conditions_POST:
             self.status = 'POST'
-        if self.all_conditions_INIT and self.all_conditions_CONFIG\
-                and self.all_conditions_READY and self.all_conditions_RUNNING\
-                and self.all_conditions_POST and self.all_conditions_FINISHED:
+        if self.all_conditions_INIT \
+                and self.all_conditions_CONFIG\
+                and self.all_conditions_READY\ 
+                and self.all_conditions_RUNNING\
+                and self.all_conditions_POST \
+                and self.all_conditions_FINISHED:
             self.status = 'FINISHED'
        
     def get_conditions_init(self):
