@@ -1,0 +1,373 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pypospack.pyposmat.visualization &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.visualization</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span><span class="o">,</span><span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">stats</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">cm</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.mplot3d.axes3d</span> <span class="k">import</span> <span class="n">Axes3D</span>
+
+<span class="kn">from</span> <span class="nn">pypospack.kde</span> <span class="k">import</span> <span class="n">Chiu1999_h</span><span class="p">,</span> <span class="n">Silverman1986_h</span> 
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+
+<div class="viewcode-block" id="PyposmatDataFileVisualization"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.PyposmatDataFileVisualization">[docs]</a><span class="k">class</span> <span class="nc">PyposmatDataFileVisualization</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datafile</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuation</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span><span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span>
+    <span class="nd">@configuration</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">config</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">config</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span><span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datafile</span>
+    <span class="nd">@datafile</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">datafile</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datafile</span><span class="o">=</span><span class="n">datafile</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_df</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_df</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">error_df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">error_df</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_df</span>
+
+
+<div class="viewcode-block" id="PyposmatDataFileVisualization.read_configuration"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.PyposmatDataFileVisualization.read_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PyposmatDataFileVisualization.read_datafile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.PyposmatDataFileVisualization.read_datafile">[docs]</a>    <span class="k">def</span> <span class="nf">read_datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">error_names</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_absolute_errors</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFileVisualization.read_datafiles"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.PyposmatDataFileVisualization.read_datafiles">[docs]</a>    <span class="k">def</span> <span class="nf">read_datafiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">filenames</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;filenames must be a list&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">filenames</span><span class="p">)</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_df</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">parameter_names</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">qoi_names</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">error_names</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datafiles</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_names</span><span class="p">:</span>
+                <span class="n">aen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.abserr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+                <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">aen</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">en</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="PyposmatDataFileVisualization.create_absolute_errors"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.PyposmatDataFileVisualization.create_absolute_errors">[docs]</a>    <span class="k">def</span> <span class="nf">create_absolute_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+            <span class="n">aen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.abserr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="n">aen</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span><span class="p">[</span><span class="n">en</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span></div></div>
+
+<div class="viewcode-block" id="Pyposmat2DDensityPlots"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots">[docs]</a><span class="k">class</span> <span class="nc">Pyposmat2DDensityPlots</span><span class="p">(</span><span class="n">PyposmatDataFileVisualization</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">PyposmatDataFileVisualization</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">figure</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Pyposmat2DDensityPlots.make_kde"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots.make_kde">[docs]</a>    <span class="k">def</span> <span class="nf">make_kde</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">h</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">values</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kde</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">h</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;silverman&#39;</span><span class="p">,</span><span class="s1">&#39;silverman1986&#39;</span><span class="p">]:</span>
+            <span class="n">kde</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">values</span><span class="p">,</span><span class="s1">&#39;silverman&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">h</span> <span class="ow">is</span> <span class="s1">&#39;chiu1999&#39;</span><span class="p">:</span>
+            <span class="n">_h</span> <span class="o">=</span> <span class="n">Chiu1999_h</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">kde</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">values</span><span class="p">,</span><span class="n">_h</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hde</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">values</span><span class="p">,</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">kde</span></div>
+
+<div class="viewcode-block" id="Pyposmat2DDensityPlots.set_axes_labels"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots.set_axes_labels">[docs]</a>    <span class="k">def</span> <span class="nf">set_axes_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ax</span><span class="p">,</span><span class="n">x_name</span><span class="p">,</span><span class="n">y_name</span><span class="p">):</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">x_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">latex_labels</span><span class="p">[</span><span class="n">x_name</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;latex_labels&#39;</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;the x_label is using </span><span class="si">{}</span><span class="s1"> because latex_label is not configured in the configuration file&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_name</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">x_label</span> <span class="o">=</span> <span class="n">x_name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">y_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">latex_labels</span><span class="p">[</span><span class="n">y_name</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;latex_labels&#39;</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;the y_label is using </span><span class="si">{}</span><span class="s1"> because latex_label is not configured in the configuration file&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">y_name</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">y_label</span> <span class="o">=</span> <span class="n">y_name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;x_label:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_label</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;y_label:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">y_label</span><span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">x_label</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">y_label</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pyposmat2DDensityPlots.get_data_limits"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots.get_data_limits">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_limits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">xmin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="n">xmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span></div>
+    
+<div class="viewcode-block" id="Pyposmat2DDensityPlots.ax_scatter"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots.ax_scatter">[docs]</a>    <span class="k">def</span> <span class="nf">ax_scatter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="n">x</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+            <span class="n">y</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+            <span class="n">xy_marker_type</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
+            <span class="n">xy_marker_color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span>
+            <span class="n">xy_marker_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,):</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">xy_marker_color</span><span class="p">,</span>
+                <span class="n">xy_marker_type</span><span class="p">),</span>
+            <span class="n">markersize</span><span class="o">=</span><span class="n">xy_marker_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pyposmat2DDensityPlots.ax_density_plot"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots.ax_density_plot">[docs]</a>    <span class="k">def</span> <span class="nf">ax_density_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="n">Z</span><span class="p">,</span>
+            <span class="n">XY_density_h</span><span class="p">,</span>
+            <span class="n">XY_cmap_name</span><span class="p">,</span>
+            <span class="n">xmin</span><span class="p">,</span>
+            <span class="n">xmax</span><span class="p">,</span>
+            <span class="n">ymin</span><span class="p">,</span>
+            <span class="n">ymax</span>
+        <span class="p">):</span>
+        <span class="n">aspectratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">xmax</span><span class="o">-</span><span class="n">xmin</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">ymax</span><span class="o">-</span><span class="n">ymin</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">rot90</span><span class="p">(</span><span class="n">Z</span><span class="p">),</span>
+            <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">XY_cmap_name</span><span class="p">),</span>
+            <span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span><span class="p">,</span><span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span><span class="p">],</span>
+            <span class="n">aspect</span><span class="o">=</span><span class="n">aspectratio</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pyposmat2DDensityPlots.plot"><a class="viewcode-back" href="../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.Pyposmat2DDensityPlots.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">x_name</span> <span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">y_name</span> <span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">x_lims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1"># list of length 2, x_lims[0] is the xmin, x_lims[1] is the xmax</span>
+            <span class="n">y_lims</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1"># list of length 2, y_lims[0] is the ymin, y_lims[1] is the ymax</span>
+            <span class="n">fn_plot_out</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="c1"># accepts either True or str</span>
+            <span class="n">ax_name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">show_XY_density</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="n">XY_density_h</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">XY_cmap_name</span><span class="o">=</span><span class="s1">&#39;Blues&#39;</span><span class="p">,</span>
+            <span class="n">show_xy_scatter</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">xy_marker_type</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
+            <span class="n">xy_marker_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">xy_marker_color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span>
+            <span class="n">show_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># type: np.ndarray</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">y_name</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>  <span class="c1"># type: np.ndarray</span>
+        <span class="n">xy_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">])</span>
+        <span class="n">kde</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">h</span><span class="o">=</span><span class="n">XY_density_h</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">x_lims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_limits</span><span class="p">(</span><span class="n">x_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">xmin</span><span class="p">,</span><span class="n">xmax</span> <span class="o">=</span> <span class="n">x_lims</span>
+        
+        <span class="k">if</span> <span class="n">y_lims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_limits</span><span class="p">(</span><span class="n">y_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ymin</span><span class="p">,</span><span class="n">ymax</span> <span class="o">=</span> <span class="n">y_lims</span>
+
+        <span class="c1"># create figure object if it doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">figure</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">figure</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">_fig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">figure</span>
+
+        <span class="c1"># creates axes dictionary if it doesn&#39;t exist</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">axes</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="c1"># create new axes</span>
+        <span class="k">if</span> <span class="n">ax_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">an</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">__</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_name</span><span class="p">,</span><span class="n">y_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">an</span> <span class="o">=</span> <span class="n">ax_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">an</span><span class="p">]</span> <span class="o">=</span> <span class="n">_fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+
+        <span class="c1"># pointer to actual object</span>
+        <span class="n">_ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">an</span><span class="p">]</span>
+
+        <span class="c1"># make surface</span>
+        <span class="n">X_density</span><span class="o">=</span><span class="mi">100</span><span class="n">j</span>
+        <span class="n">Y_density</span><span class="o">=</span><span class="mi">100</span><span class="n">j</span>
+
+        <span class="c1"># build the grid</span>
+        <span class="n">X</span><span class="p">,</span><span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[</span><span class="n">xmin</span><span class="p">:</span><span class="n">xmax</span><span class="p">:</span><span class="mi">100</span><span class="n">j</span><span class="p">,</span><span class="n">ymin</span><span class="p">:</span><span class="n">ymax</span><span class="p">:</span><span class="mi">100</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">XY_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">X</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span><span class="n">Y</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span>
+        <span class="c1"># evaluate density on the grid</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">kde</span><span class="p">(</span><span class="n">XY_grid</span><span class="p">),</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">show_XY_density</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1">#_ax.imshow(</span>
+            <span class="c1">#    np.rot90(Z),</span>
+            <span class="c1">#    cmap=plt.get_cmap(XY_cmap_name),</span>
+            <span class="c1">#    extent=[xmin,xmax,ymin,ymax])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_density_plot</span><span class="p">(</span>
+                <span class="n">_ax</span><span class="p">,</span>
+                <span class="n">Z</span><span class="p">,</span>
+                <span class="n">XY_density_h</span><span class="p">,</span>
+                <span class="n">XY_cmap_name</span><span class="p">,</span>
+                <span class="n">xmin</span><span class="p">,</span>
+                <span class="n">xmax</span><span class="p">,</span>
+                <span class="n">ymin</span><span class="p">,</span>
+                <span class="n">ymax</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">show_xy_scatter</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ax_scatter</span><span class="p">(</span>
+                    <span class="n">_ax</span><span class="p">,</span>
+                    <span class="n">x</span><span class="p">,</span>
+                    <span class="n">y</span><span class="p">,</span>
+                    <span class="n">xy_marker_type</span><span class="o">=</span><span class="n">xy_marker_type</span><span class="p">,</span>
+                    <span class="n">xy_marker_color</span><span class="o">=</span><span class="n">xy_marker_color</span><span class="p">,</span>
+                    <span class="n">xy_marker_size</span><span class="o">=</span><span class="n">xy_marker_size</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_axes_labels</span><span class="p">(</span><span class="n">_ax</span><span class="p">,</span><span class="n">x_name</span><span class="p">,</span><span class="n">y_name</span><span class="p">)</span>
+          
+        <span class="k">if</span> <span class="n">show_plot</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">fn_plot_out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;...writing out figure&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">fn_plot_out</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">fn</span> <span class="o">=</span> <span class="n">fn_plot_out</span>
+            <span class="k">elif</span> <span class="n">fn_plot_out</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">fn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">__</span><span class="si">{}</span><span class="s2">.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_name</span><span class="p">,</span><span class="n">y_name</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">fn_plot_out</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;...writing out figure_name:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">))</span>
+            <span class="n">_fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.9.
+    </div>
+  </body>
+</html>

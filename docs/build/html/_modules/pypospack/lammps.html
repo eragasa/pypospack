@@ -1,0 +1,1120 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.lammps &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.lammps</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">math</span><span class="o">,</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">pypospack.io.vasp</span> <span class="k">as</span> <span class="nn">vasp</span>
+<span class="kn">import</span> <span class="nn">pypospack.crystal</span> <span class="k">as</span> <span class="nn">crystal</span>
+<span class="kn">import</span> <span class="nn">pypospack.potential</span> <span class="k">as</span> <span class="nn">potential</span>
+<span class="kn">import</span> <span class="nn">pypospack.qoi</span> <span class="k">as</span> <span class="nn">qoi</span>
+
+<span class="n">LAMMPS_ERROR_STR</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;error0&#39;</span><span class="p">:</span><span class="s1">&#39;Substitution for illegal variable&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;error_bad_velocity_command&#39;</span><span class="p">:</span><span class="s1">&#39;Illegal velocity create command&#39;</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="make_lammps_structure_file"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.make_lammps_structure_file">[docs]</a><span class="k">def</span> <span class="nf">make_lammps_structure_file</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">fname_out</span><span class="p">,</span> <span class="n">sym_order</span><span class="p">):</span>
+    <span class="n">structure_file</span> <span class="o">=</span> <span class="n">StructureFile</span><span class="p">()</span>
+    <span class="n">structure_file</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span>
+    <span class="n">structure_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fname_out</span><span class="p">,</span> <span class="n">sym_order</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_lammps_map"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.get_lammps_map">[docs]</a><span class="k">def</span> <span class="nf">get_lammps_map</span><span class="p">():</span>
+    <span class="n">lammps_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;E_min_all&#39;</span><span class="p">:{</span><span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsStructuralMinimization&#39;</span><span class="p">},</span>
+            <span class="s1">&#39;E_min_pos&#39;</span><span class="p">:{</span><span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsPositionMinimization&#39;</span><span class="p">},</span>
+            <span class="s1">&#39;elastic&#39;</span><span class="p">:{</span><span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsElasticCalculation&#39;</span><span class="p">},</span>
+            <span class="s1">&#39;single&#39;</span><span class="p">:{</span><span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsSimulation&#39;</span><span class="p">}</span>
+            <span class="p">}</span>
+    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">lammps_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SimulationManager"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager">[docs]</a><span class="k">class</span> <span class="nc">SimulationManager</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        qoi_info(:obj:`str` or :obj:`pypospack.potfit.QoiDatabase`):</span>
+<span class="sd">            contains the configuration information either by passing the</span>
+<span class="sd">            class or the filename of the QOI configuration file.</span>
+<span class="sd">        structure_info(:obj:`str` or :obj:`pypospack.potfit.StructureDatabase`):</span>
+<span class="sd">            contains the configuration information by either class or filename</span>
+<span class="sd">            for the structure database.</span>
+<span class="sd">        potential_info(:obj:`str` or :obj:`pypospack.potfit.PotentialInformaiton`):</span>
+<span class="sd">            contains the configuration information by either class or filename</span>
+<span class="sd">            for the potential formalism.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        obj_lammps_tasks(dict):</span>
+<span class="sd">        structure_db (dict)</span>
+<span class="sd">        variable_names (:obj:list of :obj:str): a list of variable names</span>
+<span class="sd">        variable_dict (dict): a dict of variables</span>
+<span class="sd">        potential (pypospack.potential): an instance of the potential</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+            <span class="n">qoi_info</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+            <span class="n">structure_info</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+            <span class="n">potential_info</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir_structure_db</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dir_lammps_sim_db</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable_dict</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="kc">None</span>
+
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_info</span><span class="p">,</span> <span class="n">qoi</span><span class="o">.</span><span class="n">QoiDatabase</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span> <span class="o">=</span> <span class="n">qoi_info</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_info</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span> <span class="o">=</span> <span class="n">qoi</span><span class="o">.</span><span class="n">QoiDatabase</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">qoi_info</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure_info</span><span class="p">,</span> <span class="n">crystal</span><span class="o">.</span><span class="n">StructureDatabase</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span> <span class="o">=</span> <span class="n">structure_info</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure_info</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span> <span class="o">=</span> <span class="n">potfit</span><span class="o">.</span><span class="n">StructureDatabase</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">structure_info</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">potential_info</span><span class="p">,</span> <span class="n">potential</span><span class="o">.</span><span class="n">PotentialInformation</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span> <span class="o">=</span> <span class="n">potential_info</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">potential_info</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span> <span class="o">=</span> <span class="n">potfit</span><span class="o">.</span><span class="n">PotentialInformation</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">potential_info</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SimulationManager.add_required_simulations"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager.add_required_simulations">[docs]</a>    <span class="k">def</span> <span class="nf">add_required_simulations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">required_simulations</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            required_simulation(dict): dictionary object from</span>
+<span class="sd">                pypospack.QoiManager.get_required_simulations()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">required_simulations</span><span class="p">,</span><span class="nb">dict</span><span class="p">)</span>
+
+       <span class="c1"># add all required simulations</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">required_simulations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_lammps_simulation</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+
+                <span class="c1"># unpack the dict</span>
+                <span class="n">simulation_structure</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;structure&#39;</span><span class="p">]</span>
+                <span class="n">precedent_tasks</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;structure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">simulation_structure</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">precedent_tasks</span>
+
+        <span class="c1"># add precedent simulations to be done if not yet required</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">pt_k</span><span class="p">,</span> <span class="n">pt_v</span> <span class="ow">in</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">pt_k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="s2">&quot;Simulation </span><span class="si">{}</span><span class="s2"> requires the following simulation &quot;</span>
+                            <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> to be done first.  </span><span class="si">{}</span><span class="s2"> cannot be found&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                    <span class="n">k</span><span class="p">,</span><span class="n">pt_k</span><span class="p">)</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span></div>
+
+       
+<div class="viewcode-block" id="SimulationManager.get_task_status"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager.get_task_status">[docs]</a>    <span class="k">def</span> <span class="nf">get_task_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">.</span><span class="n">status</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SimulationManager.evaluate"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SimulationManager.evaluate_parameters"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager.evaluate_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">param_dict</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param_dict</span><span class="p">,</span><span class="nb">dict</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_simulations_complete</span><span class="p">():</span>
+            <span class="c1">#print(80*&#39;*&#39;)</span>
+            <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span><span class="n">task_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">task</span> <span class="o">=</span> <span class="n">task_dict</span><span class="p">[</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span>
+                <span class="n">structure</span> <span class="o">=</span> <span class="n">task_dict</span><span class="p">[</span><span class="s1">&#39;structure&#39;</span><span class="p">]</span>
+
+                <span class="n">pre_task_names</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">task_dict</span><span class="p">[</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">pre_task_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">task_dict</span><span class="p">[</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;task_name:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_name</span><span class="p">))</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;precedent_task:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_dict</span><span class="p">[</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]))</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;error</span><span class="se">\&quot;</span><span class="si">{}</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+                        <span class="k">raise</span>
+
+                <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;INIT&#39;</span><span class="p">:</span>
+                    <span class="c1"># the configuration step configures the potential,</span>
+                    <span class="c1"># and the structure</span>
+                    <span class="n">structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span><span class="o">.</span><span class="n">get_structure_dict</span><span class="p">(</span><span class="n">structure</span><span class="p">)</span>
+                    <span class="n">potential</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">get_potential_dict</span><span class="p">()</span>
+                    <span class="n">task</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">structure</span> <span class="o">=</span> <span class="n">structure</span><span class="p">,</span> <span class="n">potential</span> <span class="o">=</span> <span class="n">potential</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;CONFIG&#39;</span><span class="p">:</span>
+                    <span class="c1"># when the status is config -&gt; move to ready</span>
+                    <span class="n">all_precedents_done</span> <span class="o">=</span> <span class="kc">True</span>
+                    
+                    <span class="k">if</span> <span class="n">pre_task_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">pre_task_name</span> <span class="ow">in</span> <span class="n">pre_task_names</span><span class="p">:</span>
+                            <span class="n">pre_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="p">[</span><span class="n">pre_task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">pre_task</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s1">&#39;DONE&#39;</span><span class="p">:</span>
+                                <span class="n">all_precedents_done</span> <span class="o">=</span> <span class="kc">False</span>
+                    
+                    <span class="n">var_dict</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">if</span> <span class="n">all_precedents_done</span> <span class="ow">and</span> <span class="n">pre_task_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">pre_task_name</span> <span class="ow">in</span> <span class="n">pre_task_names</span><span class="p">:</span>
+                            <span class="n">pre_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="p">[</span><span class="n">pre_task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span>
+                            <span class="n">results</span> <span class="o">=</span> <span class="n">pre_task</span><span class="o">.</span><span class="n">results</span>
+                            <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                                <span class="n">key_name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                        <span class="n">pre_task_name</span><span class="p">,</span><span class="n">var_name</span><span class="p">)</span>
+                                <span class="n">var_dict</span><span class="p">[</span><span class="n">key_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">all_precedents_done</span><span class="p">:</span>
+                        <span class="n">task</span><span class="o">.</span><span class="n">ready</span><span class="p">(</span><span class="n">var_dict</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;READY&#39;</span><span class="p">:</span>
+                    <span class="n">task</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;RUN&#39;</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">elif</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;POST&#39;</span><span class="p">:</span>
+                    <span class="n">task</span><span class="o">.</span><span class="n">post</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">task</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;DONE&#39;</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;unknown status: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">status</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SimulationManager.all_simulations_complete"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager.all_simulations_complete">[docs]</a>    <span class="k">def</span> <span class="nf">all_simulations_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">all_sims_complete</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">s_name</span><span class="p">,</span><span class="n">s_dict</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1">#print(s_name,&#39;:&#39;,s_dict[&#39;obj&#39;].status)</span>
+            <span class="k">if</span> <span class="n">s_dict</span><span class="p">[</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s1">&#39;DONE&#39;</span><span class="p">:</span>
+                <span class="n">all_sims_complete</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1">#print(&#39;all_sims_complete:&#39;,all_sims_complete)</span>
+        <span class="k">return</span> <span class="n">all_sims_complete</span></div>
+
+<div class="viewcode-block" id="SimulationManager.add_lammps_simulation"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.lammps.SimulationManager.add_lammps_simulation">[docs]</a>    <span class="k">def</span> <span class="nf">add_lammps_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_info</span><span class="p">):</span>
+        <span class="n">lammps_map</span> <span class="o">=</span> <span class="n">get_lammps_map</span><span class="p">()</span>
+        <span class="n">task_name</span> <span class="o">=</span> <span class="n">sim_name</span>
+        <span class="n">task_directory</span> <span class="o">=</span> <span class="n">sim_name</span>
+        <span class="n">simulation_type</span> <span class="o">=</span> <span class="n">sim_info</span><span class="p">[</span><span class="s1">&#39;simulation_type&#39;</span><span class="p">]</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="n">lammps_map</span><span class="p">[</span><span class="n">simulation_type</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span>
+        <span class="n">class_name</span> <span class="o">=</span> <span class="n">lammps_map</span><span class="p">[</span><span class="n">simulation_type</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+            <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span><span class="n">class_name</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_tasks</span><span class="p">[</span><span class="n">sim_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;obj&#39;</span><span class="p">:</span><span class="n">klass</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span><span class="n">task_directory</span><span class="p">)}</span></div></div>
+
+    <span class="c1">#def evaluate_parameter_set(self,param_dict):</span>
+    <span class="c1">#    assert type(param_dict),dict</span>
+    <span class="c1">#    # write potential file</span>
+    <span class="c1">#    if type(self.potential) == potential.Buckingham:</span>
+    <span class="c1">#        self._fname_potential = &#39;potential.mod&#39;</span>
+    <span class="c1">#        self.potential.write_potential_file(self._fname_potential,param_dict)</span>
+    <span class="c1">#    elif type(self.potential) == potential.EmbeddedAtomModel:</span>
+    <span class="c1">#        self._fname_potential = &#39;potential.mod&#39;</span>
+    <span class="c1">#        self._fname_eam = &#39;eam.alloy&#39;</span>
+    <span class="c1">#        self.potential.write_potential_file(self._fname_potential,param_dict)</span>
+    <span class="c1">#        self.potential.write_setfl_file()</span>
+    <span class="c1">#    elif type(self.potential) == potential.Tersoff:</span>
+    <span class="c1">#    else:</span>
+    <span class="c1">#        msg_err = &quot;unknown potential[{}]&quot;</span>
+    <span class="c1">#        msg_err = msg_err.format(type(self._potential))</span>
+    <span class="c1">#        raise ValueError(msg_err)</span>
+
+    <span class="c1">#    # evaluate minimizations first</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys():</span>
+    <span class="c1">#        if k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            s_name      = self._lmps_sim_obj[k].structure_name</span>
+    <span class="c1">#            s_fname     = os.path.join(self._dir_structure_db,</span>
+    <span class="c1">#                                       self._structure_db[s_name][0])</span>
+    <span class="c1">#            ls_template = os.path.join(self._dir_lmps_sim_db,</span>
+    <span class="c1">#                                       &#39;E_min_all&#39;)</span>
+    <span class="c1">#            self._lmps_sim_obj[k].dir_sim_template = ls_template</span>
+    <span class="c1">#            self._lmps_sim_obj[k].fname_structure_vasp = s_fname</span>
+    <span class="c1">#            self._lmps_sim_obj[k].create()</span>
+
+    <span class="c1">#    # run simulation</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys():</span>
+    <span class="c1">#        if k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            self._lmps_sim_obj[k].run()</span>
+
+    <span class="c1">#    # monitor simulation</span>
+    <span class="c1">#    all_sims_done = False</span>
+    <span class="c1">#    sims_has_error = False</span>
+    <span class="c1">#    while (not all_sims_done) or sims_has_error:</span>
+    <span class="c1">#        time.sleep(.05)</span>
+    <span class="c1">#        list_is_done    = [self._lmps_sim_obj[k].is_done() </span>
+    <span class="c1">#                               for k in self._lmps_sim_obj.keys() </span>
+    <span class="c1">#                               if k.endswith(&#39;E_min_all&#39;)]</span>
+    <span class="c1">#        list_has_errors = [self._lmps_sim_obj[k].has_error() </span>
+    <span class="c1">#                               for k in self._lmps_sim_obj.keys() </span>
+    <span class="c1">#                               if k.endswith(&#39;E_min_all&#39;)]</span>
+    <span class="c1">#</span>
+    <span class="c1">#        if False not in list_is_done:</span>
+    <span class="c1">#            all_sims_done = True</span>
+
+    <span class="c1">#        if True in list_has_errors:</span>
+    <span class="c1">#            sims_has_error = True</span>
+
+        <span class="c1"># post-process</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys():</span>
+    <span class="c1">#        if k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            self._lmps_sim_obj[k].postprocess()</span>
+
+    <span class="c1">#    lattice_parameters = {}</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys(): </span>
+    <span class="c1">#        if k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            s_name = k.split(&#39;.&#39;)[0]</span>
+    <span class="c1">#            lattice_parameters[s_name]=self._lmps_sim_obj[k].a1</span>
+
+        <span class="c1"># evaluate everything else</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys():</span>
+    <span class="c1">#        if not k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            sim_type = k.split(&#39;.&#39;)[1]</span>
+    <span class="c1">#            s_name      = self._lmps_sim_obj[k].structure_name</span>
+    <span class="c1">#            s_fname     = os.path.join(self._dir_structure_db,</span>
+    <span class="c1">#                                       self._structure_db[s_name][0])</span>
+    <span class="c1">#            ls_template = os.path.join(self._dir_lmps_sim_db,</span>
+    <span class="c1">#                                       sim_type)</span>
+    <span class="c1">#            self._lmps_sim_obj[k].dir_sim_template = ls_template</span>
+
+                <span class="c1"># information from structure, this only works because there</span>
+                <span class="c1"># is only one structure prototype</span>
+                <span class="c1"># TODO: generalize this code</span>
+    <span class="c1">#            self._lmps_sim_obj[k].fname_structure_vasp = s_fname</span>
+    <span class="c1">#            self._lmps_sim_obj[k].new_a1 = lattice_parameters[&#39;MgO_NaCl&#39;]</span>
+
+                <span class="c1"># create lammps simulation</span>
+    <span class="c1">#            self._lmps_sim_obj[k].create()</span>
+
+        <span class="c1"># run simulation</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys():</span>
+    <span class="c1">#        if not k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            self._lmps_sim_obj[k].run()</span>
+ 
+        <span class="c1"># monitor simulation</span>
+    <span class="c1">#    all_sims_done = False</span>
+    <span class="c1">#    sims_has_error = False</span>
+    <span class="c1">#    while (not all_sims_done) or sims_has_error:</span>
+    <span class="c1">#        time.sleep(.05)</span>
+    <span class="c1">#        list_is_done    = [self._lmps_sim_obj[k].is_done() </span>
+    <span class="c1">#                               for k in self._lmps_sim_obj.keys() </span>
+    <span class="c1">#                               if not k.endswith(&#39;E_min_all&#39;)]</span>
+    <span class="c1">#        list_has_errors = [self._lmps_sim_obj[k].has_error() </span>
+    <span class="c1">#                               for k in self._lmps_sim_obj.keys() </span>
+    <span class="c1">#                               if not k.endswith(&#39;E_min_all&#39;)]</span>
+
+    <span class="c1">#        if False not in list_is_done:</span>
+    <span class="c1">#            all_sims_done = True</span>
+
+    <span class="c1">#        if True in list_has_errors:</span>
+    <span class="c1">#            sims_has_error = True</span>
+
+        <span class="c1"># post-process</span>
+    <span class="c1">#    for k in self._lmps_sim_obj.keys():</span>
+    <span class="c1">#        if not k.endswith(&#39;E_min_all&#39;):</span>
+    <span class="c1">#            self._lmps_sim_obj[k].postprocess()</span>
+
+    <span class="c1">#    self._variable_dict = {}</span>
+    <span class="c1">#    for var in self._variable_names:</span>
+    <span class="c1">#        v = None</span>
+    <span class="c1">#        s_name = var.split(&#39;.&#39;)[0]</span>
+    <span class="c1">#        v_name = var.split(&#39;.&#39;)[1]</span>
+    <span class="c1">#        if v_name in [&#39;E_min&#39;,&#39;a0&#39;,&#39;a1&#39;,&#39;a2&#39;,&#39;a3&#39;]:</span>
+    <span class="c1">#            k = &quot;{}.E_min_all&quot;.format(s_name)</span>
+    <span class="c1">#            if v_name == &#39;E_min&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].total_energy</span>
+    <span class="c1">#            elif v_name == &#39;a0&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a1</span>
+    <span class="c1">#            elif v_name == &#39;a1&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a1</span>
+    <span class="c1">#            elif v_name == &#39;a2&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a2</span>
+    <span class="c1">#            elif v_name == &#39;a3&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a3</span>
+    <span class="c1">#        elif v_name in [&#39;c11&#39;,&#39;c12&#39;,&#39;c44&#39;]:</span>
+    <span class="c1">#            k = &quot;{}.elastic&quot;.format(s_name)</span>
+    <span class="c1">#            if v_name == &#39;c11&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].c11</span>
+    <span class="c1">#            elif v_name == &#39;c12&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].c12</span>
+    <span class="c1">#            elif v_name == &#39;c44&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].c44</span>
+    <span class="c1">#        elif v_name in [&#39;E_sp&#39;,&#39;a1_sp&#39;,&#39;a2_sp&#39;,&#39;a3_sp&#39;]:</span>
+    <span class="c1">#            k = &quot;{}.single_point&quot;.format(s_name)</span>
+    <span class="c1">#            if v_name == &#39;E_sp&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].total_energy</span>
+    <span class="c1">#            elif v_name == &#39;a1_sp&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a1</span>
+    <span class="c1">#            elif v_name == &#39;a2_sp&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a2</span>
+    <span class="c1">#            elif v_name == &#39;a3_sp&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a3</span>
+    <span class="c1">#        elif v_name in [&#39;E_min_pos&#39;,&#39;a1_min_pos&#39;,&#39;a2_min_pos&#39;,&#39;a3_minPos&#39;]:</span>
+    <span class="c1">#            k = &quot;{}.E_min_pos&quot;.format(s_name)</span>
+    <span class="c1">#            if v_name == &#39;E_min_pos&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].total_energy</span>
+    <span class="c1">#            elif v_name == &#39;a1_min_pos&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a1</span>
+    <span class="c1">#            elif v_name == &#39;a2_min_pos&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a2</span>
+    <span class="c1">#            elif v_name == &#39;a3_min_pos&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].a3</span>
+    <span class="c1">#        elif v_name == &#39;n_atoms&#39;:</span>
+    <span class="c1">#            k = &quot;{}.structure_info&quot;.format(s_name)</span>
+    <span class="c1">#            if v_name == &#39;n_atoms&#39;:</span>
+    <span class="c1">#                v = self._lmps_sim_obj[k].n_atoms</span>
+    <span class="c1">#        self._variable_dict[var] = v</span>
+
+<span class="k">if</span> <span class="kc">False</span><span class="p">:</span>
+    <span class="k">class</span> <span class="nc">Simulation</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">Simulation</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                     <span class="n">sim_name</span><span class="p">,</span>
+                     <span class="n">sim_dir</span><span class="p">,</span>
+                     <span class="n">structure_name</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sim_name</span> <span class="o">=</span> <span class="n">sim_name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span> <span class="o">=</span> <span class="n">sim_dir</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dir_sim_template</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_structure_name</span> <span class="o">=</span> <span class="n">structure_name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new_a1</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_structure_vasp</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_log</span> <span class="o">=</span> <span class="s1">&#39;log.out&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_script</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_potential</span> <span class="o">=</span> <span class="s1">&#39;potential.mod&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_run_lammps</span> <span class="o">=</span> <span class="s1">&#39;runsimulation.sh&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_results</span> <span class="o">=</span> <span class="s1">&#39;out.dat&#39;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">False</span>     <span class="c1">#boolean flag set if simulation is done</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_error</span> <span class="o">=</span> <span class="kc">False</span>   <span class="c1">#boolean flag set if simulltion has errors</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_err_str</span> <span class="o">=</span> <span class="kc">None</span>      <span class="c1">#string to set if simulation has error</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">lammps_log_file_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_log</span>
+
+        <span class="nd">@lammps_log_file_filename</span><span class="o">.</span><span class="n">setter</span>
+        <span class="k">def</span> <span class="nf">lammps_log_file_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_log</span> <span class="o">=</span> <span class="n">fname</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">structure_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_structure_name</span>
+
+        <span class="nd">@structure_name</span><span class="o">.</span><span class="n">setter</span>
+        <span class="k">def</span> <span class="nf">structure_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="nb">str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_structure_name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">fname_structure_vasp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fname_structure_vasp</span>
+
+        <span class="nd">@fname_structure_vasp</span><span class="o">.</span><span class="n">setter</span>
+        <span class="k">def</span> <span class="nf">fname_structure_vasp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">fname</span><span class="p">),</span> <span class="nb">str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fname_structure_vasp</span> <span class="o">=</span> <span class="n">fname</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">dir_sim_template</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dir_sim_template</span>
+
+        <span class="nd">@dir_sim_template</span><span class="o">.</span><span class="n">setter</span>
+        <span class="k">def</span> <span class="nf">dir_sim_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">dir_t</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dir_t</span><span class="p">),</span><span class="nb">str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dir_sim_template</span> <span class="o">=</span> <span class="n">dir_t</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">new_a1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_a1</span>
+
+        <span class="nd">@new_a1</span><span class="o">.</span><span class="n">setter</span>
+        <span class="k">def</span> <span class="nf">new_a1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">a1</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">a1</span><span class="p">),</span> <span class="nb">float</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_new_a1</span> <span class="o">=</span> <span class="n">a1</span>
+
+        <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="c1"># remove the directory if it exists</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">):</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">)</span>
+            
+            <span class="c1"># copy simulation template</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span><span class="n">src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dir_sim_template</span><span class="p">,</span>
+                            <span class="n">dst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">)</span>
+
+            <span class="c1"># create_structure_file</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fname_structure_vasp</span>
+            <span class="n">dst</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">curdir</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span>
+                               <span class="s1">&#39;lammps.structure&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_structure_file</span><span class="p">(</span><span class="n">src</span><span class="p">,</span><span class="n">dst</span><span class="p">)</span>
+            <span class="c1"># copy potential file</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fname_potential</span>
+            <span class="n">dst</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">curdir</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span>
+                               <span class="s1">&#39;potential.mod&#39;</span><span class="p">)</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">src</span><span class="p">,</span><span class="n">dst</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_create_structure_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">src</span><span class="p">,</span><span class="n">dst</span><span class="p">):</span>
+            <span class="c1"># read in vasp file</span>
+            <span class="n">src_vasp_structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+            <span class="n">src_vasp_structure</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">fname_in</span><span class="o">=</span><span class="n">src</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_a1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">src_vasp_structure</span><span class="o">.</span><span class="n">lattice_parameter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_a1</span>
+
+            <span class="n">dst_lmps_structure</span> <span class="o">=</span> <span class="n">StructureFile</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">src_vasp_structure</span><span class="p">)</span>
+            <span class="n">dst_lmps_structure</span><span class="o">.</span><span class="n">write_file</span><span class="p">(</span><span class="n">fname_out</span><span class="o">=</span><span class="n">dst</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_process</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s1">&#39;bash &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fname_run_lammps</span><span class="p">,</span>
+                                             <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                             <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_error</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">has_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">fname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_log</span><span class="p">,</span> 
+                              <span class="n">n_lines</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;Neighbor list overflow, boost neigh_modify one&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_has_error</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_err_str</span> <span class="o">=</span> <span class="s1">&#39;Neighbor list overflow, boost neigh_modify one&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_has_error</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_error</span>
+
+        <span class="k">def</span> <span class="nf">is_done</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process</span><span class="o">.</span><span class="n">poll</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span>
+
+        <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">class</span> <span class="nc">StructureInfo</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">):</span>
+            <span class="n">Simulation</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_atoms</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_is_done</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_error</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_atoms</span>
+
+        <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">pass</span>
+        <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">pass</span>
+        <span class="k">def</span> <span class="nf">is_done</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">def</span> <span class="nf">has_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">src_vasp_structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+            <span class="n">src_vasp_structure</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_structure_vasp</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_atoms</span> <span class="o">=</span> <span class="n">src_vasp_structure</span><span class="o">.</span><span class="n">n_atoms</span>
+
+    <span class="k">class</span> <span class="nc">SinglePointSimulation</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">):</span>
+            <span class="n">Simulation</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xx</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xz</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pxx</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pyy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pzz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pxy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pxz</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pyz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span>  <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">total_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span>
+
+        <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">fname_results_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_results</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_results_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="c1"># cell simulation variables</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xx&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;yy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;zz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_zz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;yz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># pressure tensor variable</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxx&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pyy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pyy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pzz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pzz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pyz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pyz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># energy varaibles</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;tot_energy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ecoh&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_energy_per_atom</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">class</span> <span class="nc">EnergyMinimizationSimulation</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">):</span>
+            <span class="n">Simulation</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xx</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xz</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pxx</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pyy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pzz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pxy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pxz</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pyz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span>  <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">total_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span>
+
+
+        <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">fname_results_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_results</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_results_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="c1"># cell simulation variables</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xx&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;yy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;zz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_zz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;yz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># pressure tensor variable</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxx&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pyy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pyy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pzz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pzz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pyz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pyz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># energy varaibles</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;tot_energy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ecoh&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_energy_per_atom</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">class</span> <span class="nc">PositionMinimizationSimulation</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">):</span>
+            <span class="n">Simulation</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xx</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_xy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xz</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pxx</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pyy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pzz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_pxy</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pxz</span> <span class="o">=</span> <span class="kc">None</span><span class="p">;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pyz</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span>  <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">a3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">total_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span>
+
+
+        <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">fname_results_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_results</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_results_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="c1"># cell simulation variables</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xx&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a1</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;yy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a2</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;zz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_a3</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_zz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;xz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_xz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;yz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_yz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># pressure tensor variable</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxx&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pyy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pyy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pzz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pzz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pxz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pxz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;pyz&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_pyz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># energy varaibles</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;tot_energy&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_total_energy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;ecoh&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_energy_per_atom</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">class</span> <span class="nc">ElasticTensorSimulation</span><span class="p">(</span><span class="n">Simulation</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">):</span>
+            <span class="n">Simulation</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sim_name</span><span class="p">,</span><span class="n">sim_dir</span><span class="p">,</span><span class="n">structure_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_c11</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_c12</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_c44</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">c11</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_c11</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">c12</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_c12</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">c44</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_c44</span>
+
+        <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">ElasticTensorSimulation</span><span class="p">,</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+            <span class="c1"># elastic simulations require some restart variables.</span>
+            <span class="n">dst_pot</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">_fname_potential</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">dst_pot</span><span class="p">,</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# setup minimization style</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;min_style cg</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;min_modify dmax $</span><span class="si">{dmax}</span><span class="s2"> line quadratic</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# setup output</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;thermo 1</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;thermo_style custom step temp pe press pxx pyy pzz pxy pxz pyz lx ly lz vol</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;thermo_modify norm no</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">fname_results_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sim_dir</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_fname_lammps_results</span><span class="p">)</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_results_file</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;c11&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_c11</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;c12&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_c12</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;c44&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_c44</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+
+
+    <span class="k">class</span> <span class="nc">InputFile</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s2">&quot;metal&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dimension</span> <span class="o">=</span> <span class="mi">3</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">boundary</span> <span class="o">=</span> <span class="s2">&quot;p p p&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom_style</span> <span class="o">=</span> <span class="s2">&quot;atomic&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atom_modify</span> <span class="o">=</span> <span class="s2">&quot;map array&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_fname</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">=</span> <span class="s2">&quot;eam/alloy&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_alloy_file</span> <span class="o">=</span> <span class="s2">&quot;eam.alloy&quot;</span>
+
+        <span class="k">def</span> <span class="nf">initializeSimulations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+             <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;# written by pyPosMat</span><span class="se">\n</span><span class="s2">&quot;</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;# ---- intialize simulation</span><span class="se">\n</span><span class="s2">&quot;</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;clear</span><span class="se">\n</span><span class="s2">&quot;</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;units </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">units</span><span class="p">)</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;dimension </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dimension</span><span class="p">)</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;boundary </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">boundary</span><span class="p">)</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;atom_style </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_style</span><span class="p">)</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;atom_modify </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_modify</span><span class="p">)</span>
+             <span class="k">return</span> <span class="n">str_out</span>
+
+        <span class="k">def</span> <span class="nf">createAtoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_fname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                 <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;LAMMPS structure file not specified.&quot;</span>
+                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+             <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;# ---- create atoms</span><span class="se">\n</span><span class="s2">&quot;</span>
+             <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;read_data </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_fname</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">defineEmpiricalPotential</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;# ---- define interatomic potential&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_fname</span> <span class="o">==</span> <span class="s2">&quot;eam/alloy&quot;</span><span class="p">:</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;pair_style eam/alloy</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;pair_coeff * * </span><span class="si">{}</span><span class="s2"> Ni</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eam_alloy_file</span><span class="p">)</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;neighbor 2.0 bin</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;neigh_modify delay 10 check yes</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">str_out</span>
+
+        <span class="k">def</span> <span class="nf">defineSettings</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;compute eng all pe/atom</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;compute eatoms all reduce sum c_eng</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">str_out</span>
+
+        <span class="k">def</span> <span class="nf">runMinimization</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;reset_timestep 0</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;fix 1 all box/relax iso 0.0 vmax 0.001</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;thermo 10</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;thermo_style custom step pe lx ly lz press pxx pyy pzz c_eatoms</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;min_style cg</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;minimize 1e-25 1e-25 5000 10000</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">str_out</span>
+
+        <span class="k">def</span> <span class="nf">defineVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;# ---- define variables&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;variable natoms equal </span><span class="se">\&quot;</span><span class="s2">count(all)</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;variable tot_energy equal </span><span class="se">\&quot;</span><span class="s2">c_eatoms</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;variable length_x equal </span><span class="se">\&quot;</span><span class="s2">lx/4</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;variable length_y equal </span><span class="se">\&quot;</span><span class="s2">ly/4</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;variable length_z equal </span><span class="se">\&quot;</span><span class="s2">lz/4</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;variable ecoh equal </span><span class="se">\&quot;</span><span class="s2">pe/atoms</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">str_out</span>
+
+        <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">str_out</span>  <span class="o">=</span> <span class="s2">&quot;# ---- output</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">pyPosMat output section</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">tot_energy = $</span><span class="si">{tot_energy}</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">num_atoms = $</span><span class="si">{natoms}</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">latt_const_a = $</span><span class="si">{length_x}</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">latt_const_b = $</span><span class="si">{length_y}</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">latt_const_c = $</span><span class="si">{length_z}</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">ecoh = $</span><span class="si">{ecoh}</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;print </span><span class="se">\&quot;</span><span class="s2">lammps_sim_done</span><span class="se">\&quot;\n</span><span class="s2">&quot;</span>
+            <span class="k">return</span> <span class="n">str_out</span>
+      
+    <span class="k">class</span> <span class="nc">StructureFile</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">Structure</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">base</span><span class="o">.</span><span class="n">Structure</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">obj</span><span class="p">)</span>
+            
+        <span class="k">def</span> <span class="nf">write_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname_out</span><span class="p">,</span> <span class="n">symbol_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atom_style</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">symbol_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">symbol_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+
+            <span class="k">if</span> <span class="n">atom_style</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">atom_style</span> <span class="o">=</span> <span class="s1">&#39;charge&#39;</span>
+
+            <span class="n">total_number_of_atoms</span>      <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span>
+            <span class="n">total_number_of_atom_types</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+            <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice_parameter</span>
+
+            <span class="n">xlo</span>                        <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">xhi</span>                        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">a0</span>
+            <span class="n">ylo</span>                        <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">yhi</span>                        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">a0</span>
+            <span class="n">zlo</span>                        <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">zhi</span>                        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">a0</span>
+            <span class="n">xy</span>                         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">a0</span>
+            <span class="n">xz</span>                         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">a0</span>
+            <span class="n">yz</span>                         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">a0</span>
+
+            <span class="n">file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_out</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;# </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol_list</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> atoms</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">total_number_of_atoms</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> atom types</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">total_number_of_atom_types</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> xlo xhi</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xlo</span><span class="p">,</span> <span class="n">xhi</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> ylo yhi</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ylo</span><span class="p">,</span> <span class="n">yhi</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> zlo zhi</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">zlo</span><span class="p">,</span> <span class="n">zhi</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> xy xz yz</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xy</span><span class="p">,</span><span class="n">xz</span><span class="p">,</span><span class="n">yz</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Atoms</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">atom_id</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i_symbol</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbol_list</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i_atom</span><span class="p">,</span> <span class="n">atom</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">):</span>
+                        <span class="n">chrg</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># dummy variable</span>
+                        <span class="n">posx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">atom</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">a0</span>
+                        <span class="n">posy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">atom</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">a0</span>
+                        <span class="n">posz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_matrix</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">atom</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">a0</span>
+                        <span class="k">if</span> <span class="n">atom_style</span> <span class="o">==</span> <span class="s1">&#39;atomic&#39;</span><span class="p">:</span>
+                            <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="n">str_out</span> <span class="o">=</span> <span class="n">str_out</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atom_id</span><span class="p">,</span> 
+                                                     <span class="n">i_symbol</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> 
+                                                     <span class="n">posx</span><span class="p">,</span><span class="n">posy</span><span class="p">,</span><span class="n">posz</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">atom_style</span> <span class="o">==</span> <span class="s1">&#39;charge&#39;</span><span class="p">:</span>
+                            <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="s2"> </span><span class="si">{:10.4f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="n">str_out</span> <span class="o">=</span> <span class="n">str_out</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atom_id</span><span class="p">,</span>
+                                                     <span class="n">i_symbol</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                                     <span class="n">chrg</span><span class="p">,</span> <span class="n">posx</span><span class="p">,</span><span class="n">posy</span><span class="p">,</span><span class="n">posz</span><span class="p">)</span>
+                        <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">str_out</span><span class="p">)</span>
+                        <span class="n">atom_id</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># various helper functions</span>
+
+    <span class="k">def</span> <span class="nf">checkLammpsSimulationDone</span><span class="p">(</span><span class="n">fname_lmps_log</span><span class="p">):</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">pyflamestk</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname_lmps_log</span><span class="p">,</span> <span class="n">n_lines</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="k">if</span> <span class="s1">&#39;lammps_sim_done&#39;</span> <span class="ow">in</span>  <span class="n">lines</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">checkAllLammpsSimulationsDone</span><span class="p">(</span><span class="n">sim_directories</span><span class="p">):</span>
+      <span class="n">simIsDone</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sim_directories</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="nb">dir</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sim_directories</span><span class="p">):</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/out.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span>
+        <span class="n">simIsDone</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkLammpsSimulationDone</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+      <span class="k">if</span> <span class="kc">False</span> <span class="ow">in</span> <span class="n">simIsDone</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">checkLammpsSimulationForError</span><span class="p">(</span><span class="n">fname_lmps_log</span><span class="p">):</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">pyflamestk</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname_lmps_log</span><span class="p">,</span> <span class="n">n_lines</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;Neighbor list overflow, boost neigh_modify one&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+          <span class="k">return</span> <span class="kc">True</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">checkAllLammpsSimulationsForErrors</span><span class="p">(</span><span class="n">sim_directories</span><span class="p">):</span>
+      <span class="n">simHasError</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="k">for</span> <span class="nb">dir</span> <span class="ow">in</span> <span class="n">sim_directories</span><span class="p">:</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/out.dat&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span>
+        <span class="n">simHasError</span> <span class="o">=</span> <span class="n">checkLammpsSimulationForError</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">simHasError</span><span class="p">):</span>
+          <span class="k">return</span> <span class="kc">True</span>
+      <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">createLammpsSimulation</span><span class="p">(</span><span class="n">sim_name</span><span class="p">,</span>
+                               <span class="n">fname_structure</span><span class="p">,</span>
+                               <span class="n">fname_sim_template</span><span class="p">,</span>
+                               <span class="n">fname_potential</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">fname_eam</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+      <span class="n">dir_name</span> <span class="o">=</span> <span class="n">sim_name</span>
+
+      <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">dir_name</span><span class="p">):</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">dir_name</span><span class="p">)</span>
+
+      <span class="n">shutil</span><span class="o">.</span><span class="n">copytree</span><span class="p">(</span><span class="n">fname_sim_template</span><span class="p">,</span>
+                      <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dir_name</span><span class="p">))</span>
+
+      <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">fname_structure</span><span class="p">,</span>
+                      <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/lammps.structure&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dir_name</span><span class="p">))</span>
+
+      <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">fname_potential</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+      <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">fname_eam</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">fname_eam</span><span class="p">,</span>
+                       <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/eam.alloy&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dir_name</span><span class="p">))</span>
+
+      <span class="k">for</span> <span class="nb">dir</span> <span class="ow">in</span> <span class="n">sim_directories</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s2">&quot;./runsimulation.sh&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cwd</span><span class="o">=</span><span class="nb">dir</span><span class="p">)</span>
+
+      <span class="c1"># check if simulations are done</span>
+      <span class="n">sims_finished</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="k">while</span> <span class="ow">not</span><span class="p">(</span><span class="n">sims_finished</span><span class="p">):</span>
+        <span class="n">sims_finished</span> <span class="o">=</span> <span class="n">checkAllLammpsSimulationsDone</span><span class="p">(</span><span class="n">sim_directories</span> <span class="o">=</span> <span class="n">sim_directories</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.05</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getCohesiveEnergy</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">):</span>
+      <span class="n">ecoh</span><span class="o">=</span><span class="mi">0</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ecoh =&quot;</span><span class="p">):</span>
+          <span class="n">ecoh</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+      <span class="k">return</span> <span class="n">ecoh</span>
+
+    <span class="k">def</span> <span class="nf">getElasticComponent</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">,</span> <span class="n">component</span><span class="p">):</span>
+      <span class="n">retval</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> =&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">component</span><span class="p">)):</span>
+          <span class="n">retval</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+          <span class="n">retval</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+      <span class="k">return</span> <span class="n">retval</span>
+
+    <span class="k">def</span> <span class="nf">getLatticeParameter</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">):</span>
+      <span class="n">alat</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;latt_const_a&quot;</span><span class="p">):</span>
+          <span class="n">alat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+      <span class="k">return</span> <span class="n">alat</span>
+
+    <span class="k">def</span> <span class="nf">getPressure</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">,</span> <span class="nb">type</span> <span class="o">=</span> <span class="s1">&#39;total&#39;</span><span class="p">):</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_lammps_out</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="n">pressure_xx</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">pressure_yy</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">pressure_zz</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">pressure_total</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;pressure_total&quot;</span><span class="p">):</span>
+          <span class="n">pressure_total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;pressure_xx&quot;</span><span class="p">):</span>
+          <span class="n">pressure_xx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;pressure_yy&quot;</span><span class="p">):</span>
+          <span class="n">pressure_yy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;pressure_zz&quot;</span><span class="p">):</span>
+          <span class="n">pressure_zz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">pass</span>
+      <span class="k">if</span>   <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;total&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pressure_total</span>
+      <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;xx&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pressure_xx</span>
+      <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;yy&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pressure_yy</span>
+      <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;zz&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pressure_zz</span>
+      <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">pressure_xx</span><span class="p">,</span> <span class="n">pressure_yy</span><span class="p">,</span> <span class="n">pressure_zz</span><span class="p">,</span> <span class="n">pressure_total</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;pyflamestk.lammps -&gt; do not understand pressure_type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">))</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,824 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.data.cluster_analysis &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.data.cluster_analysis</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">preprocessing</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">manifold</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">neighbors</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="k">import</span> <span class="n">cluster</span>
+
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">BadPreprocessorTypeException</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">BadManifoldTypeException</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">BadNearestNeighborTypeException</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">BadClusterTypeException</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.pipeline</span> <span class="k">import</span> <span class="n">BasePipeSegment</span>
+<span class="kn">from</span> <span class="nn">pypospack.kde</span> <span class="k">import</span> <span class="n">Chiu1999_h</span>
+
+
+<div class="viewcode-block" id="SeatonClusterAnalysis"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis">[docs]</a><span class="k">class</span> <span class="nc">SeatonClusterAnalysis</span><span class="p">(</span><span class="n">BasePipeSegment</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SeatonClusterAnalysis.cluster_kmeans"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis.cluster_kmeans">[docs]</a>    <span class="k">def</span> <span class="nf">cluster_kmeans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># process arg: cols, clusters</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_data</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">clusters</span><span class="o">=</span><span class="n">clusters</span><span class="p">)</span>
+        <span class="c1"># process arg: abs_cols</span>
+        <span class="k">if</span> <span class="n">abs_cols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">abs_cols</span><span class="p">]</span>
+        <span class="c1"># process arg: kwargs</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_kwargs</span><span class="p">(</span><span class="s1">&#39;kmeans&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">o_kmeans</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">KMeans</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">o_kmeans</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span></div>
+
+<div class="viewcode-block" id="SeatonClusterAnalysis.cluster_dbscan"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis.cluster_dbscan">[docs]</a>    <span class="k">def</span> <span class="nf">cluster_dbscan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">abs_cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># process arg: cols, clusters</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_data</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">clusters</span><span class="o">=</span><span class="n">clusters</span><span class="p">)</span>
+        <span class="c1"># process arg: abs_cols</span>
+        <span class="k">if</span> <span class="n">abs_cols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">abs_cols</span><span class="p">]</span>
+        <span class="c1"># process arg: kwargs</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_kwargs</span><span class="p">(</span><span class="s1">&#39;dbscan&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">o_dbscan</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">DBSCAN</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">o_dbscan</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span></div>
+
+<div class="viewcode-block" id="SeatonClusterAnalysis.select_cluster"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis.select_cluster">[docs]</a>    <span class="k">def</span> <span class="nf">select_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cluster_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;cluster_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;cluster_id column not found, calculate clusters prior to selection&quot;</span><span class="p">)</span>
+        <span class="n">sub_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster_id</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">sub_df</span></div>
+
+<div class="viewcode-block" id="SeatonClusterAnalysis.to_dict"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;cluster_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;cluster_id column not found, calculate clusters prior to selection&quot;</span><span class="p">)</span>
+
+        <span class="n">cluster_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">])</span>
+        <span class="n">cluster_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="n">cluster_ids</span><span class="p">:</span>
+            <span class="n">cluster_dict</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_cluster</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cluster_dict</span></div>
+
+<div class="viewcode-block" id="SeatonClusterAnalysis.is_valid_partition"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis.is_valid_partition">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid_partition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;cluster_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;cluster_id column not found, calculate clusters prior to selection&quot;</span><span class="p">)</span>
+        <span class="c1"># ensure that all clusters have more points than there are parameters</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">if</span> <span class="n">nrows</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="SeatonClusterAnalysis.calculate_kNN_analysis"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.SeatonClusterAnalysis.calculate_kNN_analysis">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_kNN_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;kNN&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbor_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbor_type</span> <span class="o">==</span> <span class="s1">&#39;ball_tree&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kNN__ball_tree</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BadNearestNeighborTypeException</span><span class="p">()</span>
+        <span class="n">stop_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_time_kNN</span> <span class="o">=</span> <span class="n">stop_time</span> <span class="o">-</span> <span class="n">start_time</span></div>
+
+    <span class="k">def</span> <span class="nf">_kNN__ball_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;leaf_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">40</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;metric&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;minkowski&#39;</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span> <span class="o">=</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">BallTree</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">],</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NN_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kNN</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="n">X</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">],</span>
+                        <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kNN</span><span class="p">,</span>
+                        <span class="n">return_distance</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kNN_names</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis">[docs]</a><span class="k">class</span> <span class="nc">PyposmatClusterAnalysis</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o_logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">o_logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;backup logging not yet supported&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">o_logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_parameters</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_qois</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_errors</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cluster_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># determine which variables are included in the analysis</span>
+        <span class="n">cluster_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_parameters</span><span class="p">:</span>
+            <span class="n">cluster_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_qois</span><span class="p">:</span>
+            <span class="n">cluster_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_errors</span><span class="p">:</span>
+            <span class="n">cluster_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+
+        <span class="k">return</span> <span class="n">cluster_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">scaled_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">scaled_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_parameters</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+                <span class="n">scaled_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nparam&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_qois</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                <span class="n">scaled_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nqoi&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_errors</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">:</span>
+                <span class="n">scaled_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">scaled_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_parameter_names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nparam&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">n_parameter_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_qoi_names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nqoi&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">n_qoi_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">n_error_names</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="c1"># original error name is a.b.err, ignore .err</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">n_error_names</span>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.init_from_json"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.init_from_json">[docs]</a>    <span class="k">def</span> <span class="nf">init_from_json</span><span class="p">(</span><span class="n">json</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.init_from_ordered_dict"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.init_from_ordered_dict">[docs]</a>    <span class="k">def</span> <span class="nf">init_from_ordered_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">o_logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;constructor from a OrderedDict</span>
+
+<span class="sd">        Arg:</span>
+<span class="sd">            d(collections.OrderedDict): ordered dict</span>
+<span class="sd">            o_logger(PyposmatLogFile): pyposmat log file object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">o</span> <span class="o">=</span> <span class="n">PyposmatClusterAnalysis</span><span class="p">(</span><span class="n">o_logger</span><span class="o">=</span><span class="n">o_logger</span><span class="p">)</span>
+
+        <span class="n">o</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;configuration_fn&#39;</span><span class="p">]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">read_configuration</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">o</span><span class="o">.</span><span class="n">configuration_fn</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ConfigurationError in PyposmatClusterAnalysis&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    </span><span class="si">{}</span><span class="s2">=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;o.configuration_fn=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">o</span><span class="o">.</span><span class="n">configuration_fn</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="n">o</span><span class="o">.</span><span class="n">data_fn</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;data_fn&#39;</span><span class="p">]</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">read_data</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">o</span><span class="o">.</span><span class="n">data_fn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;include_parameters&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">include_parameters</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_parameters&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">include_parameters</span>
+        <span class="k">if</span> <span class="s1">&#39;include_qois&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">include_qois</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_qois&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_qois&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">include_qois</span>
+        <span class="k">if</span> <span class="s1">&#39;include_errors&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">include_errors</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_errors&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_errors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">include_errors</span>
+
+        <span class="k">if</span> <span class="s1">&#39;normalizer&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">normalize_data</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;normalizer&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s1">&#39;normalizer_type&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">normalizer_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;normalizer_type&#39;</span><span class="p">]</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">normalize_data</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">normalizer_type</span><span class="p">)</span>
+        <span class="c1"># quick patch to fix the duplicate axis issue</span>
+        <span class="k">if</span> <span class="s1">&#39;cluster_id&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">):</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">o</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.to_dict"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;configuration_fn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">configuration_fn</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;data_fn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">data_fn</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;rescaler_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">rescaler_type</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;analysis_on&#39;</span><span class="p">][</span><span class="s1">&#39;include_parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">include_parameters</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;analysis_on&#39;</span><span class="p">][</span><span class="s1">&#39;include_errors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">include_errors</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.to_json"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.to_json">[docs]</a>    <span class="k">def</span> <span class="nf">to_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.to_ordered_dict"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.to_ordered_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_ordered_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;pyposmat_config_fn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;pyposmat_data_fn&#39;</span><span class="p">]</span> <span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.read_configuration"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.read_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;read in pyposmat configuration file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str): path of the configuraiton file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.read_data"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.read_data">[docs]</a>    <span class="k">def</span> <span class="nf">read_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;read in pyposmat data filename</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str): path of the data file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.preprocess_data"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.preprocess_data">[docs]</a>    <span class="k">def</span> <span class="nf">preprocess_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">time_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor_type</span> <span class="o">==</span> <span class="s1">&#39;standard_scaler&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_preprocess_data__standard_scaler</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BadPreprocessorTypeException</span><span class="p">()</span>
+        <span class="n">time_end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_time_preprocess</span> <span class="o">=</span> <span class="n">time_end</span><span class="o">-</span><span class="n">time_start</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.calculate_manifold"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.calculate_manifold">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_manifold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="n">time_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">manifold_type</span> <span class="o">==</span> <span class="s1">&#39;tsne&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_manifold_tsne</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BadManifoldTypeException</span><span class="p">()</span>
+
+        <span class="n">time_stop</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_time_manifold</span> <span class="o">=</span> <span class="n">time_stop</span> <span class="o">-</span> <span class="n">time_start</span></div>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.calculate_kNN_analysis"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.calculate_kNN_analysis">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_kNN_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;kNN&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbor_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nearest_neighbor_type</span> <span class="o">==</span> <span class="s1">&#39;ball_tree&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_kNN__ball_tree</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BadNearestNeighborTypeException</span><span class="p">()</span>
+        <span class="n">stop_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_time_kNN</span> <span class="o">=</span> <span class="n">stop_time</span> <span class="o">-</span> <span class="n">start_time</span></div>
+
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.calculate_clusters"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.calculate_clusters">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+
+        <span class="n">time_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusterer</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_type</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_type</span> <span class="o">==</span> <span class="s1">&#39;dbscan&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_dbscan</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BadClusterTypeException</span><span class="p">()</span>
+        <span class="n">time_stop</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_time_cluster</span> <span class="o">=</span> <span class="n">time_stop</span> <span class="o">-</span> <span class="n">time_start</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_cluster_dbscan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s1">&#39;eps&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+                <span class="n">kNN</span> <span class="o">=</span> <span class="n">eps</span><span class="p">[</span><span class="s1">&#39;NN&#39;</span><span class="p">]</span>
+                <span class="n">percentile</span> <span class="o">=</span> <span class="n">eps</span><span class="p">[</span><span class="s1">&#39;percentile&#39;</span><span class="p">]</span>
+
+                <span class="n">qe</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+                <span class="n">pe</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kNN</span><span class="p">):</span>
+                    <span class="n">qe</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">pe</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;NN_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)])</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">percentile</span><span class="p">,</span><span class="n">pe</span><span class="p">[</span><span class="n">kNN</span><span class="p">],</span><span class="n">qe</span><span class="p">[</span><span class="n">kNN</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+        <span class="k">if</span> <span class="s1">&#39;min_samples&#39;</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]:</span>
+            <span class="n">min_samples</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;min_samples&#39;</span><span class="p">]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+                    <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span><span class="o">.</span><span class="n">query_radius</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">],</span>
+                            <span class="n">r</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;eps&#39;</span><span class="p">],</span>
+                            <span class="n">count_only</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="p">),</span>
+                        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;kNN_radius&#39;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                <span class="p">],</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min_samples&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">min_samples</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusterer</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">DBSCAN</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusterer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">labels_</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">in</span> <span class="n">cluster_labels</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">),</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_preprocess_data__standard_scaler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="c1"># default keyword arguments</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;copy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;with_mean&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;with_std&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># change default arguments</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="c1"># add the default arguments to the</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="c1">#pipeline_preprocessor = preprocessing.StandardScaler()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor</span> <span class="o">=</span> <span class="n">preprocessing</span><span class="o">.</span><span class="n">StandardScaler</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+                            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+                            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+                        <span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_parameter_names</span>\
+                        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_error_names</span>\
+                        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_qoi_names</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_manifold_tsne</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="c1"># default keyword arguments</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;n_components&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;perplexity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;early_exaggeration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">12</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;n_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;n_iter_without_progress&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;min_grad_norm&#39;</span><span class="p">]</span> <span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+        <span class="c1">#kwargs[&#39;metric&#39;]=&#39;euclidean&#39;,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;init&#39;</span><span class="p">]</span> <span class="o">=</span><span class="s1">&#39;pca&#39;</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;verbose&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;random_state&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+
+        <span class="c1"># change default arguments</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="c1"># add the default arguments to the</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;n_components&#39;</span><span class="p">]):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;tsne_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+        <span class="c1">#TODO: need to fix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold</span> <span class="o">=</span>  <span class="n">manifold</span><span class="o">.</span><span class="n">TSNE</span><span class="p">()</span>
+        <span class="c1">#pipeline_manifold =  manifold.TSNE(**kwargs)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manifold</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_names</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_kNN__ball_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">d</span><span class="p">):</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;leaf_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">40</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;metric&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;minkowski&#39;</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span> <span class="o">=</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">BallTree</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">],</span>
+            <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">kNN_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;NN_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kNN</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kNN_tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">],</span>
+                        <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kNN</span><span class="p">,</span>
+                        <span class="n">return_distance</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kNN_names</span>
+                <span class="p">)</span>
+            <span class="p">],</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="PyposmatClusterAnalysis.isValidPartition"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatClusterAnalysis.isValidPartition">[docs]</a>    <span class="k">def</span> <span class="nf">isValidPartition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># check the cholesky decomposition of each cluster</span>
+        <span class="c1"># return True if no error</span>
+        <span class="c1"># return False on linalg error</span>
+        <span class="k">for</span> <span class="n">cluster_id</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]):</span>
+            <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster_id</span><span class="p">]</span>
+            <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_h</span> <span class="o">=</span> <span class="n">Chiu1999_h</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;cholesky failed on cluster </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cluster_id</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span></div></div>
+
+
+<div class="viewcode-block" id="ecdf"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.ecdf">[docs]</a><span class="k">def</span> <span class="nf">ecdf</span><span class="p">(</span><span class="n">sample</span><span class="p">):</span>
+    <span class="c1"># convert sample to a numpy array, if it isn&#39;t already</span>
+    <span class="n">sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+    <span class="c1"># find the unique values and their corresponding counts</span>
+    <span class="n">quantiles</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># take the cumulative sum of the counts and divide by the sample size to</span>
+    <span class="c1"># get the cumulative probabilities between 0 and 1</span>
+    <span class="n">cumprob</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">double</span><span class="p">)</span> <span class="o">/</span> <span class="n">sample</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="k">return</span> <span class="n">quantiles</span><span class="p">,</span> <span class="n">cumprob</span></div>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="k">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<div class="viewcode-block" id="PyposmatSilhouettePlot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.cluster_analysis.PyposmatSilhouettePlot">[docs]</a><span class="k">class</span> <span class="nc">PyposmatSilhouettePlot</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Plot Silhouette Plots&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">fig</span> <span class="o">=</span> <span class="kc">None</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">silhouette_plot</span> <span class="o">=</span> <span class="kc">None</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">cluster_plot</span> <span class="o">=</span> <span class="kc">None</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">silhouette_plot</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_plot</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span></div>
+
+       <span class="c1"># 1st subplot is silhouette plot_kmeans_silhouette_analysis</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+
+    <span class="n">pyposmat_src_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="s1">&#39;..&#39;</span><span class="p">,</span><span class="s1">&#39;..&#39;</span><span class="p">,</span><span class="s1">&#39;..&#39;</span><span class="p">,</span><span class="s1">&#39;..&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;data_test&#39;</span><span class="p">,</span><span class="s1">&#39;Ni__eam__born_exp_fs_00&#39;</span><span class="p">,</span><span class="s1">&#39;data__Ni__eam__born_exp_fs_03&#39;</span>
+    <span class="p">)</span>
+    <span class="n">pyposmat_configuration_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">pyposmat_src_dir</span><span class="p">,</span><span class="s1">&#39;pyposmat.config.in&#39;</span>
+    <span class="p">)</span>
+    <span class="n">pyposmat_data_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">pyposmat_src_dir</span><span class="p">,</span><span class="s1">&#39;pyposmat.kde.5.out&#39;</span>
+    <span class="p">)</span>
+
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;configuration_fn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pyposmat_configuration_fn</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;data_fn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pyposmat_data_fn</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_qois&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_errors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;standard_scaler&#39;</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;copy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;with_mean&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;with_std&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;tsne&#39;</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;n_components&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;perplexity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;early_exaggeration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">12</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;n_iter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5000</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;n_iter_without_progress&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;min_grad_norm&#39;</span><span class="p">]</span> <span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span>
+    <span class="c1">#d[&#39;manifold&#39;][&#39;args&#39;][&#39;metric&#39;]=&#39;euclidean&#39;,</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;init&#39;</span><span class="p">]</span> <span class="o">=</span><span class="s1">&#39;pca&#39;</span><span class="p">,</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;verbose&#39;</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;random_state&#39;</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span>
+    <span class="c1">#method=&#39;barnes_hut&#39;</span>
+    <span class="c1">#angle=0.5</span>
+
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;ball_tree&#39;</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;kNN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;leaf_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">40</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;neighbors&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;metric&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;minkowski&#39;</span>
+
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;dbscan&#39;</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;eps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;eps&#39;</span><span class="p">][</span><span class="s1">&#39;NN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;eps&#39;</span><span class="p">][</span><span class="s1">&#39;percentile&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="o">.</span><span class="mi">99</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;min_samples&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;metric&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;euclidean&#39;</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;metric_params&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;algorithm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;leaf_size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">30</span>
+    <span class="n">d</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">][</span><span class="s1">&#39;p&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1">#o = PyposmatClusterAnalysis()</span>
+    <span class="n">o</span> <span class="o">=</span> <span class="n">PyposmatClusterAnalysis</span><span class="o">.</span><span class="n">init_from_ordered_dict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="n">rd</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;include_parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_parameters&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;include_qois&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_qois&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;include_errors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;include_errors&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">][</span><span class="s1">&#39;names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">cluster_names</span>
+
+
+    <span class="n">o</span><span class="o">.</span><span class="n">preprocess_data</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">scaled_names</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;results&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="c1">#rd[&#39;preprocessing&#39;][&#39;results&#39;][&#39;mean&#39;] = o.preprocessor.mean_</span>
+    <span class="c1">#rd[&#39;preprocessing&#39;][&#39;results&#39;][&#39;sd&#39;] = o.preprocessor.var_</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">cluster_names</span><span class="p">):</span>
+        <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;results&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span><span class="n">o</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">mean_</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="p">(</span><span class="s1">&#39;var&#39;</span><span class="p">,</span><span class="n">o</span><span class="o">.</span><span class="n">preprocessor</span><span class="o">.</span><span class="n">var_</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;performance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;performance&#39;</span><span class="p">][</span><span class="s1">&#39;cpu_time&#39;</span><span class="p">]</span> <span class="o">=</span> \
+        <span class="n">o</span><span class="o">.</span><span class="n">cpu_time_preprocess</span>
+
+    <span class="k">if</span> <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="s1">&#39;standard_scaler&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;preprocessing&#39;</span><span class="p">][</span><span class="s1">&#39;results&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">,</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">],</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">]))</span>
+
+    <span class="n">o</span><span class="o">.</span><span class="n">calculate_manifold</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;results&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;performance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;manifold&#39;</span><span class="p">][</span><span class="s1">&#39;performance&#39;</span><span class="p">][</span><span class="s1">&#39;cpu_time&#39;</span><span class="p">]</span> <span class="o">=</span> \
+        <span class="n">o</span><span class="o">.</span><span class="n">cpu_time_manifold</span>
+
+
+    <span class="n">o</span><span class="o">.</span><span class="n">calculate_kNN_analysis</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">o</span><span class="o">.</span><span class="n">calculate_clusters</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="n">fig1</span><span class="p">,</span> <span class="p">(</span><span class="n">ax11</span><span class="p">,</span><span class="n">ax12</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">nr</span><span class="p">,</span><span class="n">nc</span><span class="p">)</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">qe1</span><span class="p">,</span><span class="n">pe1</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;NN_1&#39;</span><span class="p">])</span>
+    <span class="n">qe2</span><span class="p">,</span><span class="n">pe2</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;NN_2&#39;</span><span class="p">])</span>
+    <span class="n">qe3</span><span class="p">,</span><span class="n">pe3</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;NN_3&#39;</span><span class="p">])</span>
+    <span class="n">ax11</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">qe1</span><span class="p">,</span><span class="n">pe1</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;NN_1&#39;</span><span class="p">)</span>
+    <span class="n">ax11</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">qe2</span><span class="p">,</span><span class="n">pe2</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;NN_2&#39;</span><span class="p">)</span>
+    <span class="n">ax11</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">qe3</span><span class="p">,</span><span class="n">pe3</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;NN_3&#39;</span><span class="p">)</span>
+    <span class="n">ax11</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Quantile&#39;</span><span class="p">)</span>
+    <span class="n">ax11</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Cumulative probability&#39;</span><span class="p">)</span>
+    <span class="n">ax11</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fancybox</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
+    <span class="n">ax12</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;kNN_radius&#39;</span><span class="p">])</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="n">fig2</span><span class="p">,</span> <span class="p">(</span><span class="n">ax21</span><span class="p">,</span><span class="n">ax22</span><span class="p">,</span><span class="n">ax23</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">ax21</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+
+    <span class="n">cluster_colors</span> <span class="o">=</span> <span class="n">cm</span><span class="o">.</span><span class="n">spectral</span><span class="p">(</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>\
+            <span class="o">/</span><span class="n">o</span><span class="o">.</span><span class="n">n_clusters</span>
+    <span class="p">)</span>
+
+    <span class="n">ax22</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">=</span><span class="n">cluster_colors</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">ax23</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+        <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">o</span><span class="o">.</span><span class="n">manifold_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+        <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
+        <span class="n">s</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="kn">from</span> <span class="nn">pandas.plotting</span> <span class="k">import</span> <span class="n">parallel_coordinates</span>
+    <span class="n">fig3</span><span class="p">,</span> <span class="n">ax3</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">cluster_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">cluster_id</span> <span class="ow">in</span> <span class="n">cluster_ids</span><span class="p">:</span>
+        <span class="n">parallel_coordinates</span><span class="p">(</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cluster_id</span><span class="p">][</span><span class="n">o</span><span class="o">.</span><span class="n">n_error_names</span><span class="p">],</span>
+            <span class="s1">&#39;Ni_fcc.E_coh.nerr&#39;</span>
+        <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">legend_</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

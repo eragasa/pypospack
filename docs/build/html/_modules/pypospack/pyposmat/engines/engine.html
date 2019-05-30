@@ -1,0 +1,348 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.engines.engine &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.engines.engine</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pypospack.qoi</span> <span class="k">import</span> <span class="n">QoiManager</span>
+<span class="kn">from</span> <span class="nn">pypospack.task</span> <span class="k">import</span> <span class="n">TaskManager</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.configurationfile</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">LammpsSimulationError</span>
+
+<div class="viewcode-block" id="PyposmatEngine"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine">[docs]</a><span class="k">class</span> <span class="nc">PyposmatEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">EAM_EOS_EMBEDDING_FUNCTIONS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;eam_embed_eos_rose&#39;</span><span class="p">]</span>
+    <span class="sd">&quot;&quot;&quot;class for evaluating a simulation</span>
+
+<span class="sd">    This class combines the two classes QoiManager, which manages classes used</span>
+<span class="sd">    to manage the classes used in modelling and calculating material properties,</span>
+<span class="sd">    and TaskManager, which manages classes used to manage the classes used in</span>
+<span class="sd">    specific simulations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename_in(str): path in</span>
+<span class="sd">        filename_out(str): path out </span>
+<span class="sd">        base_directory(str): This is the base directory from which the</span>
+<span class="sd">            PyposmatEngine will create and run simulations.  By default</span>
+<span class="sd">            this is set to None, which means it will use the current</span>
+<span class="sd">            working directory as the base directory.</span>
+<span class="sd">        fullauto(bool):</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        pyposmat_filename_in(str): path in</span>
+<span class="sd">        pyposmat_filename_out(str) path out</span>
+<span class="sd">        base_directory(str): the base directory</span>
+<span class="sd">        rank_directory(str): This reflect the MPI rank of the processsor</span>
+<span class="sd">            that the PyposmatEngine is running on.  If there is no MPI</span>
+<span class="sd">            available, this is automatically set to rank0000.</span>
+<span class="sd">        configuration(pypospack.pyposmat.PyposmatConfigurationFile)</span>
+<span class="sd">        qoi_manager(pypospack.qoi.QoiManager)</span>
+<span class="sd">        task_mamanger(pypospack.task.TaskManager)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">filename_in</span> <span class="o">=</span> <span class="s1">&#39;pypospack.config.in&#39;</span><span class="p">,</span>
+            <span class="n">filename_out</span> <span class="o">=</span> <span class="s1">&#39;pypospack.results.out&#39;</span><span class="p">,</span>
+            <span class="n">base_directory</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">fullauto</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename_in</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename_out</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pyposmat_filename_in</span> <span class="o">=</span> <span class="n">filename_in</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pyposmat_filename_out</span> <span class="o">=</span> <span class="n">filename_out</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_manager</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_structure_directory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">base_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_directory</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span> <span class="o">=</span> <span class="n">base_directory</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;base_directory has to be a string&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configure</span><span class="p">()</span>
+     
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">structure_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_structure_directory</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_structure_directory</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">structures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(collections.OrderedDict)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">potential</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(collections.OrderedDict)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">potential</span>
+
+<div class="viewcode-block" id="PyposmatEngine.configure"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        When writing a new PypospackEngine this method will likely have</span>
+<span class="sd">        to be modified</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_base_directories</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_configuration_file</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configure_qoi_manager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configure_task_manager</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatEngine.create_base_directories"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.create_base_directories">[docs]</a>    <span class="k">def</span> <span class="nf">create_base_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">base_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_directory</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">base_directory</span> <span class="ow">is</span> <span class="kc">None</span>
+
+        <span class="c1"># &lt;-------- determine the base directory.</span>
+        <span class="k">if</span> <span class="n">base_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_directory</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span> <span class="o">=</span> <span class="n">base_directory</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;the base directory must be a string&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+        <span class="c1"># &lt;-------- create the base directory if the base directory does</span>
+        <span class="c1">#           not exist</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span><span class="p">)</span>
+
+        <span class="c1"># &lt;-------- the rank directory is determined by the MPI rank</span>
+        <span class="c1">#           this is not implemented yet</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_rank_directory</span> <span class="o">=</span> <span class="s2">&quot;rank0&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span><span class="p">,</span>
+                    <span class="n">_rank_directory</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyposmatEngine.read_configuration_file"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.read_configuration_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_filename_in</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pyposmat_filename_in</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_filename_in</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">_filename_in</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatEngine.configure_qoi_manager"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.configure_qoi_manager">[docs]</a>    <span class="k">def</span> <span class="nf">configure_qoi_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qois</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">qois</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">qois</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qois</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span> <span class="o">=</span> <span class="n">QoiManager</span><span class="p">(</span><span class="n">qoi_database</span><span class="o">=</span><span class="n">qois</span><span class="p">,</span><span class="n">fullauto</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PyposmatEngine.configure_task_manager"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.configure_task_manager">[docs]</a>    <span class="k">def</span> <span class="nf">configure_task_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># &lt;-------- local variables</span>
+        <span class="n">_base_directory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_directory</span>
+        <span class="n">_tasks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span><span class="o">.</span><span class="n">tasks</span>
+        <span class="n">_structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span>
+
+        <span class="c1"># &lt;-------- configure task manager</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_manager</span> <span class="o">=</span> <span class="n">TaskManager</span><span class="p">(</span>
+                <span class="n">base_directory</span><span class="o">=</span><span class="n">_base_directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_manager</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span>
+                <span class="n">tasks</span> <span class="o">=</span> <span class="n">_tasks</span><span class="p">,</span>
+                <span class="n">structures</span> <span class="o">=</span> <span class="n">_structures</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatEngine.write_eam_setfl_file"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.write_eam_setfl_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_eam_setfl_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameters</span><span class="p">,</span><span class="n">potential</span><span class="p">,</span><span class="n">setfl_fn</span><span class="p">):</span>
+       
+        <span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">EamPotential</span>
+        <span class="n">is_debug</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">potential</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">setfl_fn</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">potential</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">setfl_fn</span><span class="p">)</span>
+
+        <span class="n">p</span> <span class="o">=</span> <span class="n">EamPotential</span><span class="p">(</span>
+                <span class="n">symbols</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;symbols&#39;</span><span class="p">],</span>
+                <span class="n">func_pair</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;pair_type&#39;</span><span class="p">],</span>
+                <span class="n">func_density</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;density_type&#39;</span><span class="p">],</span>
+                <span class="n">func_embedding</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;embedding_type&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">write_setfl_file</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">setfl_fn</span><span class="p">,</span>
+                <span class="n">symbols</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;symbols&#39;</span><span class="p">],</span>
+                <span class="n">Nr</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;N_r&#39;</span><span class="p">],</span>
+                <span class="n">rmax</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;r_max&#39;</span><span class="p">],</span>
+                <span class="n">rcut</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;r_cut&#39;</span><span class="p">],</span>
+                <span class="n">Nrho</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;N_rho&#39;</span><span class="p">],</span>
+                <span class="n">rhomax</span><span class="o">=</span><span class="n">potential</span><span class="p">[</span><span class="s1">&#39;rho_max&#39;</span><span class="p">],</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PyposmatEngine.evaluate_parameter_set"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.engine.PyposmatEngine.evaluate_parameter_set">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_parameter_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Arguments:</span>
+<span class="sd">        </span>
+<span class="sd">            parameters(OrderedDict): hashtable of parameter values with the key value defined</span>
+<span class="sd">                by the configuration file or the PyposmatConfigurationFile object.  Only the</span>
+<span class="sd">                free parameter values need to be defined.  Constrained parameter values will</span>
+<span class="sd">                be automatically generated</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict: hashtable of results with the key value being defined</span>
+<span class="sd">                by the the either configuration file or the PyposmatConfigurationFile object</span>
+<span class="sd">        Exceptions:</span>
+<span class="sd">            LammpsSimulationError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configure_task_manager</span><span class="p">()</span>
+        <span class="n">_parameters</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">_potential</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span>
+     
+        <span class="c1"># if the filename is EAM, it is faster to create a single EAM file, and</span>
+        <span class="c1"># then use that file everywhere</span>
+        <span class="k">if</span> <span class="n">_potential</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+            <span class="n">setfl_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span>
+                    <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.eam.alloy&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_potential</span><span class="p">[</span><span class="s1">&#39;symbols&#39;</span><span class="p">]))</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">_potential</span><span class="p">[</span><span class="s1">&#39;embedding_type&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">EAM_EOS_EMBEDDING_FUNCTIONS</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_eam_setfl_file</span><span class="p">(</span>
+                        <span class="n">parameters</span><span class="o">=</span><span class="n">_parameters</span><span class="p">,</span>
+                        <span class="n">potential</span><span class="o">=</span><span class="n">_potential</span><span class="p">,</span>
+                        <span class="n">setfl_fn</span><span class="o">=</span><span class="n">setfl_fn</span>
+                <span class="p">)</span>
+                <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">setfl_fn</span><span class="p">)</span>
+                <span class="n">_potential</span><span class="p">[</span><span class="s1">&#39;setfl_filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">setfl_fn</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">task_manager</span><span class="o">.</span><span class="n">evaluate_tasks</span><span class="p">(</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">_parameters</span><span class="p">,</span>
+                    <span class="n">potential</span><span class="o">=</span><span class="n">_potential</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">LammpsSimulationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">str_neighlist_overflow</span> <span class="o">=</span> <span class="s1">&#39;Neighbor list overflow&#39;</span>
+            <span class="k">raise</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- FATAL ERROR ---&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;self.configuration.potential:&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="s1">&#39;=&#39;</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;current_parameter_set:&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">_parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="s1">&#39;=&#39;</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--- END ERROR INFO ---&quot;</span><span class="p">)</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">potential</span><span class="p">))</span>
+            <span class="k">raise</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># send the results from the task calculations to calculate QOIs</span>
+            <span class="n">_task_results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_manager</span><span class="o">.</span><span class="n">results</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span><span class="o">.</span><span class="n">calculate_qois</span><span class="p">(</span>
+                    <span class="n">task_results</span><span class="o">=</span><span class="n">_task_results</span><span class="p">)</span>
+
+            <span class="c1"># populate qoi values</span>
+            <span class="n">_qoi_results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">k_qoi</span><span class="p">,</span><span class="n">v_qoi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">_qoi_val</span> <span class="o">=</span> <span class="n">v_qoi</span><span class="p">[</span><span class="s1">&#39;qoi_val&#39;</span><span class="p">]</span>
+                <span class="n">_qoi_results</span><span class="p">[</span><span class="n">k_qoi</span><span class="p">]</span> <span class="o">=</span> <span class="n">_qoi_val</span>
+
+            <span class="c1"># populate errors</span>
+            <span class="n">_qoi_errors</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">k_qoi</span><span class="p">,</span><span class="n">v_qoi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">_qoi_error_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k_qoi</span><span class="p">,</span><span class="s1">&#39;err&#39;</span><span class="p">)</span>
+                <span class="n">_qoi_error</span> <span class="o">=</span> <span class="n">v_qoi</span><span class="p">[</span><span class="s1">&#39;qoi_err&#39;</span><span class="p">]</span>
+                <span class="n">_qoi_errors</span><span class="p">[</span><span class="n">_qoi_error_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_qoi_error</span>
+
+            <span class="n">_results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="n">_results</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_parameters</span><span class="p">)</span>
+            <span class="n">_results</span><span class="p">[</span><span class="s1">&#39;qois&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_qoi_results</span><span class="p">)</span>
+            <span class="n">_results</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_qoi_errors</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_results</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

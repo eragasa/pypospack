@@ -1,0 +1,438 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.task.gulp &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.task.gulp</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot; Implementation of GulpSimulation and other implemented classes</span>
+
+<span class="sd">This module implements simulation tasks to integrate with GULP.  A template</span>
+<span class="sd">class is implemented as GulpSimulation, which should be subclassed for new</span>
+<span class="sd">implementations requiring GULP simulations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">importlib</span><span class="o">,</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">pypospack.potential</span> <span class="k">as</span> <span class="nn">potential</span>
+<span class="kn">import</span> <span class="nn">pypospack.crystal</span> <span class="k">as</span> <span class="nn">crystal</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.vasp</span> <span class="k">as</span> <span class="nn">vasp</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.gulp</span> <span class="k">as</span> <span class="nn">gulp</span>
+<span class="kn">from</span> <span class="nn">pypospack.task</span> <span class="k">import</span> <span class="n">Task</span>
+
+<span class="n">potential_map</span> <span class="o">=</span> <span class="p">{</span>\
+        <span class="s1">&#39;buckingham&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;Buckingham&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;eam&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;EmbeddedAtomModel&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;tersoff&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;Tersoff&#39;</span><span class="p">]}</span>
+
+<span class="n">gulp_simulation_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;gulp_gamma_phonon&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.gulp&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;GulpGammaPointPhonons&#39;</span><span class="p">}</span>
+        <span class="p">}</span>
+
+
+<div class="viewcode-block" id="GulpSimulationError"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulationError">[docs]</a><span class="k">class</span> <span class="nc">GulpSimulationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error class for dealing with GULP simulation issues&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="ne">Exception</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GulpSimulation"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation">[docs]</a><span class="k">class</span> <span class="nc">GulpSimulation</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            task_name(str)</span>
+<span class="sd">            task_directory(str)</span>
+<span class="sd">            structure_filename(str)</span>
+<span class="sd">            restart(bool)</span>
+<span class="sd">            fullauto(bool)</span>
+<span class="sd">        Attributes:</span>
+<span class="sd">             </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="p">,</span>
+            <span class="n">task_directory</span><span class="p">,</span>
+            <span class="n">task_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">structure_filename</span><span class="o">=</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">,</span>
+            <span class="n">restart</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">fullauto</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_restart</span> <span class="o">=</span> <span class="n">restart</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span> <span class="o">=</span> <span class="n">fullauto</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># set structure attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">structure_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_filename</span> <span class="o">=</span> <span class="s1">&#39;running&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_type</span> <span class="o">=</span> <span class="s1">&#39;gulp&#39;</span>
+
+        <span class="c1"># gulp information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span> <span class="o">=</span> <span class="s1">&#39;gulp.in&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gulp_output_filename</span> <span class="o">=</span> <span class="s1">&#39;gulp.out&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gulp_bin</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;GULP_BIN&#39;</span><span class="p">]</span>
+       
+        <span class="c1"># flowcontrol variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results_processed</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># structure information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">structure_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">)</span>
+
+        <span class="c1"># potential information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eam_setfl_filename</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># minimization flags</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_optimize</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_constant_pressure</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_constant_volume</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results_filename</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.results.dat&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="c1"># status</span>
+        <span class="c1"># initialize the parent class</span>
+        <span class="n">Task</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="n">restart</span><span class="o">=</span><span class="n">restart</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GulpSimulation.on_init"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_init">[docs]</a>    <span class="k">def</span> <span class="nf">on_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">configure_potential</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">read_structure_file</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_update_status</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.on_config"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_config">[docs]</a>    <span class="k">def</span> <span class="nf">on_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="n">_gulp_input_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_gulp_input_filename</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_gulp_input_file</span><span class="p">(</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="n">_gulp_input_filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_update_status</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="GulpSimulation.on_ready"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_ready">[docs]</a>    <span class="k">def</span> <span class="nf">on_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">results</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+
+        <span class="n">running_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">running_filename</span><span class="p">)</span>
+        <span class="n">Path</span><span class="p">(</span><span class="n">running_filename</span><span class="p">)</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_update_status</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.on_running"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_running">[docs]</a>    <span class="k">def</span> <span class="nf">on_running</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_update_status</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.on_post"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_post">[docs]</a>    <span class="k">def</span> <span class="nf">on_post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results_processed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_update_status</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.on_finished"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_finished">[docs]</a>    <span class="k">def</span> <span class="nf">on_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># doing nothing here</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_status</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_update_status</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.on_error"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.on_error">[docs]</a>    <span class="k">def</span> <span class="nf">on_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span></div>
+
+    <span class="c1"># override default behavior</span>
+<div class="viewcode-block" id="GulpSimulation.get_conditions_init"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_init">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_INIT</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_INIT</span><span class="p">[</span><span class="s1">&#39;is_task_directory_created&#39;</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">)</span></div>
+
+    <span class="c1"># override default behavior</span>
+<div class="viewcode-block" id="GulpSimulation.get_conditions_config"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_CONFIG</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_CONFIG</span><span class="p">[</span><span class="s1">&#39;is_structure_configured&#39;</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">,</span>
+                        <span class="n">crystal</span><span class="o">.</span><span class="n">SimulationCell</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_CONFIG</span><span class="p">[</span><span class="s1">&#39;is_potential_configured&#39;</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">,</span>
+                        <span class="n">potential</span><span class="o">.</span><span class="n">Potential</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">conditions_CONFIG</span><span class="p">[</span><span class="s1">&#39;has_all_parameters&#39;</span><span class="p">]</span> \
+                    <span class="o">=</span> <span class="nb">all</span><span class="p">([</span><span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;&#39;NoneType&#39; object has no attribute &#39;items&#39;&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conditions_CONFIG</span><span class="p">[</span><span class="s1">&#39;has_all_parameters&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.get_conditions_ready"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_ready">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_READY</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_READY</span><span class="p">[</span><span class="s1">&#39;input_file_is_written&#39;</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="GulpSimulation.get_conditions_running"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_running">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_running</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_RUNNING</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_RUNNING</span><span class="p">[</span><span class="s1">&#39;is_running_file&#39;</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_filename</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="GulpSimulation.get_conditions_post"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_post">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_post</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_POST</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_POST</span><span class="p">[</span><span class="s1">&#39;is_gulp_out_exists&#39;</span><span class="p">]</span> \
+                <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_filename</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.get_conditions_finished"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_finished">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_FINISHED</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_FINISHED</span><span class="p">[</span><span class="s1">&#39;is_processed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_processed</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.get_conditions_error"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_conditions_error">[docs]</a>    <span class="k">def</span> <span class="nf">get_conditions_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditions_ERROR</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GulpSimulation.run"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">gulp_input_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span> <span class="o">=</span> <span class="n">gulp_input_filename</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">gulp_input_filename</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_gulp_input_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">gulp_input_filename</span><span class="p">)</span>
+
+        <span class="n">gulp_output_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gulp_output_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">gulp_output_filename</span><span class="p">):</span>
+            <span class="n">cmd_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{gulp_bin}</span><span class="s1"> &lt; </span><span class="si">{gulp_in}</span><span class="s1"> &gt; </span><span class="si">{gulp_out}</span><span class="s1"> 2&gt;/dev/null&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">gulp_bin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gulp_bin</span><span class="p">,</span>
+                    <span class="n">gulp_in</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span><span class="p">,</span>
+                    <span class="n">gulp_out</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">gulp_output_filename</span><span class="p">)</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">cmd_str</span><span class="p">,</span><span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.read_structure_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.read_structure_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_structure_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="GulpSimulation.write_gulp_input_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.write_gulp_input_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_gulp_input_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span> <span class="o">=</span> <span class="s1">&#39;gulp.in&#39;</span>
+
+        <span class="n">str_gulp_in</span> <span class="o">=</span> <span class="s2">&quot;opti prop conp</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">str_gulp_in</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_gulpinputfile_structuresection</span><span class="p">()</span>
+        <span class="n">str_gulp_in</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_gulpinputfile_potentialsection</span><span class="p">()</span>
+
+        <span class="n">_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">gulp_input_filename</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">str_gulp_in</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.get_gulpinputfile_structuresection"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_gulpinputfile_structuresection">[docs]</a>    <span class="k">def</span> <span class="nf">get_gulpinputfile_structuresection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="c1"># read in the poscar file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">)</span>
+
+        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">H</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">a0</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;vectors</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">H</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">H</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">H</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">H</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span><span class="n">H</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span><span class="n">H</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;fractional</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">s</span><span class="p">:</span>
+                    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{s}</span><span class="s2"> core </span><span class="si">{r1:10.6f}</span><span class="s2"> </span><span class="si">{r2:10.6f}</span><span class="s2"> </span><span class="si">{r3:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span>
+                            <span class="n">r1</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                            <span class="n">r2</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                            <span class="n">r3</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">str_out</span></div>
+    
+<div class="viewcode-block" id="GulpSimulation.get_gulpinputfile_potentialsection"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.get_gulpinputfile_potentialsection">[docs]</a>    <span class="k">def</span> <span class="nf">get_gulpinputfile_potentialsection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">gulp_potential_section_to_string</span><span class="p">(</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">str_out</span></div>
+    
+<div class="viewcode-block" id="GulpSimulation.restart"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.restart">[docs]</a>    <span class="k">def</span> <span class="nf">restart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="GulpSimulation.configure_potential"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.gulp.GulpSimulation.configure_potential">[docs]</a>    <span class="k">def</span> <span class="nf">configure_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="c1">#_configuration = self.configuration[&#39;potential&#39;]</span>
+        
+        <span class="n">potential_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">][</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">][</span><span class="s1">&#39;symbols&#39;</span><span class="p">]</span>
+
+        <span class="n">module_name</span><span class="p">,</span><span class="n">class_name</span> <span class="o">=</span> <span class="n">potential</span><span class="o">.</span><span class="n">PotentialObjectMap</span><span class="p">(</span>
+                <span class="n">potential_type</span><span class="o">=</span><span class="n">potential_type</span><span class="p">)</span>
+     
+        <span class="k">if</span> <span class="n">potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+            <span class="n">eam_setfl_filename</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="s1">&#39;eam_setfl_filename&#39;</span> <span class="ow">in</span> <span class="n">_configuraiton</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eam_setfl_filename</span> <span class="o">=</span><span class="n">_configuration</span><span class="p">[</span><span class="s1">&#39;eam_setfl_filename&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># The Embedding Atom model is a special case for the configuration</span>
+                <span class="c1"># because you do not know the parameterization of the EAM potential</span>
+                <span class="c1"># unless you know the functional forms of the pair potential,</span>
+                <span class="c1"># the electron density function, and the embedding function.</span>
+                <span class="n">eam_pair_type</span><span class="o">=</span><span class="n">_configuration</span><span class="p">[</span><span class="s1">&#39;eam_pair_type&#39;</span><span class="p">]</span>
+                <span class="n">eam_density_type</span><span class="o">=</span><span class="n">_configuration</span><span class="p">[</span><span class="s1">&#39;eam_density_type&#39;</span><span class="p">]</span>
+                <span class="n">eam_embedding_type</span><span class="o">=</span><span class="n">_configuration</span><span class="p">[</span><span class="s1">&#39;eam_embedding_type&#39;</span><span class="p">]</span>
+
+                <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+                <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span><span class="n">class_name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="n">klass</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span>
+                        <span class="n">eam_pair_type</span><span class="p">,</span>
+                        <span class="n">eam_density_type</span><span class="p">,</span>
+                        <span class="n">eam_embedding_type</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+            <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span><span class="n">class_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="n">klass</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+  
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">parameters</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span>
+
+    <span class="nd">@parameters</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span></div>
+
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_gulp.gulp_phonons</span> <span class="k">import</span> <span class="n">GulpPhononCalculation</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_gulp.gulp_phonons_gamma</span> <span class="k">import</span> <span class="n">GulpGammaPointPhonons</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

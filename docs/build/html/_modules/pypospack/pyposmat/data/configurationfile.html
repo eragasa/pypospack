@@ -1,0 +1,690 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.data.configurationfile &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.data.configurationfile</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">pypospack.potential</span>
+<span class="kn">from</span> <span class="nn">pypospack.io.filesystem</span> <span class="k">import</span> <span class="n">OrderedDictYAMLLoader</span>  
+
+<div class="viewcode-block" id="PyposmatConfigurationFile"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile">[docs]</a><span class="k">class</span> <span class="nc">PyposmatConfigurationFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class for reading, writing, and analyzing configuration file</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename(str,optional): the filename of the configuration file.  This</span>
+<span class="sd">           is the location which all IO will take place with.  If this</span>
+<span class="sd">           argument is passed, then the class will automatically read</span>
+<span class="sd">           the class</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        To read a file:</span>
+<span class="sd">        </span>
+<span class="sd">        from pypospack.pyposmat import PyposmatConfigurationFile</span>
+<span class="sd">        o = PyposmatConfigurationFile(filename=_filename)</span>
+
+<span class="sd">        or</span>
+
+<span class="sd">        from pypospack.pyposmat import PyposmatConfigurationfile</span>
+<span class="sd">        o = PyposmatConfigurationFile()</span>
+<span class="sd">        o.read(filename=_filename)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># type checking the arguments</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+      
+        <span class="c1"># public attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1">#: str: the name for IO</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_in</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_out</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># private attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_error_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">normalized_error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;int:the number of iterations in this fitting process.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="s1">&#39;n_iterations&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qois</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois&#39;</span><span class="p">]</span>
+
+    <span class="nd">@qois</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">qois</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qois</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qois</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">qois</span><span class="p">)</span>
+   
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_fitting</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qoi_f&#39;</span><span class="p">]</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_fitting_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_testing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qoi_t&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_testing_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+   
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_validation_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois_validation</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qois_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois_v&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@qois_validation</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">qois_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qois</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qois</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois_v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois_v&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">qois</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_validation_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qois_validation</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois_validation</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qoi_constraints&#39;</span><span class="p">]</span>
+    
+    <span class="nd">@qoi_constraints</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">qoi_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_constraints</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_constraints</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">OrdereDDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qoi_constraints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qoi_constraints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">qoi_constraints</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">structures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span>
+
+    <span class="nd">@structures</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">structures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structures</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">structures</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">potential</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">]</span>
+
+    <span class="nd">@potential</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">potential</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">potential</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;potential&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">potential</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sampling_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_type&#39;</span><span class="p">]</span>
+
+    <span class="nd">@sampling_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">sampling_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sampling_type</span><span class="p">):</span>
+        <span class="n">SAMPLING_TYPES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;parametric&#39;</span><span class="p">,</span><span class="s1">&#39;kde&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">sampling_type</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sampling_distribution</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_dist&#39;</span><span class="p">]</span>
+
+    <span class="nd">@sampling_distribution</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">sampling_distribution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">distribution</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_dist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">distribution</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sampling_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;sampling_constraints&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_constraints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_constraints&#39;</span><span class="p">]</span>
+
+    <span class="nd">@sampling_constraints</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">sampling_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sampling_constraints</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;sampling_constraints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">sampling_constraints</span><span class="p">)</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mc_seed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mc_seed&#39;</span><span class="p">]</span>
+
+    <span class="nd">@mc_seed</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">mc_seed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">seed</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;mc_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">seed</span>
+
+    <span class="c1"># this property is broken</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_distribution_definitions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;param_dist_def&#39;</span><span class="p">]</span>
+    <span class="nd">@parameter_distribution_definitions</span><span class="o">.</span><span class="n">setter</span>
+
+    <span class="k">def</span> <span class="nf">parameter_distribution_definitions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">param_def</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param_def</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;param_dist_def&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;param_dist_def&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">param_def</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;param_constraints&#39;</span><span class="p">]</span>
+
+    <span class="nd">@parameter_constraints</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">parameter_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">constraints</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">constraints</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;param_constraints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;param_constraints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">constraints</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_potentials</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;reference_potentials&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;reference_potentials&#39;</span><span class="p">]</span>
+
+    <span class="nd">@reference_potentials</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reference_potentials</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">potentials</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;reference_potentials&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">potentials</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">latex_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;latex_labels&#39;</span><span class="p">:</span>
+               <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+               <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+               <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+               <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">:</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+               <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">]</span>
+
+    <span class="nd">@latex_labels</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">latex_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">labels</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;latex_labels&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.read"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_in</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">OrderedDictYAMLLoader</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_parameter_names_from_configuration_dictionary</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_free_parameter_names_from_configuration_dictionary</span><span class="p">()</span>
+        
+        <span class="c1"># set qoi_names,error_names, and normalized_error_names</span>
+        <span class="n">_qois</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qois</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qois</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qois</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># set qoi_validation,error_validation_names, and normalized_error_names if</span>
+            <span class="c1"># the field exists</span>
+            <span class="n">_qoi_v_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">&#39;qois_v&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qoi_v_names</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_validation_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qoi_v_names</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_validation_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qoi_v_names</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># set up attribute to default NoneType if they aren&#39;t specified</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_validation_names</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_validation_names</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.set_parameter_names_from_configuration_dictionary"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.set_parameter_names_from_configuration_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">set_parameter_names_from_configuration_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">o_config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># o_config is an OrderedDictionary object.</span>
+        <span class="c1"># o_config is read in from a YAML file and stored as the self.config</span>
+        <span class="k">if</span> <span class="n">o_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_o_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span>
+
+        <span class="c1"># the keys of the &#39;sampling_dist&#39; are the parameter_names, they need to match</span>
+        <span class="c1"># the naming convention defined in the Potential</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">_o_config</span><span class="p">[</span><span class="s1">&#39;sampling_dist&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.set_free_parameter_names_from_configuration_dictionary"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.set_free_parameter_names_from_configuration_dictionary">[docs]</a>    <span class="k">def</span> <span class="nf">set_free_parameter_names_from_configuration_dictionary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">o_config</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            o_config (collections.OrderedDict): a configuration dictionary which was</span>
+<span class="sd">                read in using YAML for marshalling and unmarshalling of the object.  By</span>
+<span class="sd">                default this is set to None, which uses the existing configuration dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># o_config is an OrderedDictionary object.</span>
+        <span class="c1"># o_config is read in from a YAML file and stored as the self.config</span>
+        <span class="k">if</span> <span class="n">o_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_o_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span>
+
+        <span class="c1"># the key object is the name of the parameter</span>
+        <span class="c1"># the value object is a list</span>
+        <span class="c1"># v[0]:</span>
+        <span class="c1">#   &#39;equals&#39; = equality constraint on the parameter defined in v[1]</span>
+        <span class="c1">#   &#39;uniform&#39; = uniform distribution with lower bounds and upper bounds defined in v[1]</span>
+        <span class="c1">#       dictionary object with v[1][&#39;a&#39;] being the lower bound, and v[1][&#39;b&#39;] being the</span>
+        <span class="c1">#       upper bound</span>
+        <span class="c1">#   &#39;normal&#39; = normal distribution with the mean and standard deviation defined in </span>
+        <span class="c1">#       v[1] with v[1][&#39;mu&#39;] being the mean and v[1][&#39;sigma&#39;] being the standard deviation.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">free_parameter_names</span> <span class="o">=</span> \
+                <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">_o_config</span><span class="p">[</span><span class="s1">&#39;sampling_dist&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;equals&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.write"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_out</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">_configuration</span><span class="p">,</span><span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.str__structure_database"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.str__structure_database">[docs]</a>    <span class="k">def</span> <span class="nf">str__structure_database</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_structure_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span>
+        <span class="n">_structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;</span><span class="si">{:^80}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;STRUCTURE DATABASE&#39;</span><span class="p">),</span>
+            <span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;structure_directory:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_structure_dir</span><span class="p">),</span>
+            <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;</span><span class="si">{:^20}</span><span class="s1"> </span><span class="si">{:^20}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span><span class="s1">&#39;filename&#39;</span><span class="p">),</span>
+            <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">20</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="mi">20</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">_structures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">str_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:20}</span><span class="s1"> </span><span class="si">{:20}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">str_out</span><span class="p">)</span></div>
+
+    <span class="c1"># figures for</span>
+<div class="viewcode-block" id="PyposmatConfigurationFile.get_ok_fail"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.get_ok_fail">[docs]</a>    <span class="k">def</span> <span class="nf">get_ok_fail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">b</span><span class="p">):</span>
+        <span class="n">OKGREEN</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[92m&#39;</span>
+        <span class="n">WARNING</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[93m&#39;</span>
+        <span class="n">FAIL</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span>
+        <span class="n">ENDC</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span>
+
+        <span class="k">if</span> <span class="n">b</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="n">OKGREEN</span><span class="o">+</span><span class="s1">&#39;OK&#39;</span><span class="o">+</span><span class="n">ENDC</span><span class="o">+</span><span class="s1">&#39;]  &#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;[&#39;</span><span class="o">+</span><span class="n">FAIL</span><span class="o">+</span><span class="s1">&#39;FAIL&#39;</span><span class="o">+</span><span class="n">ENDC</span><span class="o">+</span><span class="s1">&#39;]&#39;</span>
+
+        <span class="k">return</span> <span class="n">s</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.validate"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_potential</span><span class="p">(</span><span class="n">potential</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_parameters</span><span class="p">(</span><span class="n">potential</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="p">,</span><span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_structure_db</span><span class="p">(</span><span class="n">structures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validate_sampling_type</span><span class="p">(</span><span class="n">sampling_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.validate_sampling_type"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.validate_sampling_type">[docs]</a>    <span class="k">def</span> <span class="nf">validate_sampling_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">sampling_type</span><span class="p">):</span>
+        <span class="n">_n_iterations</span> <span class="o">=</span> <span class="n">sampling_type</span><span class="p">[</span><span class="s1">&#39;n_iterations&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">_n_iterations</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;n_iterations must be int, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_n_iterations</span><span class="p">)]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> n_iterations:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span><span class="n">_n_iterations</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="n">_mc_seed</span> <span class="o">=</span> <span class="n">sampling_type</span><span class="p">[</span><span class="s1">&#39;mc_seed&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">_mc_seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:5}</span><span class="s1"> mc_seed:</span><span class="si">{}</span><span class="s1">, using automatic seed generation&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                    <span class="n">_mc_seed</span>
+                <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">_mc_seed</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:5}</span><span class="s1"> mc_seed:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                    <span class="n">_mc_seed</span>
+                <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">v</span> <span class="ow">in</span> <span class="n">sampling_type</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">_n_iterations</span><span class="p">)]):</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> n_iterations of sampling_types defined&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span>
+                <span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> not all iterations have been defined&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">False</span><span class="p">))</span>
+                <span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">_n_iterations</span><span class="p">):</span>
+            <span class="n">_sampling_type</span> <span class="o">=</span> <span class="n">sampling_type</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">_sampling_type</span> <span class="o">==</span> <span class="s1">&#39;parametric&#39;</span><span class="p">:</span>
+                <span class="n">_is_supported_sampling_type</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_n_samples</span> <span class="o">=</span> <span class="n">sampling_type</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;n_samples&#39;</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">NameError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> n_samples must be defined for </span><span class="si">{}</span><span class="s2"> sampling_type in iteration </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">False</span><span class="p">),</span>
+                        <span class="n">_sampling_type</span><span class="p">,</span>
+                        <span class="n">i</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                    <span class="n">_is_supported_sampling_type</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="k">if</span> <span class="n">_is_supported_sampling_type</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> iteration </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> sampling&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                        <span class="n">i</span><span class="p">,</span>
+                        <span class="n">_sampling_type</span>
+                    <span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">_sampling_type</span> <span class="o">==</span> <span class="s1">&#39;kde&#39;</span><span class="p">:</span>
+                <span class="n">_is_supported_sampling_type</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_n_samples</span> <span class="o">=</span> <span class="n">sampling_type</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;n_samples&#39;</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">NameError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> n_samples must be defined for </span><span class="si">{}</span><span class="s2"> sampling_type in iteration </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">False</span><span class="p">),</span>
+                        <span class="n">i</span><span class="p">,</span>
+                        <span class="n">_sampling_type</span>
+                    <span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_is_supported_sampling_type</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> iteration </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> sampling&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                        <span class="n">i</span><span class="p">,</span>
+                        <span class="n">_sampling_type</span>
+                    <span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">_sampling_type</span> <span class="o">==</span> <span class="s1">&#39;from_file&#39;</span><span class="p">:</span>
+                <span class="n">_is_supported_sampling_type</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">_is_supported_sampling_type</span><span class="p">:</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5}</span><span class="s2"> iteration </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> sampling&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                        <span class="n">i</span><span class="p">,</span>
+                        <span class="n">_sampling_type</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_is_supported_sampling_type</span> <span class="o">=</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="PyposmatConfigurationFile.validate_structure_db"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.validate_structure_db">[docs]</a>    <span class="k">def</span> <span class="nf">validate_structure_db</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structures</span><span class="p">):</span>
+        <span class="n">_structure_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span>
+        <span class="n">_structure_dir_exists</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">_structure_dir</span><span class="p">)</span>
+        <span class="n">_structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">_structure_dir_exists</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;structure_directory:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_structure_dir</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;structure_directory does not exist, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_structure_dir</span><span class="p">)]</span>
+        
+        <span class="n">_all_structures_exist</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">_structure_name</span><span class="p">,</span><span class="n">_structure_fn</span> <span class="ow">in</span> <span class="n">_structures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">_structure_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_structure_dir</span><span class="p">,</span><span class="n">_structure_fn</span><span class="p">)</span>                        
+            <span class="n">_structure_exists</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">_structure_fn</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_structure_exists</span><span class="p">:</span>
+                <span class="n">_all_structures_exist</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{:10}</span><span class="s1"> </span><span class="si">{:20}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="n">_structure_exists</span><span class="p">),</span><span class="n">_structure_name</span><span class="p">,</span><span class="n">_structure_fn</span><span class="p">)]</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.validate_potential"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.validate_potential">[docs]</a>    <span class="k">def</span> <span class="nf">validate_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">potential</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;potential_type&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">potential</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;configuration file requires a potential type&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">_is_supported_potential</span><span class="o">=</span><span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_potential_type</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span>
+            
+            <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_supported_potential</span><span class="p">(</span><span class="n">potential_type</span><span class="o">=</span><span class="n">_potential_type</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">_is_supported_potential</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;potential_type:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_potential_type</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+                    <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_eam_potential</span><span class="p">(</span><span class="n">potential</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;potential_type not supported:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_potential_type</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.is_supported_potential"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.is_supported_potential">[docs]</a>    <span class="k">def</span> <span class="nf">is_supported_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">potential_type</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">potential_type</span> <span class="ow">in</span> <span class="n">pypospack</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">get_supported_potentials</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.validate_eam_potential"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.validate_eam_potential">[docs]</a>    <span class="k">def</span> <span class="nf">validate_eam_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">potential</span><span class="p">):</span>
+        <span class="n">_func_pair</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;pair_type&#39;</span><span class="p">]</span> 
+        <span class="n">_func_density</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;density_type&#39;</span><span class="p">]</span>
+        <span class="n">_func_embedding</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;embedding_type&#39;</span><span class="p">]</span>
+
+        <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_func_pair</span> <span class="ow">in</span> <span class="n">pypospack</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">pair_potentials</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;pair_type is not supported:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_func_pair</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;pair_type:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_func_pair</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_func_density</span> <span class="ow">in</span> <span class="n">pypospack</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">eam_density_functions</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;&#39;density_type is not supported:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_func_density</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;density_type:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_func_density</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_func_embedding</span> <span class="ow">in</span> <span class="n">pypospack</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">eam_embedding_functions</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;embedding_type is not supported:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_func_embedding</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">_is_supported_potential</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;embedding_type:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_func_embedding</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_is_supported_potential</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.validate_parameters"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.validate_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">validate_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">potential</span><span class="p">,</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="n">_potential_type</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span>
+        <span class="n">_symbols</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;symbols&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">_potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+            <span class="c1"># EAM potentials have a different constructor interface different than</span>
+            <span class="c1"># other potentials</span>
+            <span class="n">_pair_type</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;pair_type&#39;</span><span class="p">]</span>
+            <span class="n">_density_type</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;density_type&#39;</span><span class="p">]</span>
+            <span class="n">_embedding_type</span> <span class="o">=</span> <span class="n">potential</span><span class="p">[</span><span class="s1">&#39;embedding_type&#39;</span><span class="p">]</span>
+
+            <span class="n">_obj_potential</span> <span class="o">=</span> <span class="n">pypospack</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">EamPotential</span><span class="p">(</span>
+                    <span class="n">symbols</span><span class="o">=</span><span class="n">_symbols</span><span class="p">,</span>
+                    <span class="n">func_pair</span><span class="o">=</span><span class="n">_pair_type</span><span class="p">,</span>
+                    <span class="n">func_density</span><span class="o">=</span><span class="n">_density_type</span><span class="p">,</span>
+                    <span class="n">func_embedding</span><span class="o">=</span><span class="n">_embedding_type</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># using the default constructor using dynamic module and class</span>
+            <span class="c1"># loading for all other potentials</span>
+            <span class="n">_module_name</span><span class="p">,</span> <span class="n">_class_name</span> <span class="o">=</span> <span class="n">pypospack</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">PotentialObjectMap</span><span class="p">(</span><span class="n">potential_type</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+            <span class="n">_module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">_module_name</span><span class="p">)</span>
+            <span class="n">_class</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_module</span><span class="p">,</span><span class="n">_class_name</span><span class="p">)</span>
+            <span class="n">_obj_potential</span> <span class="o">=</span> <span class="n">_class</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="n">_symbols</span><span class="p">)</span>
+
+        <span class="c1"># checking if all parameters for the potential are defined</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;checking if required parameters are defined&#39;</span><span class="p">]</span>
+        <span class="n">all_parameters</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
+                <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span>
+                <span class="nb">set</span><span class="p">(</span><span class="n">_obj_potential</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">pn</span> <span class="ow">in</span> <span class="n">all_parameters</span><span class="p">:</span>
+            <span class="n">pn_in_parameter_set</span> <span class="o">=</span> <span class="n">pn</span> <span class="ow">in</span> <span class="n">parameters</span>
+            <span class="n">pn_in_potential_definition</span> <span class="o">=</span> <span class="n">pn</span> <span class="ow">in</span> <span class="n">_obj_potential</span><span class="o">.</span><span class="n">parameter_names</span>
+            <span class="n">pn_is_ok</span> <span class="o">=</span> <span class="n">pn_in_parameter_set</span> <span class="ow">and</span> <span class="n">pn_in_potential_definition</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">{:8}</span><span class="s1"> </span><span class="si">{:20}</span><span class="s1"> </span><span class="si">{:6}</span><span class="s1"> </span><span class="si">{:6}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="n">pn_is_ok</span><span class="p">),</span>
+                    <span class="n">pn</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="n">pn_in_parameter_set</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="n">pn_in_potential_definition</span><span class="p">)</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">_all_parameters_validated</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span><span class="o">==</span><span class="nb">set</span><span class="p">(</span><span class="n">_obj_potential</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)),</span>
+            <span class="s1">&#39;parameters passed are the same as the parameters required&#39;</span>
+        <span class="p">))</span>
+        <span class="k">for</span> <span class="n">_parameter_name</span> <span class="ow">in</span> <span class="n">_obj_potential</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:5}</span><span class="s1"> </span><span class="si">{:15}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="n">_parameter_name</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">),</span>
+                <span class="n">_parameter_name</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">_parameter_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+                <span class="n">_all_parameters_validated</span> <span class="o">=</span> <span class="kc">False</span>
+       
+        <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s1">&#39;parameters in parameter set&#39;</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">pn</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">{:5}</span><span class="s1"> </span><span class="si">{:15}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_ok_fail</span><span class="p">(</span><span class="n">pn</span> <span class="ow">in</span> <span class="n">_obj_potential</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">),</span>
+                    <span class="n">pn</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">_all_parameters_validated</span></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFile.get_free_parameter_names"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFile.get_free_parameter_names">[docs]</a>    <span class="k">def</span> <span class="nf">get_free_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">pn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="PyposmatConfigurationFileValidator"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.configurationfile.PyposmatConfigurationFileValidator">[docs]</a><span class="k">class</span> <span class="nc">PyposmatConfigurationFileValidator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

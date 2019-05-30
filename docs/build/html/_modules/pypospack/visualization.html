@@ -1,0 +1,581 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.visualization &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.visualization</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;pypospack.visualization</span>
+
+<span class="sd">This module contains classes for visualizatio of results done in a variety</span>
+<span class="sd">of processed defined throughout the pypospack package library</span>
+
+<span class="sd">Author: Seaton Ullberg, 2017</span>
+
+<span class="sd">Version Requirements:</span>
+<span class="sd">    bokeh &gt; 0.12.7, to avoid tornado conflicts, https://github.com/bokeh/bokeh/issues/6152</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">import</span> <span class="nn">bokeh.layouts</span>
+<span class="kn">from</span> <span class="nn">bokeh.io</span> <span class="k">import</span> <span class="n">output_file</span><span class="p">,</span> <span class="n">show</span><span class="p">,</span> <span class="n">curdoc</span><span class="p">,</span> <span class="n">output_notebook</span>
+<span class="kn">from</span> <span class="nn">bokeh.layouts</span> <span class="k">import</span> <span class="n">gridplot</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">column</span>
+<span class="kn">from</span> <span class="nn">bokeh.models</span> <span class="k">import</span> <span class="n">ColumnDataSource</span>
+<span class="kn">from</span> <span class="nn">bokeh.models.callbacks</span> <span class="k">import</span> <span class="n">CustomJS</span>
+<span class="kn">from</span> <span class="nn">bokeh.models.glyphs</span> <span class="k">import</span> <span class="n">Circle</span>
+<span class="kn">from</span> <span class="nn">bokeh.plotting</span> <span class="k">import</span> <span class="n">figure</span><span class="p">,</span> <span class="n">curdoc</span>
+<span class="kn">from</span> <span class="nn">bokeh.client</span> <span class="k">import</span> <span class="n">push_session</span>
+<span class="kn">from</span> <span class="nn">bokeh.models.widgets</span> <span class="k">import</span> <span class="n">Select</span><span class="p">,</span> <span class="n">PreText</span><span class="p">,</span> <span class="n">TextInput</span>
+<span class="kn">from</span> <span class="nn">bokeh.models</span> <span class="k">import</span> <span class="n">Range1d</span>
+<span class="kn">from</span> <span class="nn">bokeh.server.server</span> <span class="k">import</span> <span class="n">Server</span>
+<span class="kn">from</span> <span class="nn">bokeh.application.handlers</span> <span class="k">import</span> <span class="n">FunctionHandler</span>
+<span class="kn">from</span> <span class="nn">bokeh.application</span> <span class="k">import</span> <span class="n">Application</span>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization">[docs]</a><span class="k">class</span> <span class="nc">ParetoOptimizationVisualization</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bokeh_tools</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;box_select&#39;</span><span class="p">,</span> <span class="s1">&#39;reset&#39;</span><span class="p">,</span> <span class="s1">&#39;box_zoom&#39;</span><span class="p">,</span> <span class="s1">&#39;pan&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_tools</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">bokeh_tools</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_width</span> <span class="o">=</span> <span class="mi">610</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_height</span> <span class="o">=</span> <span class="mi">400</span>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.load_data_file"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.load_data_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_data_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">):</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">names_types</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># read in the line</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+            <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">name_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data_line</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_line</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">name_types</span><span class="p">)</span>
+        <span class="c1"># block below organizes data names by type into lists</span>
+        <span class="n">param_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">param_key_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">qoi_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">qoi_key_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">err_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">err_key_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">name_types</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s1">&#39;param&#39;</span><span class="p">:</span>
+                <span class="n">param_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">param_key_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">v</span> <span class="o">==</span> <span class="s1">&#39;qoi&#39;</span><span class="p">:</span>
+                <span class="n">qoi_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">qoi_key_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">v</span> <span class="o">==</span> <span class="s1">&#39;err&#39;</span><span class="p">:</span>
+                <span class="n">err_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">err_key_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="c1"># split array by data type</span>
+        <span class="n">param_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="nb">min</span><span class="p">(</span><span class="n">param_key_index</span><span class="p">):</span><span class="nb">max</span><span class="p">(</span><span class="n">param_key_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">qoi_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="nb">min</span><span class="p">(</span><span class="n">qoi_key_index</span><span class="p">):</span><span class="nb">max</span><span class="p">(</span><span class="n">qoi_key_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">err_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="nb">min</span><span class="p">(</span><span class="n">err_key_index</span><span class="p">):</span><span class="nb">max</span><span class="p">(</span><span class="n">err_key_index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># generate pandas dataframes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">param_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">param_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">qoi_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">qoi_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">err_data</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">err_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">param_df</span><span class="p">,</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">qoi_df</span><span class="p">,</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">err_df</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># make copies to the class for persistence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">param_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">err_names</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.update_data"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.update_data">[docs]</a>    <span class="k">def</span> <span class="nf">update_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_x</span><span class="p">,</span> <span class="n">param_y</span><span class="p">,</span> <span class="n">err_x</span><span class="p">,</span> <span class="n">err_y</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;param_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">param_x</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;param_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">param_y</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;err_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">err_x</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;err_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">err_y</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">param_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;param_x&#39;</span><span class="p">],</span>
+                                <span class="n">param_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;param_y&#39;</span><span class="p">],</span>
+                                <span class="n">err_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;err_x&#39;</span><span class="p">],</span>
+                                <span class="n">err_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="s1">&#39;err_y&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.nix"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.nix">[docs]</a>    <span class="k">def</span> <span class="nf">nix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">lst</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">val</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.setup_parameter_graph"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.setup_parameter_graph">[docs]</a>    <span class="k">def</span> <span class="nf">setup_parameter_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_x_min_entry</span> <span class="o">=</span> <span class="s1">&#39;Min X Value&#39;</span>
+        <span class="n">str_x_max_entry</span> <span class="o">=</span> <span class="s1">&#39;Max X Value&#39;</span>
+        <span class="n">str_y_min_entry</span> <span class="o">=</span> <span class="s1">&#39;Min Y Value&#39;</span>
+        <span class="n">str_y_max_entry</span> <span class="o">=</span> <span class="s1">&#39;Max Y Value&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min X Value&#39;</span><span class="p">,</span><span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max X Value&#39;</span><span class="p">,</span><span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min Y Value&#39;</span><span class="p">,</span><span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max Y Value&#39;</span><span class="p">,</span><span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_tools</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">figure</span><span class="p">(</span>
+            <span class="n">plot_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">],</span>
+            <span class="n">plot_height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">],</span>
+            <span class="n">tools</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">],</span>
+            <span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">+</span><span class="s1">&#39; vs. &#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Circle</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="s1">&#39;param_x&#39;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s1">&#39;param_y&#39;</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">fill_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span><span class="p">,</span>
+            <span class="n">line_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">add_glyph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.setup_error_graph"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.setup_error_graph">[docs]</a>    <span class="k">def</span> <span class="nf">setup_error_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        ---------------------------------------------------------------</span>
+<span class="sd">        Define Err Graph</span>
+<span class="sd">        ---------------------------------------------------------------</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min X Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max X Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min Y Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max Y Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">610</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">400</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_tools</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">figure</span><span class="p">(</span>
+            <span class="n">plot_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">],</span>
+            <span class="n">plot_height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">],</span>
+            <span class="n">tools</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">],</span>
+            <span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="s1">&#39; vs. &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Circle</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="s1">&#39;err_x&#39;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s1">&#39;err_y&#39;</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">fill_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span><span class="p">,</span>
+            <span class="n">line_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">add_glyph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.setup_bokeh_frame"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.setup_bokeh_frame">[docs]</a>    <span class="k">def</span> <span class="nf">setup_bokeh_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doc</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">ColumnDataSource</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">param_x</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">param_y</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">err_x</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">err_y</span><span class="o">=</span><span class="p">[]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_static</span> <span class="o">=</span> <span class="n">ColumnDataSource</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">param_x</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">param_y</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">err_x</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">err_y</span><span class="o">=</span><span class="p">[]</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        ---------------------------------------------------------------</span>
+<span class="sd">        Define Param Graph</span>
+<span class="sd">        ---------------------------------------------------------------</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">param_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">param_names</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">param_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">param_names</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min X Value&#39;</span><span class="p">,</span>
+                                                    <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max X Value&#39;</span><span class="p">,</span>
+                                                    <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min Y Value&#39;</span><span class="p">,</span>
+                                                    <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max Y Value&#39;</span><span class="p">,</span>
+                                                    <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_width</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_height</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_tools</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">figure</span><span class="p">(</span>
+            <span class="n">plot_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">],</span>
+            <span class="n">plot_height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">],</span>
+            <span class="n">tools</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">],</span>
+            <span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">+</span><span class="s1">&#39; vs. &#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Circle</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="s1">&#39;param_x&#39;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s1">&#39;param_y&#39;</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">fill_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span><span class="p">,</span>
+            <span class="n">line_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">add_glyph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        ---------------------------------------------------------------</span>
+<span class="sd">        Define Err Graph</span>
+<span class="sd">        ---------------------------------------------------------------</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Select</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">nix</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">err_names</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min X Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max X Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Min Y Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TextInput</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s1">&#39;Max Y Value&#39;</span><span class="p">,</span>
+                                                  <span class="n">value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">610</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">400</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_tools</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">figure</span><span class="p">(</span>
+            <span class="n">plot_width</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;plot_width&#39;</span><span class="p">],</span>
+            <span class="n">plot_height</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;plot_height&#39;</span><span class="p">],</span>
+            <span class="n">tools</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;tools&#39;</span><span class="p">],</span>
+            <span class="n">title</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="s1">&#39; vs. &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Circle</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="s1">&#39;err_x&#39;</span><span class="p">,</span>
+            <span class="n">y</span><span class="o">=</span><span class="s1">&#39;err_y&#39;</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">fill_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span><span class="p">,</span>
+            <span class="n">line_color</span><span class="o">=</span><span class="s1">&#39;#5F77D5&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">add_glyph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_glyph&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">update</span><span class="p">():</span>
+            <span class="n">param_name_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">param_name_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">err_name_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">err_name_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_data</span><span class="p">(</span>
+                <span class="n">param_name_x</span><span class="p">,</span> <span class="n">param_name_y</span><span class="p">,</span>
+                <span class="n">err_name_x</span><span class="p">,</span> <span class="n">err_name_y</span>
+            <span class="p">)</span>
+
+        <span class="n">param_widgets</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">param_x_entry</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">param_y_entry</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">param_pane</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">column</span><span class="p">(</span>
+            <span class="n">param_widgets</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">],</span>
+            <span class="n">param_x_entry</span><span class="p">,</span>
+            <span class="n">param_y_entry</span>
+        <span class="p">)</span>
+        <span class="n">err_widgets</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">err_x_entry</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">err_y_entry</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">err_pane</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">column</span><span class="p">(</span>
+            <span class="n">err_widgets</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">],</span>
+            <span class="n">err_x_entry</span><span class="p">,</span>
+            <span class="n">err_y_entry</span>
+        <span class="p">)</span>
+        <span class="n">layout</span> <span class="o">=</span> <span class="n">bokeh</span><span class="o">.</span><span class="n">layouts</span><span class="o">.</span><span class="n">row</span><span class="p">(</span>
+            <span class="n">param_pane</span><span class="p">,</span>
+            <span class="n">err_pane</span>
+        <span class="p">)</span>
+        <span class="n">doc</span><span class="o">.</span><span class="n">add_root</span><span class="p">(</span><span class="n">layout</span><span class="p">)</span>
+        <span class="n">update</span><span class="p">()</span>
+
+        <span class="c1"># callback functions</span>
+        <span class="k">def</span> <span class="nf">param_x_select_change</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;param_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">new</span><span class="o">+</span><span class="s1">&#39; vs. &#39;</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="n">new</span>
+
+        <span class="k">def</span> <span class="nf">param_y_select_change</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;param_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">+</span><span class="s1">&#39; vs. &#39;</span><span class="o">+</span><span class="n">new</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="n">new</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">param_x_select_change</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">param_y_select_change</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">err_x_select_change</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;err_x&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">new</span> <span class="o">+</span> <span class="s1">&#39; vs. &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="n">new</span>
+
+        <span class="k">def</span> <span class="nf">err_y_select_change</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;err_y&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="p">[</span><span class="n">new</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="o">+</span><span class="s1">&#39; vs. &#39;</span><span class="o">+</span><span class="n">new</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">axis_label</span> <span class="o">=</span> <span class="n">new</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_x_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">err_x_select_change</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_y_select&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">err_y_select_change</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">source_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="n">selected_index_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">new</span><span class="p">[</span><span class="s1">&#39;1d&#39;</span><span class="p">][</span><span class="s1">&#39;indices&#39;</span><span class="p">])</span>
+            <span class="n">selected_rows</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">selected_index_list</span><span class="p">:</span>
+                <span class="n">data_row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_df</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">selected_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_row</span><span class="p">)</span>
+            <span class="n">formatted_rows</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">rows</span> <span class="ow">in</span> <span class="n">selected_rows</span><span class="p">:</span>
+                <span class="n">rows</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>    <span class="c1"># remove the 4 copied columns used in source callback</span>
+                <span class="n">formatted_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">rows</span><span class="o">.</span><span class="n">get_values</span><span class="p">()))</span>
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            for rows in selected_rows:</span>
+<span class="sd">                param_x_row = self.param_graph[&#39;obj_x_select&#39;].value+&#39;: &#39;+str(rows[self.param_graph[&#39;obj_x_select&#39;].value])</span>
+<span class="sd">                param_y_row = self.param_graph[&#39;obj_y_select&#39;].value+&#39;: &#39;+str(rows[self.param_graph[&#39;obj_y_select&#39;].value])</span>
+<span class="sd">                err_x_row = self.err_graph[&#39;obj_x_select&#39;].value+&#39;: &#39;+str(rows[self.err_graph[&#39;obj_x_select&#39;].value])</span>
+<span class="sd">                err_y_row = self.err_graph[&#39;obj_y_select&#39;].value+&#39;: &#39;+str(rows[self.err_graph[&#39;obj_y_select&#39;].value])</span>
+<span class="sd">                formatted_rows.append(str(param_x_row)+&#39; &#39;+str(param_y_row)+&#39; &#39;+str(err_x_row)+&#39; &#39;+str(err_y_row))</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;selected_points.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_names</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">err_names</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">fr</span> <span class="ow">in</span> <span class="n">formatted_rows</span><span class="p">:</span>
+                    <span class="c1"># apparently python cannot write a list to a file so the extra formatting is necessary</span>
+                    <span class="n">fr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">fr</span><span class="p">)</span>
+                    <span class="n">fr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;[&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                    <span class="n">fr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fr</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;selected&#39;</span><span class="p">,</span> <span class="n">source_callback</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">param_x_min_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">x_range</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">param_x_max_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">x_range</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">param_y_min_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">y_range</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">param_y_max_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">y_range</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">param_x_min_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">param_x_max_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">param_y_min_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">param_y_max_callback</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">err_x_min_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">x_range</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">err_x_max_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">x_range</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">err_y_min_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">y_range</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">err_y_max_callback</span><span class="p">(</span><span class="n">attrname</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;obj_figure&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">y_range</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;x_min_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">err_x_min_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;x_max_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">err_x_max_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;y_min_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">err_y_min_callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_graph</span><span class="p">[</span><span class="s1">&#39;y_max_entry&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">on_change</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">err_y_max_callback</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParetoOptimizationVisualization.start_bokeh_server"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationVisualization.start_bokeh_server">[docs]</a>    <span class="k">def</span> <span class="nf">start_bokeh_server</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_app</span> <span class="o">=</span> <span class="n">Application</span><span class="p">(</span>
+            <span class="n">FunctionHandler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">setup_bokeh_frame</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_server</span> <span class="o">=</span> <span class="n">Server</span><span class="p">(</span>
+            <span class="p">{</span><span class="s1">&#39;/&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_app</span><span class="p">},</span> <span class="n">num_procs</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="c1"># start io loop for bokeh_server</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_server</span><span class="o">.</span><span class="n">io_loop</span><span class="o">.</span><span class="n">add_callback</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_server</span><span class="o">.</span><span class="n">show</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bokeh_server</span><span class="o">.</span><span class="n">io_loop</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div></div>
+
+<div class="viewcode-block" id="ParetoOptimizationParamVsErrorScatter"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.visualization.ParetoOptimizationParamVsErrorScatter">[docs]</a><span class="k">class</span> <span class="nc">ParetoOptimizationParamVsErrorScatter</span><span class="p">(</span><span class="n">ParetoOptimizationVisualization</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

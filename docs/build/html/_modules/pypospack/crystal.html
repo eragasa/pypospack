@@ -1,0 +1,749 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.crystal &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.crystal</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Crystallographic classes and methods for pypospack.</span>
+
+<span class="sd">This module represents simulation cells are crystallographic representions and </span>
+<span class="sd">classes and methods to support this represention.</span>
+
+<span class="sd">Attributes:</span>
+<span class="sd">    iso_chemical_symbols(list): list of chemical symbols</span>
+<span class="sd">    atom_info(dict): dictionary of chemical symbols, and a dictionary of their values</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2016,2017&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0&quot;</span>
+
+<span class="kn">import</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span> <span class="nn">yaml</span><span class="o">,</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">linalg</span>
+<span class="kn">import</span> <span class="nn">ase.atoms</span>
+
+<span class="n">iso_chem_symbols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">,</span><span class="s1">&#39;He&#39;</span><span class="p">,</span><span class="s1">&#39;Li&#39;</span><span class="p">,</span><span class="s1">&#39;Be&#39;</span><span class="p">,</span><span class="s1">&#39;B&#39;</span><span class="p">,</span><span class="s1">&#39;C&#39;</span><span class="p">,</span><span class="s1">&#39;N&#39;</span><span class="p">,</span><span class="s1">&#39;O&#39;</span><span class="p">,</span><span class="s1">&#39;F&#39;</span><span class="p">,</span><span class="s1">&#39;Ne&#39;</span><span class="p">,</span><span class="s1">&#39;Na&#39;</span><span class="p">,</span><span class="s1">&#39;Mg&#39;</span><span class="p">,</span><span class="s1">&#39;Al&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Si&#39;</span><span class="p">,</span><span class="s1">&#39;P&#39;</span><span class="p">,</span><span class="s1">&#39;S&#39;</span><span class="p">,</span><span class="s1">&#39;Cl&#39;</span><span class="p">,</span><span class="s1">&#39;Ar&#39;</span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="s1">&#39;Ca&#39;</span><span class="p">,</span><span class="s1">&#39;Sc&#39;</span><span class="p">,</span><span class="s1">&#39;Ti&#39;</span><span class="p">,</span><span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="s1">&#39;Cr&#39;</span><span class="p">,</span><span class="s1">&#39;Mn&#39;</span><span class="p">,</span><span class="s1">&#39;Fe&#39;</span><span class="p">,</span><span class="s1">&#39;Co&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Ni&#39;</span><span class="p">,</span><span class="s1">&#39;Cu&#39;</span><span class="p">,</span><span class="s1">&#39;Zn&#39;</span><span class="p">,</span><span class="s1">&#39;Ga&#39;</span><span class="p">,</span><span class="s1">&#39;Ge&#39;</span><span class="p">,</span><span class="s1">&#39;As&#39;</span><span class="p">,</span><span class="s1">&#39;Se&#39;</span><span class="p">,</span><span class="s1">&#39;Br&#39;</span><span class="p">,</span><span class="s1">&#39;Kr&#39;</span><span class="p">,</span><span class="s1">&#39;Rb&#39;</span><span class="p">,</span><span class="s1">&#39;Sr&#39;</span><span class="p">,</span><span class="s1">&#39;Y&#39;</span><span class="p">,</span> <span class="s1">&#39;Zr&#39;</span><span class="p">,</span><span class="s1">&#39;Nb&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Mo&#39;</span><span class="p">,</span><span class="s1">&#39;Tc&#39;</span><span class="p">,</span><span class="s1">&#39;Ru&#39;</span><span class="p">,</span><span class="s1">&#39;Rh&#39;</span><span class="p">,</span><span class="s1">&#39;Pd&#39;</span><span class="p">,</span><span class="s1">&#39;Ag&#39;</span><span class="p">,</span><span class="s1">&#39;Cd&#39;</span><span class="p">,</span><span class="s1">&#39;In&#39;</span><span class="p">,</span><span class="s1">&#39;Sn&#39;</span><span class="p">,</span><span class="s1">&#39;Sb&#39;</span><span class="p">,</span><span class="s1">&#39;Te&#39;</span><span class="p">,</span><span class="s1">&#39;I&#39;</span><span class="p">,</span><span class="s1">&#39;Xe&#39;</span><span class="p">,</span><span class="s1">&#39;Cs&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Ba&#39;</span><span class="p">,</span><span class="s1">&#39;La&#39;</span><span class="p">,</span><span class="s1">&#39;Ce&#39;</span><span class="p">,</span><span class="s1">&#39;Pr&#39;</span><span class="p">,</span><span class="s1">&#39;Nd&#39;</span><span class="p">,</span><span class="s1">&#39;Pm&#39;</span><span class="p">,</span><span class="s1">&#39;Sm&#39;</span><span class="p">,</span><span class="s1">&#39;Eu&#39;</span><span class="p">,</span><span class="s1">&#39;Gd&#39;</span><span class="p">,</span><span class="s1">&#39;Tb&#39;</span><span class="p">,</span><span class="s1">&#39;Dy&#39;</span><span class="p">,</span><span class="s1">&#39;Ho&#39;</span><span class="p">,</span><span class="s1">&#39;Er&#39;</span><span class="p">,</span><span class="s1">&#39;Tm&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Yb&#39;</span><span class="p">,</span><span class="s1">&#39;Lu&#39;</span><span class="p">,</span><span class="s1">&#39;Hf&#39;</span><span class="p">,</span><span class="s1">&#39;Ta&#39;</span><span class="p">,</span><span class="s1">&#39;W&#39;</span><span class="p">,</span> <span class="s1">&#39;Re&#39;</span><span class="p">,</span><span class="s1">&#39;Os&#39;</span><span class="p">,</span><span class="s1">&#39;Ir&#39;</span><span class="p">,</span><span class="s1">&#39;Pt&#39;</span><span class="p">,</span><span class="s1">&#39;Au&#39;</span><span class="p">,</span><span class="s1">&#39;Hg&#39;</span><span class="p">,</span><span class="s1">&#39;Tl&#39;</span><span class="p">,</span><span class="s1">&#39;Pb&#39;</span><span class="p">,</span><span class="s1">&#39;Bi&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Po&#39;</span><span class="p">,</span><span class="s1">&#39;At&#39;</span><span class="p">,</span><span class="s1">&#39;Rn&#39;</span><span class="p">,</span><span class="s1">&#39;Fr&#39;</span><span class="p">,</span><span class="s1">&#39;Ra&#39;</span><span class="p">,</span><span class="s1">&#39;Ac&#39;</span><span class="p">,</span><span class="s1">&#39;Th&#39;</span><span class="p">,</span><span class="s1">&#39;Pa&#39;</span><span class="p">,</span><span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="s1">&#39;Np&#39;</span><span class="p">,</span><span class="s1">&#39;Pu&#39;</span><span class="p">,</span><span class="s1">&#39;Am&#39;</span><span class="p">,</span><span class="s1">&#39;Cm&#39;</span><span class="p">,</span><span class="s1">&#39;Bk&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Cf&#39;</span><span class="p">,</span><span class="s1">&#39;Es&#39;</span><span class="p">,</span><span class="s1">&#39;Fm&#39;</span><span class="p">,</span><span class="s1">&#39;Md&#39;</span><span class="p">,</span><span class="s1">&#39;No&#39;</span><span class="p">,</span><span class="s1">&#39;Lr&#39;</span><span class="p">,</span><span class="s1">&#39;Rf&#39;</span><span class="p">,</span><span class="s1">&#39;Db&#39;</span><span class="p">,</span><span class="s1">&#39;Sg&#39;</span><span class="p">,</span><span class="s1">&#39;Bh&#39;</span><span class="p">,</span><span class="s1">&#39;Hs&#39;</span><span class="p">,</span><span class="s1">&#39;Mt&#39;</span><span class="p">,</span><span class="s1">&#39;Ds&#39;</span><span class="p">,</span><span class="s1">&#39;Rg&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Uub&#39;</span><span class="p">,</span><span class="s1">&#39;Uut&#39;</span><span class="p">,</span><span class="s1">&#39;Uuq&#39;</span><span class="p">,</span><span class="s1">&#39;Uup&#39;</span><span class="p">,</span><span class="s1">&#39;Uuh&#39;</span><span class="p">,</span><span class="s1">&#39;Uus&#39;</span><span class="p">,</span><span class="s1">&#39;Uuo&#39;</span><span class="p">]</span>
+
+<span class="n">atom_info</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">atom_info</span><span class="p">[</span><span class="s1">&#39;Ar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="mf">39.948</span><span class="p">}</span>
+<span class="n">atom_info</span><span class="p">[</span><span class="s1">&#39;Mg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="mf">24.305</span><span class="p">}</span>
+<span class="n">atom_info</span><span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="mf">15.9994</span><span class="p">}</span>
+<span class="n">atom_info</span><span class="p">[</span><span class="s1">&#39;Si&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="mf">28.0855</span><span class="p">}</span>
+<span class="n">atom_info</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="mf">58.6934</span><span class="p">}</span>
+<span class="n">atom_info</span><span class="p">[</span><span class="s1">&#39;Al&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="mf">26.981539</span><span class="p">}</span>
+
+<div class="viewcode-block" id="get_amu"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.get_amu">[docs]</a><span class="k">def</span> <span class="nf">get_amu</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; get atomic mass unit</span>
+
+<span class="sd">    this method gets the the atomic mass unit for a given chemical symbol.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbol(str): the ISO chemical symbol of an atom</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: the mass of the atom, in atomic mass units</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">atom_info</span><span class="p">[</span><span class="n">symbol</span><span class="p">][</span><span class="s1">&#39;atomic_mass&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="cartesian2direct"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.cartesian2direct">[docs]</a><span class="k">def</span> <span class="nf">cartesian2direct</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">H</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; transforms cartesian coordinates to direct coordinates</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (numpy.ndarray): the cartesian coordinates</span>
+<span class="sd">        H (numpy.ndarray): the H matrix of lattice vectors</span>
+
+<span class="sd">    Return:</span>
+<span class="sd">        (numpy.ndarray): the direct coordinate vector</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">T</span><span class="p">),</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">u</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
+    <span class="k">return</span> <span class="n">u</span></div>
+
+<div class="viewcode-block" id="StructureDatabase"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase">[docs]</a><span class="k">class</span> <span class="nc">StructureDatabase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; structure database </span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        filename(str): file to read/write the yaml file</span>
+<span class="sd">        directory(str): the directory of the structure database</span>
+<span class="sd">        structures(dict): key is structure name, value is another dict with </span>
+<span class="sd">            key/value pairs for &#39;filename&#39; and &#39;filetype&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;pypospack.structure.yaml&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="StructureDatabase.add_structure"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase.add_structure">[docs]</a>    <span class="k">def</span> <span class="nf">add_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">filetype</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;filename&#39;</span><span class="p">:</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;filetype&#39;</span><span class="p">:</span><span class="n">filetype</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="StructureDatabase.contains"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase.contains">[docs]</a>    <span class="k">def</span> <span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structure</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; check to see that the structure in the structure database</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            structure(str):</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if structure is in structure database. False if the </span>
+<span class="sd">                structure is not in the structure database</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">structure</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="StructureDatabase.read"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; read qoi configuration from yaml file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname(str): file to read yaml file from.  If no argument is passed </span>
+<span class="sd">                then use the filename attribute.  If the filename is set, then </span>
+<span class="sd">                the filename attribute is also set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set the attribute if not none</span>
+        <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="StructureDatabase.write"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+        <span class="c1"># marshall attributes into a dictionary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">)</span>
+
+        <span class="c1"># dump to as yaml file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StructureDatabase.check"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;sanity checks for the fitting database</span>
+<span class="sd">        </span>
+<span class="sd">        This method checks the fitting database for the following errors: (1)</span>
+<span class="sd">        the structure database exists, (2) files for the structure database</span>
+<span class="sd">        exist</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            str: returns a string if there is a problem</span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if there is a problem with the configuration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">src_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span>
+       
+        <span class="c1"># check to see if the source directory exists</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">src_dir</span><span class="p">):</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;cannot find simulation directory</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">current_working_directory:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">structure_db_directory:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_dir</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">err_msg</span>
+        
+        <span class="c1"># check to see if the source directory is a directory</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">src_dir</span><span class="p">):</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;path exists, is not a directory</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">current_working_directory:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">structure_db_directory:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_dir</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">err_msg</span>
+
+        <span class="c1"># check to see if files exist in the source directory</span>
+        <span class="n">files_exist</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;structure files are missing:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+                <span class="n">files_exist</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">files_exist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">msg</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="StructureDatabase.get_structure_dict"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.StructureDatabase.get_structure_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_structure_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name(str): name of the structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">structure_db_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span>
+        <span class="n">structure_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span>
+        <span class="n">structure_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">structure_dict</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="n">structure_dict</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">structure_db_dir</span><span class="p">,</span>
+                <span class="n">structure_filename</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">structure_dict</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="Atom"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.Atom">[docs]</a><span class="k">class</span> <span class="nc">Atom</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;description of an atom</span>
+
+<span class="sd">    This position is a data structure which contains information about an</span>
+<span class="sd">    individual atom</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        symbol (str): the standard ISO symbol for an element</span>
+<span class="sd">        position (list of float): the position of the atom the units</span>
+<span class="sd">           are dependent upon use.</span>
+<span class="sd">        magmom (float): the magnetic moment of the atom.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        symbol (str): the standard ISO symbol for an element</span>
+<span class="sd">        position (numpy.ndarray): the position of the atom, usually in direct</span>
+<span class="sd">            coordinates</span>
+<span class="sd">        magentic_moment (float): the magnetic moment of the atom</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">position</span><span class="p">,</span> <span class="n">magmom</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbol</span> <span class="o">=</span> <span class="n">symbol</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">position</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">position</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">position</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;position must either be a list of numeric values or a numpy array&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnetic_moment</span> <span class="o">=</span> <span class="n">magmom</span></div>
+       
+
+<div class="viewcode-block" id="SimulationCell"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell">[docs]</a><span class="k">class</span> <span class="nc">SimulationCell</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A structural representation of a material system</span>
+<span class="sd">  </span>
+<span class="sd">    A structural system consists of a vector of lattice vector which forms the </span>
+<span class="sd">    boundaries of the simulation cell, and an atomic basis of atoms defined in</span>
+<span class="sd">    the direct coordinates of the lattice vectors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obj (optional): if this argument is set then the this constructor acts </span>
+<span class="sd">            as a copy constructor.  Will takse :obj:`ase.atoms.Atoms` and</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        comment (str): a descriptive description of the crystal structure</span>
+<span class="sd">        atomic_basis (:obj:`list` of :obj:`pypospack.crystallography.Atoms`): a list </span>
+<span class="sd">            of atoms contained within the crystal structure.</span>
+<span class="sd">        a0 (float): a scaling factor which scales the lattice vectors by a0.</span>
+<span class="sd">            Default is 1.</span>
+<span class="sd">        H (numpy.ndarray): a numpy array containing the lattice vectors as</span>
+<span class="sd">            row vectors.  Default is [[1,0,0],[0,1,0],[0,0,1]]</span>
+<span class="sd">        ptol (:obj:`float`,optional): tolerance in which to find an atom/layer.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        vacancies (:obj:`list` of :obj:`pypospack.crystal.Atoms`): a</span>
+<span class="sd">            list of vacancy sites contained within the crystal structure.</span>
+<span class="sd">        interstitials (:obj:`list` of :obj:`pypospack.crystal.Atoms`): a</span>
+<span class="sd">            list of interstitial sites contained within the crystal structure.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_noncopy_init</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="n">ase</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">Atoms</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_copy_init_ase</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span><span class="n">SimulationCell</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_copy_init_pypospack</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+            
+    <span class="k">def</span> <span class="nf">_noncopy_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;generated by pypospack&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ptol</span> <span class="o">=</span> <span class="mf">1.e-5</span> <span class="c1">#tolerance in which to find an atom</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a0</span>  <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+                           <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span>
+                           <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vacancies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interstitials</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">_copy_init_pypospack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">obj</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">comment</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a0</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">a0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">H</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vacancies</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">vacancies</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interstitials</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">interstitials</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_copy_init_ase</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">obj</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;generated by pypospack from ase&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a0</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">symbol</span>
+            <span class="n">position</span> <span class="o">=</span> <span class="n">cartesian2direct</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">Atom</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vacancies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interstitials</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;numpy.ndarray: which is the a1 lattice vector&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,:])</span>
+
+    <span class="nd">@h1</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">h1</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;numpy.array: which is the a2 lattice vector&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+
+    <span class="nd">@h2</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">h2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">h2</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span>
+ 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">h3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;numpy.array: this is the a3 lattice vector&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">2</span><span class="p">,:])</span>
+
+    <span class="nd">@h3</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">h3</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">h3</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">a1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;float: the length of h1 lattice vector&quot;&quot;&quot;</span>
+        <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a0</span>
+        <span class="n">h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h1</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">a0</span> <span class="o">*</span> <span class="n">h1</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h1</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+        <span class="k">return</span> <span class="n">a1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">a2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;float: the length of the h2 lattice vector&quot;&quot;&quot;</span>
+        <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a0</span>
+        <span class="n">h2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h2</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">a0</span> <span class="o">*</span> <span class="n">h2</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h2</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+        <span class="k">return</span> <span class="n">a2</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">a3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;float: the length of the h3 lattice vector&quot;&quot;&quot;</span>
+        <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a0</span>
+        <span class="n">h3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h3</span>
+        <span class="n">a3</span> <span class="o">=</span> <span class="n">a0</span><span class="o">*</span><span class="n">h3</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">h3</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span>
+        <span class="k">return</span> <span class="n">a3</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">b1</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;numpy.array: this is a 3x1 numpy array, in reciprocal space&quot;&quot;&quot;</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h1</span><span class="p">)</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h2</span><span class="p">)</span>
+        <span class="n">a3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h3</span><span class="p">)</span>
+
+        <span class="n">b1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span><span class="n">a3</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span><span class="n">a3</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">b1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">b2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;numpy.array: this is a 3x1 numpy array, in reciprocal space&quot;&quot;&quot;</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h1</span><span class="p">)</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h2</span><span class="p">)</span>
+        <span class="n">a3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h3</span><span class="p">)</span>
+
+
+        <span class="n">b2</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span><span class="n">a1</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span><span class="n">a1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">b2</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">b3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;numpy.array: this is a 3x1 numpy array, in reciprocal space&quot;&quot;&quot;</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h1</span><span class="p">)</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h2</span><span class="p">)</span>
+        <span class="n">a3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">h3</span><span class="p">)</span>
+
+        <span class="n">b3</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span><span class="n">a2</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">a3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span><span class="n">a2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">b3</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;float: the number of atoms in the structure&quot;&quot;&quot;</span>
+        <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_atoms</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;list of str: a list of the symbols in the structure&quot;&quot;&quot;</span>
+
+        <span class="n">symbols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">symbol</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">interstitials</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">symbols</span>
+
+<div class="viewcode-block" id="SimulationCell.check_if_atom_exists_at_position"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.check_if_atom_exists_at_position">[docs]</a>    <span class="k">def</span> <span class="nf">check_if_atom_exists_at_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;determines if there is an atom at a position</span>
+
+<span class="sd">        This code looks for atoms in the list of atoms in the atomic_basis.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: The first element if true in an atom exists at the location,</span>
+<span class="sd">                False if it doesn&#39;t exist.   The second element is an int which</span>
+<span class="sd">                indicates the index of the atom at that position.  The index is</span>
+<span class="sd">                negative if it is the list of interstitials.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">return_value</span> <span class="o">=</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span><span class="kc">None</span><span class="p">)</span>
+        <span class="c1"># check to see if atom exists in the atomic basis</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">):</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptol</span><span class="p">:</span>
+                <span class="n">return_value</span> <span class="o">=</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">return_value</span></div>
+
+<div class="viewcode-block" id="SimulationCell.add_atom"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.add_atom">[docs]</a>    <span class="k">def</span> <span class="nf">add_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;add an atom to the structure</span>
+
+<span class="sd">        Checks to see if an existing atom exists at the position we are trying</span>
+<span class="sd">        to add an atom, then if the position is empty.  The atom is added then</span>
+<span class="sd">        added to the list of interstitials.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            symbol (str): the symbol of the atom to be added</span>
+<span class="sd">            position (str): the position of the atom to be added</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an atom already exists in the position.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">is_atom_exists</span><span class="p">,</span> <span class="n">__</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_if_atom_exists_at_position</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_atom_exists</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;Tried to add </span><span class="si">{}</span><span class="s2"> @ </span><span class="si">{}</span><span class="s2"> an atom already there</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s1">&#39;atomic basis:</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">):</span>
+                <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">i</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">a</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">])</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Atom</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SimulationCell.remove_atom"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.remove_atom">[docs]</a>    <span class="k">def</span> <span class="nf">remove_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; remove an atom from the structure</span>
+
+<span class="sd">        This method checks for atom at the position, if an atom exists.  It is</span>
+<span class="sd">        removed from the structure then the position is recorded as a vacancy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            symbol (str): the symbol of the atom</span>
+<span class="sd">            position (:obj:`list` of :obj:`float`): the position of the atom</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ptol</span> <span class="o">=</span> <span class="mf">1e-4</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">):</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">position</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">-</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span>
+                <span class="n">is_atom</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">diff</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ptol</span><span class="p">:</span>
+                        <span class="n">is_atom</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="n">is_atom</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="k">return</span>
+
+        <span class="c1"># no atom found</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;Tried to remove </span><span class="si">{}</span><span class="s2"> @ </span><span class="si">{}</span><span class="s2">, no atom found&quot;</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SimulationCell.add_interstitial"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.add_interstitial">[docs]</a>    <span class="k">def</span> <span class="nf">add_interstitial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; add an interstitial to the atomic basis</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            symbol (str): the symbol of the atom</span>
+<span class="sd">            position (:obj:`list` of :obj:`float`): the position of the atom</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_atom</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interstitials</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="SimulationCell.add_vacancy"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.add_vacancy">[docs]</a>    <span class="k">def</span> <span class="nf">add_vacancy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; create a vacancy</span>
+<span class="sd">        </span>
+<span class="sd">        Creates a vacancy by removing an atom from the atomic basis</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            symbol (str): the symbol of the atom</span>
+<span class="sd">            position (:obj:`list` of :obj:`float`): the position of the atom</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">remove_atom</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vacancies</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="SimulationCell.get_number_of_atoms"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.get_number_of_atoms">[docs]</a>    <span class="k">def</span> <span class="nf">get_number_of_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">symbol</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_atoms</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">atom</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">):</span>
+                    <span class="n">n_atoms</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">n_atoms</span></div>
+
+<div class="viewcode-block" id="SimulationCell.normalize_h_matrix"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.normalize_h_matrix">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_h_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># change the h_matrix where the lattice parameter is 1.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a0</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># calculate the norm of the h1 vector</span>
+        <span class="n">norm_h1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">a1</span>
+        <span class="c1"># the norm of the h1 vector is the lattice parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a0</span><span class="o">=</span> <span class="n">norm_h1</span>
+
+        <span class="c1"># normalize the h-matrix by the norm of h1</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">/</span> <span class="n">norm_h1</span></div>
+
+<div class="viewcode-block" id="SimulationCell.set_lattice_parameter"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.SimulationCell.set_lattice_parameter">[docs]</a>    <span class="k">def</span> <span class="nf">set_lattice_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a0</span><span class="p">):</span>
+        <span class="c1"># change the h_matrix where the lattice parameter is 1.0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">a0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">a0</span> <span class="o">=</span> <span class="n">a0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">a0</span></div>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;a = </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a0</span><span class="p">)</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;atom list:</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">:</span>
+            <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="s2">&quot;</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="n">str_out</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+                                      <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                      <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                      <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                      <span class="n">a</span><span class="o">.</span><span class="n">magnetic_moment</span><span class="p">)</span></div>
+ 
+<div class="viewcode-block" id="make_super_cell"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.make_super_cell">[docs]</a><span class="k">def</span> <span class="nf">make_super_cell</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="n">sc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;makes a supercell from a given cell</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        structure (pyflamestk.base.Structure): the base structure from which</span>
+<span class="sd">            the supercell will be made from.</span>
+<span class="sd">        sc (:obj:`list` of :obj:`int`): the number of repeat units in the h1, h2, and h3 </span>
+<span class="sd">            directions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span><span class="n">SimulationCell</span><span class="p">)</span>
+
+    <span class="n">supercell</span> <span class="o">=</span> <span class="n">SimulationCell</span><span class="p">()</span>
+    <span class="n">supercell</span><span class="o">.</span><span class="n">structure_comment</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">x</span><span class="si">{}</span><span class="s2">x</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">sc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">sc</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="c1"># set lattice parameter</span>
+    <span class="n">supercell</span><span class="o">.</span><span class="n">a0</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">a0</span> 
+
+    <span class="c1"># set h_matrix</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">*</span> <span class="n">sc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">supercell</span><span class="o">.</span><span class="n">H</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># add supercell atoms</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sc</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sc</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">structure</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">:</span>
+                    <span class="n">symbol</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">symbol</span>
+                    <span class="n">position</span> <span class="o">=</span> <span class="n">atom</span><span class="o">.</span><span class="n">position</span>
+                    <span class="n">position</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">sc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>\
+                                <span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="n">sc</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>\
+                                <span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">/</span><span class="n">sc</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+                    <span class="n">supercell</span><span class="o">.</span><span class="n">add_atom</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span><span class="n">position</span><span class="p">)</span>
+
+    <span class="c1"># return a copy of the supercell</span>
+    <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">supercell</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RadialDistributionFunction"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.RadialDistributionFunction">[docs]</a><span class="k">class</span> <span class="nc">RadialDistributionFunction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="RadialDistributionFunction.pairCorrelationFunction_3D"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.RadialDistributionFunction.pairCorrelationFunction_3D">[docs]</a>    <span class="k">def</span> <span class="nf">pairCorrelationFunction_3D</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">rMax</span><span class="p">,</span> <span class="n">dr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute the three-dimensioanl pair correlation function</span>
+<span class="sd">        </span>
+<span class="sd">        Compute the three-dimensional pair correlation function for a set of</span>
+<span class="sd">        spherical particles contained in a cube with side length S.  This simple</span>
+<span class="sd">        function finds reference particles such that a sphere of radius rMax drawn</span>
+<span class="sd">        around the particle will fit entirely within the cube, eliminating the need</span>
+<span class="sd">        to compensate for edge effects.  If no such particles exist, an error is</span>
+<span class="sd">        returned.  Try a smaller rMax...or write some code to handle edge effects! ;)</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            x(numpy.ndarray): an array of x positions of centers of particles</span>
+<span class="sd">            y(numpy.ndarray): an array of y positions of centers of particles</span>
+<span class="sd">            z(numpy.ndarray): an array of z positions of centers of particles</span>
+<span class="sd">            S(list):length of each side of the cube in space</span>
+<span class="sd">            rMax(float): outer diameter of largest spherical shell</span>
+<span class="sd">            dr(float): increment for increasing radius of spherical shell</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: first element is a numpy array containing the correlation </span>
+<span class="sd">                function g(r) radii. the second element is a numpy array </span>
+<span class="sd">                containing the radii of the spherical shells used to compute </span>
+<span class="sd">                g(r).  the final element are the indices of the refence particles</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">where</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">arange</span><span class="p">,</span> <span class="n">histogram</span>
+
+        <span class="c1"># Find particles which are close enough to the cube center that a sphere of radius</span>
+        <span class="c1"># rMax will not cross any face of the cube</span>
+        <span class="n">bools1</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">rMax</span>
+        <span class="n">bools2</span> <span class="o">=</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">S</span> <span class="o">-</span> <span class="n">rMax</span><span class="p">)</span>
+        <span class="n">bools3</span> <span class="o">=</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">rMax</span>
+        <span class="n">bools4</span> <span class="o">=</span> <span class="n">y</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">S</span> <span class="o">-</span> <span class="n">rMax</span><span class="p">)</span>
+        <span class="n">bools5</span> <span class="o">=</span> <span class="n">z</span> <span class="o">&gt;</span> <span class="n">rMax</span>
+        <span class="n">bools6</span> <span class="o">=</span> <span class="n">z</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">S</span> <span class="o">-</span> <span class="n">rMax</span><span class="p">)</span>
+
+        <span class="n">interior_indices</span><span class="p">,</span> <span class="o">=</span> <span class="n">where</span><span class="p">(</span><span class="n">bools1</span> <span class="o">*</span> <span class="n">bools2</span> <span class="o">*</span> <span class="n">bools3</span> <span class="o">*</span> <span class="n">bools4</span> <span class="o">*</span> <span class="n">bools5</span> <span class="o">*</span> <span class="n">bools6</span><span class="p">)</span>
+        <span class="n">num_interior_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">interior_indices</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_interior_particles</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span>  <span class="ne">RuntimeError</span> <span class="p">(</span><span class="s2">&quot;No particles found for which a sphere of radius rMax</span><span class="se">\</span>
+<span class="s2">                    will lie entirely within a cube of side length S.  Decrease rMax</span><span class="se">\</span>
+<span class="s2">                    or increase the size of the cube.&quot;</span><span class="p">)</span>
+
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">rMax</span> <span class="o">+</span> <span class="mf">1.1</span> <span class="o">*</span> <span class="n">dr</span><span class="p">,</span> <span class="n">dr</span><span class="p">)</span>
+        <span class="n">num_increments</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">([</span><span class="n">num_interior_particles</span><span class="p">,</span> <span class="n">num_increments</span><span class="p">])</span>
+        <span class="n">radii</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">num_increments</span><span class="p">)</span>
+        <span class="n">numberDensity</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">S</span><span class="o">**</span><span class="mi">3</span>
+
+        <span class="c1"># Compute pairwise correlation for each interior particle</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_interior_particles</span><span class="p">):</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">interior_indices</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">((</span><span class="n">x</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">rMax</span>
+
+            <span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span> <span class="o">=</span> <span class="n">histogram</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">g</span><span class="p">[</span><span class="n">p</span><span class="p">,:]</span> <span class="o">=</span> <span class="n">result</span> <span class="o">/</span> <span class="n">numberDensity</span>
+
+        <span class="c1"># Average g(r) for all interior particles and compute radii</span>
+        <span class="n">g_average</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">num_increments</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_increments</span><span class="p">):</span>
+            <span class="n">radii</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.</span>
+            <span class="n">rOuter</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">rInner</span> <span class="o">=</span> <span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">g_average</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span><span class="p">(</span><span class="n">g</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">/</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">rOuter</span><span class="o">**</span><span class="mi">3</span> <span class="o">-</span> <span class="n">rInner</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">g_average</span><span class="p">,</span> <span class="n">radii</span><span class="p">,</span> <span class="n">interior_indices</span><span class="p">)</span></div></div>
+        <span class="c1"># Number of particles in shell/total number of particles/volume of shell/number density</span>
+        <span class="c1"># shell volume = 4/3*pi(r_outer**3-r_inner**3)</span>
+
+<div class="viewcode-block" id="get_fcc_nearest_neighbor_distance"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.crystal.get_fcc_nearest_neighbor_distance">[docs]</a><span class="k">def</span> <span class="nf">get_fcc_nearest_neighbor_distance</span><span class="p">(</span><span class="n">a0</span><span class="p">,</span><span class="n">NN</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a0</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">NN</span><span class="p">,</span><span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">NN</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">nn_distances</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mi">0</span><span class="p">,</span>
+        <span class="mf">0.707</span> <span class="o">*</span> <span class="n">a0</span><span class="p">,</span>
+        <span class="mf">1.000</span> <span class="o">*</span> <span class="n">a0</span><span class="p">,</span>
+        <span class="mf">1.225</span> <span class="o">*</span> <span class="n">a0</span><span class="p">,</span>
+        <span class="mf">1.414</span> <span class="o">*</span> <span class="n">a0</span><span class="p">,</span>
+        <span class="mf">1.581</span> <span class="o">*</span> <span class="n">a0</span>
+    <span class="p">]</span>
+
+    <span class="kn">import</span> <span class="nn">math</span>
+    <span class="k">return</span> <span class="n">nn_distances</span><span class="p">[</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">NN</span><span class="p">)]</span> \
+            <span class="o">+</span> <span class="p">(</span><span class="n">NN</span><span class="o">%</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nn_distances</span><span class="p">[</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">NN</span><span class="p">)]</span><span class="o">-</span><span class="n">nn_distances</span><span class="p">[</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">NN</span><span class="p">)])</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

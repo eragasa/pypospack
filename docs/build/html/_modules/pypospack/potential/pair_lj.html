@@ -1,0 +1,232 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pypospack.potential.pair_lj &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" accesskey="U">pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.potential.pair_lj</h1><div class="highlight"><pre>
+<span></span><span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2017&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="mi">20171102</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">PairPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">determine_symbol_pairs</span>
+
+<div class="viewcode-block" id="func_zope_mishin_mollify"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.func_zope_mishin_mollify">[docs]</a><span class="k">def</span> <span class="nf">func_zope_mishin_mollify</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">r_cut</span><span class="p">,</span><span class="n">h</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is the cutoff function specified</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        Zope and Mishin, Phys. Rev. B. 68, 024102 2003</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span><span class="o">-</span><span class="n">r_cut</span><span class="p">)</span><span class="o">/</span><span class="n">h</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="mf">0.</span><span class="p">:</span> 
+        <span class="k">return</span> <span class="mf">0.</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">**</span><span class="mf">4.</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="n">x</span><span class="o">**</span><span class="mf">4.</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">psi</span></div>
+
+<div class="viewcode-block" id="func_generalized_lj"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.func_generalized_lj">[docs]</a><span class="k">def</span> <span class="nf">func_generalized_lj</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">b1</span><span class="p">,</span><span class="n">b2</span><span class="p">,</span><span class="n">r1</span><span class="p">,</span><span class="n">V0</span><span class="p">,</span><span class="n">delta</span><span class="p">,</span><span class="n">r_cut</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">h</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+    <span class="n">_psi</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># mollifier function</span>
+    <span class="n">_phi</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># pair potential</span>
+
+    <span class="c1"># evaluate mollify function</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">r_cut</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">h</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">_psi</span> <span class="o">=</span> <span class="n">func_zope_mishin_mollify</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">r_cut</span><span class="p">,</span><span class="n">h</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_psi</span> <span class="o">=</span> <span class="mf">1.</span>
+
+
+    <span class="n">_phi</span> <span class="o">=</span> <span class="n">_psi</span><span class="o">*</span><span class="p">((</span><span class="n">V0</span><span class="o">/</span><span class="p">(</span><span class="n">b2</span><span class="o">-</span><span class="n">b1</span><span class="p">))</span><span class="o">*</span><span class="p">((</span><span class="n">b2</span><span class="o">/</span><span class="p">((</span><span class="n">r</span><span class="o">/</span><span class="n">r1</span><span class="p">)</span><span class="o">**</span><span class="n">b1</span><span class="p">))</span><span class="o">-</span><span class="p">(</span><span class="n">b1</span><span class="o">/</span><span class="p">((</span><span class="n">r</span><span class="o">/</span><span class="n">r1</span><span class="p">)</span><span class="o">**</span><span class="n">b2</span><span class="p">)))</span> <span class="o">+</span> <span class="n">delta</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_rho</span></div>
+
+<div class="viewcode-block" id="GeneralizedLennardJones"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones">[docs]</a><span class="k">class</span> <span class="nc">GeneralizedLennardJones</span><span class="p">(</span><span class="n">PairPotential</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Potential implementation of the generalized Leonnard Jones Function</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbols(list): a list of chemical symbols.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbols</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pair_potential_parameters</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;b1&#39;</span><span class="p">,</span><span class="s1">&#39;b2&#39;</span><span class="p">,</span><span class="s1">&#39;r1&#39;</span><span class="p">,</span><span class="s1">&#39;V0&#39;</span><span class="p">,</span> <span class="s1">&#39;delta&#39;</span><span class="p">,</span><span class="s1">&#39;r_cut&#39;</span><span class="p">,</span><span class="s1">&#39;h&#39;</span>
+        <span class="p">]</span>
+        <span class="n">PairPotential</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">symbols</span><span class="p">,</span>
+                <span class="n">potential_type</span><span class="o">=</span><span class="s1">&#39;morse&#39;</span><span class="p">,</span>
+                <span class="n">is_charge</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+    <span class="c1"># this method overrides the parents stub</span>
+    <span class="k">def</span> <span class="nf">_init_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbol_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="n">determine_symbol_pairs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_pairs</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pair_potential_parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">PYPOSPACK_PAIR_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">s1</span><span class="o">=</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                            <span class="n">s2</span><span class="o">=</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                            <span class="n">p</span><span class="o">=</span><span class="n">p</span>
+                        <span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+
+    <span class="c1"># this method overrides the parents stub</span>
+    <span class="k">def</span> <span class="nf">_init_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+    <span class="c1"># this method overrides the parent stub</span>
+<div class="viewcode-block" id="GeneralizedLennardJones.evaluate"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">parameters</span><span class="p">,</span><span class="n">r_cut</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;evaluate the potential for a given set of distances for a given parameter set</span>
+
+<span class="sd">        This method implements the parent method.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            r(numpy.ndarray): A numpy array of interatomic distances which to evaluate.</span>
+<span class="sd">            parameters(OrderedDict): A dictionary of parameters on which to evaluate the interatomic potential.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># &lt;----------------------------check arguments are correct</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">r_cut</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+
+        <span class="c1"># &lt;----------------------------copy a local of the parameters </span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="c1"># &lt;----------------------------evaluate the parameters now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_evaluations</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbol_pairs</span><span class="p">:</span>
+            <span class="n">_pair_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">_V</span> <span class="o">=</span> <span class="n">func_generalized_lj</span><span class="p">(</span>
+                    <span class="n">r</span><span class="p">,</span>
+                    <span class="n">b1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_b1&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="n">b2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_b2&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_r1&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="n">V0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_V0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_delta&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="n">r_cut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_r_cut&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])],</span>
+                    <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">_h&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_evaluations</span><span class="p">[</span><span class="n">_pair_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_V</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential_evaluations</span><span class="p">)</span></div>
+    
+    <span class="c1"># same as parent class</span>
+<div class="viewcode-block" id="GeneralizedLennardJones.lammps_potential_section_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones.lammps_potential_section_to_string">[docs]</a>    <span class="k">def</span> <span class="nf">lammps_potential_section_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; lammps potential section to string &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+    
+    <span class="c1"># same as parent class</span>
+<div class="viewcode-block" id="GeneralizedLennardJones.gulp_potential_section_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones.gulp_potential_section_to_string">[docs]</a>    <span class="k">def</span> <span class="nf">gulp_potential_section_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; lamps gulp potential section to string &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+    
+    <span class="c1"># same as parent class</span>
+<div class="viewcode-block" id="GeneralizedLennardJones.phonts_potential_section_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones.phonts_potential_section_to_string">[docs]</a>    <span class="k">def</span> <span class="nf">phonts_potential_section_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; phonts potential section to string &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span> </div>
+    
+    <span class="c1"># same as parent class</span>
+<div class="viewcode-block" id="GeneralizedLennardJones.write_lammps_potential_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones.write_lammps_potential_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_lammps_potential_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; write lammps potential section to file &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="c1"># same as parent class</span>
+<div class="viewcode-block" id="GeneralizedLennardJones.write_gulp_potential_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.pair_lj.GeneralizedLennardJones.write_gulp_potential_section">[docs]</a>    <span class="k">def</span> <span class="nf">write_gulp_potential_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; write gulp potential section &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" >pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.9.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,230 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.qois.qoidb &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.qois.qoidb</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pypospack.io.filesystem</span> <span class="k">import</span> <span class="n">OrderedDictYAMLLoader</span>
+
+
+<div class="viewcode-block" id="QoiDatabase"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.qoidb.QoiDatabase">[docs]</a><span class="k">class</span> <span class="nc">QoiDatabase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Qoi Database </span>
+<span class="sd">    </span>
+<span class="sd">        Attributes:</span>
+<span class="sd">            filename(str): file to read/write to yaml file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoidb_OrderedDict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoidb_OrderedDict</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">),</span>
+            <span class="nb">type</span><span class="p">(</span><span class="n">qoidb_OrderedDict</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)],</span>
+            <span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;pypospack.qoi.yaml&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">qoidb_OrderedDict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__init_from_OrderedDict</span><span class="p">(</span><span class="n">qoidb</span><span class="o">=</span><span class="n">qoidb_OrderedDict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init_from_OrderedDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoidb</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k_qoi</span><span class="p">,</span><span class="n">v_qoi</span> <span class="ow">in</span> <span class="n">qoidb</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">_qoi_name</span> <span class="o">=</span> <span class="n">k_qoi</span>
+            <span class="n">_qoi_type</span> <span class="o">=</span> <span class="n">v_qoi</span><span class="p">[</span><span class="s1">&#39;qoi_type&#39;</span><span class="p">]</span>
+            <span class="n">_structures</span> <span class="o">=</span> <span class="n">v_qoi</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span>
+            <span class="n">_target</span> <span class="o">=</span> <span class="n">v_qoi</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_qoi_options</span> <span class="o">=</span> <span class="n">v_qoi</span><span class="p">[</span><span class="s1">&#39;qoi_options&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">_qoi_options</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_qoi</span><span class="p">(</span>
+                    <span class="n">qoi_name</span><span class="o">=</span><span class="n">_qoi_name</span><span class="p">,</span>
+                    <span class="n">qoi_type</span><span class="o">=</span><span class="n">_qoi_type</span><span class="p">,</span>
+                    <span class="n">structures</span><span class="o">=</span><span class="n">_structures</span><span class="p">,</span>
+                    <span class="n">target</span><span class="o">=</span><span class="n">_target</span><span class="p">,</span>
+                    <span class="n">qoi_options</span><span class="o">=</span><span class="n">_qoi_options</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="QoiDatabase.add_qoi"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.qoidb.QoiDatabase.add_qoi">[docs]</a>    <span class="k">def</span> <span class="nf">add_qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">qoi_name</span><span class="p">,</span>
+            <span class="n">qoi_type</span><span class="p">,</span>
+            <span class="n">structures</span><span class="p">,</span>
+            <span class="n">target</span><span class="p">,</span>
+            <span class="n">qoi_options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; add a qoi</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name(str): name of the qoi.  Usually &lt;structure&gt;.&lt;qoi&gt;.</span>
+<span class="sd">            qoi(str): name of the qoi.</span>
+<span class="sd">            structures(list): list of structures</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_name</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_type</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">str</span><span class="p">),</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">list</span><span class="p">),</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">dict</span><span class="p">),</span>
+            <span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+        
+        <span class="n">_structures</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="n">_structures</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="n">_structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">structures</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">):</span>
+            <span class="n">_structures</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">structures</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="c1">#&lt;--------- initialize internal atributes if not already set</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1">#&lt;--------- create the dictionary entry for this qoi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoi_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoi_name</span><span class="p">][</span><span class="s1">&#39;qoi_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">qoi_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoi_name</span><span class="p">][</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_structures</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoi_name</span><span class="p">][</span><span class="s1">&#39;target&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span>
+
+        <span class="k">if</span> <span class="n">qoi_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoi_name</span><span class="p">][</span><span class="s1">&#39;qoi_options&#39;</span><span class="p">]</span><span class="o">=</span> <span class="n">qoi_options</span> 
+        <span class="c1">#&lt;--------- let&#39;s add the value for qoi names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qoi_name</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="QoiDatabase.read"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.qoidb.QoiDatabase.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> 
+        <span class="sd">&quot;&quot;&quot; read qoi configuration from yaml file</span>
+<span class="sd">        Args:</span>
+<span class="sd">            fname(str): file to read yaml file from.  If no argument is passed</span>
+<span class="sd">                then use the filename attribute.  If the filename is set, then</span>
+<span class="sd">                the filename attribute is also set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+
+        <span class="c1"># set the attribute if not none</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">OrderedDictYAMLLoader</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="c1"># &lt;------------------ </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="QoiDatabase.write"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.qoidb.QoiDatabase.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; write qoi configuration to yaml file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname(str): file to write yaml from from.  If no argument is passed</span>
+<span class="sd">               then use the filename attribute.  If the filename is set, then </span>
+<span class="sd">               the filename attribute is also set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set the attribute if not none</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="c1"># marshall attributes into a dictionary</span>
+        <span class="n">_qoidb</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">)</span>
+
+        <span class="c1"># dump to yaml file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">_qoidb</span><span class="p">,</span><span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QoiDatabase.to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.qoidb.QoiDatabase.to_string">[docs]</a>    <span class="k">def</span> <span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">{:^80}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;QUANTITIES OF INTEREST&#39;</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+            
+        
+        <span class="k">return</span> <span class="n">s</span></div></div>
+<span class="c1">#------------------------------------------------------------------------------</span>
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,506 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.data.datafile &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.data.datafile</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="PyposmatDataFile"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile">[docs]</a><span class="k">class</span> <span class="nc">PyposmatDataFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">w_cluster_id</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_types</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_v_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_references</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalized_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalization_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rescaled_error_df</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_parameter_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_qoi_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_error_df</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;cluster_id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span>\
+                        <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>\
+                        <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span>\
+                        <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span>\
+                        <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>\
+                        <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span>\
+                        <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_names</span>
+
+    <span class="nd">@names</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_names</span><span class="p">):</span>
+        <span class="c1"># This should do more checks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="n">_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;cluster_id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">,</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span>\
+                    <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="s1">&#39;param&#39;</span><span class="p">]</span>\
+                    <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="s1">&#39;qoi&#39;</span><span class="p">]</span>\
+                    <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span>\
+                    <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="s1">&#39;param&#39;</span><span class="p">]</span>\
+                    <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="s1">&#39;qoi&#39;</span><span class="p">]</span>\
+                    <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span>
+
+    <span class="nd">@types</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_types</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_types</span> <span class="o">=</span> <span class="n">_types</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_samples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">n_rows</span><span class="p">,</span><span class="n">n_cols</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">return</span> <span class="n">n_rows</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">normalized_error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span> <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">]</span>
+
+<div class="viewcode-block" id="PyposmatDataFile.get_header_string"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.get_header_string">[docs]</a>    <span class="k">def</span> <span class="nf">get_header_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">w_cluster_id</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">qoi_v_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">error_v_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">_header_line_1</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span>
+        <span class="n">_header_line_2</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">w_cluster_id</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">w_cluster_id</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">_header_line_1</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span>
+            <span class="n">_header_line_2</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">parameter_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">parameter_names</span><span class="p">)</span>
+            <span class="n">_header_line_1</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">parameter_names</span><span class="p">)</span>
+            <span class="n">_header_line_2</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_names</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;param&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+            <span class="n">_header_line_1</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+            <span class="n">_header_line_2</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;qoi&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">error_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">error_names</span><span class="p">)</span>
+            <span class="n">_header_line_1</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">error_names</span><span class="p">)</span>
+            <span class="n">_header_line_2</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">error_names</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;err&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">qoi_v_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_v_names</span><span class="p">)</span>
+            <span class="n">_header_line_1</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_v_names</span><span class="p">)</span>
+            <span class="n">_header_line_2</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">qoi_v_names</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;qoi_v&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">error_v_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_v_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">error_v_names</span><span class="p">)</span>
+            <span class="n">_header_line_1</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">error_v_names</span><span class="p">)</span>
+            <span class="n">_header_line_2</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">error_v_names</span><span class="p">)</span><span class="o">*</span><span class="p">[</span><span class="s1">&#39;error_v&#39;</span><span class="p">]</span>
+
+        <span class="n">str_header_section</span>  <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_header_line_1</span><span class="p">))</span>
+        <span class="n">str_header_section</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_header_line_2</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">str_header_section</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.write_header_section"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.write_header_section">[docs]</a>    <span class="k">def</span> <span class="nf">write_header_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">parameter_names</span><span class="p">,</span>
+            <span class="n">qoi_names</span><span class="p">,</span>
+            <span class="n">error_names</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span>
+
+        <span class="n">_header_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header_string</span><span class="p">(</span>
+                <span class="n">parameter_names</span> <span class="o">=</span> <span class="n">parameter_names</span><span class="p">,</span>
+                <span class="n">qoi_names</span> <span class="o">=</span> <span class="n">qoi_names</span><span class="p">,</span>
+                <span class="n">error_names</span> <span class="o">=</span> <span class="n">error_names</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_header_str</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.write_simulation_results"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.write_simulation_results">[docs]</a>    <span class="k">def</span> <span class="nf">write_simulation_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">sim_id</span><span class="p">,</span>
+            <span class="n">results</span><span class="p">,</span>
+            <span class="n">cluster_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+
+        <span class="n">_sim_result</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">sim_id</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">cluster_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_sim_result</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cluster_id</span><span class="p">))]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]))</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;qois&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]))</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]))</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_names</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;qoi_v_names&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]))</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_v_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_v_names</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s1">&#39;error_v_names&#39;</span><span class="p">][</span><span class="n">v</span><span class="p">]))</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">_sim_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">))</span>
+
+        <span class="n">_str_sim_results</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_sim_result</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_filename</span><span class="p">,</span><span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_str_sim_results</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyposmatDataFile.read"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;cannot find file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;current_working_dir: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+            <span class="k">raise</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_types</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)]</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="s1">&#39;sim_id&#39;</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">v</span> <span class="o">==</span> <span class="s1">&#39;latticetype&#39;</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="c1"># I think the latticetype branch is supposed to handle this but fails to</span>
+                <span class="c1"># Seaton 5/8/19</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">table</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">n</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">)</span> \
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;param&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">n</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">)</span> \
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;qoi&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">n</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">)</span> \
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;err&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">n</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_names</span><span class="p">)</span> \
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;score&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">error_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.create_normalized_errors"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.create_normalized_errors">[docs]</a>    <span class="k">def</span> <span class="nf">create_normalized_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">normalize_type</span><span class="o">=</span><span class="s1">&#39;by_qoi_target&#39;</span><span class="p">,</span><span class="n">qoi_targets</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">normalize_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;by_qoi_target&#39;</span><span class="p">]</span>
+
+        <span class="k">assert</span> <span class="n">normalize_type</span> <span class="ow">in</span> <span class="n">normalize_types</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_targets</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">qoi_targets</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">normalize_type</span> <span class="o">==</span> <span class="s1">&#39;by_qoi_target&#39;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_targets</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">nen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">q</span> <span class="o">=</span> <span class="n">qoi_targets</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span>
+
+                <span class="n">epsilon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">en</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">nen</span><span class="p">]</span><span class="o">=</span> <span class="n">epsilon</span><span class="o">/</span><span class="n">q</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalized_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalized_error_names</span>
+            <span class="c1">#self.normalized_names = [&quot;{}.nerr&quot;.format(qn) for qn in self.qoi_names]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalization_type</span> <span class="o">=</span> <span class="s1">&#39;by_qoi_type&#39;</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.write"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="n">s</span> <span class="o">=</span>  <span class="p">[</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">)]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">)]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
+
+        <span class="k">with</span> <span class="nb">open</span> <span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.score_by_sum_if_less_than_median"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.score_by_sum_if_less_than_median">[docs]</a>    <span class="k">def</span> <span class="nf">score_by_sum_if_less_than_median</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">error_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">err_type</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">):</span>
+
+        <span class="n">_abs_error_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_df</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">_abs_error_df</span> <span class="o">=</span> <span class="n">_abs_error_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">_abs_error_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">!=</span> <span class="s1">&#39;sim_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+        <span class="n">_sub_medians</span> <span class="o">=</span> <span class="n">_abs_error_df</span> <span class="o">-</span> <span class="n">_abs_error_df</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">_scores</span> <span class="o">=</span> <span class="n">_sub_medians</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">_scores</span><span class="p">[</span><span class="n">_scores</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># no points if greater than median</span>
+        <span class="n">_scores</span><span class="p">[</span><span class="n">_scores</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># one point if less than median</span>
+        <span class="n">_metric</span> <span class="o">=</span> <span class="n">_scores</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># calculate the metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;sum_b_lt_median&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;sum_b_lt_median&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sum_b_lt_median&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">_metric</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.score_by_d_metric"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.score_by_d_metric">[docs]</a>    <span class="k">def</span> <span class="nf">score_by_d_metric</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">error_df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">scaling_factors</span><span class="o">=</span><span class="s1">&#39;DFT&#39;</span><span class="p">,</span>
+            <span class="n">err_type</span><span class="o">=</span><span class="s1">&#39;abs&#39;</span><span class="p">):</span>
+
+        <span class="n">_sf</span> <span class="o">=</span> <span class="s1">&#39;d_metric&#39;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">scaling_factors</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">_qoi_ref</span> <span class="o">=</span> <span class="n">scaling_factors</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span><span class="p">[</span><span class="n">_sf</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                <span class="n">en</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{qoi_name}</span><span class="s1">.err&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qoi_name</span><span class="o">=</span><span class="n">qn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span><span class="p">[</span><span class="n">_sf</span><span class="p">][</span><span class="n">en</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_references</span><span class="p">[</span><span class="n">_qoi_ref</span><span class="p">][</span><span class="n">qn</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scaling_factors</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span><span class="p">[</span><span class="n">_sf</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span><span class="p">[</span><span class="n">_sf</span><span class="p">][</span><span class="n">qn</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaling_factors</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span>
+
+        <span class="c1"># normalize the errors</span>
+        <span class="n">_rescaled_error_df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;abs&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">error_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_rescaled_error_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_df</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_rescaled_error_df</span> <span class="o">=</span> <span class="n">error_df</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">_rescaled_error_df</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">col</span> <span class="o">!=</span> <span class="s1">&#39;sim_id&#39;</span><span class="p">:</span>
+                    <span class="n">sf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaling_factors</span><span class="p">[</span><span class="n">_sf</span><span class="p">][</span><span class="n">col</span><span class="p">]</span>
+                    <span class="n">_rescaled_error_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">sf</span><span class="o">*</span><span class="n">_rescaled_error_df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rescaled_error_df</span> <span class="o">=</span> <span class="n">_rescaled_error_df</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># calculate the metric</span>
+        <span class="n">_d_metric</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span>
+                <span class="n">_rescaled_error_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span><span class="n">_rescaled_error_df</span><span class="o">.</span><span class="n">columns</span> <span class="o">!=</span> <span class="s1">&#39;sim_id&#39;</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;d_metric&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;d_metric&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;d_metric&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">_d_metric</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.subselect_by_score"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.subselect_by_score">[docs]</a>    <span class="k">def</span> <span class="nf">subselect_by_score</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">score_name</span><span class="p">,</span>
+            <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Args:</span>
+<span class="sd">                scaling_factors(dict): the key is the error name, the value</span>
+<span class="sd">                    is a scalar vaue from which the errors will be divided for</span>
+<span class="sd">                    the purposes of scaling.</span>
+<span class="sd">                n(int): the number of points to return</span>
+<span class="sd">                result(str): should be either results, pareto or culled.</span>
+<span class="sd">                    Default is culled.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># determine sub population</span>
+        <span class="k">if</span> <span class="n">score_name</span> <span class="o">==</span> <span class="s1">&#39;d_metric&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="s1">&#39;d_metric&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
+        <span class="k">elif</span> <span class="n">score_name</span> <span class="o">==</span> <span class="s1">&#39;sum_b_lt_median&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="s1">&#39;sum_b_lt_median&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{score_name}</span><span class="s2"> is not a valid score_name&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">score_name</span><span class="o">=</span><span class="n">score_name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_error_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_parameter_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sub_qoi_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_indices</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PyposmatDataFile.write_subselect"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.datafile.PyposmatDataFile.write_subselect">[docs]</a>    <span class="k">def</span> <span class="nf">write_subselect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_filename</span> <span class="o">=</span> <span class="s2">&quot;subselect.</span><span class="si">{}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score_names</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;the filename argument for this method must be a string&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_df</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">err_msg</span><span class="o">=</span><span class="s2">&quot;no subselection has been done on the data&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sub_df</span><span class="p">))</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;the sub_df attribute must be a pandas.DataFrame&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="c1"># build the string</span>
+        <span class="n">str_out</span>  <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sub_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">_row</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span> <span class="c1">#unpack tuple</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">_row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="nb">str</span><span class="p">):</span>
+                    <span class="n">_row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># row[0] is the sim_id</span>
+            <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="c1">#pass</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">_row</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">str_out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_filename</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

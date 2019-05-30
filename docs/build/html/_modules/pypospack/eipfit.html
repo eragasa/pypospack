@@ -1,0 +1,172 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.eipfit &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.eipfit</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;This module contains the pyposmat engine for parameterization&quot;&quot;&quot;</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2017&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0&quot;</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">subprocess</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span>
+
+<div class="viewcode-block" id="EipFittingError"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.eipfit.EipFittingError">[docs]</a><span class="k">class</span> <span class="nc">EipFittingError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="EipFittingEngine"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.eipfit.EipFittingEngine">[docs]</a><span class="k">class</span> <span class="nc">EipFittingEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generic Fitting Engine</span>
+
+<span class="sd">    This fitting engine does not have an algorithm.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fname_config_pyposmat(string): filename of the configuration file.</span>
+<span class="sd">           default is pyposmat.config</span>
+<span class="sd">        fname_config_potential(string): filename of the potential file.</span>
+<span class="sd">           default is pyposmat.potential</span>
+<span class="sd">        fname_config_qoi(string): filename of the qoi file</span>
+<span class="sd">        random_seed(int): random seed to use.  Default is set to None, which</span>
+<span class="sd">           generates the random seed automatically.</span>
+<span class="sd">        restart(bool): when set to True, attempts to restart simulations from</span>
+<span class="sd">           existing information contained in the directory</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        fname_config_pyposmat(str)</span>
+<span class="sd">        fname_config_potential(str)</span>
+<span class="sd">        fname_config_qoi(str)</span>
+<span class="sd">        random_seed(int)</span>
+<span class="sd">        restart(bool)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">fname_config_pyposmat</span> <span class="o">=</span> <span class="s2">&quot;pyposmat.config&quot;</span><span class="p">,</span>
+            <span class="n">fname_config_potential</span> <span class="o">=</span> <span class="s2">&quot;pyposmat.potential&quot;</span><span class="p">,</span>
+            <span class="n">fname_config_qoi</span> <span class="o">=</span> <span class="s2">&quot;pyposmat.qoi&quot;</span><span class="p">,</span>
+            <span class="n">fname_results</span> <span class="o">=</span> <span class="s2">&quot;results.out&quot;</span><span class="p">,</span>
+            <span class="n">fname_log</span> <span class="o">=</span> <span class="s2">&quot;pyposmat.log&quot;</span><span class="p">,</span>
+            <span class="n">random_seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span><span class="n">restart</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_qoi</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a0&#39;</span><span class="p">,</span><span class="s1">&#39;a1&#39;</span><span class="p">,</span><span class="s1">&#39;a2&#39;</span><span class="p">,</span><span class="s1">&#39;a3&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;alpha&#39;</span><span class="p">,</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;c11&#39;</span><span class="p">,</span><span class="s1">&#39;c12&#39;</span><span class="p">,</span><span class="s1">&#39;c44&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;bulk_modulus&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;shear_modulus&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;defect_energy&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;surface_energy&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;stacking_fault_energy&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;total_energy&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_pyposmat</span> <span class="o">=</span> <span class="n">fname_config_pyposmat</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_potential</span> <span class="o">=</span> <span class="n">fname_config_potential</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_qoi</span> <span class="o">=</span> <span class="n">fname_config_qoi</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">restart</span> <span class="o">=</span> <span class="n">restart</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">restart</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Restart method not implemented&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_random_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>    
+
+        <span class="c1"># determine output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_config_results_file</span><span class="p">(</span><span class="n">fname_results</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_config_log_file</span><span class="p">(</span><span class="n">fname_log</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_random_seed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">seed</span><span class="p">):</span>
+        <span class="c1"># set the random seed</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="c1"># get the random seed from numpy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">get_state</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_configure_results_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_f_results</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_configure_log_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_f_log</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_configure_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s1">&#39;configure the potential&#39;</span><span class="p">)</span></div>
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

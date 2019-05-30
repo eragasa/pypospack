@@ -1,0 +1,444 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.potential &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.potential</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2017,2018,2019&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0&quot;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module reorgnizes the potential.py module into a separate packaage for maintainability.</span>
+<span class="sd">- EJR, 2/22/2019</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">pathlib</span><span class="o">,</span><span class="nn">copy</span><span class="o">,</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">BadParameterException</span>
+<span class="kn">from</span> <span class="nn">pypospack.eamtools</span> <span class="k">import</span> <span class="n">EamSetflFile</span>
+
+
+<div class="viewcode-block" id="determine_symbol_pairs"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.determine_symbol_pairs">[docs]</a><span class="k">def</span> <span class="nf">determine_symbol_pairs</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;determine symbol pairs</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbols(list of str): a list of symbols</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        list of list:a list of symbol pairs&quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span> 
+        <span class="n">symbols</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbols</span><span class="p">]</span>
+
+    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i1</span><span class="p">,</span><span class="n">s1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i2</span><span class="p">,</span><span class="n">s2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i1</span> <span class="o">&lt;=</span> <span class="n">i2</span><span class="p">:</span>
+                <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">s1</span><span class="p">,</span><span class="n">s2</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">pairs</span></div>
+
+<div class="viewcode-block" id="determine_3body_triplets"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.determine_3body_triplets">[docs]</a><span class="k">def</span> <span class="nf">determine_3body_triplets</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbols</span><span class="p">]</span>
+
+    <span class="n">triplets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i1</span><span class="p">,</span><span class="n">s1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i2</span><span class="p">,</span><span class="n">s2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i3</span><span class="p">,</span><span class="n">s3</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+                <span class="n">triplets</span> <span class="o">=</span> <span class="p">[</span><span class="n">s1</span><span class="p">,</span><span class="n">s2</span><span class="p">,</span><span class="n">s3</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">pairs</span></div>
+
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># Base Potential</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.potential</span> <span class="k">import</span> <span class="n">Potential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.pair</span> <span class="k">import</span> <span class="n">PairPotential</span>
+
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># These are pair potentials.</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.pair_morse</span> <span class="k">import</span> <span class="n">MorsePotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.pair_buckingham</span> <span class="k">import</span> <span class="n">BuckinghamPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.pair_bornmayer</span> <span class="k">import</span> <span class="n">BornMayerPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.pair_lj</span> <span class="k">import</span> <span class="n">LennardJonesPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.pair_general_lj</span> <span class="k">import</span> <span class="n">GeneralizedLennardJonesPotential</span>
+<span class="n">pair_potentials</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;buckingham&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;morse&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;bornmayer&#39;</span>
+        <span class="s1">&#39;lj&#39;</span>
+        <span class="s1">&#39;general_lj&#39;</span>
+<span class="p">]</span>
+
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># These are three body potentials, but I don&#39;t currently have a base class prototype</span>
+<span class="c1"># for three body potentials, so they inherent from the Potential base class</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.threebody_tersoff</span> <span class="k">import</span> <span class="n">TersoffPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.threebody_stillingerweber</span> <span class="k">import</span> <span class="n">StillingerWeberPotential</span>
+
+<span class="n">threebody_potentials</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;sw&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;tersoff&quot;</span>
+<span class="p">]</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eam_density_function</span> <span class="k">import</span> <span class="n">EamDensityFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eam_embedding_function</span> <span class="k">import</span> <span class="n">EamEmbeddingFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eam_embedding_eos</span> <span class="k">import</span> <span class="n">EamEmbeddingEquationOfState</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># These are analyical EAM density functions</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eamdens_exponential</span> <span class="k">import</span> <span class="n">ExponentialDensityFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eamdens_mishin2003</span> <span class="k">import</span> <span class="n">Mishin2003DensityFunction</span>
+<span class="n">eam_density_functions</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;eam_dens_exp&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;eam_dens_mishin2003&#39;</span>
+<span class="p">]</span>
+
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># These are analytical EAM embedding functions</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="n">eam_embedding_function</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eamembed_bjs</span> <span class="k">import</span> <span class="n">BjsEmbeddingFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eamembed_universal</span> <span class="k">import</span> <span class="n">UniversalEmbeddingFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eamembed_fs</span> <span class="k">import</span> <span class="n">FinnisSinclairEmbeddingFunction</span>
+
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="c1"># These potentials are EAM embedding functions which are fit by solving an</span>
+<span class="c1"># equation of state</span>
+<span class="c1">#------------------------------------------------------------------------------</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential.eamembed_eos_rose</span> <span class="k">import</span> <span class="n">RoseEquationOfStateEmbeddingFunction</span>
+
+<span class="n">eam_embedding_functions</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;eam_embed_bjs&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;eam_embed_universal&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;eam_embed_fs&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;eam_embed_eos_rose&#39;</span>
+<span class="p">]</span>
+
+<span class="n">eam_eos_embedding_functions</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;eam_embed_eos_rose&#39;</span>
+<span class="p">]</span>
+
+<span class="kn">from</span> <span class="nn">pypospack.potential.eam</span> <span class="k">import</span> <span class="n">EamPotential</span>
+<div class="viewcode-block" id="PotentialObjectMap"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.PotentialObjectMap">[docs]</a><span class="k">def</span> <span class="nf">PotentialObjectMap</span><span class="p">(</span><span class="n">potential_type</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">):</span>
+    <span class="n">potential_map</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;buckingham&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;buckingham&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;buckingham&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;BuckinghamPotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;EamPotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;morse&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;morse&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;morse&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;MorsePotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;bornmayer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;bornmayer&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;bornmayer&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;BornMayerPotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;general_lj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;general_lj&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;general_lj&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;GeneralizedLennardJonesPotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;tersoff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;tersoff&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;tersoff&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;TersoffPotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;stillingerweber&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;stillingerweber&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;stillingerweber&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;StillingerWeberPotential&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_dens_exp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_dens_exp&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_dens_exp&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;ExponentialDensityFunction&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_dens_mishin2003&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_dens_mishin2003&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_dens_mishin2003&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Mishin2003DensityFunction&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_bjs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_bjs&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_bjs&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;BjsEmbeddingFunction&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_universal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_universal&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_universal&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;UniversalEmbeddingFunction&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_fs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_fs&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_fs&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;FinnisSinclairEmbeddingFunction&#39;</span>
+
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_eos_rose&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_eos_rose&#39;</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential&#39;</span>
+    <span class="n">potential_map</span><span class="p">[</span><span class="s1">&#39;eam_embed_eos_rose&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;RoseEquationOfStateEmbeddingFunction&#39;</span>
+
+    <span class="k">if</span> <span class="n">potential_type</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">potential_map</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="n">potential_map</span><span class="p">[</span><span class="n">potential_type</span><span class="p">][</span><span class="s1">&#39;module&#39;</span><span class="p">]</span>
+        <span class="n">class_name</span> <span class="o">=</span> <span class="n">potential_map</span><span class="p">[</span><span class="n">potential_type</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">module_name</span><span class="p">,</span><span class="n">class_name</span></div>
+
+<span class="c1"># uncommented on April Fools Day, 2019</span>
+<span class="k">if</span> <span class="kc">False</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">get_potential_map</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot; get the potential map</span>
+
+<span class="sd">        Support for interatomic potentials requires a mapping from the</span>
+<span class="sd">        potential formalism to the class supporting the function.  Additional</span>
+<span class="sd">        potentials to be supported can either be added here, or provided</span>
+<span class="sd">        using any module available on the PYTHONPATH.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (dict): the key is the name of the potential formalism, the value is a list where the first element contains the module. second element contains the class supporting the function</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">potential_map</span> <span class="o">=</span> <span class="p">{</span>\
+                <span class="s1">&#39;buckingham&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;Buckingham&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;eam&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;EmbeddedAtomModel&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;morse&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;MorsePotential&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;tersoff&#39;</span><span class="p">:[</span><span class="s1">&#39;pypospack.potential&#39;</span><span class="p">,</span><span class="s1">&#39;Tersoff&#39;</span><span class="p">]}</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">potential_map</span><span class="p">)</span>
+
+<div class="viewcode-block" id="get_supported_potentials"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.get_supported_potentials">[docs]</a><span class="k">def</span> <span class="nf">get_supported_potentials</span><span class="p">():</span>
+    <span class="n">supported_potentials</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">get_potential_map</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">supported_potentials</span></div>
+
+<div class="viewcode-block" id="PotentialInformation"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.PotentialInformation">[docs]</a><span class="k">class</span> <span class="nc">PotentialInformation</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Read/Write Empirical Interatomic Potential Information</span>
+
+<span class="sd">    pypospack uses yaml files to store configuration information for required</span>
+<span class="sd">    for optimization routines.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        filename(str): filename of the yaml file to read/write configuration</span>
+<span class="sd">            file.  Default is pypospack.potential.yaml&#39;</span>
+<span class="sd">        elements(list): list of string of chemical symbols</span>
+<span class="sd">        parameter_names(list): list of parameter names</span>
+<span class="sd">        potential_type(str): type of potential</span>
+<span class="sd">        param_info(dict): param info</span>
+<span class="sd">        eam_pair_potential(str): name of the functional form for the eam</span>
+<span class="sd">            pair potential.  Set by default to None.</span>
+<span class="sd">        eam_embedding_function(str): name of the functional form the eam</span>
+<span class="sd">            embedding function.  Set by default to None.</span>
+<span class="sd">        eam_density_function(str): name of the functional form of the eam</span>
+<span class="sd">            electron desnsity function.  Set by default to None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential.yaml&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_definitions</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># for eam functions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eam_pair</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eam_embedding</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eam_density</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_free_parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">free_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_free_parameter_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;equals&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_definitions</span><span class="p">[</span><span class="n">p</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_free_parameter_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_parameter_names</span>
+
+<div class="viewcode-block" id="PotentialInformation.read"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.PotentialInformation.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; read potential information from yaml file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname(str): file to yaml file from.  If no argument is passed then</span>
+<span class="sd">                use the filename attribute.  If the filename is set, then the</span>
+<span class="sd">                filename attribute is also set</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set the attribute if not none</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">yaml_potential_info</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="c1"># process elements of the yaml file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;symbols&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;parameter_names&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">=</span> <span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_pair</span>\
+                    <span class="o">=</span> <span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;eam_pair_potential&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_embedding</span>\
+                    <span class="o">=</span> <span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;eam_embedding_function&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_density</span>\
+                    <span class="o">=</span> <span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;eam_density_function&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_definitions</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span>
+                <span class="n">yaml_potential_info</span><span class="p">[</span><span class="s1">&#39;parameter_definitions&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="PotentialInformation.write"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.PotentialInformation.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">potential_configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; write potential information from yaml file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str): file to potential to.  If no argument is passed then</span>
+<span class="sd">                use the filename attribute.  If the filename is set, then the</span>
+<span class="sd">                filename atribute is also set.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set the filename attribute</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">if</span> <span class="n">potential_configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span> \
+                    <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">potential_configuration</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;symbols&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;parameter_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;eam_pair_type&#39;</span><span class="p">]</span> \
+                        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eam_pair_type</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;eam_density_type&#39;</span><span class="p">]</span> \
+                        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eam_density_type</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;eam_embedding_type&#39;</span><span class="p">]</span> \
+                        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eam_embedding_type</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">[</span><span class="s1">&#39;parameter_definitions&#39;</span><span class="p">]</span> \
+                    <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_definitions</span><span class="p">)</span>
+
+        <span class="c1"># dump dict to yaml</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential_configuration</span><span class="p">,</span>
+                    <span class="n">f</span><span class="p">,</span>
+                    <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PotentialInformation.check"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.PotentialInformation.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; performs sanity checks to potential configuration</span>
+
+<span class="sd">        doe the following checks:</span>
+<span class="sd">        1.    check to see if the potential type is supported.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: if the potential type is unsupported</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># initialize, set to false if a test fails</span>
+        <span class="n">passed_all_checks</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># check1: check to see if the potential type is supporte</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="ow">not</span> <span class="ow">in</span>  <span class="n">get_supported_potentials</span><span class="p">():</span>
+            <span class="n">passed_all_checks</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                <span class="s2">&quot;unsupported potential type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">passed_all_checks</span></div>
+
+<div class="viewcode-block" id="PotentialInformation.get_potential_dict"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.PotentialInformation.get_potential_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_potential_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">potential_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">potential_dict</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span>
+        <span class="n">potential_dict</span><span class="p">[</span><span class="s1">&#39;elements&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span>
+        <span class="n">potential_dict</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">potential_dict</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="func_cutoff"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potential.func_cutoff">[docs]</a><span class="k">def</span> <span class="nf">func_cutoff</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">rcut</span><span class="p">,</span><span class="n">h</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span> <span class="o">-</span> <span class="n">rcut</span><span class="p">)</span><span class="o">/</span><span class="n">h</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">x</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span>
+    <span class="c1"># get index values where r &gt; rcut</span>
+    <span class="n">r_gt_rcut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r</span> <span class="o">&gt;=</span> <span class="n">rcut</span><span class="p">)</span>
+    <span class="n">phi</span><span class="p">[</span><span class="n">r_gt_rcut</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r_gt_rcut</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">phi</span></div>
+<span class="n">eam_density_functions</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;eam_dens_exp&#39;</span><span class="p">]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,502 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pypospack.potential.eam &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" accesskey="U">pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.potential.eam</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">Potential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">PairPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">EamDensityFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">ExponentialDensityFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">EamEmbeddingFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">FinnisSinclairEmbeddingFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">EamEmbeddingEquationOfState</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">RoseEquationOfStateEmbeddingFunction</span>
+<span class="kn">from</span> <span class="nn">pypospack.eamtools</span> <span class="k">import</span> <span class="n">EamSetflFile</span>
+
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">BornMayerPotential</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">MorsePotential</span>
+
+<div class="viewcode-block" id="EamPotential"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential">[docs]</a><span class="k">class</span> <span class="nc">EamPotential</span><span class="p">(</span><span class="n">Potential</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;embedded energy method potential</span>
+
+<span class="sd">    This class is for the modelling of an EAM potential</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">       symbols(list of str):</span>
+<span class="sd">       func_pairpotential(str):</span>
+<span class="sd">       func_density(str):</span>
+<span class="sd">       func_embedding(str):</span>
+<span class="sd">       filename(str):</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">       symbols(list of str): the list of symbols</span>
+<span class="sd">       obj_pair(OrderedDict of PairPotential)</span>
+<span class="sd">       obj_density(OrderedDict of EamDensityFunction)</span>
+<span class="sd">       obj_embedding(OrderedDict of EamEmbeddingFunction)</span>
+<span class="sd">       N_r(int): number of radial points, the distance between two atoms</span>
+<span class="sd">       r_max(float): the maximum distance between two atoms</span>
+<span class="sd">       r_cut(float): the cutoff distance between two atoms</span>
+<span class="sd">       N_rho(int): the number of points in the electron density evaluation</span>
+<span class="sd">       rho_max(float): the maximum electron density</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">symbols</span><span class="p">,</span>
+            <span class="n">func_pair</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">func_density</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">func_embedding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># parameter format strings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PYPOSPACK_EAM_PAIR_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{s1}{s2}</span><span class="s2">_eam_pair_</span><span class="si">{p}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PYPOSPACK_EAM_DENSITY_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{s1}</span><span class="s2">_eam_density_</span><span class="si">{p}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PYPOSPACK_EAM_EMBEDDING_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{s1}</span><span class="s2">_eam_embedding_</span><span class="si">{p}</span><span class="s2">&quot;</span>
+        
+        <span class="c1"># these are pypospack.potential.Potential objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_max</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho_max</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># these will be numpy arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pair</span><span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">density</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="n">symbols</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setfl_filename_src</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setfl_filename_dst</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{symbols}</span><span class="s2">.eam.alloy&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">symbols</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setfl</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="c1"># If the filename is not specified, then the EamPotential must be calibrated</span>
+            <span class="c1"># by specifying the number</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">func_pair</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;If filename is not specified, then func_pair must be a string&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">func_density</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;If filename is not specified, then func_density must be a string&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">func_embedding</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;If filename is not specified, then func_embeddding must be a string&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_obj_pair</span><span class="p">(</span><span class="n">func_pair</span><span class="o">=</span><span class="n">func_pair</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_obj_density</span><span class="p">(</span><span class="n">func_density</span><span class="o">=</span><span class="n">func_density</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_obj_embedding</span><span class="p">(</span><span class="n">func_embedding</span><span class="o">=</span><span class="n">func_embedding</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+        <span class="n">Potential</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">symbols</span><span class="o">=</span><span class="n">symbols</span><span class="p">,</span>
+                <span class="n">potential_type</span><span class="o">=</span><span class="s1">&#39;eam&#39;</span><span class="p">,</span>
+                <span class="n">is_charge</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EamPotential.lammps_potential_section_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.lammps_potential_section_to_string">[docs]</a>    <span class="k">def</span> <span class="nf">lammps_potential_section_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">setfl_dst_filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;provide string for the potential section</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            setfl_dst_filename(str):the path that LAMMPS should read for the SETFL file</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: the string of the lammps potential section</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># set masses</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;mass </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_mass</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="c1"># set groups</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;group </span><span class="si">{}</span><span class="s2"> type </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;pair_style eam/alloy</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;pair_coeff * * </span><span class="si">{setfl_dst_filename}</span><span class="s2"> </span><span class="si">{str_symbols}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">setfl_dst_filename</span><span class="o">=</span><span class="n">setfl_dst_filename</span><span class="p">,</span>
+                    <span class="n">str_symbols</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">str_out</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_init_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]):</span>
+            <span class="n">p_params</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;p_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">]</span>
+            <span class="n">d_params</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;d_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">]</span>
+            <span class="n">e_params</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">p_params</span> <span class="o">+</span> <span class="n">d_params</span> <span class="o">+</span> <span class="n">e_params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">_init_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EamPotential.determine_r_max"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.determine_r_max">[docs]</a>    <span class="k">def</span> <span class="nf">determine_r_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">a0</span><span class="p">,</span><span class="n">latt_type</span><span class="p">):</span>
+        <span class="n">_a0</span> <span class="o">=</span> <span class="n">a0</span>
+
+        <span class="k">if</span> <span class="n">latt_type</span> <span class="o">==</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+            <span class="n">_d_1NN</span> <span class="o">=</span> <span class="mf">0.707</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_2NN</span> <span class="o">=</span> <span class="mf">1.000</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_3NN</span> <span class="o">=</span> <span class="mf">1.225</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_4NN</span> <span class="o">=</span> <span class="mf">1.414</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_5NN</span> <span class="o">=</span> <span class="mf">1.581</span> <span class="o">*</span> <span class="n">_a0</span>
+
+        <span class="c1"># r_max should be between the 3NN and 4NN</span>
+        <span class="n">_rcut</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">_d_3NN</span> <span class="o">+</span> <span class="n">_d_4NN</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_rcut</span></div>
+
+<div class="viewcode-block" id="EamPotential.determine_rho_max"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.determine_rho_max">[docs]</a>    <span class="k">def</span> <span class="nf">determine_rho_max</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">a0</span><span class="p">,</span><span class="n">latt_type</span><span class="p">):</span>
+        <span class="n">_a0</span> <span class="o">=</span> <span class="n">a0</span>
+
+        <span class="c1">#extract parameters for the density function</span>
+        <span class="n">_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;d_&#39;</span><span class="p">):</span>
+                <span class="n">_parameter_name</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+                <span class="n">_parameters</span><span class="p">[</span><span class="n">_parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="k">if</span> <span class="n">latt_type</span> <span class="o">==</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+            <span class="n">_d_1NN</span> <span class="o">=</span> <span class="mf">0.707</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_2NN</span> <span class="o">=</span> <span class="mf">1.000</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_3NN</span> <span class="o">=</span> <span class="mf">1.225</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_O</span> <span class="o">=</span> <span class="mf">0.866</span> <span class="o">*</span> <span class="n">_a0</span>
+            <span class="n">_d_T</span> <span class="o">=</span> <span class="mf">0.433</span> <span class="o">*</span> <span class="n">_a0</span>
+
+            <span class="n">_natoms_1NN</span> <span class="o">=</span> <span class="mi">12</span>
+            <span class="n">_natoms_2NN</span> <span class="o">=</span> <span class="mi">6</span>
+            <span class="n">_natoms_O</span> <span class="o">=</span> <span class="mi">4</span>
+            <span class="n">_natoms_T</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="n">_rhomax</span> <span class="o">=</span> <span class="n">_natoms_1NN</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">_d_1NN</span><span class="p">,</span><span class="n">_parameters</span><span class="p">)[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">_rhomax</span> <span class="o">+=</span> <span class="n">_natoms_2NN</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">_d_2NN</span><span class="p">,</span><span class="n">_parameters</span><span class="p">)[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">_rhomax</span> <span class="o">+=</span> <span class="n">_natoms_O</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">_d_O</span><span class="p">,</span><span class="n">_parameters</span><span class="p">)[</span><span class="n">s</span><span class="p">]</span>
+            <span class="n">_rhomax</span> <span class="o">+=</span> <span class="n">_natoms_T</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">_d_T</span><span class="p">,</span><span class="n">_parameters</span><span class="p">)[</span><span class="n">s</span><span class="p">]</span>
+
+        <span class="n">_rhomax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">_rhomax</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_rhomax</span></div>
+
+<div class="viewcode-block" id="EamPotential.write_setfl_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.write_setfl_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_setfl_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">symbols</span><span class="p">,</span>
+            <span class="n">Nr</span><span class="p">,</span><span class="n">rmax</span><span class="p">,</span><span class="n">rcut</span><span class="p">,</span>
+            <span class="n">Nrho</span><span class="p">,</span><span class="n">rhomax</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Nr</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">rmax</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">rcut</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Nrho</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">rhomax</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">]</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">rmax</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">Nr</span><span class="p">,</span><span class="n">Nr</span><span class="p">)</span><span class="o">/</span><span class="n">Nr</span>
+        <span class="n">rho</span> <span class="o">=</span> <span class="n">rhomax</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">Nrho</span><span class="p">,</span><span class="n">Nrho</span><span class="p">)</span><span class="o">/</span><span class="n">Nrho</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+                <span class="n">rho</span><span class="o">=</span><span class="n">rho</span><span class="p">,</span>
+                <span class="n">rcut</span><span class="o">=</span><span class="n">rcut</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="n">setfl_file</span> <span class="o">=</span> <span class="n">EamSetflFile</span><span class="p">()</span>
+        <span class="n">setfl_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                <span class="n">symbols</span><span class="o">=</span><span class="n">symbols</span><span class="p">,</span>
+                <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">,</span>
+                <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+                <span class="n">rcut</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span><span class="p">,</span>
+                <span class="n">pair</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pair</span><span class="p">,</span>
+                <span class="n">density</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">density</span><span class="p">,</span>
+                <span class="n">embedding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamPotential.evaluate"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">rho</span><span class="p">,</span><span class="n">rcut</span><span class="p">,</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">rcut</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span><span class="nb">int</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="n">OrderedDict</span><span class="p">,</span><span class="nb">dict</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span> <span class="o">=</span> <span class="n">rcut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_pair</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span><span class="n">rcut</span><span class="o">=</span><span class="n">rcut</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_density</span><span class="p">(</span><span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span><span class="n">rcut</span><span class="o">=</span><span class="n">rcut</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_embedding</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">msg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="EamPotential.set_obj_pair"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.set_obj_pair">[docs]</a>    <span class="k">def</span> <span class="nf">set_obj_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">func_pair</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">func_pair</span> <span class="o">==</span> <span class="s1">&#39;morse&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span> <span class="o">=</span> <span class="n">MorsePotential</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">func_pair</span> <span class="o">==</span> <span class="s1">&#39;bornmayer&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span> <span class="o">=</span> <span class="n">BornMayerPotential</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;func_pair must be a PairPotential&quot;</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;    type(func_pair)=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">func_pair</span><span class="p">)))]</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;    func_pair=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func_pair</span><span class="p">)]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+            <span class="c1"># TODO: should create a custom error handler</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span><span class="p">,</span><span class="n">PairPotential</span><span class="p">):</span>
+            <span class="n">s</span>  <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;func_pair must be a PairPotential&quot;</span><span class="p">]</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;    type(func_pair)=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">func_pair</span><span class="p">)))]</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;    func_pair=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func_pair</span><span class="p">)]</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            
+            <span class="c1"># TODO: should create a custom error handler</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamPotential.set_obj_density"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.set_obj_density">[docs]</a>    <span class="k">def</span> <span class="nf">set_obj_density</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">func_density</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">func_density</span> <span class="o">==</span> <span class="s1">&#39;eam_dens_exp&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span> <span class="o">=</span> <span class="n">ExponentialDensityFunction</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;func_dens must be an EamDensityfunction&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+        <span class="c1">#&lt;--- ensure that the potential configured is an EamDensityFunction</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="p">,</span><span class="n">EamDensityFunction</span><span class="p">):</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;func_dens must be an EamDensityFunction</span><span class="se">\n</span><span class="s2">&quot;</span>
+                 <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">func_density=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                 <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">type(attr.obj_density)=</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                         <span class="n">func_density</span><span class="p">,</span>
+                         <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamPotential.set_obj_embedding"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.set_obj_embedding">[docs]</a>    <span class="k">def</span> <span class="nf">set_obj_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">func_embedding</span><span class="p">):</span>
+
+        <span class="c1"># this programming is a little sloppy.  some software architecture needs to be implemented here</span>
+        <span class="c1"># for a more clean object oriented approach</span>
+        <span class="k">if</span> <span class="n">func_embedding</span> <span class="o">==</span> <span class="s1">&#39;eam_embed_universal&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span> <span class="o">=</span> <span class="n">UniversalEmbeddingFunction</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">func_embedding</span> <span class="o">==</span> <span class="s1">&#39;eam_embed_bjs&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span> <span class="o">=</span> <span class="n">BjsEmbeddingFunction</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">func_embedding</span> <span class="o">==</span> <span class="s1">&#39;eam_embed_fs&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span> <span class="o">=</span> <span class="n">FinnisSinclairEmbeddingFunction</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">func_embedding</span> <span class="o">==</span> <span class="s1">&#39;eam_embed_eos_rose&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span> <span class="o">=</span> <span class="n">RoseEquationOfStateEmbeddingFunction</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;func_embedding must be a EamEmbeddingFunction&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+        <span class="c1"># If the Embedding Function is determined from the Equation of State, then</span>
+        <span class="c1"># the density function and the pair function need to be provided to the</span>
+        <span class="c1"># embedding function object since these values are determine by numerical</span>
+        <span class="c1"># inversion of the equation of state</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="p">,</span><span class="n">EamEmbeddingEquationOfState</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">density_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">pair_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span> 
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="p">,</span><span class="n">EamEmbeddingFunction</span><span class="p">):</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;func_embedding must be a EamEmbeddingFunction&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamPotential.evaluate_pair"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.evaluate_pair">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_pair</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">rcut</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+        <span class="c1"># pair potential parameters are prepended with &#39;p_&#39;</span>
+        <span class="n">p_params</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;p_&#39;</span><span class="p">)]</span>
+
+        <span class="c1"># subselect the parameters required for the pair potential</span>
+        <span class="n">_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">p_params</span><span class="p">:</span>
+            <span class="n">_parameter_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">_parameters</span><span class="p">[</span><span class="n">_parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">_parameters</span><span class="p">,</span>
+                <span class="n">r_cut</span><span class="o">=</span><span class="n">rcut</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pair</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span><span class="o">.</span><span class="n">potential_evaluations</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamPotential.evaluate_density"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.evaluate_density">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_density</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">r</span><span class="p">,</span>
+            <span class="n">rcut</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rcut</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="n">rcut</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span><span class="nb">dict</span><span class="p">)</span> <span class="ow">or</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span>
+
+        <span class="c1">#&lt;--- check arguments of the function</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+        <span class="c1">#&lt;--- grab the parameters of the density function</span>
+        <span class="n">d_params</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;d_&#39;</span><span class="p">)]</span>
+
+        <span class="n">_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">d_params</span><span class="p">:</span>
+            <span class="n">_parameter_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">_parameters</span><span class="p">[</span><span class="n">_parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+        <span class="n">_dens_eval</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">_parameters</span><span class="p">,</span>
+                <span class="n">r_cut</span><span class="o">=</span><span class="n">rcut</span><span class="p">)</span>
+
+        <span class="c1">#&lt;--- set the internal attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">density</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_dens_eval</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_dens_eval</span></div>
+
+<div class="viewcode-block" id="EamPotential.evaluate_embedding"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eam.EamPotential.evaluate_embedding">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1">#&lt;--- check arguments of the function</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">rho</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;r must be a numpy.ndarray&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+        <span class="c1">#&lt;--- grab the parameters for the embedding function</span>
+        <span class="n">e_params</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;e_&#39;</span><span class="p">)]</span>
+
+        <span class="n">_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">e_params</span><span class="p">:</span>
+            <span class="n">_parameter_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">_parameters</span><span class="p">[</span><span class="n">_parameter_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+        <span class="c1">#&lt;--- for solving embedding function implicitly from the RoseEquationOfState</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="p">)</span> <span class="o">==</span> <span class="n">RoseEquationOfStateEmbeddingFunction</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                    <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span> <span class="c1"># pass in all parameters not just a subset</span>
+                    <span class="n">o_pair</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span><span class="p">,</span>
+                    <span class="n">o_density</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                    <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+                    <span class="n">r</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span><span class="p">,</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="c1"># pass in all parameters not just a subset</span>
+                    <span class="n">o_pair</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_pair</span><span class="p">,</span>
+                    <span class="n">o_density</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_density</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                <span class="n">rho</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="n">_parameters</span><span class="p">)</span>
+
+        <span class="c1">#&lt;--- set the internal attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_embedding</span><span class="o">.</span><span class="n">embedding_evaluations</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" >pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.9.
+    </div>
+  </body>
+</html>

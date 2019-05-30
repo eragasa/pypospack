@@ -1,0 +1,470 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.qois.abstract_qoi &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.qois.abstract_qoi</h1><div class="highlight"><pre>
+<span></span>
+<div class="viewcode-block" id="AbstractQoi"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi">[docs]</a><span class="k">class</span> <span class="nc">AbstractQoi</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Abstract Quantity of Interest</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        qoi_name(str)</span>
+<span class="sd">        qoi_type(str)</span>
+<span class="sd">        structure_names(list of str)</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        qoi_name(str): this is a unique identifier</span>
+<span class="sd">        qoi_type(str): this should be set by the implementing class</span>
+<span class="sd">        structure_names</span>
+<span class="sd">        reference_values(dict): these are the reference values of quantities</span>
+<span class="sd">            of interest which we want to calculate.</span>
+<span class="sd">        task_definitions(dict):</span>
+<span class="sd">             task_definition[task_name]</span>
+<span class="sd">             task_definition[task_name][task_type]</span>
+<span class="sd">             task_definition[task_name][structure]</span>
+<span class="sd">        task_dependencies(dict):</span>
+<span class="sd">             task_dependencies[task_name]</span>
+<span class="sd">        results(dict): these are the results after aggregating the values</span>
+<span class="sd">            from the different simulations and making some calculations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qoi_name</span><span class="p">,</span> <span class="n">qoi_type</span><span class="p">,</span> <span class="n">structures</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_name</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_type</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">dict</span><span class="p">),</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">list</span><span class="p">),</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">str</span><span class="p">),</span>
+            <span class="p">])</span>
+        <span class="c1">#assert all([isinstance(k,str) for k,v in structures.items()])</span>
+        <span class="c1">#assert all([isinstance(v,str) for k,v in structures.items()])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_name</span> <span class="o">=</span> <span class="n">qoi_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_type</span> <span class="o">=</span> <span class="n">qoi_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">structures</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="AbstractQoi.determine_tasks"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.determine_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">determine_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+    
+    <span class="k">def</span> <span class="nf">calculate_qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">reference_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ref_value</span>
+
+    <span class="nd">@reference_value</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">reference_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="nb">float</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ref_value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">predicted_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predicted_value</span> 
+
+    <span class="nd">@predicted_value</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">predicted_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">qhat</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_predicted_value</span> <span class="o">=</span> <span class="n">qhat</span>
+
+<div class="viewcode-block" id="AbstractQoi.add_task"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.add_task">[docs]</a>    <span class="k">def</span> <span class="nf">add_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_type</span><span class="p">,</span><span class="n">task_name</span><span class="p">,</span><span class="n">task_structure</span><span class="p">,</span><span class="n">bulk_structure_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;task_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;task_structure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_structure</span>
+        <span class="k">if</span> <span class="n">bulk_structure_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;bulk_structure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bulk_structure_name</span></div>
+    
+<div class="viewcode-block" id="AbstractQoi.process_task_results"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.process_task_results">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_results</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task_results</span><span class="p">,</span><span class="nb">dict</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_results</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">task_results</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AbstractQoi.add_required_simulation"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.add_required_simulation">[docs]</a>    <span class="k">def</span> <span class="nf">add_required_simulation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structure</span><span class="p">,</span><span class="n">simulation_type</span><span class="p">):</span>
+        <span class="n">simulation_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span><span class="n">simulation_type</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">simulation_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">simulation_name</span><span class="p">][</span><span class="s1">&#39;structure&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">structure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">simulation_name</span><span class="p">][</span><span class="s1">&#39;simulation_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">simulation_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">simulation_name</span><span class="p">][</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">simulation_name</span></div>
+    
+<div class="viewcode-block" id="AbstractQoi.add_precedent_task"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.add_precedent_task">[docs]</a>    <span class="k">def</span> <span class="nf">add_precedent_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="p">,</span><span class="n">precedent_task_name</span><span class="p">,</span><span class="n">precedent_variables</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;add a precedent task</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            task_name(str):</span>
+<span class="sd">            precedent_task_name(str):</span>
+<span class="sd">            precedent_variables(str):</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">task_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">(</span> <span class="s1">&#39;Tried to add precedent_task_name to task_name.  task_name &#39;</span>
+                  <span class="s1">&#39;does not exist in required_simulations.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">task_name: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">predecessor_task_name: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                          <span class="n">task_name</span><span class="p">,</span>
+                          <span class="n">precedent_task_name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+       
+        <span class="k">if</span> <span class="n">precedent_task_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="p">(</span> <span class="s1">&#39;Tried to add predecessor_task_name to task_name.  &#39;</span>
+                  <span class="s1">&#39;predecessor_task_name task_name does not exist in &#39;</span> 
+                  <span class="s1">&#39;required_simulations.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">task_name: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+                  <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">predecessor_task_name: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                          <span class="n">task_name</span><span class="p">,</span>
+                          <span class="n">precedent_task_name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">][</span><span class="n">precedent_task_name</span><span class="p">]</span> <span class="o">=</span><span class="p">{}</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">required_variables</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;precedent_tasks&#39;</span><span class="p">][</span><span class="n">precedent_task_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;variable_name&#39;</span><span class="p">:</span><span class="n">v</span><span class="p">,</span>
+                    <span class="s1">&#39;variable_value&#39;</span><span class="p">:</span><span class="kc">None</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="AbstractQoi.determine_required_simulations"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.determine_required_simulations">[docs]</a>    <span class="k">def</span> <span class="nf">determine_required_simulations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="AbstractQoi.calculate_qoi"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.calculate_qoi">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">s_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">s_type</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbstractQoi.get_required_simulations"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.AbstractQoi.get_required_simulations">[docs]</a>    <span class="k">def</span> <span class="nf">get_required_simulations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">determine_required_simulations</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_simulations</span><span class="p">)</span></div></div>
+
+<span class="kn">from</span> <span class="nn">pypospack.qois.crystalstructuregeometry</span> <span class="k">import</span> <span class="n">RelaxedStructureCalculations</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.crystalstructuregeometry</span> <span class="k">import</span> <span class="n">RelaxedPositionCalculations</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_min_none</span> <span class="k">import</span> <span class="n">StaticStructureCalculations</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_elastic_properties</span> <span class="k">import</span> <span class="n">ElasticPropertyCalculations</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_phase_order</span> <span class="k">import</span> <span class="n">PhaseOrderCalculation</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_surface_energy</span> <span class="k">import</span> <span class="n">SurfaceEnergyCalculation</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_stacking_fault</span> \
+        <span class="kn">import</span> <span class="nn">StackingFaultEnergyCalculation</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_thermal_expansion</span> <span class="k">import</span> <span class="n">ThermalExpansion</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.lammps_defect_formation_energy</span> \
+        <span class="kn">import</span> <span class="nn">DefectFormationEnergy</span>
+<span class="kn">from</span> <span class="nn">pypospack.qois.gulp_gamma_phonons</span> <span class="k">import</span> <span class="n">GammaPointPhonons</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<div class="viewcode-block" id="QoiManager"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager">[docs]</a><span class="k">class</span> <span class="nc">QoiManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Manager of Quantities of Interest </span>
+<span class="sd">    </span>
+<span class="sd">    This class manages quantities of interest the simulation of multiple </span>
+<span class="sd">    quantities of interest will often require the results from the same</span>
+<span class="sd">    simulation.  The purpose of this class is to identify the values required</span>
+<span class="sd">    from different simulations, and then identify which simulations need to</span>
+<span class="sd">    be done first.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        qoi_info (str,QoiDatabase,None):  If set to str, then this arguement </span>
+<span class="sd">            is treated as a filename used to configure a QoiDatabase object.  If</span>
+<span class="sd">            QoiDatabase is passed, the reference is set to the qoi_info attribute.</span>
+<span class="sd">            Default value is None, where the attribute is left as None.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        qoi_info(pypospack.qoi.QoiDatabase)</span>
+<span class="sd">        qoi_names (list): list of qoi_names</span>
+<span class="sd">        qoi_targets (dict): key is the qoi_name, value is the reference value</span>
+<span class="sd">        qoi_errors (dict): key is the qoi_name, value is the error</span>
+<span class="sd">        qoi_dict (dict): </span>
+<span class="sd">    &quot;&quot;&quot;</span> 
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_database</span><span class="o">=</span> <span class="kc">None</span><span class="p">,</span><span class="n">fullauto</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">any</span><span class="p">([</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">,</span><span class="n">QoiDatabase</span><span class="p">),</span>
+            <span class="nb">type</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
+            <span class="nb">type</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">)</span> <span class="ow">is</span> <span class="n">OrderedDict</span><span class="p">,</span>
+            <span class="nb">type</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="p">])</span>
+
+        <span class="c1">#&lt;--------- initialize attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_QoiMap</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">,</span><span class="n">QoiDatabase</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__init_QoiDatabase_from_QoiDatabase</span><span class="p">(</span>
+                    <span class="n">obj_QoiDatabase</span><span class="o">=</span><span class="n">qoi_database</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__init_QoiDatabase_from_file</span><span class="p">(</span>
+                    <span class="n">qoi_database_filename</span><span class="o">=</span><span class="n">qoi_database</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_database</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__init_QoiDatabase_from_OrderedDict</span><span class="p">(</span>
+                    <span class="n">qoi_database_OrderedDict</span><span class="o">=</span><span class="n">qoi_database</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">qoi_database</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">__init_QoiDatabase_from_None</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;qoi_database argument must be None,QoiDatabase, or str&quot;</span>
+                <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+  
+        <span class="k">if</span> <span class="n">fullauto</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configure</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">determine_tasks</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span><span class="o">.</span><span class="n">qoi_names</span>
+
+<div class="viewcode-block" id="QoiManager.configure"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager.configure">[docs]</a>    <span class="k">def</span> <span class="nf">configure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configure__get_QoiMap</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configure__obj_Qoi</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">)</span></div>
+<div class="viewcode-block" id="QoiManager.configure__get_QoiMap"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager.configure__get_QoiMap">[docs]</a>    <span class="k">def</span> <span class="nf">configure__get_QoiMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_QoiMap</span> <span class="o">=</span> <span class="n">get_qoi_map</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="QoiManager.configure__obj_Qoi"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager.configure__obj_Qoi">[docs]</a>    <span class="k">def</span> <span class="nf">configure__obj_Qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_qoi</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">qoik</span><span class="p">,</span><span class="n">qoiv</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoik</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoik</span><span class="p">][</span><span class="s1">&#39;qoi_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoik</span><span class="p">][</span><span class="s1">&#39;qoi_ref&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">qoimapk</span><span class="p">,</span><span class="n">qoimapv</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_QoiMap</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;qoi_type&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">qoimapv</span><span class="p">[</span><span class="s1">&#39;qoi&#39;</span><span class="p">]:</span>
+                    <span class="n">_structures</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">_qoi_simulation_type</span> <span class="o">=</span> <span class="n">qoimapk</span>
+                    <span class="c1">#! determine qoi name</span>
+                    <span class="k">if</span> <span class="n">_qoi_simulation_type</span> <span class="o">==</span> <span class="s1">&#39;lmps_phase_order&#39;</span><span class="p">:</span>
+                        <span class="n">_s1</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">][</span><span class="s1">&#39;low&#39;</span><span class="p">]</span>
+                        <span class="n">_s2</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">][</span><span class="s1">&#39;high&#39;</span><span class="p">]</span>
+                        <span class="n">_qoiname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">__</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">_s1</span><span class="p">,</span><span class="n">_s2</span><span class="p">,</span><span class="n">_qoi_simulation_type</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">_qoi_simulation_type</span> <span class="ow">in</span> <span class="p">[</span>
+                            <span class="s1">&#39;lmps_min_all&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;lmps_min_none&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;lmps_elastic&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;lmps_thermal_expansion&#39;</span><span class="p">]:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">_s</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">][</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span>
+                        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Qoi:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_qoi_simulation_type</span><span class="p">))</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;qoimapk:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qoimapk</span><span class="p">))</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;qoik:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qoik</span><span class="p">))</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">])</span>
+                            <span class="k">raise</span>
+                        <span class="n">_qoiname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_s</span><span class="p">,</span><span class="n">_qoi_simulation_type</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">_qoi_simulation_type</span> <span class="ow">in</span> <span class="p">[</span>
+                            <span class="s1">&#39;lmps_defect&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;lmps_stacking_fault&#39;</span><span class="p">]:</span>
+                        <span class="n">_s</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">][</span><span class="s1">&#39;defect&#39;</span><span class="p">]</span>
+                        <span class="n">_qoiname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_s</span><span class="p">,</span><span class="n">_qoi_simulation_type</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">_qoi_simulation_type</span> <span class="ow">in</span> <span class="p">[</span>
+                            <span class="s1">&#39;lmps_surface_energy&#39;</span><span class="p">]:</span>
+                        <span class="n">_s</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">][</span><span class="s1">&#39;slab&#39;</span><span class="p">]</span>
+                        <span class="n">_qoiname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_s</span><span class="p">,</span><span class="n">_qoi_simulation_type</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">_qoi_simulation_type</span> <span class="ow">in</span> <span class="p">[</span>
+                            <span class="s1">&#39;gulp_gamma_phonons&#39;</span><span class="p">]:</span>
+                        <span class="n">_s</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">][</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span>
+                        <span class="n">_qoiname</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_s</span><span class="p">,</span><span class="n">_qoi_simulation_type</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">msg_err</span> <span class="o">=</span> <span class="s1">&#39;Unknown qoi_simulation_type: </span><span class="si">{}</span><span class="s1">&#39;</span>
+                        <span class="n">msg_err</span> <span class="o">=</span> <span class="n">msg_err</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_qoi_simulation_type</span><span class="p">)</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+                    <span class="n">_qoitype</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;qoi_type&#39;</span><span class="p">]</span>
+                    <span class="n">_module</span> <span class="o">=</span> <span class="n">qoimapv</span><span class="p">[</span><span class="s1">&#39;module&#39;</span><span class="p">]</span>
+                    <span class="n">_class</span> <span class="o">=</span> <span class="n">qoimapv</span><span class="p">[</span><span class="s1">&#39;class&#39;</span><span class="p">]</span>
+                    <span class="n">_structures</span> <span class="o">=</span> <span class="n">qoiv</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_add_obj_Qoi</span><span class="p">(</span>
+                         <span class="n">qoi_name</span> <span class="o">=</span> <span class="n">_qoiname</span><span class="p">,</span>
+                         <span class="n">module_name</span> <span class="o">=</span> <span class="n">_module</span><span class="p">,</span>
+                         <span class="n">class_name</span> <span class="o">=</span> <span class="n">_class</span><span class="p">,</span>
+                         <span class="n">structures</span> <span class="o">=</span> <span class="n">_structures</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">qoik</span><span class="p">][</span><span class="s1">&#39;qoi_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_qoiname</span><span class="p">,</span><span class="n">_qoitype</span><span class="p">)</span></div>
+    
+
+    <span class="k">def</span> <span class="nf">__init_QoiDatabase_from_None</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span> <span class="o">=</span> <span class="n">QoiDatabase</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__init_QoiDatabase_from_OrderedDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">orderdict_qoi_database</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="k">def</span> <span class="nf">__init_QoiDatabase_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_database_filename</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_database_filename</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span> <span class="o">=</span> <span class="n">QoiDatabase</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">qoi_database_filename</span><span class="p">)</span> 
+
+    <span class="k">def</span> <span class="nf">__init_QoiDatabase_from_QoiDatabase</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">obj_QoiDatabase</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj_QoiDatabase</span><span class="p">,</span><span class="n">QoiDatabase</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">obj_QoiDatabase</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init_QoiDatabase_from_OrderedDict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_database_OrderedDict</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">qoi_database_OrderedDict</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoidb</span> <span class="o">=</span> <span class="n">QoiDatabase</span><span class="p">(</span><span class="n">qoi_database_OrderedDict</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_obj_Qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_name</span><span class="p">,</span><span class="n">module_name</span><span class="p">,</span><span class="n">class_name</span><span class="p">,</span><span class="n">structures</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            qoi_name(str):</span>
+<span class="sd">            module_name(str):</span>
+<span class="sd">            class_name(str):</span>
+<span class="sd">            structures(:obj:`list` of :obj:`str):</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">qoi_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+                <span class="bp">cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span><span class="n">class_name</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="p">[</span><span class="n">qoi_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+                        <span class="n">qoi_name</span> <span class="o">=</span> <span class="n">qoi_name</span><span class="p">,</span>
+                        <span class="n">structures</span> <span class="o">=</span> <span class="n">structures</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;qoi_name(&#39;</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">qoi_name</span><span class="p">),</span><span class="s1">&#39;):&#39;</span><span class="p">,</span><span class="n">qoi_name</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;module_name(&#39;</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">module_name</span><span class="p">),</span><span class="s1">&#39;):&#39;</span><span class="p">,</span><span class="n">module_name</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;class_name(&#39;</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">class_name</span><span class="p">),</span><span class="s1">&#39;):&#39;</span><span class="p">,</span><span class="n">class_name</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;structures(&#39;</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">structures</span><span class="p">),</span><span class="s1">&#39;):&#39;</span><span class="p">,</span><span class="n">structures</span><span class="p">)</span>
+                <span class="k">raise</span>
+
+<div class="viewcode-block" id="QoiManager.determine_tasks"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager.determine_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">determine_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">k_qoi</span><span class="p">,</span> <span class="n">v_qoi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">v_qoi</span><span class="o">.</span><span class="n">determine_tasks</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">k_qoi</span><span class="p">,</span><span class="n">v_qoi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">k_task</span><span class="p">,</span> <span class="n">v_task</span> <span class="ow">in</span> <span class="n">v_qoi</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span>
+                        <span class="n">task_name</span> <span class="o">=</span> <span class="n">k_task</span><span class="p">,</span>
+                        <span class="n">task_dict</span> <span class="o">=</span> <span class="n">v_task</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QoiManager.add_task"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager.add_task">[docs]</a>    <span class="k">def</span> <span class="nf">add_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">,</span><span class="n">task_dict</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task_dict</span><span class="p">,</span><span class="nb">dict</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">task_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">task_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QoiManager.calculate_qois"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.abstract_qoi.QoiManager.calculate_qois">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_qois</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_results</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            task_results(OrderedDict):</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># calculate the QOIs from the QOI objects</span>
+        <span class="k">for</span> <span class="n">n_qoi</span><span class="p">,</span> <span class="n">o_qoi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">o_qoi</span><span class="o">.</span><span class="n">calculate_qois</span><span class="p">(</span><span class="n">task_results</span><span class="o">=</span><span class="n">task_results</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;Cannot calculate qoi for </span><span class="se">\&#39;</span><span class="si">{}</span><span class="se">\&#39;</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_qoi</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        
+        
+        <span class="k">for</span> <span class="n">k_qoi</span><span class="p">,</span><span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_qoi_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">k_qoi</span><span class="p">][</span><span class="s1">&#39;qoi_name&#39;</span><span class="p">]</span>
+                <span class="n">_obj_qoi_id</span> <span class="o">=</span> <span class="n">_qoi_id</span><span class="p">[:</span><span class="n">_qoi_id</span><span class="o">.</span><span class="n">rindex</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)]</span>
+                <span class="n">_qoi_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="p">[</span><span class="n">_obj_qoi_id</span><span class="p">]</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">_qoi_id</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;all_k_qois:&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;k_qoi:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k_qoi</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;v_qoi:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">k_qoi</span><span class="p">]))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;obj_qoi_id:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_obj_qoi_id</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;qoi_id:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_qoi_id</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_Qoi</span><span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="n">_qoi_ref</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">k_qoi</span><span class="p">][</span><span class="s1">&#39;qoi_ref&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">k_qoi</span><span class="p">][</span><span class="s1">&#39;qoi_val&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_qoi_val</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">k_qoi</span><span class="p">][</span><span class="s1">&#39;qoi_err&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_qoi_val</span><span class="o">-</span><span class="n">_qoi_ref</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

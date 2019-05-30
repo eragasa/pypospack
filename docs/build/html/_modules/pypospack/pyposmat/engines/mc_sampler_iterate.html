@@ -1,0 +1,1210 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.engines.mc_sampler_iterate &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.engines.mc_sampler_iterate</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">VERSION HISTORY:</span>
+<span class="sd">    2017 - EJR, original release</span>
+<span class="sd">    08/2018 = RSU, EJR, added cluster sampling functionality and logging</span>
+
+<span class="sd">TODO:</span>
+<span class="sd">    08/2018 - the pyposmat.results.*.out needs to have the sim_ids cleaned up so we can track information regarding rank_id, cluster_id, and iteration_id.  This is at approximately line 442.  EJR&amp;RSU</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">shutil</span><span class="o">,</span><span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">mpi4py</span> <span class="k">import</span> <span class="n">MPI</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+
+<span class="c1"># --- pyposmat data format imports</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatBadParametersFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatLogFile</span>
+
+<span class="c1"># --- pyposmat analysis algorithms</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataAnalyzer</span>
+
+<span class="c1"># --- pyposmat data samplers</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.engines</span> <span class="k">import</span> <span class="n">PyposmatMonteCarloSampler</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.engines</span> <span class="k">import</span> <span class="n">PyposmatFileSampler</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.engines</span> <span class="k">import</span> <span class="n">PyposmatClusterSampler</span>
+
+<span class="c1"># --- pyposmat error classes</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">PyposmatSamplingTypeError</span>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler">[docs]</a><span class="k">class</span> <span class="nc">PyposmatIterativeSampler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;  Iterative Sampler which wraps multiple simulation algorithms.</span>
+
+<span class="sd">    This class wraps multiple simulation algorithms so that they can be run in an iterative manner.</span>
+<span class="sd">    Since this class has so many configuration options, the attributes of this class is set</span>
+<span class="sd">    by a YAML based configuration file.  The class PyposmatConfigurationFile aids in the creation</span>
+<span class="sd">    and reading of these options.  These attributes are public and be set programmatically within</span>
+<span class="sd">    a script.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        config_fn = &#39;data/pyposmat.config.in&#39;</span>
+
+<span class="sd">        engine = PyposmatIterativeSampler(configuration_filename=config_fn)</span>
+<span class="sd">        engine.read_configuration_file()</span>
+<span class="sd">        engine.run_all()</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        configuration_filename(str): the filename of the YAML configuration file</span>
+<span class="sd">        is_restart(bool,optional): When set to True, this argument controls the restart behavior</span>
+<span class="sd">            of this class.  By default, is set to False</span>
+<span class="sd">        is_auto(bool,optional): When set to True, this agument will automatically configure the</span>
+<span class="sd">            class.  By default this is set to False, mostly because this software is currently in</span>
+<span class="sd">            development, and this necessary to to write integration testing</span>
+<span class="sd">        log_fn(str,optional): This the filename path where to set logging, by default it is set</span>
+<span class="sd">           as `pyposmat.log` contained in the configurable data directory</span>
+<span class="sd">        log_to_stdout(bool,optional): When set to True, all log messages will be directed to</span>
+<span class="sd">           standard out as well as the log file</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        mpi_comm(MPI.Intracomm)</span>
+<span class="sd">        mpi_rank(int)</span>
+<span class="sd">        mpi_size(int)</span>
+<span class="sd">        mpi_nprocs(int)</span>
+<span class="sd">        i_iteration(int)</span>
+<span class="sd">        n_iterations(int)</span>
+<span class="sd">        rv_seed(int)</span>
+<span class="sd">        rv_seeds(np.ndarray)</span>
+<span class="sd">        configuration_filename = configuration(filename)</span>
+<span class="sd">        configuration(PyposmatConfigurationFile)</span>
+<span class="sd">        mc_sampler(PyposmatMonteCarloSampler)</span>
+<span class="sd">        root_directory(str)</span>
+<span class="sd">        data_directory(str)</span>
+<span class="sd">        is_restart(bool)</span>
+<span class="sd">        start_iteration=0</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">parameter_sampling_types</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;parametric&#39;</span><span class="p">,</span><span class="s1">&#39;kde&#39;</span><span class="p">,</span><span class="s1">&#39;from_file&#39;</span><span class="p">,</span><span class="s1">&#39;kde_w_clusters&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">configuration_filename</span><span class="p">,</span>
+            <span class="n">is_restart</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">is_auto</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">log_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">log_to_stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="c1"># formats should not contain a trailing end line chracter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">SECTION_HEADER_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;=&#39;</span><span class="p">,</span><span class="s2">&quot;</span><span class="si">{:^80}</span><span class="s2">&quot;</span><span class="p">,</span><span class="mi">80</span><span class="o">*</span><span class="s2">&quot;=&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">RANK_DIR_FORMAT</span> <span class="o">=</span> <span class="s1">&#39;rank_</span><span class="si">{}</span><span class="s1">&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_comm</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_nprocs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">i_iteration</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rv_seed</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rv_seeds</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span> <span class="o">=</span> <span class="n">configuration_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="s1">&#39;data&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_restart</span> <span class="o">=</span> <span class="n">is_restart</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_fn</span> <span class="o">=</span> <span class="n">log_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_to_stdout</span> <span class="o">=</span> <span class="n">log_to_stdout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">o_log</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_logger</span><span class="p">(</span><span class="n">log_fn</span><span class="o">=</span><span class="n">log_fn</span><span class="p">,</span><span class="n">log_to_stdout</span><span class="o">=</span><span class="n">log_to_stdout</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_restart</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete_mpi_rank_directories</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">structure_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="n">d</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">d</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">n_iterations</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_names</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">error_names</span>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.delete_mpi_rank_directories"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.delete_mpi_rank_directories">[docs]</a>    <span class="k">def</span> <span class="nf">delete_mpi_rank_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;Deleting previous rank directories&#39;</span><span class="p">)</span>
+            <span class="n">mpi_rank_directories</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">)</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;rank_&#39;</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">mpi_rank_directories</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="n">d</span><span class="p">))</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">raise</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.determine_last_iteration_completed"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.determine_last_iteration_completed">[docs]</a>    <span class="k">def</span> <span class="nf">determine_last_iteration_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span><span class="p">):</span>
+            <span class="n">results_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span><span class="s1">&#39;pyposmat.results.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">kde_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span><span class="s1">&#39;pyposmat.kde.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">kde_fn</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;iteration </span><span class="si">{}</span><span class="s1">: is complete&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span> <span class="o">=</span> <span class="n">i</span>
+                <span class="k">break</span>
+
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.run_all"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.run_all">[docs]</a>    <span class="k">def</span> <span class="nf">run_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;runs all iterations</span>
+
+<span class="sd">        This method runs all iterations</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_mpi_environment</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_data_directory</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_restart</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">determine_last_iteration_completed</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;starting at simulation: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span><span class="p">))</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_iteration</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i_iteration</span> <span class="o">=</span> <span class="n">i</span>
+
+            <span class="c1"># log iteration information</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_iteration_information</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_simulations</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;ALL SIMULATIONS COMPLETE FOR ALL RANKS&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;MERGING FILES&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">merge_data_files</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">merge_error_files</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;ANALYZE RESULTS&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">analyze_results</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;JOBCOMPLETE&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.initialize_sampler"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.initialize_sampler">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">config_fn</span><span class="p">,</span><span class="n">results_fn</span><span class="p">,</span><span class="n">mpi_rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">mpi_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">o_log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; initialize the sampling object </span>
+
+<span class="sd">        This method initializes the `mc_sampler` attribute with a sampler.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This breakout is part of a larger effort within PYPOSPACK, to have </span>
+<span class="sd">            more object-oriented approach for parametric sampling.  The goal </span>
+<span class="sd">            eventually is to implement an instance of PyposmatBaseSampler, and </span>
+<span class="sd">            allow users of this software library to be able to extend this </span>
+<span class="sd">            software by simply extending the base class.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_fn(str): path to the configuration file</span>
+<span class="sd">            results_fn(str): path to the results file</span>
+<span class="sd">            mpi_rank(int,optional): the MPI rank of executing this method</span>
+<span class="sd">            mpi_size(int,optional): the size of the MPI execution group</span>
+<span class="sd">            o_log(PyposmatLogFile,str,optional): the log file.  If a string is </span>
+<span class="sd">                passed, then the sampling class will initialize a separate log </span>
+<span class="sd">                file with the string of path created.  If a log file object is </span>
+<span class="sd">                passed, then sampling object will use that instance of the </span>
+<span class="sd">                object to log information.  By defaut, it will pass the </span>
+<span class="sd">                attribute, `o_log`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">config_fn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">mpi_rank</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">mpi_size</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="n">PyposmatLogFile</span><span class="p">,</span><span class="nb">str</span><span class="p">]</span>
+
+        <span class="c1"># check to see if the paths provided are absolute paths</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">config_fn</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mpi_rank</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mpi_rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span>
+        <span class="k">if</span> <span class="n">mpi_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mpi_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span> <span class="o">=</span> <span class="n">PyposmatMonteCarloSampler</span><span class="p">(</span>
+                <span class="n">filename_in</span> <span class="o">=</span> <span class="n">config_fn</span><span class="p">,</span>
+                <span class="n">filename_out</span> <span class="o">=</span> <span class="n">results_fn</span><span class="p">,</span>
+                <span class="n">mpi_rank</span> <span class="o">=</span> <span class="n">mpi_rank</span><span class="p">,</span>
+                <span class="n">mpi_size</span> <span class="o">=</span> <span class="n">mpi_size</span><span class="p">,</span>
+                <span class="n">o_log</span><span class="o">=</span><span class="n">o_log</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">create_base_directories</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">read_configuration_file</span><span class="p">()</span>
+        <span class="c1"># we have to be able to find the structure directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_qoi_manager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_task_manager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_pyposmat_datafile_out</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_pyposmat_badparameters_file</span><span class="p">()</span>     
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_more_iteration_information</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.initialize_file_sampler"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.initialize_file_sampler">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_file_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">config_fn</span><span class="p">,</span>
+                                <span class="n">results_fn</span><span class="p">,</span>
+                                <span class="n">i_iteration</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                <span class="n">mpi_rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">mpi_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">o_log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; initialize the sampling object </span>
+
+<span class="sd">        This method initializes the `mc_sampler` attribute with a sampler.</span>
+
+<span class="sd">        Note:</span>
+<span class="sd">            This breakout is part of a larger effort within PYPOSPACK, to have </span>
+<span class="sd">            more object-oriented approach for parametric sampling.  The goal </span>
+<span class="sd">            eventually is to implement an instance of PyposmatBaseSampler, and </span>
+<span class="sd">            allow users of this software library to be able to extend this </span>
+<span class="sd">            software by simply extending the base class.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_fn(str): path to the configuration file</span>
+<span class="sd">            results_fn(str): path to the results file</span>
+<span class="sd">            i_iteration(int,optional): the iteration to sample the file from,</span>
+<span class="sd">                by default this is set to zero.</span>
+<span class="sd">            mpi_rank(int,optional): the MPI rank of executing this method</span>
+<span class="sd">            mpi_size(int,optional): the size of the MPI execution group</span>
+<span class="sd">            o_log(PyposmatLogFile,str,optional): the log file.  If a string is </span>
+<span class="sd">                passed, then the sampling class will initialize a separate log </span>
+<span class="sd">                file with the string of path created.  If a log file object is </span>
+<span class="sd">                passed, then sampling object will use that instance of the </span>
+<span class="sd">                object to log information.  By defaut, it will pass the </span>
+<span class="sd">                attribute, `o_log`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">config_fn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">mpi_rank</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">mpi_size</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="n">PyposmatLogFile</span><span class="p">,</span><span class="nb">str</span><span class="p">]</span>
+
+        <span class="c1"># check to see if the paths provided are absolute paths</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">config_fn</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mpi_rank</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mpi_rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span>
+        <span class="k">if</span> <span class="n">mpi_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mpi_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span>
+
+        <span class="c1"># get the absolute path of the datafile we are sampling from</span>
+        <span class="n">data_in_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;file&#39;</span><span class="p">]):</span>
+            <span class="n">data_in_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_in_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                   <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        
+        <span class="n">data_out_fn</span> <span class="o">=</span> <span class="n">results_fn</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span> <span class="o">=</span> <span class="n">PyposmatFileSampler</span><span class="p">(</span>
+                <span class="n">config_fn</span> <span class="o">=</span> <span class="n">config_fn</span><span class="p">,</span>
+                <span class="n">data_in_fn</span> <span class="o">=</span> <span class="n">data_in_fn</span><span class="p">,</span>
+                <span class="n">data_out_fn</span> <span class="o">=</span> <span class="n">data_out_fn</span><span class="p">,</span>
+                <span class="n">mpi_rank</span> <span class="o">=</span> <span class="n">mpi_rank</span><span class="p">,</span>
+                <span class="n">mpi_size</span> <span class="o">=</span> <span class="n">mpi_size</span><span class="p">,</span>
+                <span class="n">o_log</span><span class="o">=</span><span class="n">o_log</span><span class="p">,</span>
+                <span class="n">fullauto</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">create_base_directories</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">read_configuration_file</span><span class="p">()</span>
+        
+        <span class="c1"># we have to be able to find the structure directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_qoi_manager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_task_manager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_datafile_out</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">configure_pyposmat_badparameters_file</span><span class="p">()</span>     
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_more_iteration_information</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.initialize_rank_directory"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.initialize_rank_directory">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_rank_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; create the rank directory</span>
+
+<span class="sd">        This method defines the rank directory as an absolute path and stores it in</span>
+<span class="sd">        the attribute `rank_directory`.  If a current directory exists there, then</span>
+<span class="sd">        it is deleted with alll it&#39;s contents and then recreated.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rank_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">RANK_DIR_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">))</span>
+      
+        <span class="c1"># find the directory, delete it and it&#39;s constants and then recreates ot</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">rank_directory</span><span class="p">):</span>
+            <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">rank_directory</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">rank_directory</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span> <span class="o">=</span> <span class="n">rank_directory</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.run_simulations"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.run_simulations">[docs]</a>    <span class="k">def</span> <span class="nf">run_simulations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; run simulation for a single iteration</span>
+
+<span class="sd">        Each rank is given a different execution context so that the disk IO </span>
+<span class="sd">        don&#39;t conflict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_rank_directory</span><span class="p">()</span>
+        <span class="n">config_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span>
+        <span class="n">results_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span><span class="p">,</span><span class="s1">&#39;pyposmat.results.out&#39;</span><span class="p">)</span>
+        <span class="n">bad_parameters_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span><span class="p">,</span><span class="s1">&#39;pyposmat.badparameters.out&#39;</span><span class="p">)</span>
+
+        <span class="c1"># change execution context for this rank</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rank_directory</span><span class="p">)</span>
+
+        <span class="c1"># set random seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">determine_rv_seeds</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_random_seeds</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">)</span>
+
+        <span class="n">sampling_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;sampling_type=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampling_type</span><span class="p">))</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+        <span class="c1"># &lt;----- parameter sampling type ---------------------------------------</span>
+        <span class="k">if</span> <span class="n">sampling_type</span><span class="o">==</span> <span class="s1">&#39;parametric&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_sampler</span><span class="p">(</span>
+                    <span class="n">config_fn</span><span class="o">=</span><span class="n">config_filename</span><span class="p">,</span>
+                    <span class="n">results_fn</span><span class="o">=</span><span class="n">results_filename</span><span class="p">,</span>
+                    <span class="n">mpi_rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">,</span>
+                    <span class="n">mpi_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">,</span>
+                    <span class="n">o_log</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">o_log</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_parametric_sampling</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">)</span>
+        
+        <span class="c1"># &lt;----- kde sampling sampling type ---------------------------------------</span>
+        <span class="k">elif</span> <span class="n">sampling_type</span> <span class="o">==</span> <span class="s1">&#39;kde&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_sampler</span><span class="p">(</span>
+                    <span class="n">config_fn</span><span class="o">=</span><span class="n">config_filename</span><span class="p">,</span>
+                    <span class="n">results_fn</span><span class="o">=</span><span class="n">results_filename</span><span class="p">,</span>
+                    <span class="n">mpi_rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">,</span>
+                    <span class="n">mpi_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">,</span>
+                    <span class="n">o_log</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">o_log</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_kde_sampling</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">)</span>
+
+        <span class="c1"># &lt;----- sampling from a file type ---------------------------------------</span>
+        <span class="c1"># get parameters from file</span>
+        <span class="k">elif</span> <span class="n">sampling_type</span> <span class="o">==</span> <span class="s1">&#39;from_file&#39;</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_file_sampler</span><span class="p">(</span>
+                    <span class="n">config_fn</span><span class="o">=</span><span class="n">config_filename</span><span class="p">,</span>
+                    <span class="n">results_fn</span><span class="o">=</span><span class="n">results_filename</span><span class="p">,</span>
+                    <span class="n">mpi_rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">,</span>
+                    <span class="n">mpi_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">,</span>
+                    <span class="n">o_log</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">o_log</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_file_sampling</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">)</span>
+
+        <span class="c1"># &lt;----- kde with clusters sampling type ---------------------------------------</span>
+        <span class="k">elif</span> <span class="n">sampling_type</span> <span class="o">==</span> <span class="s1">&#39;kde_w_clusters&#39;</span><span class="p">:</span>
+            <span class="n">cluster_fn</span> <span class="o">=</span> <span class="s2">&quot;pyposmat.cluster.</span><span class="si">{}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span>
+            <span class="n">pyposmat_datafile_in</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                <span class="n">cluster_fn</span>
+            <span class="p">)</span>
+                
+            <span class="n">_config_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span><span class="p">)</span>
+
+            <span class="c1"># determine number of sims for this rank</span>
+            <span class="n">_mc_n_samples</span> <span class="o">=</span> <span class="n">_mc_config</span><span class="p">[</span><span class="s1">&#39;n_samples_per_cluster&#39;</span><span class="p">]</span>
+            <span class="n">_n_samples_per_rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_mc_n_samples</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">_mc_n_samples</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">:</span>
+                <span class="n">_n_samples_per_rank</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># initialize sampling object</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="n">PyposmatClusterSampler</span><span class="p">(</span><span class="n">o_logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">,</span>
+                                       <span class="n">mpi_rank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">,</span>
+				       <span class="n">mpi_comm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_comm</span><span class="p">,</span>
+				       <span class="n">mpi_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">)</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">create_base_directories</span><span class="p">()</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">read_configuration_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">_config_filename</span><span class="p">)</span>
+            <span class="c1"># check to see if clustered data file exists</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">pyposmat_datafile_in</span><span class="p">):</span>
+                    <span class="n">kde_fn</span> <span class="o">=</span> <span class="s2">&quot;pyposmat.kde.</span><span class="si">{}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span>
+                    <span class="n">kde_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                            <span class="n">kde_fn</span>
+                    <span class="p">)</span>
+                    <span class="n">o</span><span class="o">.</span><span class="n">write_cluster_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">kde_fn</span><span class="p">,</span> <span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">)</span>
+            <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+            <span class="n">o</span><span class="o">.</span><span class="n">configure_pyposmat_datafile_in</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">pyposmat_datafile_in</span><span class="p">)</span>
+            <span class="c1"># fix relative path to structure databae folder</span>
+            <span class="n">_structure_dir</span> <span class="o">=</span> <span class="n">o</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;structure_directory&#39;</span><span class="p">]</span> <span class="o">=</span> \
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;..&#39;</span><span class="p">,</span><span class="n">_structure_dir</span><span class="p">)</span>
+            <span class="c1"># finish the rest of the initialization</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">configure_qoi_manager</span><span class="p">()</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">configure_task_manager</span><span class="p">()</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">configure_pyposmat_datafile_out</span><span class="p">()</span>
+            <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+            <span class="c1"># run simulations</span>
+            <span class="n">o</span><span class="o">.</span><span class="n">run_simulations</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">,</span>
+                              <span class="n">n_samples</span><span class="o">=</span><span class="n">_mc_n_samples</span><span class="p">,</span>
+                              <span class="n">filename</span><span class="o">=</span><span class="n">pyposmat_datafile_in</span><span class="p">)</span>
+            <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([</span>
+                <span class="p">(</span><span class="s1">&#39;i_iteration&#39;</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;sampling_type&#39;</span><span class="p">,</span><span class="n">sampling_type</span><span class="p">)]</span>
+            <span class="p">)</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="s2">&quot;unknown parameter sampling type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sampling_type</span><span class="p">)</span>
+            <span class="n">m</span> <span class="o">+=</span> <span class="s2">&quot;the valid sampling types are: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_sampling_types</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">PyposmatSamplingTypeError</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">error_dict</span><span class="p">)</span>
+        
+        <span class="c1"># return to root directory</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.initialize_data_directory"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.initialize_data_directory">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_data_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; determine the absolute path of the data directory and create it</span>
+
+<span class="sd">        This method sets the `data_directory` attribute of the class and creates</span>
+<span class="sd">        the `data directory` if the data directory already exists.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_directory(str):the path of the data directory, the path can be </span>
+<span class="sd">                expressed in either a relative path, or an absolute path</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            (str) the absolute path of the data directory</span>
+<span class="sd">        Raises:</span>
+<span class="sd">            OSError: if the directory is not able to be created</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">data_directory</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+
+        <span class="c1"># determine the data directory path</span>
+        <span class="k">if</span> <span class="n">data_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="n">data_directory</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">data_directory</span><span class="p">):</span>
+            <span class="c1"># absolute path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="n">data_directory</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># create a absolute path from the relative path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="n">data_directory</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">)</span>
+
+        <span class="c1"># create data directory</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;created the data directory.&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">data_directory;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">FileExistsError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;attempted to create data directory, directory already exists.&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">data_directory:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;attempted to create data directory, cannot create directory.&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">data_directory:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">))</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.run_parametric_sampling"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.run_parametric_sampling">[docs]</a>    <span class="k">def</span> <span class="nf">run_parametric_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; run parametric sampling </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration(int): what iteration of the sampling is happening</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PyposmatMonteCarloSampler</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">run_simulations</span><span class="p">(</span>
+                <span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">,</span>
+                <span class="n">n_samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">determine_number_of_samples_per_rank</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.run_kde_sampling"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.run_kde_sampling">[docs]</a>    <span class="k">def</span> <span class="nf">run_kde_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; run kde sampling</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration(int): what iteration of the sampling is happening</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_debug</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PyposmatMonteCarloSampler</span>
+
+        
+        <span class="n">kde_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                <span class="s1">&#39;pyposmat.kde.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">n_samples_per_rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">determine_number_of_samples_per_rank</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;cwd:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;mpi_rank:</span><span class="si">{}</span><span class="s1">,kde_filename:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">,</span><span class="n">kde_filename</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;n_samples_per_rank:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_samples_per_rank</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">run_simulations</span><span class="p">(</span>
+                <span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">,</span>
+                <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples_per_rank</span><span class="p">,</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">kde_filename</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.run_file_sampling"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.run_file_sampling">[docs]</a>    <span class="k">def</span> <span class="nf">run_file_sampling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; run file sampling</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration(int): the iteration which to sampling for</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PyposmatFileSampler</span>
+
+
+        <span class="k">if</span> <span class="s1">&#39;file&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">]:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;file&#39;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">):</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                                        <span class="s1">&#39;pyposmat.kde.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="p">,</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                                        <span class="s1">&#39;pyposmat.kde.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:^80}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;file sampling&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;filename_in:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">run_simulations</span><span class="p">(</span>
+                <span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">,</span>
+                <span class="n">n_samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">determine_number_of_samples_per_rank</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">=</span><span class="n">i_iteration</span><span class="p">),</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.determine_number_of_samples_per_rank"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.determine_number_of_samples_per_rank">[docs]</a>    <span class="k">def</span> <span class="nf">determine_number_of_samples_per_rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">N_samples</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; determine the number of samples per rank</span>
+
+<span class="sd">        The total number of samples needs to be broken up between the ranks, but roughly</span>
+<span class="sd">        divided the work evenly.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration(int): which iteration we are in the simulation</span>
+<span class="sd">            N_samples(int,optional): the total number of samples we are using for </span>
+<span class="sd">                this iteration.  If a number is provided, it will override </span>
+<span class="sd">                the number of simulations specified in the configuration file.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            (int): the number of samples for this rank</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">N_samples</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PyposmatConfigurationFile</span>
+
+        <span class="k">if</span> <span class="n">N_samples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">N_samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;n_samples&#39;</span><span class="p">]</span>
+         
+        <span class="n">N_samples_per_rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_samples</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">N_samples</span><span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">:</span>
+            <span class="n">N_samples_per_rank</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">N_samples_per_rank</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.initialize_logger"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.initialize_logger">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_logger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">log_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">log_to_stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;initialize log object</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            log_fn(str,optional)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">log_fn</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">log_to_stdout</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">bool</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">log_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span> <span class="s1">&#39;pyposmat.log&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_fn</span> <span class="o">=</span> <span class="n">log_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">o_log</span> <span class="o">=</span> <span class="n">PyposmatLogFile</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_fn</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_to_stdout</span> <span class="o">=</span> <span class="n">log_to_stdout</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.setup_mpi_environment"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.setup_mpi_environment">[docs]</a>    <span class="k">def</span> <span class="nf">setup_mpi_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_procname</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">Get_processor_name</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_mpi_environment</span><span class="p">()</span></div>
+    
+    <span class="c1"># random seed management</span>
+<div class="viewcode-block" id="PyposmatIterativeSampler.determine_rv_seeds"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.determine_rv_seeds">[docs]</a>    <span class="k">def</span> <span class="nf">determine_rv_seeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">i_iteration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; set the random variable seed across simulations </span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">           seed(int,optional)=a seed to determine the rest of the seeds for</span>
+<span class="sd">               different ranks and iterations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">RAND_INT_LOW</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">RAND_INT_HIGH</span> <span class="o">=</span> <span class="mi">2147483647</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">i_iteration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_iteration</span>
+
+        <span class="c1"># set the seed attribute</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rv_seed</span> <span class="o">==</span> <span class="n">seed</span>
+
+        
+        <span class="c1"># set the seed attribute, if the seed attribute is none</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rv_seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rv_seed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                    <span class="n">low</span><span class="o">=</span><span class="n">RAND_INT_LOW</span><span class="p">,</span>
+                    <span class="n">high</span><span class="o">=</span><span class="n">RAND_INT_HIGH</span><span class="p">)</span>
+                  
+        <span class="c1"># if the rv_seed was determined in the script, then all ranks will</span>
+        <span class="c1"># have the same rv_seed attribute</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rv_seed</span><span class="p">)</span>
+
+        <span class="c1"># each rank, will need it&#39;s own seed.  So we sample from the freshly</span>
+        <span class="c1"># generated random number generator, which is identical across ranks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rv_seeds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+            <span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">high</span><span class="o">=</span><span class="mi">2147483647</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># now restart the seed for this rank</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rv_seeds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">])</span></div>
+
+    <span class="c1"># logging methods </span>
+<div class="viewcode-block" id="PyposmatIterativeSampler.log"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">s</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_to_stdout</span><span class="p">:</span> 
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">o_log</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">o_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.log_iteration_information"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.log_iteration_information">[docs]</a>    <span class="k">def</span> <span class="nf">log_iteration_information</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;log iteration information</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration_id(int):the iteration number</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            (str) the log string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SECTION_HEADER_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s1">&#39;Begin Iteration </span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
+        
+        <span class="c1">#if self.mpi_rank == 0:</span>
+        <span class="c1">#    return &quot;\n&quot;.join(s)</span>
+    
+<div class="viewcode-block" id="PyposmatIterativeSampler.log_more_iteration_information"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.log_more_iteration_information">[docs]</a>    <span class="k">def</span> <span class="nf">log_more_iteration_information</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> 
+        <span class="c1">#TODO: this logging needs to go into a separate logging method. -EJR</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">print_structure_database</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">print_sampling_configuration</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_iteration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mc_sampler</span><span class="o">.</span><span class="n">print_initial_parameter_distribution</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.log_mpi_environment"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.log_mpi_environment">[docs]</a>    <span class="k">def</span> <span class="nf">log_mpi_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">SECTION_HEADER_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;MPI communication information&#39;</span><span class="p">)]</span>
+                
+            <span class="n">m</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;mpi_size=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">)]</span>
+
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.log_random_seeds"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.log_random_seeds">[docs]</a>    <span class="k">def</span> <span class="nf">log_random_seeds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:^80}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;GENERATED RANDOM SEEDS&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;global_seed:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rv_seed</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;seeds_for_this_iteration:&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:^8}</span><span class="s1"> </span><span class="si">{:^8}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span><span class="s1">&#39;seed&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mi">8</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="mi">8</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">))</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i_rank</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="n">i_rank</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{:^8}</span><span class="s1"> </span><span class="si">{:&gt;10}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_rank</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">rv_seeds</span><span class="p">[</span><span class="n">i_rank</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">]))</span>
+        <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span><span class="o">.</span><span class="n">Barrier</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.get_results_dict"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.get_results_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_results_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rd</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;mpi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">rd</span><span class="p">[</span><span class="s1">&#39;mpi&#39;</span><span class="p">][</span><span class="s1">&#39;size&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span></div>
+
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.analyze_data_directories"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.analyze_data_directories">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_data_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">data_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">_d</span> <span class="o">=</span> <span class="n">data_dir</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_d</span><span class="p">):</span> <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">contents</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">_d</span><span class="p">):</span> <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">contents</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">kde_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_d</span><span class="p">,</span><span class="s2">&quot;pyposmat.kde.</span><span class="si">{}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">kde_fn</span><span class="p">):</span>
+                <span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kde_fn</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+            <span class="n">results_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_d</span><span class="p">,</span><span class="s2">&quot;pyposmat.results.</span><span class="si">{}</span><span class="s2">.out&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">results_fn</span><span class="p">):</span> <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span><span class="k">break</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">contents</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.analyze_rank_directories"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.analyze_rank_directories">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_rank_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">root_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">root_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_d</span> <span class="o">=</span> <span class="n">root_directory</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">rank_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_d</span><span class="p">,</span><span class="s2">&quot;rank_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">rank_dir</span><span class="p">):</span> 
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">rank_dir</span><span class="p">):</span> 
+                <span class="k">break</span>
+
+            <span class="n">rank_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;rank_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="s2">&quot;pyposmat.results.out&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_d</span><span class="p">,</span><span class="n">rank_fn</span><span class="p">)):</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_d</span><span class="p">,</span><span class="n">rank_fn</span><span class="p">)):</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rank_fn</span><span class="p">)</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">i</span><span class="p">,</span> <span class="n">contents</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.find_initial_parameters_file"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.find_initial_parameters_file">[docs]</a>    <span class="k">def</span> <span class="nf">find_initial_parameters_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;file&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">_init_fn</span> <span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">_init_fn</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">_init_fn</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">_init_fn</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">None</span></div>
+ 
+<div class="viewcode-block" id="PyposmatIterativeSampler.merge_data_files"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.merge_data_files">[docs]</a>    <span class="k">def</span> <span class="nf">merge_data_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">last_datafile_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">new_datafile_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; merge the pyposmat data files</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration(int): the current iteration which just finished</span>
+<span class="sd">            last_datafile_fn(str,optional): the filename of the last dataset in the data directory.</span>
+<span class="sd">            new_datafile_fn(str,optional): where to output the file results </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">last_datafile_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">last_datafile_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                                            <span class="s1">&#39;pyposmat.kde.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">new_datafile_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_datafile_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                                           <span class="s1">&#39;pyposmat.results.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">))</span>
+
+        <span class="n">data_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span>
+        <span class="n">rank_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;rank_&#39;</span><span class="p">)]</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="s1">&#39;pyposmat.results.out&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rank_dirs</span><span class="p">]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">filenames</span><span class="p">):</span>
+            <span class="n">data_new</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data_new</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+                <span class="n">data_new</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+
+                <span class="n">data</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">data_new</span><span class="o">.</span><span class="n">df</span><span class="p">])</span>
+
+        <span class="n">nrows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;from_file&#39;</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sim_id_fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:0&gt;2}</span><span class="s1">_</span><span class="si">{:0&gt;6}</span><span class="s1">&#39;</span>
+            <span class="n">sim_id_str</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim_id_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrows</span><span class="p">)]</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim_id_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrows</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;from_file&quot;</span><span class="p">:</span>
+            <span class="n">data_new</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+            <span class="n">data_new</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">data_new</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">df</span>
+            <span class="n">data_new</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">new_datafile_fn</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;merging with candidates from previous simulations&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">filename:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">last_datafile_fn</span><span class="p">))</span>
+            <span class="n">data_old</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data_old</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">last_datafile_fn</span><span class="p">)</span>
+                <span class="n">data_old</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data_old</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">])</span>
+                <span class="n">data_old</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">new_datafile_fn</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">i_iteration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">new_datafile_fn</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.merge_error_files"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.merge_error_files">[docs]</a>    <span class="k">def</span> <span class="nf">merge_error_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; merge the pyposmat data files</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            i_iteration(int): the current iteration which just finished</span>
+<span class="sd">            last_datafile_fn(str,optional): the filename of the last dataset in the data directory.</span>
+<span class="sd">            new_datafile_fn(str,optional): where to output the file results </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">badparameters_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span><span class="s1">&#39;pyposmat.badparameters.out&#39;</span><span class="p">)</span>
+
+        <span class="n">data_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span>
+        <span class="n">rank_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;rank_&#39;</span><span class="p">)]</span>
+        <span class="n">filenames</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span><span class="n">v</span><span class="p">,</span><span class="s1">&#39;pyposmat.badparameters.out&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rank_dirs</span><span class="p">]</span>
+
+        <span class="c1"># consolidate rank directories</span>
+        <span class="n">badparameters_new</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">badparameters_next</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">filenames</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">badparameters_new</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">badparameters_new</span> <span class="o">=</span> <span class="n">PyposmatBadParametersFile</span><span class="p">(</span><span class="n">o_config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span>
+                    <span class="n">badparameters_new</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;no bad parameters file at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">badparameters_next</span> <span class="o">=</span> <span class="n">PyposmatBadParametersFile</span><span class="p">(</span><span class="n">o_config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span>
+                    <span class="n">badparameters_next</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+                    <span class="n">badparameters_new</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">badparameters_new</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">badparameters_next</span><span class="o">.</span><span class="n">df</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;no bad parameters file as </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+        <span class="c1"># determine the sim_id for bad parameters of the sim_id</span>
+        <span class="k">if</span> <span class="n">badparameters_new</span><span class="o">.</span><span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># no previous bad paramters found</span>
+            <span class="c1"># TODO: need to implement something here to deal with bad parameters</span>
+            <span class="k">pass</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nrows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">badparameters_new</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+            <span class="n">sim_id_fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{:0&gt;2}</span><span class="s1">_</span><span class="si">{:0&gt;6}</span><span class="s1">&#39;</span>
+            <span class="n">sim_id_str</span> <span class="o">=</span> <span class="p">[</span><span class="n">sim_id_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrows</span><span class="p">)]</span>
+            <span class="n">badparameters_new</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sim_id_str</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i_iteration</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;from_file&quot;</span><span class="p">:</span>
+                <span class="n">badparameters_new</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">badparameters_fn</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;merging with bad candidates from previous simulations&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">filename:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">badparameters_fn</span><span class="p">))</span>
+                <span class="n">badparameters</span> <span class="o">=</span> <span class="n">PyposmatBadParametersFile</span><span class="p">(</span><span class="n">o_config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">badparameters</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">badparameters_fn</span><span class="p">)</span>
+                    <span class="n">badparameters</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">badparameters</span><span class="o">.</span><span class="n">df</span><span class="p">,</span><span class="n">badparameters_new</span><span class="o">.</span><span class="n">df</span><span class="p">])</span>
+                    <span class="n">badparameters</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">badparameters_fn</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i_iteration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">badparameters_new</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">badparameters_fn</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.analyze_results"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.analyze_results">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                        <span class="n">i_iteration</span><span class="p">,</span>
+                        <span class="n">data_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">config_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">kde_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">analysis_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; analyze the results of the simulation</span>
+
+<span class="sd">        this method analyzes the results of the simulation, and does post simulation</span>
+<span class="sd">        tasks, such as filtering by qoi performance, pareto optimization, etc.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_fn(str): the path of the data file.  By default this is set to none </span>
+<span class="sd">                where the the file will be determine by i_iteration and internal </span>
+<span class="sd">                attributes</span>
+<span class="sd">            config_fn(str): the path of the data file.  By default this is set to none </span>
+<span class="sd">                where the the file will be determine by i_iteration and internal </span>
+<span class="sd">                attributes</span>
+<span class="sd">            kde_fn(str): the path of the data file.  By default this is set to none </span>
+<span class="sd">                where the the file will be determine by i_iteration and internal </span>
+<span class="sd">                attributes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">data_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                    <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                    <span class="s1">&#39;pyposmat.results.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">config_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                    <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">kde_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">kde_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                    <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                    <span class="s1">&#39;pyposmat.kde.</span><span class="si">{}</span><span class="s1">.out&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i_iteration</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">analysis_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">analysis_fn</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">root_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span><span class="p">,</span>
+                    <span class="s1">&#39;pyposmat.analysis.out&#39;</span><span class="p">)</span>
+
+        <span class="n">data_analyzer</span> <span class="o">=</span> <span class="n">PyposmatDataAnalyzer</span><span class="p">()</span>
+        <span class="n">data_analyzer</span><span class="o">.</span><span class="n">initialize_configuration</span><span class="p">(</span><span class="n">config_fn</span><span class="o">=</span><span class="n">config_fn</span><span class="p">)</span>
+
+        <span class="n">data_analyzer</span><span class="o">.</span><span class="n">analyze_results_data</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="n">data_fn</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_analyzer</span><span class="o">.</span><span class="n">results_statistics</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">analysis_fn</span><span class="p">):</span>
+            <span class="n">data_analyzer</span><span class="o">.</span><span class="n">read_analysis_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">analysis_fn</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">data_analyzer</span><span class="o">.</span><span class="n">str__results_descriptive_statistics</span><span class="p">(</span>
+                <span class="n">statistics</span><span class="o">=</span><span class="n">data_analyzer</span><span class="o">.</span><span class="n">results_statistics</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="n">data_analyzer</span><span class="o">.</span><span class="n">str__qoi_filtering_summary</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">data_analyzer</span><span class="o">.</span><span class="n">write_kde_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">kde_fn</span><span class="p">)</span>
+        <span class="n">data_analyzer</span><span class="o">.</span><span class="n">analyze_kde_data</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="n">kde_fn</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data_analyzer</span><span class="o">.</span><span class="n">kde_statistics</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">data_analyzer</span><span class="o">.</span><span class="n">str__kde_descriptive_statistics</span><span class="p">(</span>
+                <span class="n">statistics</span><span class="o">=</span><span class="n">data_analyzer</span><span class="o">.</span><span class="n">kde_statistics</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">data_analyzer</span><span class="o">.</span><span class="n">update_analysis</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span>
+        <span class="n">data_analyzer</span><span class="o">.</span><span class="n">write_analysis_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">analysis_fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatIterativeSampler.read_configuration_file"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.mc_sampler_iterate.PyposmatIterativeSampler.read_configuration_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration_filename</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_parameter_names</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_qoi_names</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_error_names</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_write_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameter_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">parameter_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">_parameter_names</span> <span class="o">=</span> <span class="n">parameter_names</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{:^80}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;PARAMETER_NAMES&#39;</span><span class="p">)]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_parameter_names</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        
+    <span class="k">def</span> <span class="nf">_write_qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">_qoi_names</span> <span class="o">=</span> <span class="n">qoi_names</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{:^80}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;QOI_NAMES&#39;</span><span class="p">)]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_write_error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">error_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">_error_names</span> <span class="o">=</span> <span class="n">error_names</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{:^80}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;ERROR_NAMES&#39;</span><span class="p">)]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">]</span>
+        <span class="n">s</span> <span class="o">+=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_error_names</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">s</span><span class="p">))</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">Ni__eam__morse_exp_universal</span> <span class="k">as</span> <span class="nn">Ni_eam</span>
+
+    <span class="c1">#------------------------------------------------------------------------------</span>
+    <span class="c1"># WRITE CONFIGURATION FILE</span>
+    <span class="c1">#------------------------------------------------------------------------------</span>
+    <span class="n">Ni_eam_configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="n">Ni_eam</span><span class="o">.</span><span class="n">Ni_qoi_db</span><span class="o">.</span><span class="n">qois</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="n">Ni_eam</span><span class="o">.</span><span class="n">Ni_eam_potential_formalism</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="n">Ni_eam</span><span class="o">.</span><span class="n">Ni_structure_db</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">sampling_type</span> <span class="o">=</span> <span class="n">Ni_eam</span><span class="o">.</span><span class="n">Ni_eam_sampling</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">sampling_distribution</span> <span class="o">=</span><span class="n">Ni_eam</span><span class="o">.</span><span class="n">Ni_eam_parameter_distribution</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;pypospack.config.in&#39;</span><span class="p">)</span>
+    <span class="n">Ni_eam_configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;pypospack.config.in&#39;</span><span class="p">)</span>
+
+    <span class="n">pypospack_filename_in</span> <span class="o">=</span> <span class="s1">&#39;pypospack.config.in&#39;</span>
+    <span class="n">pyposmat_app</span> <span class="o">=</span> <span class="n">PyposmatIterativeSampler</span><span class="p">(</span>
+        <span class="n">configuration_filename</span> <span class="o">=</span> <span class="n">pypospack_filename_in</span><span class="p">)</span>
+    <span class="n">pyposmat_app</span><span class="o">.</span><span class="n">read_configuration_file</span><span class="p">()</span>
+    <span class="c1">#pyposmat_app.read_configuration_file(filename=pyposmat_configuration_filename)</span>
+    <span class="n">pyposmat_app</span><span class="o">.</span><span class="n">run_all</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

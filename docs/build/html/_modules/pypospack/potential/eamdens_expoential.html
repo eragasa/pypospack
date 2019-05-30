@@ -1,0 +1,213 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pypospack.potential.eamdens_expoential &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" accesskey="U">pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.potential.eamdens_expoential</h1><div class="highlight"><pre>
+<span></span><span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2017&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="mi">20171102</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">EamDensityFunction</span>
+
+<div class="viewcode-block" id="ExponentialDensityFunction"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamdens_expoential.ExponentialDensityFunction">[docs]</a><span class="k">class</span> <span class="nc">ExponentialDensityFunction</span><span class="p">(</span><span class="n">EamDensityFunction</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        symbols(list of str)</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        symbols(list of str)</span>
+<span class="sd">        potential_type(str): This is set to &#39;eamembed_universal&#39;</span>
+<span class="sd">        parameter_names(list of str)</span>
+<span class="sd">        parameters(OrderedDict): The key is the symbol associated with the</span>
+<span class="sd">            embedding function.  On initialization, the value of each parameter</span>
+<span class="sd">            is set to None.</span>
+<span class="sd">        density(OrderedDict): The key is the symbol associated with the </span>
+<span class="sd">            embedding function.</span>
+<span class="sd">        N_r(int)</span>
+<span class="sd">        d_r(float)</span>
+<span class="sd">        r_max(float)</span>
+<span class="sd">        r(numpy.ndarray)</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbols</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">density_func_parameters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;rho0&#39;</span><span class="p">,</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;r0&#39;</span><span class="p">]</span>
+        <span class="n">EamDensityFunction</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="n">symbols</span><span class="o">=</span><span class="n">symbols</span><span class="p">,</span>
+                <span class="n">potential_type</span><span class="o">=</span><span class="s1">&#39;eamdens_exp&#39;</span><span class="p">)</span>
+
+        
+    <span class="k">def</span> <span class="nf">_init_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_func_parameters</span><span class="p">:</span>
+                <span class="n">pn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">p</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">_init_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ExponentialDensityFunction.evaluate"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamdens_expoential.ExponentialDensityFunction.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">parameters</span><span class="p">,</span><span class="n">r_cut</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Given a vector of interatomic distances, r, passed in as variable</span>
+<span class="sd">        r, and the associated parameters of the potential.  This method</span>
+<span class="sd">        sets the density attribute.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            r(numpy.ndarray): This should be named as rho because it</span>
+<span class="sd">                represents the electron density being evaluated.</span>
+<span class="sd">            parameters(OrderedDict): This is a dictionary of the parameters</span>
+<span class="sd">                of the embedding function for each atom.  The key is a</span>
+<span class="sd">                string containing the ISO chemical symbol of the element.</span>
+<span class="sd">                The value should be a numeric value.</span>
+<span class="sd">            r_cut(float): This would be the density cutoff.  However the</span>
+<span class="sd">                embedding energy is increasing with increasing electron</span>
+<span class="sd">                density so the a r_cut has no physical meaning.  Any </span>
+<span class="sd">                variable passed into r_cut will be ignored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">r_cut</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+        <span class="c1"># attribute.parameters[p] &lt;--- arg:parameters[p]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_func_parameters</span><span class="p">:</span>
+                <span class="n">pn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">p</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">pn</span><span class="p">]</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">pn</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:^80}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;DEBUGGING INFORMATION&quot;</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="mi">80</span><span class="o">*</span><span class="s1">&#39;-&#39;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pn:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pn</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;arg -&gt; parameters:&#39;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    </span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;attr -&gt; density_func_parameters&#39;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">density_func_parameters</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+                    <span class="k">raise</span> 
+        <span class="c1"># cannot evaluate because</span>
+        <span class="k">for</span> <span class="n">pn</span><span class="p">,</span><span class="n">pv</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">pv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">def</span> <span class="nf">func_dens_exp</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">rho0</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span><span class="n">r0</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">rho0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">beta</span><span class="o">*</span><span class="p">(</span><span class="n">r</span><span class="o">-</span><span class="n">r0</span><span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">density_evaluations</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="n">rho0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_rho0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_beta&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="n">r0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_r0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            
+            <span class="k">if</span> <span class="n">r_cut</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">_rho</span> <span class="o">=</span> <span class="n">func_dens_exp</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">rho0</span><span class="p">,</span><span class="n">beta</span><span class="p">,</span><span class="n">r0</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">density_evaluations</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_rho</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_rho</span> <span class="o">=</span> <span class="n">func_dens_exp</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">rho0</span><span class="p">,</span><span class="n">beta</span><span class="p">,</span><span class="n">r0</span><span class="p">)</span>
+                <span class="n">_rcut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r</span><span class="o">&lt;</span><span class="n">r_cut</span><span class="p">)])</span>
+                <span class="n">_h</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">_rho_rc</span> <span class="o">=</span> <span class="n">func_dens_exp</span><span class="p">(</span><span class="n">_rcut</span><span class="p">,</span><span class="n">rho0</span><span class="p">,</span><span class="n">beta</span><span class="p">,</span><span class="n">r0</span><span class="p">)</span>
+                <span class="n">_rho_rc_p1</span> <span class="o">=</span> <span class="n">func_dens_exp</span><span class="p">(</span><span class="n">_rcut</span><span class="o">+</span><span class="n">_h</span><span class="p">,</span><span class="n">rho0</span><span class="p">,</span><span class="n">beta</span><span class="p">,</span><span class="n">r0</span><span class="p">)</span>
+                <span class="n">_rho_rc_m1</span> <span class="o">=</span> <span class="n">func_dens_exp</span><span class="p">(</span><span class="n">_rcut</span><span class="o">-</span><span class="n">_h</span><span class="p">,</span><span class="n">rho0</span><span class="p">,</span><span class="n">beta</span><span class="p">,</span><span class="n">r0</span><span class="p">)</span>
+                <span class="n">_drhodr_at_rc</span> <span class="o">=</span> <span class="p">(</span><span class="n">_rho_rc_p1</span> <span class="o">-</span> <span class="n">_rho_rc</span><span class="p">)</span><span class="o">/</span><span class="n">_h</span>
+
+                <span class="n">_rho</span> <span class="o">=</span> <span class="n">_rho</span> <span class="o">-</span> <span class="n">_rho_rc</span> <span class="o">-</span><span class="n">_drhodr_at_rc</span> <span class="o">*</span> <span class="p">(</span><span class="n">r</span><span class="o">-</span><span class="n">_rcut</span><span class="p">)</span>
+                <span class="n">_rho</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r</span><span class="o">&gt;=</span><span class="n">_rcut</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">density_evaluations</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">_rho</span><span class="p">)</span>
+              
+        <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">density_evaluations</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="n">symbols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">ExponentialDensityFunction</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="n">symbols</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">potential_type</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" >pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.9.
+    </div>
+  </body>
+</html>

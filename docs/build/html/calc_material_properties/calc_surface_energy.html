@@ -1,0 +1,221 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Calculating Surface Energies &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script type="text/javascript" src="../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Potential Development" href="../pot_dev/index.html" />
+    <link rel="prev" title="Calculating Bulk Properties" href="calc_bulk_properties.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../pot_dev/index.html" title="Potential Development"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="calc_bulk_properties.html" title="Calculating Bulk Properties"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../computational_simulation_tools.html" >Computational Simulation Tools</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="index.html" accesskey="U">Calculation of Material Properties</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Calculating Surface Energies</a><ul>
+<li><a class="reference internal" href="#notation">Notation</a><ul>
+<li><a class="reference internal" href="#creating-the-structures">Creating the Structures</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#rotation-matrices">Rotation Matrices</a><ul>
+<li><a class="reference internal" href="#calculation-of-suface-energies">Calculation of Suface Energies</a></li>
+<li><a class="reference internal" href="#convergence-of-surface-energy-calculations">Convergence of Surface Energy Calculations</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#converging-the-width-of-the-slab">Converging the width of the slab</a></li>
+<li><a class="reference internal" href="#converging-the-amount-of-the-vacuum">Converging the amount of the vacuum</a></li>
+<li><a class="reference internal" href="#converging-the-kpoint-mesh">Converging the kpoint-mesh</a><ul>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="calc_bulk_properties.html"
+                        title="previous chapter">Calculating Bulk Properties</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../pot_dev/index.html"
+                        title="next chapter">Potential Development</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/calc_material_properties/calc_surface_energy.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="calculating-surface-energies">
+<span id="calc-surface-energy"></span><h1>Calculating Surface Energies<a class="headerlink" href="#calculating-surface-energies" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="notation">
+<h2>Notation<a class="headerlink" href="#notation" title="Permalink to this headline">¶</a></h2>
+<p>Vectors and planes in a crystal lattice are described by three-value Miller index notation.  It uses
+the indices <img class="math" src="../_images/math/bbdfa67f88139b9373249cd2388b8c15074fbda6.png" alt="h"/>, <img class="math" src="../_images/math/45c7d5c648909b1cb244e5152261a0dcb5a05f8a.png" alt="l"/>, and <img class="math" src="../_images/math/60614f28a0aa9e1b892cc77bd14626747fe35358.png" alt="k"/> as direction parameters.  By definition, the notation <img class="math" src="../_images/math/5f7f5986c77a3b8c2da18304f673e98facf7d304.png" alt="(hlk)"/>
+denotes a plane which intercepts three points: <img class="math" src="../_images/math/a51a61bc00680a49898e4549ca5d82c70fb9ff38.png" alt="a_1/h"/>, <img class="math" src="../_images/math/6ac38f381d8e728b0d6ec31af902bc599b919d61.png" alt="a_2/l"/>, and <img class="math" src="../_images/math/f6efc902d1a8ecd6449a3926e7450617579b490c.png" alt="a_3/k"/>.</p>
+<p>A more convenient definition of the <img class="math" src="../_images/math/5f7f5986c77a3b8c2da18304f673e98facf7d304.png" alt="(hlk)"/> family of the planes are the planes orthogonal to the vector <img class="math" src="../_images/math/36a6f3a12e42ef74bbbdb4f81fa2a879faae9419.png" alt="[h,l,k]"/>.</p>
+<ul class="simple">
+<li><p>Coordinates in angle brackets such as <img class="math" src="../_images/math/b0d70e86555a3487af472f8060802488f0b68fe5.png" alt="\langle 100 \rangle"/> denote a family of directions that are equivalent due to symmetry operations, such as <img class="math" src="../_images/math/ba4a353430446d1048bb5c993e64cc97ea44dc9e.png" alt="[100]"/>, <img class="math" src="../_images/math/7567ed7215ba4b4d5df264b42d859528533b3422.png" alt="[010]"/>, <img class="math" src="../_images/math/95b5ff7b083fd55b49820d5affd520d29ddefddf.png" alt="[001]"/> or the negative of any of those directions.</p></li>
+<li><p>Coordinates in curly brackets or braces such as <img class="math" src="../_images/math/b0d70e86555a3487af472f8060802488f0b68fe5.png" alt="\langle 100 \rangle"/> denote a family of plane normals that are equivalent due to symmetry operations, much the way angle brackets denote a family of directions.</p></li>
+</ul>
+<div class="section" id="creating-the-structures">
+<h3>Creating the Structures<a class="headerlink" href="#creating-the-structures" title="Permalink to this headline">¶</a></h3>
+<p>The process for creating slab surfaces has been described in literature.</p>
+<ul class="simple">
+<li><p><span>[trans2016_surface]</span> Tran.</p></li>
+</ul>
+<p>The strategy to create a surface, it is desirable to have it defined in a orthorhombic simulation (or near orthorhombic simulation cell), with family of planes we are interested in be perpendicular to the z-axis.</p>
+<p>To do this we transform the a unit vector in the <img class="math" src="../_images/math/36a6f3a12e42ef74bbbdb4f81fa2a879faae9419.png" alt="[h,l,k]"/> direction into a vector in the <img class="math" src="../_images/math/806344e34c50ee7712322a9a6080a560bbe52332.png" alt="[0,0,1]"/> direction.</p>
+<div class="math">
+<p><img src="../_images/math/3b966635be9cba5c411a5f00b5da45ff12703274.png" alt="\begin{bmatrix} h \\ l \\ k \end{bmatrix}
+\begin{bmatrix} p_{11} &amp; p_{12} &amp; p_{13} \\ p_{21} &amp; p_{22} &amp; p_{23} \\ p_{31} &amp; p_{32} &amp; p_{33} \end{bmatrix}
+=
+\begin{bmatrix} 0 \\ 0 \\ 1  \end{bmatrix}"/></p>
+</div><p>In order to create a surface, it is desireable to have it defined in a orthorhombic simulation cell, with the desired orientation of the surface in the <img class="math" src="../_images/math/806344e34c50ee7712322a9a6080a560bbe52332.png" alt="[0,0,1]"/> direction.  I need to find the basis vectors and also the number of basic vector for the interface to be along (110) or (111) plane and the unit cell which I again guess will be cubic. Then I need to repeat these basis vectors along all three axis to generate the crystal with the required orientation.  Given the linear transformation matrix <img class="math" src="../_images/math/be7242dc84458e14b02304fab022cc729a062f6f.png" alt="\mathbf{M}"/> and the translation vector <img class="math" src="../_images/math/cf904f949072ee1b751b51c9bc64914292d2b1b2.png" alt="\mathbf{t}"/>.  The new position of a particle will be</p>
+<div class="math">
+<p><img src="../_images/math/2305e2c414e74b581d320973841348491795b70d.png" alt="x^\prime = \mathbf{M} \mathbf{x} + \mathbf{t}"/></p>
+</div></div>
+</div>
+<div class="section" id="rotation-matrices">
+<h2>Rotation Matrices<a class="headerlink" href="#rotation-matrices" title="Permalink to this headline">¶</a></h2>
+<p>There are two types of rotational matrices, one which covers polar angle transformation and one that covers Euler angle transformation.</p>
+<p>Typically, discussions of transformation matrices are covered under an Euler angle transformation.</p>
+<p>Let us define the Euler Angle transformation matrices,</p>
+<p><img class="math" src="../_images/math/4061538c85b485a868bd750c825ba2b9d313678d.png" alt="\mathbf{R}
+The mathematics of rotation matrices are covered in :cite:"/>.</p>
+<div class="align-center figure" id="id4">
+<a class="reference internal image-reference" href="../_images/polar_angles.jpg"><img alt="../_images/polar_angles.jpg" src="../_images/polar_angles.jpg" style="width: 50%;" /></a>
+<p class="caption"><span class="caption-text">Polar coordinate representation, image from <a class="reference internal" href="#evans2001rotations" id="id2">[Eva01]</a>.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</div>
+<p>We know that the <img class="math" src="../_images/math/6eb9103651c936d72d9a38d6f7c74fffec02127d.png" alt="[111]"/> vector</p>
+<p>Suppose we have the original basis vectors <img class="math" src="../_images/math/0d73500da639ed34ce6e67f4396d6b5150438956.png" alt="\mathbf{a}_1"/>, <img class="math" src="../_images/math/7b1c206df6c87d365158a5b3e4704f5f0ac93c6c.png" alt="\mathbf{a}_2"/>, and <img class="math" src="../_images/math/0965ab487bdaa3c263ceba739d6db1019307ed8c.png" alt="\mathbf{a}_3"/>,
+The new basis vectors <img class="math" src="../_images/math/801cc62ae275d39538ea8de6476f76d91fd60a28.png" alt="\mathbf{a}_1^\prime"/>, <img class="math" src="../_images/math/0829a1b80897fa73e50ea88d1a5182cb4ce3454c.png" alt="\mathbf{a}_2^\prime"/>, and <img class="math" src="../_images/math/ad1ea1a16e4beee11f1e7d4a29668df12dfd8368.png" alt="\mathbf{a}_2\prime"/>.  The the rotation matrix <img class="math" src="../_images/math/f2834259e1b39ed6c46f7656a1adf37151293944.png" alt="\mathbf{P}"/> is related to these quantities</p>
+<div class="math">
+<p><img src="../_images/math/2d301375af2245e8a9fa5de8e225e500343f4365.png" alt="\begin{bmatrix} \mathbf{a}_1^\prime &amp; \mathbf{a}_2^\prime &amp; \mathbf{a}_3^\prime \end{bmatrix} =
+\begin{bmatrix} \mathbf{a}_1 &amp; \mathbf{a}_2 &amp; \mathbf{a}_3 \end{bmatrix}
+\begin{bmatrix} p_{11} &amp; p_{12} &amp; p_{13} \\ p_{21} &amp; p_{22} &amp; p_{23} \\ p_{31} &amp; p_{32} &amp; p_{33} \end{bmatrix}"/></p>
+</div><p><a class="reference external" href="https://www.researchgate.net/file.PostFileLoader.html?id=560d40475e9d97f2d68b4600&amp;assetKey=AS%3A279749973823490%401443708999090">Emre Tasci.  How to Prepare an Input File for Surface Calculations.</a>
+<a class="reference external" href="https://compuphys.wordpress.com/2015/02/10/surface-slabs-mit-vesta/">Using VESTA to make a surface.</a></p>
+<div class="section" id="calculation-of-suface-energies">
+<h3>Calculation of Suface Energies<a class="headerlink" href="#calculation-of-suface-energies" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="convergence-of-surface-energy-calculations">
+<h3>Convergence of Surface Energy Calculations<a class="headerlink" href="#convergence-of-surface-energy-calculations" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>The creation and convergence of surface slabs.:cite:<cite>sun2013_surface_slabs</cite></p></li>
+<li><p><a class="reference internal" href="#wan1999surface" id="id3">[WFG+99]</a>.  Modelling of surface relaxation and stress in fcc metals.</p></li>
+<li><p><cite>Surface Calculation example in DFT.&lt;http://exciting-code.org/lithium-surface-calculations#toc17&gt;</cite>.  I really like the format of this presentation.  I will use this format in both preparing a DFT exercise, creating a slab convergence workflow, and elucidating the points below.</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="converging-the-width-of-the-slab">
+<h2>Converging the width of the slab<a class="headerlink" href="#converging-the-width-of-the-slab" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="converging-the-amount-of-the-vacuum">
+<h2>Converging the amount of the vacuum<a class="headerlink" href="#converging-the-amount-of-the-vacuum" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="converging-the-kpoint-mesh">
+<h2>Converging the kpoint-mesh<a class="headerlink" href="#converging-the-kpoint-mesh" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://people.virginia.edu/~lz2n/mse6020/notes/D-partial-fcc.pdf">Partial dislocations in FCC crystals</a></p>
+<div class="section" id="references">
+<h3>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h3>
+<p id="bibtex-bibliography-calc_material_properties/calc_surface_energy-0"><dl class="citation">
+<dt class="label" id="evans2001rotations"><span class="brackets"><a class="fn-backref" href="#id2">Eva01</a></span></dt>
+<dd><p>Philip R Evans. Rotations and rotation matrices. <em>Acta Crystallographica Section D: Biological Crystallography</em>, 57(10):1355–1359, 2001.</p>
+</dd>
+<dt class="label" id="wan1999surface"><span class="brackets"><a class="fn-backref" href="#id3">WFG+99</a></span></dt>
+<dd><p>Jun Wan, YL Fan, DW Gong, SG Shen, and XQ Fan. Surface relaxation and stress of fcc metals: cu, ag, au, ni, pd, pt, al and pb. <em>Modelling and Simulation in Materials Science and Engineering</em>, 7(2):189, 1999.</p>
+</dd>
+</dl>
+</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../pot_dev/index.html" title="Potential Development"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="calc_bulk_properties.html" title="Calculating Bulk Properties"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../computational_simulation_tools.html" >Computational Simulation Tools</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="index.html" >Calculation of Material Properties</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

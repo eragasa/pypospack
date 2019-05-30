@@ -1,0 +1,144 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.task.lammps &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.task.lammps</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*- </span>
+<span class="sd">&quot;&quot;&quot; Implementation of LammpsSimulation abstract and implemented classes </span>
+
+<span class="sd">This module implements simulation tasks.  An abstract class is implemented in</span>
+<span class="sd">LAMMPS simulation tasks, this class should be subclassed for new implementations</span>
+<span class="sd">requiring LAMMPS simulations.  Tasks which do not require a LAMMPS simulation </span>
+<span class="sd">should subclass the pypospack.io.base.Task instead.</span>
+
+<span class="sd">Attributes:</span>
+<span class="sd">    atom_style_list(:obj:`list` of :obj:`str`)</span>
+<span class="sd">    potential_map ist: module level variable to indicate atom styles for LAMMPS</span>
+
+
+<span class="sd">Todo:</span>
+<span class="sd">    * nothing as this point</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span><span class="nn">importlib</span><span class="o">,</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="c1"># import pypospack.potential as potential</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.vasp</span> <span class="k">as</span> <span class="nn">vasp</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.lammps</span> <span class="k">as</span> <span class="nn">lammps</span>
+<span class="kn">from</span> <span class="nn">pypospack.task</span> <span class="k">import</span> <span class="n">Task</span>
+<span class="kn">from</span> <span class="nn">pypospack.io.eamtools</span> <span class="k">import</span> <span class="n">EamSetflFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">Potential</span><span class="p">,</span><span class="n">EamPotential</span><span class="p">,</span><span class="n">PotentialObjectMap</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">StillingerWeberPotential</span>
+
+<span class="n">atom_style_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">,</span><span class="s1">&#39;atomic&#39;</span><span class="p">]</span>
+
+<span class="n">lammps_simulation_map</span> <span class="o">=</span> <span class="p">{</span>\
+        <span class="s1">&#39;min_all&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsStructuralMinimization&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;min_pos&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsPositionMinimization&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;min_none&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsStaticCalculations&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;elastic&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsElasticCalculation&#39;</span><span class="p">},</span>
+        <span class="s1">&#39;npt&#39;</span><span class="p">:{</span>
+            <span class="s1">&#39;module&#39;</span><span class="p">:</span><span class="s1">&#39;pypospack.task.lammps&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;class&#39;</span><span class="p">:</span><span class="s1">&#39;LammpsNptSimulation&#39;</span><span class="p">}</span>
+        <span class="p">}</span>
+
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">LammpsSimulationError</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.abstract_lammps_task</span> <span class="k">import</span> <span class="n">AbstractLammpsSimulation</span>
+
+<div class="viewcode-block" id="LammpsSimulation"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.lammps.LammpsSimulation">[docs]</a><span class="k">class</span> <span class="nc">LammpsSimulation</span><span class="p">(</span><span class="n">AbstractLammpsSimulation</span><span class="p">):</span> <span class="k">pass</span></div>
+
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.lmps_min_none</span> <span class="k">import</span> <span class="n">LammpsStaticCalculations</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.lmps_min_pos</span> <span class="k">import</span> <span class="n">LammpsPositionMinimization</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.lmps_min_all</span> <span class="k">import</span> <span class="n">LammpsStructuralMinimization</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.elastic_calculation</span> <span class="k">import</span> <span class="n">LammpsElasticCalculation</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.lammps_npt_simulation</span> <span class="k">import</span> <span class="n">LammpsNptSimulation</span>
+<span class="kn">from</span> <span class="nn">pypospack.task.tasks_lammps.lmps_min_sf</span> <span class="k">import</span> <span class="n">LammpsStackingFaultMinimization</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

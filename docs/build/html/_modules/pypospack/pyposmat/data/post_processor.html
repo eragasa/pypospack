@@ -1,0 +1,257 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.data.post_processor &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.data.post_processor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+
+<div class="viewcode-block" id="PyposmatPostProcessor"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.post_processor.PyposmatPostProcessor">[docs]</a><span class="k">class</span> <span class="nc">PyposmatPostProcessor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">configuration_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">datafile_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ERROR_STR_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ABSOLUTE_ERROR_STR_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.abserr&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NORMALIZED_ERROR_STR_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datafile</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="kc">None</span>
+   
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datafile_fn</span> <span class="o">=</span> <span class="kc">None</span>
+       
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_fitting_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_testing_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">configuration_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_configuration</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">configuration_fn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">datafile_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">read_datafile</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">datafile_fn</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span><span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span>
+    
+    <span class="nd">@configuration</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">config</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">config</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span><span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datafile</span>
+    
+    <span class="nd">@datafile</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">datafile</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datafile</span><span class="o">=</span><span class="n">datafile</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span>
+
+<div class="viewcode-block" id="PyposmatPostProcessor.read_configuration"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.post_processor.PyposmatPostProcessor.read_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">parameter_names</span>
+
+        <span class="c1"># determine_qoi_names_from_configuration_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_validation_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span>
+        
+        <span class="c1"># determine_error_names_from_configuration_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_fitting_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_testing_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_validation_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_fitting_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_testing_names</span>
+
+        <span class="c1"># determine_absolute_error_names_from_configuration_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abs_error_fitting_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.abserr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abs_error_testing_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.abserr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">abs_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">abs_error_fitting_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">abs_error_testing_names</span>
+
+        <span class="c1"># determine_normalized_error_names_from_configuration_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_error_fitting_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_error_testing_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_error_fitting_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm_error_testing_names</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_config_qois_fitting</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qois</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_targets</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="p">[(</span><span class="n">q</span><span class="p">,</span><span class="n">_config_qois_fitting</span><span class="p">[</span><span class="n">q</span><span class="p">][</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_config_qoi_testing</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qois_validation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_targets</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span>
+                <span class="p">[(</span><span class="n">q</span><span class="p">,</span><span class="n">_config_qoi_testing</span><span class="p">[</span><span class="n">q</span><span class="p">][</span><span class="s1">&#39;target&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_targets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_targets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="c1"># old naming convention [DEPRECATED]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_validation_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_validation_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_validation_names</span></div>
+
+<div class="viewcode-block" id="PyposmatPostProcessor.read_datafile"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.post_processor.PyposmatPostProcessor.read_datafile">[docs]</a>    <span class="k">def</span> <span class="nf">read_datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datafile_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">_filename</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">error_names</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datafile</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_absolute_errors</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatPostProcessor.create_absolute_errors"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.post_processor.PyposmatPostProcessor.create_absolute_errors">[docs]</a>    <span class="k">def</span> <span class="nf">create_absolute_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="k">elif</span> <span class="n">qoi_names</span> <span class="o">==</span> <span class="s1">&#39;fitting&#39;</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span>
+        <span class="k">elif</span> <span class="n">qoi_names</span> <span class="o">==</span> <span class="s1">&#39;testing&#39;</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">:</span>
+            <span class="n">aen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NORMALIZED_ERROR_STR_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="n">en</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ERROR_STR_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">aen</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">en</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatPostProcessor.create_normalized_errors"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.post_processor.PyposmatPostProcessor.create_normalized_errors">[docs]</a>    <span class="k">def</span> <span class="nf">create_normalized_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">normalization_type</span><span class="o">=</span><span class="s1">&#39;by_qoi&#39;</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; normalize errors</span>
+
+<span class="sd">        This class normalizes errors</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            normalization_type(str): normalization type</span>
+<span class="sd">            qoi_names (str,list): allows both string arguments as well as a list of string.</span>
+<span class="sd">        If a list of strings is provided, it will create normalized errors based on the </span>
+<span class="sd">        list of string.  If qoi_name is set to &#39;all&#39;, it will calculate normalized error based on</span>
+<span class="sd">        both the attributes based on both the fitting qoi as well as the testing qoi.  If no</span>
+<span class="sd">        argument is provided, normalized error will be set to &#39;all&#39;.   Valid options: all, fitting, testing, or</span>
+<span class="sd">        list of qoi strings.</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="k">elif</span> <span class="n">qoi_names</span> <span class="o">==</span> <span class="s1">&#39;fitting&#39;</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_fitting_names</span>
+        <span class="k">elif</span> <span class="n">qoi_names</span> <span class="o">==</span> <span class="s1">&#39;testing&#39;</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_testing_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+
+        <span class="n">_normalization_functions</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([</span>
+            <span class="p">(</span><span class="s1">&#39;by_qoi&#39;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize_error_by_qoi</span><span class="p">)</span>
+            <span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalization_functions</span><span class="p">[</span><span class="n">normalization_type</span><span class="p">](</span><span class="n">qoi_names</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatPostProcessor.normalize_error_by_qoi"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.post_processor.PyposmatPostProcessor.normalize_error_by_qoi">[docs]</a>    <span class="k">def</span> <span class="nf">normalize_error_by_qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_name</span><span class="p">,</span><span class="n">df</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">df</span><span class="p">,</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="n">nerr_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">NORMALIZED_ERROR_STR_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="n">err_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ERROR_STR_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">nerr_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">err_name</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span><span class="p">[</span><span class="n">q</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1.</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,366 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.visualization.plots_1d &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.visualization.plots_1d</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">=========================================================</span>
+<span class="sd">Demo of the histogram (hist) function with a few features</span>
+<span class="sd">=========================================================</span>
+
+<span class="sd">In addition to the basic histogram, this demo shows a few optional</span>
+<span class="sd">features:</span>
+
+<span class="sd">    * Setting the number of data bins</span>
+<span class="sd">    * The ``normed`` flag, which normalizes bin heights so that the</span>
+<span class="sd">      integral of the histogram is 1. The resulting histogram is an</span>
+<span class="sd">      approximation of the probability density function.</span>
+<span class="sd">    * Setting the face color of the bars</span>
+<span class="sd">    * Setting the opacity (alpha value).</span>
+
+<span class="sd">Selecting different bin counts and sizes can significantly affect the</span>
+<span class="sd">shape of a histogram. The Astropy docs have a great section on how to</span>
+<span class="sd">select these parameters:</span>
+<span class="sd">http://docs.astropy.org/en/stable/visualization/histogram.html</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.mlab</span> <span class="k">as</span> <span class="nn">mlab</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="k">import</span> <span class="n">norm</span><span class="p">,</span><span class="n">gaussian_kde</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.visualization</span> <span class="k">import</span> <span class="n">PyposmatDataFileVisualization</span>
+
+<div class="viewcode-block" id="PyposmatErrorNormalizationError"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.plots_1d.PyposmatErrorNormalizationError">[docs]</a><span class="k">class</span> <span class="nc">PyposmatErrorNormalizationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span> <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="Pyposmat1DHistogramWithDensityPlots"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.plots_1d.Pyposmat1DHistogramWithDensityPlots">[docs]</a><span class="k">class</span> <span class="nc">Pyposmat1DHistogramWithDensityPlots</span><span class="p">(</span><span class="n">PyposmatDataFileVisualization</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">PyposmatDataFileVisualization</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_format</span> <span class="o">=</span> <span class="s2">&quot;eps&quot;</span>
+   
+<div class="viewcode-block" id="Pyposmat1DHistogramWithDensityPlots.read_configuration"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.plots_1d.Pyposmat1DHistogramWithDensityPlots.read_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="n">PyposmatDataFileVisualization</span><span class="o">.</span><span class="n">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_targets</span></div>
+
+    <span class="c1">#def plot(self,x_name,results_filename_dict,filename=None):</span>
+    <span class="c1">#    for k,v in results_filename_dict.items():</span>
+    <span class="c1">#       print(k,v)</span>
+
+<div class="viewcode-block" id="Pyposmat1DHistogramWithDensityPlots.plot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.plots_1d.Pyposmat1DHistogramWithDensityPlots.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">x_name</span><span class="p">,</span>
+            <span class="n">x_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">x_max</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">x_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1">#DEPRECATED</span>
+            <span class="n">x_nsteps</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">include_histogram</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_normal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">include_kde</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">histogram_nbins</span> <span class="o">=</span> <span class="mi">50</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">histogram_color</span> <span class="o">=</span> <span class="s2">&quot;skyblue&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">histogram_label</span> <span class="o">=</span> <span class="s2">&quot;histogram&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_smallest_percentile</span> <span class="o">=</span> <span class="mf">0.95</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">normal_dist_label</span> <span class="o">=</span> <span class="s1">&#39;normal&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normal_dist_color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normal_dist_linetype</span> <span class="o">=</span> <span class="s1">&#39;--&#39;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">kde_label</span> <span class="o">=</span> <span class="s1">&#39;KDE&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kde_linetype</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kde_color</span> <span class="o">=</span> <span class="s1">&#39;black&#39;</span>
+        
+        <span class="k">if</span> <span class="n">x_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.nerr&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_normed_errors</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="n">x_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sum_all.nerr&quot;</span><span class="p">,</span><span class="s2">&quot;sum_sq.nerr&quot;</span><span class="p">]:</span>
+            <span class="n">_n_smallest_percentile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_smallest_percentile</span>
+            <span class="n">_nrows</span><span class="p">,</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">_nsmallest</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_nrows</span><span class="o">*</span><span class="n">_n_smallest_percentile</span><span class="p">)</span>
+            <span class="n">_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="n">_nsmallest</span><span class="p">)</span>
+            
+        <span class="k">elif</span> <span class="n">x_name</span> <span class="o">==</span> <span class="s2">&quot;sum_sq.nerr&quot;</span><span class="p">:</span>
+            <span class="n">_n_smallest_percentile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_smallest_percentile</span>
+            <span class="n">_nrows</span><span class="p">,</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">_nsmallest</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">_nrows</span><span class="o">*</span><span class="n">_n_smallest_percentile</span><span class="p">)</span>
+            <span class="n">_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="n">_nsmallest</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span>
+
+ 
+        <span class="k">if</span> <span class="n">x_min</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;sum_all.nerr&quot;</span><span class="p">,</span><span class="s2">&quot;sum_sq.nerr&quot;</span><span class="p">]:</span> 
+                <span class="n">_x_min</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span> 
+                <span class="n">_x_min</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="n">_x_min</span> <span class="o">=</span> <span class="n">x_min</span>
+        
+        <span class="k">if</span> <span class="n">x_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="n">_x_max</span> <span class="o">=</span> <span class="n">_x</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_x_max</span> <span class="o">=</span> <span class="n">x_max</span>
+       
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        <span class="n">_fig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fig</span>
+        <span class="n">_ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ax</span>
+        
+        <span class="k">if</span> <span class="n">include_histogram</span><span class="p">:</span>
+            <span class="c1"># the histogram of the data</span>
+            <span class="n">_num_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram_nbins</span>
+            <span class="n">_histogram_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram_color</span>
+            <span class="n">_histogram_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram_label</span>
+            <span class="n">_n</span><span class="p">,</span> <span class="n">_bins</span><span class="p">,</span> <span class="n">_patches</span> <span class="o">=</span> <span class="n">_ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span>
+                    <span class="n">_x</span><span class="p">,</span> 
+                    <span class="n">_num_bins</span><span class="p">,</span> 
+                    <span class="n">color</span> <span class="o">=</span> <span class="n">_histogram_color</span><span class="p">,</span>
+                    <span class="n">normed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span> <span class="n">_histogram_label</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">include_normal</span><span class="p">,</span><span class="n">include_kde</span><span class="p">]):</span>
+            <span class="n">_x_nsteps</span> <span class="o">=</span> <span class="n">x_nsteps</span>
+            <span class="n">_X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">_x_min</span><span class="p">,</span><span class="n">_x_max</span><span class="p">,</span><span class="n">_x_nsteps</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">include_normal</span><span class="p">:</span> 
+
+            <span class="n">_normal_dist_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normal_dist_label</span>
+            <span class="n">_normal_dist_color</span> <span class="o">=</span>  <span class="bp">self</span><span class="o">.</span><span class="n">normal_dist_color</span>
+            <span class="n">_normal_dist_linetype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normal_dist_linetype</span>
+
+            <span class="n">_mu</span> <span class="o">=</span> <span class="n">_x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">_sigma</span> <span class="o">=</span> <span class="n">_x</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">handle_norm</span> <span class="o">=</span> <span class="n">_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                    <span class="n">_X</span><span class="p">,</span>
+                    <span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="n">_mu</span><span class="p">,</span><span class="n">_sigma</span><span class="p">),</span>
+                    <span class="n">_normal_dist_linetype</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">_normal_dist_label</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="n">_normal_dist_color</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">include_kde</span><span class="p">:</span>
+
+            <span class="n">_kde_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kde_label</span>
+            <span class="n">_kde_linetype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kde_linetype</span>
+            <span class="n">_kde_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kde_color</span>
+            <span class="n">kde</span> <span class="o">=</span> <span class="n">gaussian_kde</span><span class="p">(</span><span class="n">_x</span><span class="p">)</span>
+            <span class="n">handle_kde</span> <span class="o">=</span> <span class="n">_ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                    <span class="n">_X</span><span class="p">,</span>
+                    <span class="n">kde</span><span class="p">(</span><span class="n">_X</span><span class="p">),</span>
+                    <span class="n">_kde_linetype</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">_kde_label</span><span class="p">,</span>
+                    <span class="n">color</span> <span class="o">=</span> <span class="n">_kde_color</span><span class="p">)</span>
+        
+        <span class="c1"># create_legend()</span>
+        <span class="k">if</span> <span class="n">x_name</span> <span class="o">==</span> <span class="s2">&quot;sum_all.nerr&quot;</span><span class="p">:</span>
+            <span class="n">x_label</span> <span class="o">=</span> <span class="s2">&quot;Sum of Standardized Absolute Errors&quot;</span>
+        <span class="k">elif</span> <span class="n">x_name</span> <span class="o">==</span> <span class="s2">&quot;sum_sq.nerr&quot;</span><span class="p">:</span>
+            <span class="n">x_label</span> <span class="o">=</span> <span class="s2">&quot;Sum of Square Differences&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">latex_labels</span><span class="p">[</span><span class="n">x_name</span><span class="p">]</span>
+        <span class="n">y_label</span> <span class="o">=</span> <span class="s2">&quot;Probability Density&quot;</span>
+       
+        <span class="n">_ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">_x_min</span><span class="p">,</span><span class="n">_x_max</span><span class="p">)</span>
+        <span class="n">_ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">_ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">x_label</span><span class="p">)</span>
+        <span class="n">_ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">y_label</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_plot</span><span class="p">(</span><span class="n">fig</span><span class="o">=</span><span class="n">_fig</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Pyposmat1DHistogramWithDensityPlots.save_plot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.plots_1d.Pyposmat1DHistogramWithDensityPlots.save_plot">[docs]</a>    <span class="k">def</span> <span class="nf">save_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fig</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fig</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">fig</span> <span class="o">=</span> <span class="n">fig</span>
+        <span class="n">_fig</span> <span class="o">=</span> <span class="n">fig</span>
+            
+        <span class="c1"># Tweak spacing to prevent clipping of ylabel</span>
+        <span class="n">_plot_is_transparent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_is_transparent</span>
+        <span class="n">_plot_format</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_format</span>
+        <span class="n">_fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">_fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">_fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span>
+                <span class="n">filename</span><span class="p">,</span>
+                <span class="nb">format</span> <span class="o">=</span> <span class="s1">&#39;eps&#39;</span><span class="p">,</span> 
+                <span class="n">transparent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+        
+
+<div class="viewcode-block" id="Pyposmat1DHistogramWithDensityPlots.calculate_normed_errors"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.plots_1d.Pyposmat1DHistogramWithDensityPlots.calculate_normed_errors">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_normed_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        If a pandas.DataFrame is passed to df, then it will be set as the df attribute </span>
+<span class="sd">        for this class.  It willl</span>
+<span class="sd">        Args:</span>
+<span class="sd">            df (pandas.DataFrame)</span>
+<span class="sd">            qoi_names (list) - a list of qoi names.  Default behavior will use all the </span>
+<span class="sd">                qois specified in the configuration object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_validation_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+
+                <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">nen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nen</span><span class="p">)</span>
+                
+                
+                <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span><span class="p">:</span>
+                <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err_v&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">nen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr_v&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_validation_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nen</span><span class="p">)</span>
+
+                <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_targets</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="mi">80</span><span class="o">*</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:^80}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;debugging information&#39;</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="mi">80</span><span class="o">*</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;qoi_name:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;qoi_names</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;  </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="mi">80</span><span class="o">*</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:^80}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;debugging information&#39;</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;qoi_names</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">nen</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span><span class="o">/</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span>
+        <span class="c1"># sum normed errors</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;sum_all.nerr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># TODO: do this in one-line</span>
+        <span class="n">_temp_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;sum_sq.nerr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_temp_df</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="s2">&quot;sum_sq.nerr&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span></div></div>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">numpy.linalg.linalg</span> <span class="k">import</span> <span class="n">LinAlgError</span>
+
+    <span class="n">data_directory</span> <span class="o">=</span> <span class="s2">&quot;../../../data/MgO_pareto_data&quot;</span>
+    <span class="n">fn_config</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_directory</span><span class="p">,</span><span class="s1">&#39;pyposmat.config.in&#39;</span><span class="p">)</span>
+    <span class="n">fn_results</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data_directory</span><span class="p">,</span><span class="s2">&quot;results_000.out&quot;</span><span class="p">)</span>
+
+    <span class="n">myplot</span> <span class="o">=</span> <span class="n">Pyposmat1DHistogramWithDensityPlots</span><span class="p">()</span>
+    <span class="n">myplot</span><span class="o">.</span><span class="n">read_datafile</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">fn_results</span><span class="p">)</span>
+    <span class="n">myplot</span><span class="o">.</span><span class="n">read_configuration</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">fn_config</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">pn</span> <span class="ow">in</span> <span class="n">myplot</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+        <span class="n">plot_fn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.eps&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+
+            <span class="n">x_min</span> <span class="o">=</span> <span class="mf">1.2</span>
+            <span class="n">x_max</span> <span class="o">=</span> <span class="mf">2.7</span>
+            <span class="n">myplot</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">x_name</span><span class="o">=</span><span class="n">pn</span><span class="p">,</span>
+                <span class="n">x_min</span><span class="o">=</span><span class="n">x_min</span><span class="p">,</span>
+                <span class="n">x_max</span><span class="o">=</span><span class="n">x_max</span><span class="p">,</span>
+                <span class="n">filename</span><span class="o">=</span><span class="n">plot_fn</span>
+            <span class="p">)</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot; saving kde plot of, </span><span class="si">{}</span><span class="s2">, to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pn</span><span class="p">,</span><span class="n">plot_fn</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;cannot plot the variable, </span><span class="si">{}</span><span class="s2">, because the variable is deterministic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">LinAlgError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;cannot plot the variable, </span><span class="si">{}</span><span class="s2">, because the variable is deterministic&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

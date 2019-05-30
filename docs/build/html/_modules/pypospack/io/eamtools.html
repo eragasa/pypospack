@@ -1,0 +1,824 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.io.eamtools &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.io.eamtools</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.constants</span> <span class="k">as</span> <span class="nn">spc</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.filesystem</span> <span class="k">as</span> <span class="nn">filesystem</span>
+<span class="c1"># import pyflamestk.potentials</span>
+<span class="c1">#import pyflamestk.tableofelements as toe</span>
+
+<div class="viewcode-block" id="get_eam_radii_vector"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.get_eam_radii_vector">[docs]</a><span class="k">def</span> <span class="nf">get_eam_radii_vector</span><span class="p">(</span><span class="n">r_max</span><span class="p">,</span><span class="n">N_r</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">r_max</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">N_r</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span>
+
+    <span class="k">if</span> <span class="n">N_r</span><span class="o">%</span><span class="mi">5</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;N_r must be divisible by 5&#39;</span><span class="p">)</span>
+
+    <span class="n">_r</span> <span class="o">=</span> <span class="n">r_max</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">N_r</span><span class="p">,</span><span class="n">N_r</span><span class="p">)</span><span class="o">/</span><span class="n">N_r</span>
+    <span class="n">_dr</span> <span class="o">=</span> <span class="n">r_max</span> <span class="o">/</span> <span class="n">N_r</span>
+
+    <span class="k">return</span> <span class="n">_r</span><span class="p">,</span> <span class="n">_dr</span></div>
+
+<div class="viewcode-block" id="EamCurveFitter"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamCurveFitter">[docs]</a><span class="k">class</span> <span class="nc">EamCurveFitter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element_names</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">elements</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pair_potentials</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">element_name</span> <span class="ow">in</span> <span class="n">element_names</span><span class="p">:</span>
+          <span class="nb">print</span><span class="p">(</span><span class="n">element_name</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">[</span><span class="n">element_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Element</span><span class="p">(</span><span class="s2">&quot;Ni&quot;</span><span class="p">)</span>
+
+        <span class="c1"># initialize varaibles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_energy</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pair_potential</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">electron_density</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;initializing variables...&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">el_i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;electron_density: rho_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">el_i</span><span class="p">))</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;embedding_energy: F_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">el_i</span><span class="p">))</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">embedding_energy</span><span class="p">[</span><span class="n">el_i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">electron_density</span><span class="p">[</span><span class="n">el_i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">el_i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+          <span class="k">for</span> <span class="n">el_j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;pair_potential: p_</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">el_i</span><span class="p">,</span><span class="n">el_j</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pair_potentials</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">el_i</span><span class="p">,</span><span class="n">el_j</span><span class="p">)]</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="EamFuncflFile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamFuncflFile">[docs]</a><span class="k">class</span> <span class="nc">EamFuncflFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="EamSetflFile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile">[docs]</a><span class="k">class</span> <span class="nc">EamSetflFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    This class wites a setfl file.</span>
+<span class="sd">   </span>
+<span class="sd">    There are three components to the EAM model: the embedding energy, the </span>
+<span class="sd">    electron density, and interatomic pair potential.  LAMMPS uses a very</span>
+<span class="sd">    old format for reading/writing EAM files.</span>
+
+<span class="sd">    The potential functions are stored as they would be generated from their</span>
+<span class="sd">    functional forms, in units eV.  However, they are written to be compliant</span>
+<span class="sd">    with the setfl format which requires the element to be stored as V(r)*r.</span>
+
+<span class="sd">    Both the electron density function and the potential energy has a </span>
+<span class="sd">    physical requirement that V(r_cut) = 0 and rho(r_cut) = 0.  The </span>
+<span class="sd">    application of a cutoff function not implemented by this class, and</span>
+<span class="sd">    it is responsibility of the code using this class to ensure this.</span>
+
+<span class="sd">    All units of measurement are in metal units.  Distance being Angstroms,</span>
+<span class="sd">    and energy being eV.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        None</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        comments(list of str):  The setfl file format has a three line comment</span>
+<span class="sd">           section at the beginning of the file.</span>
+<span class="sd">        filename(str):  This is the filename to either read/write too.</span>
+<span class="sd">        symbols(list of str):  This is a list of symbols modelled by the </span>
+<span class="sd">           Embedded Atom Model.</span>
+<span class="sd">        n_symbols(int): This is the number of elements for the setfl file.</span>
+<span class="sd">        N_r(int): The number of points sampled for the distance from the nuclei</span>
+<span class="sd">           in the electron density function, or the distance between two atoms</span>
+<span class="sd">           in pair potentials.</span>
+<span class="sd">        N_rho(int): The number of points where the electron density is sampled.</span>
+<span class="sd">        d_r(float): Distance between the point where the potential functions</span>
+<span class="sd">           and the electron density function are evaluated.</span>
+<span class="sd">        d_rho(float): Distance between the points where the delectron density</span>
+<span class="sd">           is sampled.</span>
+<span class="sd">        r(numpy.ndarray):  This is a :numpy.ndarray: array of possible </span>
+<span class="sd">           evaluations from d_r to r_max with N_r intervals.  It does not </span>
+<span class="sd">           include r = 0.</span>
+<span class="sd">        rho(numpy.ndarray): This is an :numpy.ndarray: array of possible</span>
+<span class="sd">           evaluations from d_rho to rho_max with N_rho interals.  It does</span>
+<span class="sd">           not include rho = 0.</span>
+<span class="sd">        func_embedding(OrderedDict): This is a dictionary containing the </span>
+<span class="sd">           embedding function.  The embedding function is indexed by elements in</span>
+<span class="sd">           the symbols attribute.  The embedding function is stored as an </span>
+<span class="sd">           :numpy.ndarray: of length N_r.  This attribute is initialized as None.</span>
+<span class="sd">        func_density(OrderedDict): This is a dictionary containing the electron</span>
+<span class="sd">           density function indexed by elements in the symbols attribute.  The</span>
+<span class="sd">           density function is stored as an :numpy.ndarray: of length N_r.  This</span>
+<span class="sd">           attribute is initialized as None.</span>
+<span class="sd">        func_pair_potential(OrderedDict):  They has the format &#39;sym_i.sym_j&#39; which</span>
+<span class="sd">           are generated from unique combinations from the symbols attribute. The</span>
+<span class="sd">           pairs are selected as s_i, s_j \in S, where i &lt;= j.  This attribute is </span>
+<span class="sd">           initialized as none.</span>
+<span class="sd">           </span>
+<span class="sd">    Ref:</span>
+<span class="sd">        https://sites.google.com/a/ncsu.edu/cjobrien/tutorials-and-guides/eam</span>
+<span class="sd">        http://www.ctcms.nist.gov/potentials/</span>
+<span class="sd">        http://lammps.sandia.gov/doc/pair_eam.html</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># some configuration attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:+24.16E}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_INT_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:5d}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PAIR_KEY_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># these attributes should be treated as private</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_headersection_lines</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_density_lines</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_embedding_lines</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_pairpotential_lines</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_atomicsection_lines</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_pairsection_lines</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># these attributes shoulde be treated as public</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_comments</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s2">&quot;file automatically written by pypospack&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;--- this line empty ---&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;--- this line empty ---&quot;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_symbols</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_symbols</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbol_dict</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_embedding</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_pairpotential</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_density</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_N_rho</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_rho</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_N_r</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_r</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_r</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rcut_g</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_symbols</span>
+
+    <span class="nd">@symbols</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbols</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="n">_symbols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;symbols must be a list of strings&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">_symbols</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;symbols must be a list of strings&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_symbols</span> <span class="o">=</span> <span class="n">_symbols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        (int): number of elements which this file describes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_symbols</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">N_rho</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N_rho</span>
+
+    <span class="nd">@N_rho</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">N_rho</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nrho</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">nrho</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;N_rho must be an integer greater than zero, attempted to &quot;</span>
+                    <span class="s2">&quot;set this property to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nrho</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;N_rho must be an integer greater than zero, attempted to &quot;</span>
+                    <span class="s2">&quot;set this property to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nrho</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;N_rho must be divisible by N_VALUES_PER_LINE_RHO, attempted &quot;</span>
+                    <span class="s2">&quot;to set N_rho to </span><span class="si">{}</span><span class="s2"> which is not divisible by </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_N_rho</span> <span class="o">=</span> <span class="n">nrho</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">N_r</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_N_r</span>
+
+    <span class="nd">@N_r</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">N_r</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">nr</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">nr</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;N_r must be an integer greater than zero, attempted to &quot;</span>
+                    <span class="s2">&quot;set this property to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">nr</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">nr</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;N_r must be an integer greater than zero, attempted to &quot;</span>
+                    <span class="s2">&quot;set this property to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">nr</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">nr</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span><span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;N_r must be divisible by N_VALUES_PER_LINE_RHO, attempted &quot;</span>
+                    <span class="s2">&quot;to set N_r to </span><span class="si">{}</span><span class="s2"> which is not divisible by </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">nr</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_N_r</span> <span class="o">=</span> <span class="n">nr</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">comments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comments</span>
+
+    <span class="nd">@comments</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">comments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="n">_comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;comments must be list of length 3&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_comments</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;comments must be a list of length 3&quot;</span><span class="p">)</span>
+
+        <span class="c1"># if any comment is not a string then cast into string</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_comments</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+                <span class="n">_comments</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_comments</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="EamSetflFile.write"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">filename</span><span class="p">,</span>
+            <span class="n">symbols</span><span class="p">,</span>
+            <span class="n">r</span><span class="p">,</span>
+            <span class="n">rcut</span><span class="p">,</span>
+            <span class="n">rho</span><span class="p">,</span>
+            <span class="n">pair</span><span class="p">,</span>
+            <span class="n">embedding</span><span class="p">,</span>
+            <span class="n">density</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write a setfl file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str)</span>
+<span class="sd">            symbols(list)</span>
+<span class="sd">            r(np.ndarray)</span>
+<span class="sd">            rcut(numpy.ndarray)</span>
+<span class="sd">            rho(numpy.ndarray)</span>
+<span class="sd">            pair(collections.OrderedDict)</span>
+<span class="sd">            embedding(collections.OrderedDict)</span>
+<span class="sd">            density(collections.OrderedDict)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rcut</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">dict</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">embedding</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">dict</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">density</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">dict</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pv</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">pn</span><span class="p">,</span><span class="n">pv</span> <span class="ow">in</span> <span class="n">pair</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">ev</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">en</span><span class="p">,</span><span class="n">ev</span> <span class="ow">in</span> <span class="n">embedding</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">dv</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="k">for</span> <span class="n">dn</span><span class="p">,</span><span class="n">dv</span> <span class="ow">in</span> <span class="n">density</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">pv</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">pn</span><span class="p">,</span><span class="n">pv</span> <span class="ow">in</span> <span class="n">pair</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">ev</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">rho</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">en</span><span class="p">,</span><span class="n">ev</span> <span class="ow">in</span> <span class="n">embedding</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">dv</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">r</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">dn</span><span class="p">,</span><span class="n">dv</span> <span class="ow">in</span> <span class="n">density</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="n">symbols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="n">r</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="n">rho</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pair</span> <span class="o">=</span> <span class="n">pair</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">embedding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">density</span> <span class="o">=</span> <span class="n">density</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span> <span class="o">=</span> <span class="n">rcut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_r</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span> <span class="o">=</span> <span class="n">rho</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rho</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">=</span> <span class="n">rho</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl_header_section</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl_atomic_section</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl_pairpotential_section</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="p">])</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_str_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl_header_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl_header_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl_header_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl_header_section__comments</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl_header_section__n_symbols_line</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl_header_section__nargs_line</span><span class="p">()</span>
+            <span class="p">])</span>
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl_header_section__comments"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl_header_section__comments">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl_header_section__comments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">comments</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">list</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">comments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="n">comments</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">])</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+    
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl_header_section__n_symbols_line"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl_header_section__n_symbols_line">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl_header_section__n_symbols_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbols</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">list</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+        
+        <span class="k">if</span> <span class="n">symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="n">symbols</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">])</span>
+
+        <span class="n">line_args</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span><span class="p">)]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">line_args</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+    
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl_header_section__nargs_line"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl_header_section__nargs_line">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl_header_section__nargs_line</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">N_rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">d_rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">N_r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">d_r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">r_cut</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">N_rho</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">=</span> <span class="n">N_rho</span>
+        <span class="k">if</span> <span class="n">d_rho</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span> <span class="o">=</span> <span class="n">d_rho</span>
+        <span class="k">if</span> <span class="n">N_r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">=</span> <span class="n">N_r</span>
+        <span class="k">if</span> <span class="n">d_r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_r</span> <span class="o">=</span> <span class="n">d_r</span>
+        <span class="k">if</span> <span class="n">r_cut</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span> <span class="o">=</span> <span class="n">r_cut</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_r</span><span class="p">,</span><span class="nb">float</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1">#&quot;{0:5d}{1:24.16e}{2:5d}{3:24.16e}{4:24.16f}&quot;</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_INT_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_INT_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_r</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span><span class="p">)])</span>
+
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl_atomic_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl_atomic_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl_atomic_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_list_str</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="n">_list_str</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl__atomic_description</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+            <span class="n">_list_str</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl__embedding_function</span><span class="p">(</span><span class="n">s</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">_list_str</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl__density_function</span><span class="p">(</span><span class="n">s</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_list_str</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl__atomic_description"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl__atomic_description">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl__atomic_description</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">):</span>
+        <span class="n">_atomic_information</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>        
+        <span class="k">if</span> <span class="n">symbol</span> <span class="o">==</span> <span class="s1">&#39;Ni&#39;</span><span class="p">:</span>
+            <span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;an&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">28</span>   
+            <span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;amu&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">5.871</span>
+            <span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;a0&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="mf">3.518121</span>
+            <span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;latt_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;fcc&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;symbol not in database&quot;</span><span class="p">)</span>
+        
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_INT_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;an&#39;</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;amu&#39;</span><span class="p">]),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;a0&#39;</span><span class="p">]),</span>
+                <span class="s2">&quot; </span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_atomic_information</span><span class="p">[</span><span class="s1">&#39;latt_type&#39;</span><span class="p">])</span>
+                <span class="p">])</span>
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl__embedding_function"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl__embedding_function">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl__embedding_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">):</span>
+
+        <span class="n">_embed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span>
+        <span class="n">_sz</span> <span class="o">=</span> <span class="n">_embed</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span>
+        
+        <span class="n">_format</span> <span class="o">=</span> <span class="n">_n</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">_embed</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">_sz</span><span class="p">,</span><span class="n">_n</span><span class="p">)]</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_lines</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl__density_function"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl__density_function">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl__density_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol</span><span class="p">):</span>
+        
+        <span class="n">_dens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">density</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span>
+        <span class="n">_sz</span> <span class="o">=</span> <span class="n">_dens</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span>
+        
+        <span class="n">_format</span> <span class="o">=</span> <span class="n">_n</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">_dens</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">_sz</span><span class="p">,</span><span class="n">_n</span><span class="p">)]</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_lines</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl_pairpotential_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl_pairpotential_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl_pairpotential_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i1</span><span class="p">,</span><span class="n">s1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i2</span><span class="p">,</span><span class="n">s2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">i1</span> <span class="o">&lt;=</span> <span class="n">i2</span><span class="p">:</span>
+                    <span class="n">_str_out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_str_setfl__pair_function</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span><span class="n">s2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.get_str_setfl__pair_function"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.get_str_setfl__pair_function">[docs]</a>    <span class="k">def</span> <span class="nf">get_str_setfl__pair_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbol1</span><span class="p">,</span><span class="n">symbol2</span><span class="p">):</span>
+        <span class="n">pn</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">symbol1</span><span class="p">,</span><span class="n">symbol2</span><span class="p">)</span>
+        <span class="n">_pair</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pair</span><span class="p">[</span><span class="n">pn</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span>
+        <span class="n">_sz</span> <span class="o">=</span> <span class="n">_pair</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span>
+        
+        <span class="n">_format</span> <span class="o">=</span> <span class="n">_n</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">SETFL_NUM_FORMAT</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">_pair</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">_sz</span><span class="p">,</span><span class="n">_n</span><span class="p">)]</span>
+        <span class="n">_str_out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_lines</span><span class="p">)</span>
+   
+        <span class="k">return</span> <span class="n">_str_out</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.read"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">autoprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lines</span> <span class="o">=</span> <span class="n">filesystem</span><span class="o">.</span><span class="n">read_file_as_lines</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">,</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">autoprocess</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_setfl_header_section</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_setfl_atomic_section</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">process_setfl_pairpotential_section</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.process_setfl_header_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.process_setfl_header_section">[docs]</a>    <span class="k">def</span> <span class="nf">process_setfl_header_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process the header section of the setfl file.</span>
+
+<span class="sd">        The header section consists of two sections</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_setfl_comments</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_setfl_n_symbols</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_setfl_rho_r_args</span><span class="p">()</span>
+
+        <span class="c1"># determine the rho and r arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_r</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_r</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_r</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_r</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_rho</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span>
+   
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;N_rho not divisible by </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;N_r not divisible by </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span><span class="p">))</span>
+
+        <span class="n">N_density_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span> 
+        <span class="n">N_embedding_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span>
+        <span class="n">N_pairpotential_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span>
+
+        <span class="c1"># needs to be cast as a integer</span>
+        <span class="n">N_density_lines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_density_lines</span><span class="p">)</span>
+        <span class="n">N_embedding_lines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_embedding_lines</span><span class="p">)</span>
+        <span class="n">N_pairpotential_lines</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">N_pairpotential_lines</span><span class="p">)</span>
+
+        <span class="c1"># set these values as attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_density_lines</span> <span class="o">=</span> <span class="n">N_density_lines</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_embedding_lines</span> <span class="o">=</span> <span class="n">N_embedding_lines</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_pairpotential_lines</span> <span class="o">=</span> <span class="n">N_embedding_lines</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_atomicsection_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span><span class="o">*</span><span class="p">(</span>
+                <span class="mi">1</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">N_density_lines</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">N_embedding_lines</span><span class="p">)</span>
+
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i1</span><span class="p">,</span><span class="n">s1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i2</span><span class="p">,</span><span class="n">s2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">i1</span> <span class="o">&gt;=</span> <span class="n">i2</span><span class="p">:</span>
+                    <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">s1</span><span class="p">,</span><span class="n">s2</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_pairs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_pairsection_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_pairs</span> <span class="o">*</span> <span class="n">N_pairpotential_lines</span> </div>
+
+<div class="viewcode-block" id="EamSetflFile.process_setfl_comments"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.process_setfl_comments">[docs]</a>    <span class="k">def</span> <span class="nf">process_setfl_comments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        The header section of the setfl files containes three lines which</span>
+<span class="sd">        can have arbitrary text in it.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            None</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            (list of str)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">comment_lines</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">comments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">comment_lines</span><span class="p">:</span>
+            <span class="n">comments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comments</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">comments</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">comments</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.process_setfl_n_symbols"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.process_setfl_n_symbols">[docs]</a>    <span class="k">def</span> <span class="nf">process_setfl_n_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        
+        <span class="n">n_symbols</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)):</span>
+            <span class="n">symbols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">n_symbols</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s2">&quot;The setfl file indicates a different number of atoms than &quot;</span>
+                    <span class="s2">&quot;number of species provided&quot;</span><span class="p">)</span>
+            <span class="c1"># -- debugging information</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;line:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">line</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;symbols:&quot;</span><span class="p">,</span><span class="n">symbols</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;len(symbols):&quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;n_symbols:&quot;</span><span class="p">,</span><span class="n">n_symbols</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="n">symbols</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># -- debugging information</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;line:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">line</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;symbols:&quot;</span><span class="p">,</span><span class="n">symbols</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;len(symbols):&quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;n_symbols:&quot;</span><span class="p">,</span><span class="n">n_symbols</span><span class="p">)</span>
+            <span class="k">raise</span>
+
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.process_setfl_rho_r_args"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.process_setfl_rho_r_args">[docs]</a>    <span class="k">def</span> <span class="nf">process_setfl_rho_r_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">string</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># initialize private variables</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">args</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># process method arguments</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">string</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">string</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+        <span class="c1"># split the line</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_r</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+        <span class="n">return_dict</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;N_rho&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span><span class="p">,</span>
+                <span class="s1">&#39;d_rho&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">d_rho</span><span class="p">,</span>
+                <span class="s1">&#39;N_r&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span><span class="p">,</span>
+                <span class="s1">&#39;d_r&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">d_r</span><span class="p">,</span>
+                <span class="s1">&#39;r_cut&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">r_cut</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">return_dict</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.process_setfl_atomic_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.process_setfl_atomic_section">[docs]</a>    <span class="k">def</span> <span class="nf">process_setfl_atomic_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># initialize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbol_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_embedding</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_density</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="c1"># Local copy of attributes</span>
+        <span class="n">start_line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_headersection_lines</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">N_embedding_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_embedding_lines</span>
+        <span class="n">N_density_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_density_lines</span>
+        <span class="n">N_atomicsection_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_atomicsection_lines</span>
+        <span class="n">N_atomicdefinition_lines</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i_sym</span><span class="p">,</span> <span class="n">sym</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="c1"># NOTICE: The use of the notion self.lines[i-1] </span>
+            <span class="c1"># I decided to calculate the line we are on using an index of one,</span>
+            <span class="c1"># then using (i-1) to convert to the python convertion of an</span>
+            <span class="c1"># index starting a 0</span>
+
+            <span class="c1"># read atomic_definition</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">start_line</span> <span class="o">+</span> <span class="n">i_sym</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">N_density_lines</span><span class="o">+</span><span class="n">N_embedding_lines</span><span class="p">)</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">symbol_dict</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">({</span>
+                    <span class="s1">&#39;atomic_number&#39;</span><span class="p">:</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                    <span class="s1">&#39;atomic_mass&#39;</span><span class="p">:</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                    <span class="s1">&#39;lattice_constant&#39;</span><span class="p">:</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                    <span class="s1">&#39;lattice_type&#39;</span><span class="p">:</span><span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">]})</span>
+            
+            <span class="c1"># read embedding function</span>
+            <span class="n">f_embed</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i_line</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_density_lines</span><span class="p">):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">start_line</span> \
+                        <span class="o">+</span> <span class="n">i_sym</span><span class="o">*</span><span class="n">N_atomicsection_lines</span>\
+                        <span class="o">+</span> <span class="n">N_atomicdefinition_lines</span> \
+                        <span class="o">+</span> <span class="n">i_line</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">f_embed</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">func_embedding</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f_embed</span><span class="p">)</span>
+            
+            <span class="c1"># read density function</span>
+            <span class="n">f_dens</span>  <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i_line</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_embedding_lines</span><span class="p">):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">start_line</span> \
+                        <span class="o">+</span> <span class="n">i_sym</span><span class="o">*</span><span class="n">N_atomicsection_lines</span>\
+                        <span class="o">+</span> <span class="n">N_atomicdefinition_lines</span>\
+                        <span class="o">+</span> <span class="n">N_embedding_lines</span>\
+                        <span class="o">+</span> <span class="n">i_line</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">f_dens</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">func_density</span><span class="p">[</span><span class="n">sym</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f_dens</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.process_setfl_pairpotential_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.process_setfl_pairpotential_section">[docs]</a>    <span class="k">def</span> <span class="nf">process_setfl_pairpotential_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        </span>
+<span class="sd">        The SETFL convention for storing V(r) is as r*V(r).  This was probably </span>
+<span class="sd">        important during the time when computational cycles were expensive.  </span>
+<span class="sd">        However, we divide this storage value by r to get the potential in </span>
+<span class="sd">        eV.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_headersection_lines</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_atomicsection_lines</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">N_pair_lines</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_pairpotential_lines</span>
+
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx1</span><span class="p">,</span><span class="n">sym1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">idx2</span><span class="p">,</span><span class="n">sym2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">idx1</span> <span class="o">&lt;=</span> <span class="n">idx2</span><span class="p">:</span>
+                    <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">sym1</span><span class="p">,</span><span class="n">sym2</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">func_pairpotential</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i_pair</span><span class="p">,</span><span class="n">pair</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pairs</span><span class="p">):</span>
+
+            <span class="n">f_pair</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i_line</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_pair_lines</span><span class="p">):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">start_line</span> <span class="o">+</span> <span class="n">i_pair</span> <span class="o">*</span> <span class="n">N_pair_lines</span> <span class="o">+</span> <span class="n">i_line</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                <span class="n">f_pair</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PAIR_KEY_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">func_pairpotential</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">f_pair</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span></div>
+
+
+<div class="viewcode-block" id="EamSetflFile.calc_N_lines_atomic_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.calc_N_lines_atomic_section">[docs]</a>    <span class="k">def</span> <span class="nf">calc_N_lines_atomic_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">N_symbols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">N_rho</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">N_r</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># declare local variables</span>
+        <span class="n">_N_symbols</span> <span class="o">=</span> <span class="n">N_symbols</span>
+        <span class="n">_N_rho</span> <span class="o">=</span> <span class="n">N_rho</span>
+        <span class="n">_N_r</span> <span class="o">=</span> <span class="n">N_r</span>
+
+        <span class="c1"># process argument N_symbols</span>
+        <span class="k">if</span> <span class="n">_N_symbols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_N_symbols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span>
+        <span class="k">if</span> <span class="n">_N_rho</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_N_rho</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span>
+        <span class="k">if</span> <span class="n">_N_r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_N_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span>
+
+        <span class="c1"># check these assertions</span>
+        <span class="c1"># TODO: recode these to raise exceptions if errors pop up here</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">_N_rho</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="n">_N_rho</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">_N_r</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_R</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">_N_r</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="n">_N_rho</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">_N_rho</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_VALUES_PER_LINE_RHO</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="n">N_lines_atomic_section</span> <span class="o">=</span> \
+                <span class="n">N_symbols</span> <span class="o">*</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">N_rho</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_LINES_PER_LINE_RHO</span>
+                        <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_LINES_PER_LINE_R</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">N_lines_atomic_section</span></div>
+
+<div class="viewcode-block" id="EamSetflFile.calc_N_lines_potential_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.eamtools.EamSetflFile.calc_N_lines_potential_section">[docs]</a>    <span class="k">def</span> <span class="nf">calc_N_lines_potential_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">N_symbols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">N_r</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># declare some local variables</span>
+        <span class="n">_N_symbols</span><span class="o">=</span><span class="n">N_symbols</span>
+        <span class="n">_N_r</span><span class="o">=</span><span class="n">N_r</span>
+
+        <span class="c1"># process arguments</span>
+        <span class="k">if</span> <span class="n">_N_symbols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_N_symbols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span>
+        <span class="k">if</span> <span class="n">_N_r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">_N_r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_r</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">_N_symbols</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="n">_N_symbols</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">_N_r</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="n">_N_r</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">assert</span> <span class="n">_N_r</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">N_LINES_PER_LINE_R</span> <span class="o">==</span> <span class="mi">0</span>
+   
+        <span class="n">N_pairs</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_symbols</span><span class="p">):</span>
+                <span class="n">N_pairs</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">N_lines_potential_section</span> <span class="o">=</span> \
+                <span class="n">N_pairs</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">N_r</span> <span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">N_LINES_PER_LINE_R</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">N_lines_potential_section</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

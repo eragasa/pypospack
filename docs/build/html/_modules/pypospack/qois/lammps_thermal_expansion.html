@@ -1,0 +1,237 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.qois.lammps_thermal_expansion &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.qois.lammps_thermal_expansion</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pypospack.qoi</span> <span class="k">import</span> <span class="n">Qoi</span>
+
+<div class="viewcode-block" id="ThermalExpansion"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.lammps_thermal_expansion.ThermalExpansion">[docs]</a><span class="k">class</span> <span class="nc">ThermalExpansion</span><span class="p">(</span><span class="n">Qoi</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        temperature_min (float,int): beginning of the temperature range in Kelvin</span>
+<span class="sd">        temperature_max (float,int): end of the temperature range in Kelvin</span>
+<span class="sd">        temperature_step (float,int): increments of the temperature range in Kelvin</span>
+<span class="sd">        time_total (int): total simulation time in fs</span>
+<span class="sd">        time_step (int): simulation time step in fs</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">qoi_name</span><span class="p">,</span><span class="n">structures</span><span class="p">,</span>
+            <span class="n">temperature_min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">temperature_max</span><span class="o">=</span><span class="mi">2700</span><span class="p">,</span>
+            <span class="n">temperature_step</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+            <span class="n">time_total</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">time_step</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+            <span class="n">supercell</span><span class="o">=</span><span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">]):</span>
+
+        <span class="n">_qoi_name</span> <span class="o">=</span> <span class="n">qoi_name</span>
+        <span class="n">_qoi_type</span> <span class="o">=</span> <span class="s1">&#39;lmps_thermal_expansion&#39;</span>
+
+        <span class="n">_structures</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">_structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span>
+
+        <span class="n">Qoi</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">qoi_name</span><span class="o">=</span><span class="n">_qoi_name</span><span class="p">,</span>
+                <span class="n">qoi_type</span><span class="o">=</span><span class="n">_qoi_type</span><span class="p">,</span>
+                <span class="n">structures</span><span class="o">=</span><span class="n">_structures</span><span class="p">)</span>
+    
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature_min</span> <span class="o">=</span> <span class="n">temperature_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature_max</span> <span class="o">=</span> <span class="n">temperature_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature_step</span> <span class="o">=</span> <span class="n">temperature_step</span>
+   
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_total</span><span class="o">=</span><span class="n">time_total</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_step</span><span class="o">=</span><span class="n">time_step</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">supercell</span> <span class="o">=</span> <span class="n">supercell</span>
+    
+<div class="viewcode-block" id="ThermalExpansion.determine_tasks"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.lammps_thermal_expansion.ThermalExpansion.determine_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">determine_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_min</span>
+        
+        <span class="k">while</span> <span class="n">T</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_max</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">T</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">_ideal_structure_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span>
+                <span class="n">_ideal_task_type</span> <span class="o">=</span> <span class="s1">&#39;lmps_min_all&#39;</span>
+                <span class="n">_ideal_task_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">_ideal_structure_name</span><span class="p">,</span>
+                        <span class="n">_ideal_task_type</span>
+                        <span class="p">)</span>
+                <span class="n">_bulk_structure_name</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span>
+                        <span class="n">task_type</span><span class="o">=</span><span class="n">_ideal_task_type</span><span class="p">,</span>
+                        <span class="n">task_name</span><span class="o">=</span><span class="n">_ideal_task_name</span><span class="p">,</span>
+                        <span class="n">task_structure</span><span class="o">=</span><span class="n">_ideal_structure_name</span><span class="p">,</span>
+                        <span class="n">bulk_structure_name</span><span class="o">=</span><span class="n">_bulk_structure_name</span><span class="p">,</span>
+                        <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_ideal_structure_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span>
+                <span class="n">_ideal_task_type</span> <span class="o">=</span> <span class="s1">&#39;lmps_npt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+                <span class="n">_ideal_task_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">_ideal_structure_name</span><span class="p">,</span>
+                        <span class="n">_ideal_task_type</span><span class="p">,</span>
+                        <span class="n">T</span>
+                        <span class="p">)</span>
+                <span class="n">_bulk_structure_name</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span>
+                        <span class="n">task_type</span><span class="o">=</span><span class="n">_ideal_task_type</span><span class="p">,</span>
+                        <span class="n">task_name</span><span class="o">=</span><span class="n">_ideal_task_name</span><span class="p">,</span>
+                        <span class="n">task_structure</span><span class="o">=</span><span class="n">_ideal_structure_name</span><span class="p">,</span>
+                        <span class="n">bulk_structure_name</span><span class="o">=</span><span class="n">_bulk_structure_name</span><span class="p">,</span>
+                        <span class="n">task_options</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s1">&#39;temperature&#39;</span><span class="p">:</span><span class="n">T</span><span class="p">,</span>
+                            <span class="s1">&#39;time_total&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">time_total</span><span class="p">,</span>
+                            <span class="s1">&#39;time_step&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">time_step</span><span class="p">,</span>
+                            <span class="s1">&#39;supercell&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">supercell</span><span class="p">}</span>
+                        <span class="p">)</span>
+
+            <span class="n">T</span> <span class="o">=</span> <span class="n">T</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_step</span></div>
+
+<div class="viewcode-block" id="ThermalExpansion.calculate_thermal_expansion_coefficient"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.lammps_thermal_expansion.ThermalExpansion.calculate_thermal_expansion_coefficient">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_thermal_expansion_coefficient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">temperatures</span><span class="p">,</span><span class="n">lattice_constants</span><span class="p">):</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">temperatures</span><span class="p">,</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lattice_constants</span><span class="p">,</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">temperatures</span><span class="p">)</span>
+        <span class="n">a0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">lattice_constants</span><span class="p">)</span>
+
+        <span class="n">a0_at_0K</span> <span class="o">=</span> <span class="n">a0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">a0</span><span class="p">):</span>
+            <span class="n">a0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">/</span><span class="n">a0_at_0K</span><span class="o">-</span><span class="mi">1</span>
+
+        
+        <span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">temperatures</span><span class="p">)</span>
+        <span class="n">a0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="n">T</span><span class="p">[:,</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>            <span class="c1"># T needs to be a column vector</span>
+        <span class="c1"># model is y = a*x</span>
+        <span class="n">alpha_L</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span><span class="p">,</span><span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">T</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;alpha_L:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alpha_L</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">alpha_L</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+    
+<div class="viewcode-block" id="ThermalExpansion.calculate_qois"><a class="viewcode-back" href="../../../pypospack/api/pypospack.qois.html#pypospack.qois.lammps_thermal_expansion.ThermalExpansion.calculate_qois">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_qois</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_results</span><span class="p">):</span>
+        
+        <span class="n">_prefix</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_type</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="s1">&#39;ideal&#39;</span><span class="p">]</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_min</span>
+
+        <span class="n">lattice_constants</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">while</span> <span class="n">T</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_max</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">T</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">lattice_constants</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                    <span class="n">task_results</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.lmps_min_all.a11&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span><span class="o">**</span><span class="mi">2</span> \
+                    <span class="o">+</span> <span class="n">task_results</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.lmps_min_all.a12&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span><span class="o">**</span><span class="mi">2</span> \
+                    <span class="o">+</span> <span class="n">task_results</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.lmps_min_all.a13&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span><span class="o">**</span><span class="mi">2</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">lattice_constants</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_results</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.lmps_npt_</span><span class="si">{}</span><span class="s2">.a1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">T</span><span class="p">)]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">task_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">)</span>
+                    <span class="k">raise</span>
+
+            <span class="n">T</span> <span class="o">=</span> <span class="n">T</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature_step</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        
+        <span class="c1"># add lattice constants at different temperatures</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">lattice_constants</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.a0_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_prefix</span><span class="p">,</span><span class="n">T</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+       
+        <span class="n">_temperatures</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">lattice_constants</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        <span class="n">_lattice_constants</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">lattice_constants</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+        
+        <span class="c1"># add thermal expansion coefficient</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.thermal_expansion_coefficient&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_prefix</span><span class="p">)]</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_thermal_expansion_coefficient</span><span class="p">(</span>
+                    <span class="n">temperatures</span><span class="o">=</span><span class="n">_temperatures</span><span class="p">,</span>
+                    <span class="n">lattice_constants</span><span class="o">=</span><span class="n">_lattice_constants</span>
+            <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

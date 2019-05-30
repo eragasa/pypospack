@@ -1,0 +1,806 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.potfit &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.potfit</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;This module contains the pyposmat engine for parameterization</span>
+
+<span class="sd">The fitting engine is build in multiple class for managability of code </span>
+<span class="sd">and to divide the code into functionality.  In general, there are classes</span>
+<span class="sd">which deal with reading/writing configuration files, classes to deal with</span>
+<span class="sd">determination of simulations to be run from the quantities of interest.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">#__author__ = &quot;Eugene J. Ragasa&quot;</span>
+<span class="c1">#__copyright__ = &quot;Copyright (C) 2017&quot;</span>
+<span class="c1">#__license__ = &quot;Simplified BSD License&quot;</span>
+<span class="c1">#__version__ = &quot;1.0&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">yaml</span><span class="o">,</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span>
+
+<span class="kn">import</span> <span class="nn">pypospack.potential</span> <span class="k">as</span> <span class="nn">potential</span>
+<span class="kn">import</span> <span class="nn">pypospack.qoi</span> <span class="k">as</span> <span class="nn">qoi</span>
+<span class="kn">import</span> <span class="nn">pypospack.lammps</span> <span class="k">as</span> <span class="nn">lammps</span>
+<span class="kn">import</span> <span class="nn">pypospack.crystal</span> <span class="k">as</span> <span class="nn">crystal</span>
+
+<div class="viewcode-block" id="get_supported_qois"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potfit.get_supported_qois">[docs]</a><span class="k">def</span> <span class="nf">get_supported_qois</span><span class="p">():</span>
+    <span class="n">supported_qois</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a0&#39;</span><span class="p">,</span><span class="s1">&#39;a1&#39;</span><span class="p">,</span><span class="s1">&#39;a2&#39;</span><span class="p">,</span><span class="s1">&#39;a3&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;alpha&#39;</span><span class="p">,</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;c11&#39;</span><span class="p">,</span><span class="s1">&#39;c12&#39;</span><span class="p">,</span><span class="s1">&#39;c44&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;bulk_modulus&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;shear_modulus&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;defect_energy&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;surface_energy&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;stacking_fault_energy&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;total_energy&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">supported_qois</span></div>
+
+
+<div class="viewcode-block" id="PypospackFittingError"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potfit.PypospackFittingError">[docs]</a><span class="k">class</span> <span class="nc">PypospackFittingError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exceptional handling class for potential fitting&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__self__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbstractFittingEngine"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potfit.AbstractFittingEngine">[docs]</a><span class="k">class</span> <span class="nc">AbstractFittingEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Generic Fitting Engine</span>
+
+<span class="sd">    This fitting engine does not have an algorithm.  </span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        fname_config_pyposmat(string): filename of the configuration file.</span>
+<span class="sd">           default is pyposmat.config</span>
+<span class="sd">        fname_config_potential(string): filename of the potential file.</span>
+<span class="sd">           default is pyposmat.potential</span>
+<span class="sd">        fname_config_qoi(string): filename of the qoi file</span>
+<span class="sd">        random_seed(int): random seed to use.  Default is set to None, which</span>
+<span class="sd">           generates the random seed automatically.</span>
+<span class="sd">        restart(bool): when set to True, attempts to restart simulations from</span>
+<span class="sd">           existing information contained in the directory</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        fname_config_potential(str)</span>
+<span class="sd">        fname_config_qoi(str)</span>
+<span class="sd">        random_seed(int)</span>
+<span class="sd">        restart(bool)</span>
+<span class="sd">        structure_info(pypospack.potfit.StructureDatabase)</span>
+<span class="sd">        potential_info(pypospack.potfit.PotentialInformation)</span>
+<span class="sd">        qois_info(pypospack.potfit.QoiDatabase)</span>
+<span class="sd">        qoi_manager(pypospack.qoi.QoiManager)</span>
+<span class="sd">        simulation_manager(pypospack.lammps.SimulationManager)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">fname_config_structures</span> <span class="o">=</span> <span class="s2">&quot;pypospack.structure.yaml&quot;</span><span class="p">,</span>
+            <span class="n">fname_config_potential</span> <span class="o">=</span> <span class="s2">&quot;pypospack.potential.yaml&quot;</span><span class="p">,</span>
+            <span class="n">fname_config_qoi</span> <span class="o">=</span> <span class="s2">&quot;pypospack.qoi.yaml&quot;</span><span class="p">,</span>
+            <span class="n">fname_results</span> <span class="o">=</span> <span class="s2">&quot;results.out&quot;</span><span class="p">,</span>
+            <span class="n">fname_log</span> <span class="o">=</span> <span class="s2">&quot;pypospack.log&quot;</span><span class="p">,</span>
+            <span class="n">random_seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span><span class="n">restart</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_qoi</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">get_supported_qois</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_potentials</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">potential</span><span class="o">.</span><span class="n">get_supported_potentials</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_structures</span> <span class="o">=</span> <span class="n">fname_config_structures</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_potential</span> <span class="o">=</span> <span class="n">fname_config_potential</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_qoi</span> <span class="o">=</span> <span class="n">fname_config_qoi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_out_results</span> <span class="o">=</span> <span class="n">fname_results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname_out_log</span> <span class="o">=</span> <span class="n">fname_log</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_potential</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_lammps_sim_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_qoi_manager</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">restart</span> <span class="o">=</span> <span class="n">restart</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">restart</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">run_from_restart</span><span class="p">()</span>
+
+        <span class="c1"># initialize output file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_log_file</span><span class="p">(</span><span class="n">fname_log</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_results_file</span><span class="p">(</span><span class="n">fname_results</span><span class="p">)</span>
+
+        <span class="c1"># read in the configuration files</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_input_file_structures</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_structures</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_input_file_potential</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_potential</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_input_file_qoi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_qoi</span><span class="p">)</span>
+
+        <span class="c1"># check to see if structures required for qois exist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_qoi_structures_in_structure_db</span><span class="p">()</span>
+
+        <span class="c1"># check external software</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_lammps_binary</span><span class="p">()</span>
+
+        <span class="c1"># determine random seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_random_seed</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+
+        <span class="c1"># configure obj_potential</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configure_potential</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_potential</span><span class="p">()</span>
+
+        <span class="c1">#self._config_qoi_manager()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span> <span class="o">=</span> <span class="n">qoi</span><span class="o">.</span><span class="n">QoiManager</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_manager</span> <span class="o">=</span> <span class="n">lammps</span><span class="o">.</span><span class="n">SimulationManager</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_manager</span><span class="o">.</span><span class="n">add_required_simulations</span><span class="p">(</span>
+                <span class="n">required_simulations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_manager</span><span class="o">.</span><span class="n">get_required_simulations</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_manager</span><span class="o">.</span><span class="n">structure_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_manager</span><span class="o">.</span><span class="n">potential_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(:obj:`list` of :obj:`str`): a list of the qoi names&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(:obj:`list` of :obj:`str`): a list of the parameter names&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">free_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(:obj:`list` of :obj:`str`): a list of free parameters&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">free_parameters</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AbstractFittingEngine.run_from_restart"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potfit.AbstractFittingEngine.run_from_restart">[docs]</a>    <span class="k">def</span> <span class="nf">run_from_restart</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Restart method not implemented&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbstractFittingEngine.evaluate_parameter_set"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potfit.AbstractFittingEngine.evaluate_parameter_set">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_parameter_set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">param_dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_manager</span><span class="o">.</span><span class="n">evaluate_parameters</span><span class="p">(</span><span class="n">param_dict</span><span class="p">)</span></div>
+        <span class="c1">#self.qoi_manager.calculate_qois(results)</span>
+
+<div class="viewcode-block" id="AbstractFittingEngine.get_variables_from_simulation_manager"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.potfit.AbstractFittingEngine.get_variables_from_simulation_manager">[docs]</a>    <span class="k">def</span> <span class="nf">get_variables_from_simulation_manager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sim_mgr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation_manager</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sim_mgr</span><span class="p">,</span> <span class="n">lammps</span><span class="o">.</span><span class="n">SimulationManager</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_set_random_seed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the random seed in numpy.</span>
+<span class="sd">        </span>
+<span class="sd">        Since the seed might be randomly generated, we get the random_seed </span>
+<span class="sd">        value not from the parameter passed, but from numpy itself.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            seed(int): the value of the seed.  The value must be an integer. </span>
+<span class="sd">               If the seed is set to None, the seed is generated automatically.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: returns the value of the seed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;auto_generate_seed:True&quot;</span><span class="p">)</span>
+       
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">get_state</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;random_seed:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span>
+    
+    <span class="k">def</span> <span class="nf">_get_lammps_binary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lammps_bin</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;LAMMPS_BIN&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;environment variable LAMMPS_BIN not set&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">PypospackFittingError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lammps_bin</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_results_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname_results</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fname_results</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fname_out_results</span> <span class="o">=</span> <span class="n">fname_results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;file_results -&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_out_results</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_f_results</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_out_results</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_log_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname_log</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">fname_log</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fname_out_log</span> <span class="o">=</span> <span class="n">fname_log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_f_log</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_out_log</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;POTENTIAL OPTIMIZATION SOFTWARE&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;file_log -&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fname_log</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">msg</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_process_input_file_structures</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">fname_config_structures</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; process structure file</span>
+
+<span class="sd">        The structure database file is a yaml formatted file.  The creation of </span>
+<span class="sd">        this file can be done manually or using the class object</span>
+<span class="sd">        :obj:`pypospack.potfit.StructureDatabase`</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname_config_structures(str): the filename of the structure </span>
+<span class="sd">                configuration file.  If no argument is passed, the class</span>
+<span class="sd">                will use the attribute fname_config_structures.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            PypospackFittingError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">fname_config_structures</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_structures</span> <span class="o">=</span> <span class="n">fname_config_structures</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;file_config_structure &lt;- </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_structures</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span> <span class="o">=</span> <span class="n">crystal</span><span class="o">.</span><span class="n">StructureDatabase</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_structures</span><span class="p">)</span>
+        <span class="n">structure_db_passed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">structure_db_passed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">structure_db_passed</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">PypospackFittingError</span><span class="p">(</span><span class="n">structure_db_passed</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_process_input_file_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Process the potential definition</span>
+<span class="sd">        </span>
+<span class="sd">        The definition of the interatomic potential is defined a by a </span>
+<span class="sd">        formalism.  This class provides the information required to marshal</span>
+<span class="sd">        and unmarshal information from a yaml file.  The creation of this</span>
+<span class="sd">        file can be done manually or using the class object</span>
+<span class="sd">        :obj:`pypospack.potfit.PotentialInformation`</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname_config_structures(str): the filename of the structure </span>
+<span class="sd">                configuration file.  If no argument is passed, the class</span>
+<span class="sd">                will use the attribute fname_config_structures.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_potential</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;file_config_potential &lt;- </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_potential</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span> <span class="o">=</span> <span class="n">potential</span><span class="o">.</span><span class="n">PotentialInformation</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_potential</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="c1"># sanity check</span>
+
+    <span class="k">def</span> <span class="nf">_process_input_file_qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Process the input file for quantities of interest (QOI)</span>
+<span class="sd">        </span>
+<span class="sd">        Quantities of interest are calculated from a variety of different</span>
+<span class="sd">        simaultions.  This class provides the information required to marshall</span>
+<span class="sd">        and unmaarshal information from a yaml file.  The creation of this</span>
+<span class="sd">        file can be done manually or using the class object</span>
+<span class="sd">        :obj:`pypospack.potfit.QoiDatabase`</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fname_config_structures(str): the filename of the structure </span>
+<span class="sd">                configuration file.  If no argument is passed, the class</span>
+<span class="sd">                will use the attribute fname_config_structures.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fname_config_qoi</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">&quot;file_config_qoi &lt;- </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_qoi</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span> <span class="o">=</span> <span class="n">qoi</span><span class="o">.</span><span class="n">QoiDatabase</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fname_config_qoi</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span><span class="o">.</span><span class="n">check</span><span class="p">()</span> <span class="c1"># sanity check</span>
+
+    <span class="k">def</span> <span class="nf">_check_qoi_structures_in_structure_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;check qoi structures in the structure database</span>
+
+<span class="sd">        The Quantities of Interest are dependent upon the calculation of </span>
+<span class="sd">        various structures.  These structure protypes need to exist in the</span>
+<span class="sd">        fitting database.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            - **has_required_structures**(*bool*): True if the structure</span>
+<span class="sd">              has all the structures in the fitting database.  False, otherwise.</span>
+<span class="sd">            - **err_msg**(*str*): error message</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">has_required_structures</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1"># initialize</span>
+        
+        <span class="n">required_structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_info</span><span class="o">.</span><span class="n">get_required_structures</span><span class="p">()</span>
+        <span class="n">missing_structures</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># initialize</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">required_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_info</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">structure</span> <span class="o">=</span> <span class="n">s</span><span class="p">):</span>
+                <span class="n">has_required_structures</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">missing_structures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_required_structures</span><span class="p">:</span>
+            <span class="c1"># log and raise if there was a problem</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;For the calcualtion of QOI&#39;s the following structures&quot;</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;are not contained in the structure database:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing_structures</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">PypospackFittingError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># there were no problem, returning true</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_configure_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">potential_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">potential_type</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_info</span><span class="o">.</span><span class="n">symbols</span>
+
+        <span class="n">potential_map</span> <span class="o">=</span> <span class="n">potential</span><span class="o">.</span><span class="n">get_potential_map</span><span class="p">()</span>
+        <span class="n">module_name</span> <span class="o">=</span> <span class="n">potential_map</span><span class="p">[</span><span class="n">potential_type</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">class_name</span>  <span class="o">=</span> <span class="n">potential_map</span><span class="p">[</span><span class="n">potential_type</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+            <span class="n">klass</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span><span class="n">class_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_potential</span> <span class="o">=</span> <span class="n">klass</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+    <span class="k">def</span> <span class="nf">_check_potential</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_potential</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">):</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;the potential parameter file does not have the parameter names as the formal definition</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">err_fmt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{:^10}{:^10}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="n">err_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">,</span><span class="s1">&#39;definition&#39;</span><span class="p">)</span>
+            <span class="n">all_parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj_potential</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">all_parameters</span><span class="p">:</span>
+                <span class="n">cond1</span> <span class="o">=</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+                <span class="n">cond2</span> <span class="o">=</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">self</span><span class="o">.</span><span class="n">obj_potential</span><span class="o">.</span><span class="n">parameter_names</span>
+                <span class="n">err_msg</span> <span class="o">+=</span> <span class="n">err_fmt</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cond1</span><span class="p">,</span><span class="n">cond2</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">PypospackFittingError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="kc">False</span><span class="p">:</span>
+    <span class="k">class</span> <span class="nc">StructureDatabase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; structure database </span>
+
+<span class="sd">        Attributes:</span>
+<span class="sd">            filename(str): file to read/write the yaml file</span>
+<span class="sd">            directory(str): the directory of the structure database</span>
+<span class="sd">            structures(dict): key is structure name, value is another dict with </span>
+<span class="sd">                key/value pairs for &#39;filename&#39; and &#39;filetype&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;pypospack.structure.yaml&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="nf">add_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">filetype</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;filename&#39;</span><span class="p">:</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;filetype&#39;</span><span class="p">:</span><span class="n">filetype</span><span class="p">}</span>
+
+        <span class="k">def</span> <span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structure</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; check to see that the structure in the structure database</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                structure(str):</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                bool: True if structure is in structure database. False if the </span>
+<span class="sd">                    structure is not in the structure database</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="k">return</span> <span class="n">structure</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; read qoi configuration from yaml file</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                fname(str): file to read yaml file from.  If no argument is passed </span>
+<span class="sd">                    then use the filename attribute.  If the filename is set, then </span>
+<span class="sd">                    the filename attribute is also set.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># set the attribute if not none</span>
+            <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+            <span class="c1"># marshall attributes into a dictionary</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;directory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">)</span>
+
+            <span class="c1"># dump to as yaml file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_db</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;sanity checks for the fitting database</span>
+<span class="sd">            </span>
+<span class="sd">            This method checks the fitting database for the following errors: (1)</span>
+<span class="sd">            the structure database exists, (2) files for the structure database</span>
+<span class="sd">            exist</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                str: returns a string if there is a problem</span>
+<span class="sd">            Raises:</span>
+<span class="sd">                ValueError: if there is a problem with the configuration</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="n">src_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span>
+           
+            <span class="c1"># check to see if the source directory exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">src_dir</span><span class="p">):</span>
+                <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;cannot find simulation directory</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">current_working_directory:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+                <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">structure_db_directory:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_dir</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">err_msg</span>
+            
+            <span class="c1"># check to see if the source directory is a directory</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">src_dir</span><span class="p">):</span>
+                <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;path exists, is not a directory</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">current_working_directory:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+                <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">structure_db_directory:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_dir</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">err_msg</span>
+
+            <span class="c1"># check to see if files exist in the source directory</span>
+            <span class="n">files_exist</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;structure files are missing:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">src_dir</span><span class="p">,</span><span class="n">v</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+                    <span class="n">files_exist</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">filename</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">files_exist</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">msg</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">def</span> <span class="nf">get_structure_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                name(str): name of the structure</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="n">structure_db_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">directory</span>
+            <span class="n">structure_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structures</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span>
+            <span class="n">structure_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">structure_dict</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="n">structure_dict</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">structure_db_dir</span><span class="p">,</span>
+                    <span class="n">structure_filename</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">structure_dict</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">QoiDatabase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Qoi Database </span>
+<span class="sd">       </span>
+<span class="sd">            Contains methods for managing quantities of interests for a variety </span>
+<span class="sd">            of tasks such as marshalling/unmarshalling objects to and from a</span>
+<span class="sd">            yaml file.  Also includes sanity tests.</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                filename(str): If this variable is set, this class will attempt to</span>
+<span class="sd">                    unmarhsall the contents of the file into the class.  If this </span>
+<span class="sd">                    variable is set to None, then the class wil be initialized.</span>
+<span class="sd">                    Default is None.</span>
+<span class="sd">            Attributes:</span>
+<span class="sd">                filename(str): file to read/write to yaml file.  By default this</span>
+<span class="sd">                    attribute is set to &#39;pypospack.qoi.yaml&#39;.</span>
+<span class="sd">                qois(dict): key is qoi name, value contains a variety of values</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+            
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="c1"># initialize attributes</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;pypospack.qoi.yaml&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="k">def</span> <span class="nf">add_qoi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">qoi</span><span class="p">,</span><span class="n">structures</span><span class="p">,</span><span class="n">target</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; add a qoi</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                name(str): name of the qoi.  Usually &lt;structure&gt;.&lt;qoi&gt;.</span>
+<span class="sd">                qoi(str): name of the qoi.</span>
+<span class="sd">                structures(list): list of structures</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># make a copy of structures</span>
+            <span class="n">_structures</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">structures</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+                <span class="n">_structures</span> <span class="o">=</span> <span class="p">[</span><span class="n">structures</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_structures</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">structures</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>\
+                    <span class="s1">&#39;qoi&#39;</span><span class="p">:</span><span class="n">qoi</span><span class="p">,</span>
+                    <span class="s1">&#39;structures&#39;</span><span class="p">:</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">structures</span><span class="p">),</span>
+                    <span class="s1">&#39;target&#39;</span><span class="p">:</span><span class="n">target</span><span class="p">}</span>
+
+        <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> 
+            <span class="sd">&quot;&quot;&quot; read qoi configuration from yaml file</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                fname(str): file to read yaml file from.  If no argument is passed</span>
+<span class="sd">                    then use the filename attribute.  If the filename is set, then</span>
+<span class="sd">                    the filename attribute is also set.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># set the attribute if not none</span>
+            <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">qois</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+        <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; write qoi configuration to yaml file</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                fname(str): file to write yaml from from.  If no argument is passed</span>
+<span class="sd">                   then use the filename attribute.  If the filename is set, then </span>
+<span class="sd">                   the filename attribute is also set.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># set the attribute if not none</span>
+            <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+            <span class="c1"># marshall attributes into a dictionary</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_db</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="p">)</span>
+
+            <span class="c1"># dump to yaml file</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_db</span><span class="p">,</span><span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; perform sanity check on potential configuration</span>
+<span class="sd">            </span>
+<span class="sd">            does the following checks:</span>
+<span class="sd">            1.    check to see if the potential type is supported.</span>
+
+<span class="sd">            Raises:</span>
+<span class="sd">                ValueError: if the potential type is unsupported</span>
+<span class="sd">            # initialize variable, if a check fails the variable will be set to </span>
+<span class="sd">            # false</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="n">passed_all_checks</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">qoi_type</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s1">&#39;qoi&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">qoi_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">get_supported_qois</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                        <span class="s2">&quot;unsupported qoi: </span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">k</span><span class="p">,</span><span class="n">qoi_type</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">get_required_structures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; get required structures &quot;&quot;&quot;</span>
+
+            <span class="n">required_structures</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">qoi_name</span><span class="p">,</span> <span class="n">qoi_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qois</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">structures</span> <span class="o">=</span> <span class="n">qoi_info</span><span class="p">[</span><span class="s1">&#39;structures&#39;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">structures</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">s</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">required_structures</span><span class="p">:</span>
+                        <span class="n">required_structures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">required_structures</span>
+
+    <span class="k">class</span> <span class="nc">PotentialInformation</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read/Write Empirical Interatomic Potential Information</span>
+
+<span class="sd">        pypospack uses yaml files to store configuration information for required</span>
+<span class="sd">        for optimization routines.</span>
+<span class="sd">        </span>
+<span class="sd">        Attributes:</span>
+<span class="sd">            filename(str): filename of the yaml file to read/write configuration</span>
+<span class="sd">                file.  Default is pypospack.potential.yaml&#39;</span>
+<span class="sd">            elements(list): list of string of chemical symbols</span>
+<span class="sd">            parameter_names(list): list of parameter names</span>
+<span class="sd">            potential_type(str): type of potential</span>
+<span class="sd">            param_info(dict): param info</span>
+<span class="sd">            eam_pair_potential(str): name of the functional form for the eam</span>
+<span class="sd">                pair potential.  Set by default to None.</span>
+<span class="sd">            eam_embedding_function(str): name of the functional form the eam </span>
+<span class="sd">                embedding function.  Set by default to None.</span>
+<span class="sd">            eam_density_function(str): name of the functional form of the eam</span>
+<span class="sd">                electron desnsity function.  Set by default to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;pypospack.potential.yaml&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">elements</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_info</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="c1"># for eam functions</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_pair_potential</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_embedding_function</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eam_density_function</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span>
+
+        <span class="nd">@property</span>
+        <span class="k">def</span> <span class="nf">free_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">free_params</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;equals&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_info</span><span class="p">[</span><span class="n">p</span><span class="p">]:</span>
+                    <span class="n">free_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">free_params</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; read potential information from yaml file </span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                fname(str): file to yaml file from.  If no argument is passed then</span>
+<span class="sd">                    use the filename attribute.  If the filename is set, then the</span>
+<span class="sd">                    filename attribute is also set</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># set the attribute if not none</span>
+            <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pot_info</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span>
+
+            <span class="c1"># process elements of the yaml file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">elements</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;elements&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;parameter_names&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">=</span> <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eam_pair_potential</span> <span class="o">=</span> <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;eam_pair_potential&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eam_embedding_function</span> <span class="o">=</span> <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;eam_embedding_function&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">eam_density_function</span> <span class="o">=</span> <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;eam_density_function&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param_info</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;param_info&#39;</span><span class="p">])</span>
+
+        <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fname</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; write potential information from yaml file</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                fname(str): file to potential to.  If no argument is passed then</span>
+<span class="sd">                    use the filename attribute.  If the filename is set, then the</span>
+<span class="sd">                    filename atribute is also set.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+            <span class="c1"># set the filename attribute</span>
+            <span class="k">if</span> <span class="n">fname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">fname</span>
+
+            <span class="c1"># marshall attributes into a dict</span>
+            <span class="n">pot_info</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;elements&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">elements</span><span class="p">)</span>
+            <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;parameter_names&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+            <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="o">==</span> <span class="s1">&#39;eam&#39;</span><span class="p">:</span>
+                <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;eam_pair_potential&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eam_pair_potential</span>
+                <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;eam_embedding_function&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eam_embedding_function</span>
+                <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;eam_density_function&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eam_density_function</span>
+            <span class="n">pot_info</span><span class="p">[</span><span class="s1">&#39;param_info&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_info</span><span class="p">)</span>
+
+            <span class="c1"># dump dict to yaml</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">pot_info</span><span class="p">,</span><span class="n">f</span><span class="p">,</span><span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; performs sanity checks to potential configuration</span>
+
+<span class="sd">            does the following checks:</span>
+<span class="sd">            1.    check to see if the potential type is supported.</span>
+
+<span class="sd">            Raises:</span>
+<span class="sd">                ValueError: if the potential type is unsupported</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="c1"># initialize, set to false if a test fails</span>
+            <span class="n">passed_all_checks</span> <span class="o">=</span> <span class="kc">True</span> 
+
+            <span class="c1"># check1: check to see if the potential type is supporte</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span> <span class="ow">not</span> <span class="ow">in</span>  <span class="n">get_supported_potentials</span><span class="p">():</span>
+                <span class="n">passed_all_checks</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>\
+                    <span class="s2">&quot;unsupported potential type: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span><span class="p">))</span>
+
+                <span class="k">return</span> <span class="n">passed_all_checks</span>
+
+        <span class="k">def</span> <span class="nf">get_potential_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">potential_dict</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">potential_dict</span><span class="p">[</span><span class="s1">&#39;potential_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_type</span>
+            <span class="n">potential_dict</span><span class="p">[</span><span class="s1">&#39;elements&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">elements</span>
+            <span class="n">potential_dict</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">potential_dict</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

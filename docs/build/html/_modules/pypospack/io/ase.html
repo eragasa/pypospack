@@ -1,0 +1,475 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.io.ase &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.io.ase</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">ase.io</span>
+<span class="kn">from</span> <span class="nn">ase.lattice.cubic</span> <span class="k">import</span> <span class="n">FaceCenteredCubic</span>
+<span class="kn">from</span> <span class="nn">ase.lattice.cubic</span> <span class="k">import</span> <span class="n">BodyCenteredCubic</span>
+<span class="kn">from</span> <span class="nn">ase.lattice.cubic</span> <span class="k">import</span> <span class="n">SimpleCubic</span>
+<span class="kn">from</span> <span class="nn">ase.lattice.cubic</span> <span class="k">import</span> <span class="n">Diamond</span>
+<span class="kn">from</span> <span class="nn">ase.lattice.hexagonal</span> <span class="k">import</span> <span class="n">HexagonalClosedPacked</span>
+<span class="kn">import</span> <span class="nn">ase.build.bulk</span> <span class="k">as</span> <span class="nn">asebulk</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.linalg</span> <span class="k">as</span> <span class="nn">linalg</span>
+
+<span class="c1"># all crystal names</span>
+<span class="n">supported_xtal_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fcc&#39;</span><span class="p">,</span><span class="s1">&#39;bcc&#39;</span><span class="p">,</span><span class="s1">&#39;fcc&#39;</span><span class="p">,</span><span class="s1">&#39;diamond&#39;</span><span class="p">]</span>
+<span class="n">supported_aliases</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="make_structure"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_structure">[docs]</a><span class="k">def</span> <span class="nf">make_structure</span><span class="p">(</span>\
+        <span class="n">symbol</span><span class="p">,</span>
+        <span class="n">structure</span><span class="p">,</span>
+        <span class="n">a</span><span class="p">,</span>
+        <span class="n">is_cubic</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">is_orthorhombic</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; creates an atomic structure</span>
+<span class="sd">    Args:</span>
+<span class="sd">        symbol(str): the ISO chemical symbol for atom type</span>
+<span class="sd">        structure(str): structure type</span>
+<span class="sd">        a(float): lattice parameter for the material</span>
+<span class="sd">        is_cubic(bool): true</span>
+<span class="sd">        is_orthorhombic(bool): false</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        ase.atom.Atoms</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sim_cell</span> <span class="o">=</span> <span class="n">asebulk</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> 
+            <span class="n">structure</span><span class="p">,</span> 
+            <span class="n">a</span><span class="p">,</span> 
+            <span class="n">cubic</span><span class="o">=</span><span class="n">is_cubic</span><span class="p">,</span>
+            <span class="n">orthorhombic</span><span class="o">=</span><span class="n">is_orthorhombic</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sim_cell</span></div>
+
+<div class="viewcode-block" id="write_ase_structure"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.write_ase_structure">[docs]</a><span class="k">def</span> <span class="nf">write_ase_structure</span><span class="p">(</span><span class="n">ase_cell</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">fileformat</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">fileformat</span>  <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;vasp&#39;</span><span class="p">,</span><span class="s1">&#39;poscar&#39;</span><span class="p">]:</span>
+        <span class="n">write_ase_structure_as_poscar</span><span class="p">(</span><span class="n">ase_cell</span><span class="p">,</span> <span class="n">fname_out</span><span class="o">=</span><span class="n">filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="write_ase_structure_as_poscar"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.write_ase_structure_as_poscar">[docs]</a><span class="k">def</span> <span class="nf">write_ase_structure_as_poscar</span><span class="p">(</span><span class="n">ase_cell</span><span class="p">,</span> <span class="n">fname_out</span><span class="o">=</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; write the ase structure</span>
+
+<span class="sd">    The standard version that ase uses for the POSCAR file is</span>
+<span class="sd">    inadequate for our needs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">       ase_cell(ase.atom.Atoms): the simulation cell</span>
+<span class="sd">       fname_out(str): file name to be written to (default: &#39;POSCAR&#39;)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: a string of the POSCAR file which was written</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        FileExceptionError: if the filename already exists.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">ase_cell</span><span class="p">)</span> <span class="ow">is</span> <span class="n">ase</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">Atoms</span><span class="p">,</span> \
+            <span class="s2">&quot;ase_cell not the correct type, </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">ase_cell</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fname_out</span><span class="p">,</span><span class="nb">str</span><span class="p">),</span> \
+            <span class="s2">&quot;fname_out is not a string&quot;</span>
+
+    <span class="n">symbols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ase_cell</span><span class="o">.</span><span class="n">get_chemical_symbols</span><span class="p">())))</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">ase_cell</span><span class="o">.</span><span class="n">get_cell</span><span class="p">()</span>
+    <span class="n">lattice</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="n">H</span><span class="p">]</span>
+
+    <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;generated by pyPOSpack</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lattice</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">lattice</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="n">n_atoms_per_symbol</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">:</span>
+        <span class="n">n_atoms</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ase_cell</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">s</span><span class="p">:</span>
+                <span class="n">n_atoms</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">n_atoms_per_symbol</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_atoms</span>
+
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">n_atoms_per_symbol</span><span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;Direct</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ase_cell</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">s</span><span class="p">:</span>
+                <span class="n">uvx</span> <span class="o">=</span> <span class="n">transform_cartesian_to_direct</span><span class="p">(</span>\
+                        <span class="n">v</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
+                        <span class="n">lattice</span> <span class="o">=</span> <span class="n">ase_cell</span><span class="o">.</span><span class="n">get_cell</span><span class="p">())</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="s2"> </span><span class="si">{:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
+                        <span class="n">uvx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">uvx</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">uvx</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="c1"># write the string out to filename</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fname_out</span><span class="p">,</span><span class="s1">&#39;x&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">str_out</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">str_out</span></div>
+
+<div class="viewcode-block" id="transform_cartesian_to_direct"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.transform_cartesian_to_direct">[docs]</a><span class="k">def</span> <span class="nf">transform_cartesian_to_direct</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">lattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; transformation of cartesian coordinates to direct coordinates</span>
+
+<span class="sd">    If the lattice is an H vector, with the rows being the lattice vectors, the</span>
+<span class="sd">    if r is a column vector of the director coordinates of H, and x is the </span>
+<span class="sd">    Cartesian coordinates, then x = H.T r.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        v(list): a list of floats representing the coordinates in the cartesian basis.</span>
+<span class="sd">        lattice(list): a list of lists representing the lattice in H-matrix form</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: a list of float representing the coordinates in the lattice vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># http://www.ruppweb.org/Xray/tutorial/Coordinate%20system%20transformation.htm</span>
+
+    <span class="c1"># assert that we have the things we want</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)),</span>\
+            <span class="s2">&quot;type(v) is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lattice</span><span class="p">),</span><span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)),</span>\
+            <span class="s2">&quot;type(lattice) is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lattice</span><span class="p">))</span>
+
+    <span class="c1"># cast v as a column vector</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="c1"># cast the lattice as an H vector</span>
+    <span class="n">uvx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">lattice</span><span class="o">.</span><span class="n">T</span><span class="p">),</span><span class="n">xyz</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">uvx</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="transform_direct_to_cartesian"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.transform_direct_to_cartesian">[docs]</a><span class="k">def</span> <span class="nf">transform_direct_to_cartesian</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">lattice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; transformation of cartesian coordinates to direct coordinates</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        v(list): a list of floats representing the coordinates in the cartesian basis.</span>
+<span class="sd">        lattice(list): a list of lists representing the lattice in H-matrix form</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: a list of float representing the coordinates in the lattice vector.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">)),</span>\
+            <span class="s2">&quot;type(v) is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lattice</span><span class="p">),</span><span class="nb">type</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)),</span>\
+            <span class="s2">&quot;type(lattice) is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">lattice</span><span class="p">))</span>
+
+    <span class="c1"># cast v as a column vector</span>
+    <span class="n">uvw</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">lattice</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">uvw</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">xyz</span></div>
+
+<div class="viewcode-block" id="make_bulk_structure"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_bulk_structure">[docs]</a><span class="k">def</span> <span class="nf">make_bulk_structure</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span>
+                        <span class="n">xtal_name</span><span class="p">,</span>
+                        <span class="n">a</span><span class="p">,</span>
+                        <span class="n">lattice_shape</span><span class="p">):</span>
+
+    <span class="n">is_cubic</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">is_orthorhombic</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">lattice_shape</span> <span class="ow">is</span> <span class="s1">&#39;cubic&#39;</span><span class="p">:</span>
+        <span class="n">is_cubic</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">is_orthorhombic</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="n">lattice_shape</span> <span class="ow">is</span> <span class="s1">&#39;ortho&#39;</span><span class="p">:</span>
+        <span class="n">is_cubic</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">is_orthorhombic</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="n">lattice_shape</span> <span class="ow">is</span> <span class="s1">&#39;prim&#39;</span><span class="p">:</span>
+        <span class="n">is_cubic</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">is_orthorhombic</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ValueException</span><span class="p">(</span><span class="s1">&#39;lattice_shape must be cubic, ortho, or prim&#39;</span><span class="p">)</span>
+
+    <span class="n">xtal</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">xtal_name</span> <span class="o">==</span> <span class="s1">&#39;dia&#39;</span><span class="p">:</span>
+        <span class="n">xtal</span> <span class="o">=</span> <span class="s1">&#39;diamond&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xtal</span> <span class="o">=</span> <span class="n">xtal_name</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;making a cell:&#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">symbols:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">xtal_name:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xtal_name</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">lattice_shape:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lattice_shape</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">is_cubic=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">is_cubic</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">is_orthorhombic=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">is_orthorhombic</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">a=</span><span class="si">{:10.6f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+    <span class="c1"># make ase simulation cell</span>
+    <span class="n">cell</span> <span class="o">=</span> <span class="n">make_structure</span><span class="p">(</span>\
+            <span class="n">s</span><span class="p">,</span><span class="n">xtal</span><span class="p">,</span><span class="n">a</span><span class="p">,</span>
+            <span class="n">is_cubic</span><span class="o">=</span><span class="n">is_cubic</span><span class="p">,</span>
+            <span class="n">is_orthorhombic</span><span class="o">=</span><span class="n">is_orthorhombic</span><span class="p">)</span>
+
+    <span class="n">fname_out</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.vasp&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symbols</span><span class="p">),</span><span class="n">xtal_name</span><span class="p">,</span><span class="n">lattice_shape</span><span class="p">)</span>
+
+    <span class="n">write_ase_structure_as_poscar</span><span class="p">(</span>\
+            <span class="n">ase_cell</span> <span class="o">=</span> <span class="n">cell</span><span class="p">,</span>
+            <span class="n">fname_out</span> <span class="o">=</span> <span class="n">fname_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="get_atomic_radius"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.get_atomic_radius">[docs]</a><span class="k">def</span> <span class="nf">get_atomic_radius</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">symbol</span> <span class="o">==</span> <span class="s1">&#39;Ni&#39;</span><span class="p">:</span>
+        <span class="k">return</span>  <span class="p">(</span><span class="mf">0.5</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mf">0.5</span><span class="p">))</span><span class="o">*</span><span class="mf">3.524</span></div>
+
+<div class="viewcode-block" id="determine_direction_vectors_for_surface"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.determine_direction_vectors_for_surface">[docs]</a><span class="k">def</span> <span class="nf">determine_direction_vectors_for_surface</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]):</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span>
+    <span class="n">point_1</span> <span class="o">=</span> <span class="p">[</span><span class="n">direction_z</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">point_2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="n">direction_z</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">point_3</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="n">direction_z</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+    
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">point_3</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">point_2</span><span class="p">))</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span>
+            <span class="n">direction_z</span><span class="p">,</span>
+            <span class="n">direction_x</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span> 
+            <span class="n">direction_x</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="n">direction_y</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="n">direction_z</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="p">]</span></div>
+
+<div class="viewcode-block" id="make_fcc_100_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_fcc_100_cell">[docs]</a><span class="k">def</span> <span class="nf">make_fcc_100_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">atoms</span> <span class="o">=</span> <span class="n">FaceCenteredCubic</span><span class="p">(</span>\
+            <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">],</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">atoms</span></div>
+
+<div class="viewcode-block" id="make_fcc_111_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_fcc_111_cell">[docs]</a><span class="k">def</span> <span class="nf">make_fcc_111_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">_surface_direction</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">directions</span> <span class="o">=</span> <span class="n">determine_direction_vectors_for_surface</span><span class="p">(</span>
+            <span class="n">direction</span><span class="o">=</span><span class="n">_surface_direction</span>
+        <span class="p">)</span>
+
+    <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">atoms</span> <span class="o">=</span> <span class="n">FaceCenteredCubic</span><span class="p">(</span>\
+            <span class="n">directions</span><span class="o">=</span><span class="n">directions</span><span class="p">,</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">atoms</span></div>
+
+<div class="viewcode-block" id="make_fcc_110_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_fcc_110_cell">[docs]</a><span class="k">def</span> <span class="nf">make_fcc_110_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">atoms</span> <span class="o">=</span> <span class="n">FaceCenteredCubic</span><span class="p">(</span>\
+            <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">],</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">atoms</span></div>
+
+<div class="viewcode-block" id="make_bcc_100_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_bcc_100_cell">[docs]</a><span class="k">def</span> <span class="nf">make_bcc_100_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">]</span>
+    <span class="n">atoms</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="n">BodyCenteredCubic</span><span class="p">(</span>\
+                <span class="n">directions</span><span class="o">=</span><span class="n">directions</span><span class="p">,</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;Cannot guess the bcc lattice constant of an element with crystal structure fcc.&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">get_atomic_radius</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">a0</span> <span class="o">=</span> <span class="mi">4</span><span class="o">*</span><span class="n">r</span><span class="o">/</span><span class="p">(</span><span class="mi">3</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">BodyCenteredCubic</span><span class="p">(</span>\
+                    <span class="n">directions</span><span class="o">=</span><span class="n">directions</span><span class="p">,</span>
+                    <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">,</span>
+                    <span class="n">latticeconstant</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot create the bcc structure&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">atoms</span></div>
+
+<div class="viewcode-block" id="make_sc_100_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_sc_100_cell">[docs]</a><span class="k">def</span> <span class="nf">make_sc_100_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">]</span>
+
+    <span class="n">atoms</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="n">SimpleCubic</span><span class="p">(</span>\
+                <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">],</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;Cannot guess the sc lattice constant of an element with crystal structure fcc.&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">get_atomic_radius</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">a0</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">r</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">SimpleCubic</span><span class="p">(</span>\
+                    <span class="n">directions</span><span class="o">=</span><span class="n">directions</span><span class="p">,</span>
+                    <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">,</span>
+                    <span class="n">latticeconstant</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot create the simple cubic structure&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">atoms</span></div>
+
+<div class="viewcode-block" id="make_dia_100_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_dia_100_cell">[docs]</a><span class="k">def</span> <span class="nf">make_dia_100_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">atoms</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="n">Diamond</span><span class="p">(</span>\
+                <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">],</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;Cannot guess the diamond lattice constant of an element with crystal structure fcc.&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">get_atomic_radius</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">a0</span> <span class="o">=</span> <span class="mf">3.567</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">Diamond</span><span class="p">(</span>\
+                    <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">],</span>
+                    <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">,</span>
+                    <span class="n">latticeconstant</span><span class="o">=</span><span class="n">a0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cannnot create the diamond cubic structure&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">atoms</span></div>
+
+<div class="viewcode-block" id="make_hcp_0001_cell"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.ase.make_hcp_0001_cell">[docs]</a><span class="k">def</span> <span class="nf">make_hcp_0001_cell</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ni&#39;</span><span class="p">],</span><span class="n">pbc</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)):</span>
+    <span class="n">direction_x</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">direction_z</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">]</span>
+    <span class="n">atoms</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="n">HexagonalClosedPacked</span><span class="p">(</span>
+            <span class="n">directions</span><span class="o">=</span><span class="p">[</span><span class="n">direction_x</span><span class="p">,</span><span class="n">direction_y</span><span class="p">,</span><span class="n">direction_z</span><span class="p">],</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+            <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;Cannot guess the hcp lattice constant of an element with crystal structure fcc.&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">get_atomic_radius</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">_lattice_constants</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">_lattice_constants</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
+            <span class="n">_lattice_constants</span><span class="p">[</span><span class="s1">&#39;c/a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.663</span>
+            
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">HexagonalClosedPacked</span><span class="p">(</span>\
+                    <span class="n">directions</span><span class="o">=</span><span class="n">directions</span><span class="p">,</span>
+                    <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">pbc</span><span class="o">=</span><span class="n">pbc</span><span class="p">,</span>
+                    <span class="n">latticeconstant</span><span class="o">=</span><span class="n">_lattice_constants</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span>
+    <span class="k">return</span> <span class="n">atoms</span></div>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="s1">&#39;Ni&#39;</span>
+    <span class="n">structure</span> <span class="o">=</span> <span class="s1">&#39;fcc&#39;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">3.508</span>
+
+    <span class="c1"># create the orthogonal unit cell</span>
+    <span class="n">cell</span> <span class="o">=</span> <span class="n">make_structure</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span>
+            <span class="n">structure</span><span class="p">,</span>
+            <span class="n">a</span><span class="p">,</span>
+            <span class="n">is_cubic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># create the nonorthgonal unit cell</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">write_ase_structure_as_poscar</span><span class="p">(</span>
+                <span class="n">ase_cell</span> <span class="o">=</span> <span class="n">cell</span><span class="p">,</span> 
+                <span class="n">fname_out</span><span class="o">=</span><span class="s1">&#39;Ni_fcc_unit.vasp&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">FileExistsError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;the file exists&quot;</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

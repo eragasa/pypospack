@@ -1,0 +1,293 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.workflow &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../about.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.workflow</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">time</span><span class="o">,</span><span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<div class="viewcode-block" id="WorkflowManagerError"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManagerError">[docs]</a><span class="k">class</span> <span class="nc">WorkflowManagerError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="WorkflowManager"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager">[docs]</a><span class="k">class</span> <span class="nc">WorkflowManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">       wf_name(str): workflow task name</span>
+<span class="sd">       wf_directory(str): workflow directory name</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">       wf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">wf_name</span><span class="p">,</span><span class="n">wf_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workflow_name</span> <span class="o">=</span> <span class="n">wf_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_configs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_requirements</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_status</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__set_workflow_directory</span><span class="p">(</span><span class="n">wf_directory</span><span class="o">=</span><span class="n">wf_directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__log</span><span class="p">(</span><span class="s1">&#39;wf_name:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wf_name</span><span class="p">))</span>
+
+<div class="viewcode-block" id="WorkflowManager.initialize_tasks"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.initialize_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_obj_config</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; initial tasks from a dictionary</span>
+
+<span class="sd">        task_obj_config(:obj:`dict` of :obj:`dict`):  a dict of configuration</span>
+<span class="sd">            dictionaries</span>
+
+<span class="sd">            &gt;&gt;&gt; task_obj_config = {}</span>
+<span class="sd">            &gt;&gt;&gt; task_obj_config[&#39;task1&#39;] = {}</span>
+<span class="sd">            &gt;&gt;&gt; task_obj_config[&#39;task1&#39;][&#39;module_name&#39;] = &#39;pypospack.task.lammps&#39;</span>
+<span class="sd">            &gt;&gt;&gt; task_obj_config[&#39;task1&#39;][&#39;class_name&#39;] = &#39;LammpsSimulation&#39;</span>
+<span class="sd">            &gt;&gt;&gt; task_obj_config[&#39;task2&#39;] = {}</span>
+<span class="sd">            &gt;&gt;&gt; ...</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># reset the task attribute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_status</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">task_status</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">task</span><span class="p">,</span> <span class="n">task_config</span> <span class="ow">in</span> <span class="n">task_obj_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">task_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="p">[</span><span class="n">task</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+        <span class="c1"># iterate over the list of task and add them to the list</span>
+        <span class="c1"># self.add_ask instantiates the class</span>
+        <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span><span class="n">task_info</span> <span class="ow">in</span> <span class="n">task_obj_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">task_module_name</span> <span class="o">=</span> <span class="n">task_info</span><span class="p">[</span><span class="s1">&#39;module_name&#39;</span><span class="p">]</span>
+            <span class="n">task_class_name</span> <span class="o">=</span> <span class="n">task_info</span><span class="p">[</span><span class="s1">&#39;class_name&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span><span class="n">task_module_name</span><span class="p">,</span><span class="n">task_class_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.run"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">wait_time</span><span class="o">=</span><span class="mf">0.05</span><span class="p">):</span>
+        <span class="n">all_tasks_complete</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="n">task_status_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;INIT&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">process_task_status_init</span><span class="p">,</span>
+                <span class="s1">&#39;CONFIG&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">process_task_status_config</span><span class="p">,</span>
+                <span class="s1">&#39;READY&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">process_task_status_ready</span><span class="p">,</span>
+                <span class="s1">&#39;RUN&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">process_task_status_run</span><span class="p">,</span>
+                <span class="s1">&#39;POST&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">process_task_status_post</span><span class="p">,</span>
+                <span class="s1">&#39;DONE&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">process_task_status_done</span> <span class="p">}</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">all_tasks_complete</span><span class="p">:</span>
+            <span class="c1"># check to see if all the tasks are complete</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">obj</span><span class="p">[</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s1">&#39;DONE&#39;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                <span class="n">all_tasks_complete</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="c1"># update status</span>
+            <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task_status</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">status</span>
+            <span class="c1"># process status</span>
+            <span class="k">for</span> <span class="n">task</span><span class="p">,</span> <span class="n">status</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_status</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">task_status_map</span><span class="p">[</span><span class="n">status</span><span class="p">](</span><span class="n">task</span><span class="p">)</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">wait_time</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_init"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_init">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;INIT&#39;</span><span class="p">,</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="n">config_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">req_config</span><span class="p">()</span>
+        <span class="n">config_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">config_list</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">config_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_config</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">WorkflowManagerError</span><span class="p">(</span>\
+                    <span class="p">(</span><span class="s1">&#39;Task cannot be configured because config_dict is &#39;</span>
+                    <span class="s1">&#39;missing necessary configuration information.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">task_name:</span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">task_config_field_name:</span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">send_config</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_config"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_config">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;CONFIG&#39;</span><span class="p">,</span><span class="n">task_name</span><span class="p">)</span>
+
+        <span class="c1"># since we are at config, we want information to get to ready</span>
+        <span class="n">ready_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">req_ready</span><span class="p">()</span>
+        <span class="n">ready_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ready_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;param_dict&#39;</span><span class="p">:</span>
+                <span class="n">ready_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_dict</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> need the information </span><span class="si">{}</span><span class="s1"> to get &#39;</span>
+                        <span class="s1">&#39;to ready status.  WorkflowManager does not &#39;</span>
+                        <span class="s1">&#39;have this information&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span><span class="n">key</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">send_ready</span><span class="p">(</span><span class="n">ready_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_ready"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_ready">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;READY&#39;</span><span class="p">,</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="n">run_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">req_run</span><span class="p">()</span>
+        <span class="n">run_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">run_list</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">send_run</span><span class="p">(</span><span class="n">run_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_run"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_run">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;RUN&#39;</span><span class="p">,</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="n">post_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">req_post</span><span class="p">()</span>
+        <span class="n">post_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">post_list</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">send_post</span><span class="p">(</span><span class="n">post_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_post"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_post">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;POST&#39;</span><span class="p">,</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="n">done_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">req_done</span><span class="p">()</span>
+        <span class="n">done_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">done_list</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">send_done</span><span class="p">(</span><span class="n">done_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_done"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_done">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;DONE&#39;</span><span class="p">,</span><span class="n">task_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WorkflowManager.process_task_status_unknown"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.process_task_status_unknown">[docs]</a>    <span class="k">def</span> <span class="nf">process_task_status_unknown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">WorkflowError</span><span class="p">(</span><span class="s1">&#39;unknown Task.status&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="WorkflowManager.add_task"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.WorkflowManager.add_task">[docs]</a>    <span class="k">def</span> <span class="nf">add_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_name</span><span class="p">,</span><span class="n">task_module_name</span><span class="p">,</span><span class="n">task_class_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; add a task to the workflow</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            task_name(str): unique task_name id</span>
+<span class="sd">            task_module_name(str): module name to load</span>
+<span class="sd">            task_class_name(str): module class to load</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">task_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                <span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="p">)</span>
+
+        <span class="c1"># tasks are instantiated dynamically</span>
+        <span class="c1"># getattr(module,str_class_name)(task_name,task_directory)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_directory</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">task_module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">task_module_name</span><span class="p">)</span>
+            <span class="n">task_class</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">task_module</span><span class="p">,</span><span class="n">task_class_name</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">task_name</span><span class="p">][</span><span class="s1">&#39;obj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">task_class</span><span class="p">(</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">msg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; temporary logging method &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__set_workflow_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">wf_directory</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">wf_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                    <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">workflow_name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">wf_directory</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                    <span class="n">wf_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">workflow_name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">wf_directory</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>\
+                    <span class="bp">self</span><span class="o">.</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span>
+                    <span class="n">wf_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">workflow_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;do not know what to do with wf_directory:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">wf_directory</span><span class="p">))</span>
+
+        <span class="c1"># make workflow directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__log</span><span class="p">(</span><span class="s2">&quot;setting the workfflow directory to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>\
+                <span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__log</span><span class="p">(</span><span class="s2">&quot;wf_directory=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workflow_directory</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="LammpsWorkflowManager"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.LammpsWorkflowManager">[docs]</a><span class="k">class</span> <span class="nc">LammpsWorkflowManager</span><span class="p">(</span><span class="n">WorkflowManager</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">wf_name</span><span class="p">,</span><span class="n">wf_directory</span><span class="p">):</span>
+        <span class="n">WorkflowManager</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">wf_name</span><span class="p">,</span><span class="n">wf_directory</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;INIT&#39;</span>
+<div class="viewcode-block" id="LammpsWorkflowManager.initialize_tasks"><a class="viewcode-back" href="../../pypospack/api/pypospack.html#pypospack.workflow.LammpsWorkflowManager.initialize_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">task_obj_config</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LammpsWorkflowManager</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">initialize_tasks</span><span class="p">(</span><span class="n">task_obj_config</span><span class="p">)</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

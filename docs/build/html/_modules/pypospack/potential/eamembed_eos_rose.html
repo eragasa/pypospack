@@ -1,0 +1,390 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pypospack.potential.eamembed_eos_rose &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" accesskey="U">pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.potential.eamembed_eos_rose</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">EamEmbeddingEquationOfState</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">brentq</span>
+
+<div class="viewcode-block" id="rose_equation_of_state"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamembed_eos_rose.rose_equation_of_state">[docs]</a><span class="k">def</span> <span class="nf">rose_equation_of_state</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">a0</span><span class="p">,</span><span class="n">e_coh</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        B0 - isothermal bulk modulus</span>
+<span class="sd">        dB0_dP - first derivative of pressure w.r.t to Pressure</span>
+<span class="sd">        omega = </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">a_star</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="o">/</span><span class="n">a0</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">sqrt</span>
+    <span class="k">return</span> <span class="n">E</span></div>
+
+<div class="viewcode-block" id="RoseEquationOfStateEmbeddingFunction"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamembed_eos_rose.RoseEquationOfStateEmbeddingFunction">[docs]</a><span class="k">class</span> <span class="nc">RoseEquationOfStateEmbeddingFunction</span><span class="p">(</span><span class="n">EamEmbeddingEquationOfState</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; An equation of state defined by the Rose Equation of the State</span>
+
+<span class="sd">    This class implements the determination of the embedding function by </span>
+<span class="sd">    inverse solution of the Rose-Vinet Equation of State[1]. This method </span>
+<span class="sd">    is outlined in by Foiles[1].</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        symbols(list of str): a list of symbols.</span>
+<span class="sd">        obj_density_function(EamDensityFunction,optional): an object which </span>
+<span class="sd">            is an instance of the eam density function.</span>
+<span class="sd">        obj_pair_function(PairPotential,optional): an object which is an </span>
+<span class="sd">            instance of a pair potential.</span>
+<span class="sd">        lattice_type(str,optional): the type of metal lattice that we have, </span>
+<span class="sd">            the acceptable lattice types are fcc, bcc, and hcp.</span>
+<span class="sd">        lattice_a0(str,optional): the lattice parameter of the lattice type </span>
+<span class="sd">            referenced in lattice_type.</span>
+<span class="sd">        parameters(OrderedDict,optional): the parameters to be evaluated</span>
+<span class="sd">    Notes:</span>
+<span class="sd">        [1] Foiles, Baskes, and Daw., Phys. Rev. B., 1986</span>
+<span class="sd">        [2] Brent, R. P., Algorithms for Minimization Without Derivatives. Englewood Cliffs, NJ: Prentice-Hall, 1973. Ch. 3-4</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">symbols</span><span class="p">,</span>
+            <span class="n">obj_density_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">obj_pair_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">lattice_type</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">lattice_a0</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">EamEmbeddingEquationOfState</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">symbols</span><span class="o">=</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="c1"># define member variables, and initialize with None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span><span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lattice_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lattice_a0</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># process arguments</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">obj_density_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span> <span class="o">=</span> <span class="n">obj_density_function</span>
+        
+        <span class="k">if</span> <span class="n">obj_pair_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span> <span class="o">=</span> <span class="n">obj_pair_function</span>
+
+        <span class="k">if</span> <span class="n">lattice_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lattice_type</span> <span class="o">=</span> <span class="n">lattice_type</span>
+
+        <span class="k">if</span> <span class="n">lattice_a0</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lattice_a0</span> <span class="o">=</span> <span class="n">lattice_a0</span>
+
+    <span class="k">def</span> <span class="nf">_init_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">PARAMETER_NAME_FORMAT</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{s}</span><span class="s2">_</span><span class="si">{pn}</span><span class="s2">&quot;</span>
+        <span class="n">PARAMETER_NAMES_EA_SYMBOL</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ecoh&#39;</span><span class="p">,</span><span class="s1">&#39;latticetype&#39;</span><span class="p">,</span><span class="s1">&#39;B&#39;</span><span class="p">,</span><span class="s1">&#39;a0&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pn</span> <span class="ow">in</span> <span class="n">PARAMETER_NAMES_EA_SYMBOL</span><span class="p">:</span>
+                <span class="n">pn_string</span> <span class="o">=</span> <span class="n">PARAMETER_NAME_FORMAT</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span><span class="n">pn</span><span class="o">=</span><span class="n">pn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pn_string</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="RoseEquationOfStateEmbeddingFunction.rose_equation_of_state"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamembed_eos_rose.RoseEquationOfStateEmbeddingFunction.rose_equation_of_state">[docs]</a>    <span class="k">def</span> <span class="nf">rose_equation_of_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">s</span><span class="p">):</span>
+        <span class="n">cubic_lattice_types</span> <span class="o">=</span> <span class="s2">&quot;fcc,bcc,dia&quot;</span>
+
+        <span class="c1"># the equation of state function</span>
+        <span class="n">e_coh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_ecoh&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+        <span class="n">bulk_modulus</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_B&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+        
+        <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_a0&quot;</span><span class="p">]</span>
+       
+        <span class="c1"># this should be replaced with ore general code which implements a base class</span>
+        <span class="c1"># lattice to retrieve all this reference data</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_latticetype&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+            <span class="n">V</span> <span class="o">=</span> <span class="n">a0</span><span class="o">**</span><span class="mi">3</span>
+            <span class="n">n_atoms_per_unit_cell</span> <span class="o">=</span> <span class="mi">4</span>
+            <span class="n">omega</span> <span class="o">=</span> <span class="n">V</span><span class="o">/</span><span class="n">n_atoms_per_unit_cell</span>
+        
+        
+        <span class="n">e_rose</span> <span class="o">=</span> <span class="o">-</span> <span class="n">e_coh</span></div>
+        
+
+<div class="viewcode-block" id="RoseEquationOfStateEmbeddingFunction.equation_of_state"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamembed_eos_rose.RoseEquationOfStateEmbeddingFunction.equation_of_state">[docs]</a>    <span class="k">def</span> <span class="nf">equation_of_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">rho</span><span class="p">,</span><span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_p</span> <span class="o">=</span> <span class="n">parameters</span>
+
+        <span class="k">if</span> <span class="n">latt_type</span> <span class="ow">is</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="RoseEquationOfStateEmbeddingFunction.evaluate"><a class="viewcode-back" href="../../../pypospack/api/pypospack.potential.html#pypospack.potential.eamembed_eos_rose.RoseEquationOfStateEmbeddingFunction.evaluate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">rho</span><span class="p">,</span>
+            <span class="n">r</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="p">,</span>
+            <span class="n">o_pair</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">o_density</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">a_min</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+            <span class="n">a_max</span><span class="o">=</span><span class="mf">10000.</span><span class="p">,</span>
+            <span class="n">a_tol</span><span class="o">=</span><span class="mf">1.e-8</span><span class="p">):</span>
+
+        <span class="c1"># need to add error handling code here</span>
+        <span class="k">if</span> <span class="n">o_pair</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span> <span class="o">=</span> <span class="n">o_pair</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;pair potential function attribute is None&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># need to add error handling code here as well</span>
+        <span class="k">if</span> <span class="n">o_density</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span> <span class="o">=</span> <span class="n">o_density</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;electron density function is None&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span><span class="n">OrderedDict</span><span class="p">)</span>
+        <span class="c1"># we can define rho at a point as a function</span>
+       
+        <span class="c1"># nested function for development</span>
+        <span class="k">def</span> <span class="nf">rhofxn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">args</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            a - the lattice parameter for which we are looking for the total electron density</span>
+<span class="sd">            args[0] - parameters</span>
+<span class="sd">            args[1] = rho bar.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">rho_fxn_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="n">_rho_bar</span><span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">_s</span> <span class="o">=</span> <span class="n">s</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;d_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_s</span><span class="p">)):</span>
+                    <span class="n">rho_fxn_parameters</span><span class="p">[</span><span class="n">k</span><span class="p">[</span><span class="mi">2</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">v</span>
+
+            <span class="n">lattice_type</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">_latticetype&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_s</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">lattice_type</span> <span class="o">==</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+                <span class="n">n_NN</span> <span class="o">=</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">8</span><span class="p">]</span>
+                <span class="n">d_NN</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">),</span><span class="n">a</span><span class="p">,</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.5</span><span class="p">),</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.5</span><span class="p">),</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)]</span>
+            
+            <span class="n">_rho</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">_density</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span><span class="o">.</span><span class="n">density_evaluations</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+            
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_NN</span><span class="p">)):</span>
+                    <span class="n">_rho</span> <span class="o">+=</span> <span class="n">n_NN</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
+                            <span class="n">d_NN</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                            <span class="n">r</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span><span class="o">.</span><span class="n">density_evaluations</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+                        <span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_NN</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rho_fxn_parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">_rho</span> <span class="o">+=</span> <span class="n">n_NN</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                                <span class="n">d_NN</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">rho_fxn_parameters</span>
+                            <span class="p">)[</span><span class="n">s</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_rho</span> <span class="o">+=</span> <span class="n">n_NN</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_density_fn</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                                <span class="n">d_NN</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">rho_fxn_parameters</span>
+                            <span class="p">)[</span><span class="n">s</span><span class="p">]</span>
+            
+            <span class="k">return</span> <span class="n">_rho</span><span class="o">-</span><span class="n">_rho_bar</span>
+        
+        <span class="k">def</span> <span class="nf">pairfxn</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="n">args</span><span class="p">,</span><span class="n">pair_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">r_vector</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+            <span class="n">pair_fxn_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;p_</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">s</span><span class="p">)):</span>
+                    <span class="n">pair_fxn_parameters</span><span class="p">[</span><span class="n">k</span><span class="p">[</span><span class="mi">2</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">v</span>
+
+            <span class="n">lattice_type</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">_latticetype&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">lattice_type</span> <span class="o">==</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+                <span class="n">n_NN</span> <span class="o">=</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">8</span><span class="p">]</span>
+                <span class="n">d_NN</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">),</span><span class="n">a</span><span class="p">,</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.5</span><span class="p">),</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="p">),</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.5</span><span class="p">),</span><span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)]</span>
+            
+            <span class="n">_pot</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r_vector</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">_pair_key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_NN</span><span class="p">)):</span>
+                    <span class="n">_pot</span> <span class="o">+=</span> <span class="n">n_NN</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
+                            <span class="n">d_NN</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                            <span class="n">r_vector</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span><span class="o">.</span><span class="n">potential_evaluations</span><span class="p">[</span><span class="n">_pair_key</span><span class="p">]</span>
+                        <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;notinterp&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">n_NN</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pair_fxn_parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">_pot</span> <span class="o">+=</span> <span class="n">n_NN</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                                <span class="n">d_NN</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">pair_fxn_parameters</span>
+                            <span class="p">)[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">s</span><span class="p">)]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">_pot</span> <span class="o">+=</span> <span class="n">n_NN</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj_pair_fn</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
+                                <span class="n">d_NN</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">pair_fxn_parameters</span>
+                            <span class="p">)[</span><span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">s</span><span class="p">)]</span>
+
+            <span class="c1"># ?? remove double counting of pairs</span>
+            <span class="n">_pot</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_pot</span>
+            <span class="k">return</span> <span class="n">_pot</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_evaluations</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="c1">#unpack variable array.</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="n">embed_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_ecoh</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">_ecoh&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">_ecoh</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_ecoh&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_latticetype</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">_latticetype&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">_latticetype</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_latticetype&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_B</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">_B&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">_B</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_B&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_a0</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;e_</span><span class="si">{}</span><span class="s1">_a0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">_a0</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_a0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">)]</span>
+
+            <span class="k">if</span> <span class="n">_latticetype</span> <span class="o">==</span> <span class="s1">&#39;fcc&#39;</span><span class="p">:</span>
+                <span class="n">_r0</span> <span class="o">=</span> <span class="n">_a0</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="p">)</span>
+                <span class="n">_n_atoms_per_unit_cell</span> <span class="o">=</span> <span class="mi">4</span>
+
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">rhostar</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rho</span><span class="p">):</span>
+        
+                <span class="c1"># for each rho, we need to determine the lattice parameter which produces</span>
+                <span class="c1"># the rho for an atom in the corresponding lattice type.</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">brentq</span><span class="p">(</span>
+                        <span class="n">f</span><span class="o">=</span><span class="n">rhofxn</span><span class="p">,</span>
+                        <span class="n">a</span><span class="o">=</span><span class="n">a_min</span><span class="p">,</span>
+                        <span class="n">b</span><span class="o">=</span><span class="n">a_max</span><span class="p">,</span>
+                        <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">parameters</span><span class="p">,</span><span class="n">rhostar</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">r</span><span class="p">],</span>
+                        <span class="n">xtol</span><span class="o">=</span><span class="n">a_tol</span><span class="p">)</span>
+
+                <span class="c1"># here we determine astar as in equation 5 in Foiles. Phys Rev B (33) 12. Jun 1986 </span>
+                <span class="c1"># 160.22 is the conversion with _esub in eV, _B in GPa, and _omega in Angs^3</span>
+                <span class="n">_esub</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">_ecoh</span><span class="p">)</span> 
+                <span class="n">_omega</span> <span class="o">=</span> <span class="p">(</span><span class="n">_a0</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">_n_atoms_per_unit_cell</span> 
+                <span class="n">astar</span> <span class="o">=</span> <span class="p">((</span><span class="n">a</span><span class="o">/</span><span class="n">_a0</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">((</span><span class="n">_esub</span><span class="o">/</span><span class="p">(</span><span class="mi">9</span><span class="o">*</span><span class="n">_B</span><span class="o">*</span><span class="n">_omega</span><span class="p">)</span> <span class="o">*</span> <span class="mf">160.22</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span>
+
+                <span class="c1"># now determine the rose energy as in Equation 4</span>
+                <span class="n">_e_rose</span> <span class="o">=</span> <span class="o">-</span><span class="n">_esub</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">astar</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">astar</span><span class="p">)</span>
+                
+                <span class="c1"># now find the pair potential for the lattice constant</span>
+                <span class="n">_pair_key</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">_e_pot</span> <span class="o">=</span> <span class="n">pairfxn</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">parameters</span><span class="p">,</span><span class="n">_pair_key</span><span class="p">,</span><span class="n">r</span><span class="p">)</span>
+
+                <span class="c1"># now the _e_rose is the total energy of the system</span>
+                <span class="c1"># e_rose = e_pot + e_embedding</span>
+                <span class="c1"># e_embedding = e_rose - e_pot</span>
+                <span class="n">embed_vals</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_e_rose</span> <span class="o">-</span> <span class="n">_e_pot</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_evaluations</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">embed_vals</span><span class="p">)</span></div></div>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="c1"># testing the constructor</span>
+    <span class="n">o</span> <span class="o">=</span> <span class="n">EamEmbeddingEquationOfState</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">o</span><span class="o">.</span><span class="n">density_fn</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">o</span><span class="o">.</span><span class="n">pair_fn</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">o</span><span class="o">.</span><span class="n">r_cut</span> <span class="ow">is</span> <span class="kc">None</span>
+
+    
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../potential.html" >pypospack.potential</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.9.
+    </div>
+  </body>
+</html>

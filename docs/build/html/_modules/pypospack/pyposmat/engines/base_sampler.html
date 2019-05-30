@@ -1,0 +1,435 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.engines.base_sampler &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.engines.base_sampler</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;This module contains the pyposmat engine for parameterization&quot;&quot;&quot;</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2019&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0&quot;</span>
+
+<span class="c1"># 2/17/2019 - EJR</span>
+<span class="c1"># this object was written to being to abstract the different type of samplers in a</span>
+<span class="c1"># less obtuse method, consisting of a bunch of if statements which mutated behavior leading to</span>
+<span class="c1"># a bunch of code which was difficult to maintain.</span>
+
+<span class="c1"># some standard imports</span>
+<span class="kn">import</span> <span class="nn">time</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span><span class="nn">os</span><span class="o">,</span><span class="nn">copy</span><span class="o">,</span><span class="nn">shutil</span><span class="o">,</span><span class="nn">importlib</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span>
+
+<span class="c1"># we are wrapping up the pyposmat engine</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.engines</span> <span class="k">import</span> <span class="n">PyposmatEngine</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatLogFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.potential</span> <span class="k">import</span> <span class="n">PotentialObjectMap</span>
+
+<span class="c1"># necessary for kde</span>
+<span class="kn">from</span> <span class="nn">pypospack.kde</span> <span class="k">import</span> <span class="n">Chiu1999_h</span>
+
+<span class="c1"># necessary exceptions to handle for this class</span>
+<span class="kn">from</span> <span class="nn">numpy.linalg</span> <span class="k">import</span> <span class="n">LinAlgError</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">LammpsSimulationError</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">PyposmatBadParameterError</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">PypospackBadKdeBandwidthType</span>
+<span class="kn">from</span> <span class="nn">pypospack.exceptions</span> <span class="k">import</span> <span class="n">PypospackTaskManagerError</span>
+
+<div class="viewcode-block" id="PyposmatBaseSampler"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler">[docs]</a><span class="k">class</span> <span class="nc">PyposmatBaseSampler</span><span class="p">(</span><span class="n">PyposmatEngine</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Base Sampling Engine to build other engines upon</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config_fn (str): filename of the configuration file</span>
+<span class="sd">        data_out_fn (str): filename where to output the the simulation results</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        config_fn(str): filename of the configuration file</span>
+<span class="sd">        data_in_fn(str):filename where to get previous simulation results</span>
+<span class="sd">        data_out_fn(str):filename where to output the current simulation results</span>
+<span class="sd">        parameters_fn(str):filename where to output current simulation results</span>
+<span class="sd">        data_in(:obj:PyposmatDataFile): object for reading in a data file</span>
+<span class="sd">        data_out(:obj:PyposmatDataFile): object for write out a data file</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">config_fn</span><span class="o">=</span><span class="s1">&#39;pyposmat.config.in&#39;</span><span class="p">,</span>
+            <span class="n">results_fn</span><span class="o">=</span><span class="s1">&#39;pyposmat.results.out&#39;</span><span class="p">,</span>
+            <span class="n">bad_parameters_fn</span><span class="o">=</span><span class="s1">&#39;pyposmat.bad_parameters.out&#39;</span><span class="p">,</span>
+            <span class="n">data_in_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">o_config</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">o_log</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">mpi_rank</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">mpi_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">base_directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        
+        <span class="c1"># check types for the attributes</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">config_fn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">results_fn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">data_in_fn</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_config</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="n">PyposmatConfigurationFile</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">PyposmatLogFile</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">mpi_rank</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">mpi_size</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">base_directory</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+                <span class="n">filename_in</span><span class="o">=</span><span class="n">config_fn</span><span class="p">,</span>
+                <span class="n">filename_out</span><span class="o">=</span><span class="n">results_fn</span><span class="p">,</span>
+                <span class="n">base_directory</span><span class="o">=</span><span class="n">base_directory</span><span class="p">,</span>
+                <span class="n">fullauto</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># default values for mpi_attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configure_mpi_attributes</span><span class="p">(</span><span class="n">mpi_rank</span><span class="o">=</span><span class="n">mpi_rank</span><span class="p">,</span><span class="n">mpi_size</span><span class="o">=</span><span class="n">mpi_size</span><span class="p">)</span>
+
+        <span class="c1"># set up necessary filenames</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_fn</span> <span class="o">=</span> <span class="n">config_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_in_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_out_fn</span> <span class="o">=</span> <span class="n">results_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bad_parameters_fn</span> <span class="o">=</span> <span class="n">bad_parameters_fn</span>
+
+        <span class="c1"># data_objects</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_in</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_out</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># configure log object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_log</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configure_logger</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span>
+
+        <span class="c1"># private attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter_constraints</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">def</span> <span class="nf">_configure_mpi_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">mpi_rank</span><span class="p">,</span><span class="n">mpi_size</span><span class="p">):</span>
+        <span class="c1"># default values, these are set in __init__() but declared here for</span>
+        <span class="c1"># clarity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># we enforce the condition that mpi_rank and mpi_size are both integer types</span>
+        <span class="c1"># and that the mpi rank_id is less than the total number of mpi_ranks</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">mpi_rank</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span><span class="nb">type</span><span class="p">(</span><span class="n">mpi_size</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">mpi_rank</span> <span class="o">&lt;</span> <span class="n">mpi_size</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mpi_rank</span> <span class="o">=</span> <span class="n">mpi_rank</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mpi_size</span> <span class="o">=</span> <span class="n">mpi_size</span>
+
+    <span class="k">def</span> <span class="nf">_configure_logger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">o_log</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;configure the logging service</span>
+
+<span class="sd">        Configuration of the log object has different behavior based upon the type passed</span>
+<span class="sd">        into the argument o_log.  If o_log is PyposmatLogFile, that object will be accessed</span>
+<span class="sd">        by reference.  A string is assumed to be a filename location.  By default the</span>
+<span class="sd">        argument for o_log is None, which means logging will go to standard out by means of </span>
+<span class="sd">        the print() function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            o_log (str,PyposmatLogFile,optional): default: None</span>
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">,</span><span class="n">PyposmatLogFile</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PyposmatLogFile</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_log</span> <span class="o">=</span> <span class="n">o_log</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_log</span> <span class="o">=</span> <span class="n">PyposmatLogFile</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">o_log</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">o_log</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">obj_log</span> <span class="o">=</span> <span class="n">PyposmatLogFile</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="s2">&quot;o_log must be str, PyposmatLogFile, or None&quot;</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_iterations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="s1">&#39;n_iterations&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">qoi_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">error_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_distribution_definition</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuation</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_distribution</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">free_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">free_parameter_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameter_constraints</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_constraints</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">constrained_parameter_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="k">if</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">free_parameter_names</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.log"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">str_msg</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;log message to log file</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            str_msg (str,list):</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError: If type(str_msg) not either a :obj:str or a :obj:list of :obj:str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">str_msg</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">str_msg</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span> 
+            <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">str_msg</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">str_msg</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">str_msg</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">str_msg</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">str_msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="s2">&quot;str_msg must be either be a str or a list of str&quot;</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">m</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.read_configuration_file"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.read_configuration_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;read the pyposmat configuration file</span>
+
+<span class="sd">        This method overrides the inherited method.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str,optional):path of the filename.  If the filename is </span>
+<span class="sd">        not specified, then the method will run using the class attribute, `config_fn`</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Nothing returned</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            TypeError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+     
+        <span class="c1"># In the previous iteration, this set a bunch of public attributes.  I </span>
+        <span class="c1"># have reimplemented them as properties because it is much easier for an</span>
+        <span class="c1"># external developer to understand property implemntation rather than search</span>
+        <span class="c1"># for a property which maybe mutated.</span>
+        <span class="c1"># -- EJR, 2/17/2019</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+     
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_fn</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="s2">&quot;filename must either be a str or NoneType&quot;</span>
+            <span class="k">raise</span><span class="p">(</span><span class="ne">TypeError</span><span class="p">(</span><span class="n">m</span><span class="p">))</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">read_configuration_file</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">_filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.configure_pyposmat_datafile_in"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.configure_pyposmat_datafile_in">[docs]</a>    <span class="k">def</span> <span class="nf">configure_pyposmat_datafile_in</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; configures the data_in attribute </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str): path of the input file to be used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_in_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_in_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_in</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">_filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.configure_pyposmat_datafile_out"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.configure_pyposmat_datafile_out">[docs]</a>    <span class="k">def</span> <span class="nf">configure_pyposmat_datafile_out</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; configures the data_out attribute</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            filename(str): path of the output file to be used</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_out_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_out_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_out</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">_filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.initalize_sampler"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.initalize_sampler">[docs]</a>    <span class="k">def</span> <span class="nf">initalize_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.generate_free_parameters"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.generate_free_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">generate_free_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; stub implementation which needs to be overrided by the inheriting class&quot;&quot;&quot;</span>
+        <span class="n">free_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">free_parameter_names</span><span class="p">:</span>
+            <span class="n">free_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">return</span> <span class="n">free_parameters</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.enforce_parameter_equality_constraints"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.enforce_parameter_equality_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">enforce_parameter_equality_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">free_parameters</span><span class="p">):</span>
+        <span class="n">constrained_parameters</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constrained_parameter_names</span><span class="p">:</span>
+            <span class="n">_constraint_type</span> <span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_distribution_definition</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">_constraint_type</span> <span class="o">==</span> <span class="s1">&#39;equals&#39;</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;latticetype&#39;</span><span class="p">):</span>
+                    <span class="n">constrainted_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_distribution</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                
+                <span class="c1"># evaluate the strings</span>
+                <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_distribution_definition</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">list</span><span class="p">:</span>
+                    
+                    <span class="c1"># get the string to evaluate</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_distribution_definition</span><span class="p">[</span><span class="n">p</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                     
+                    <span class="c1"># replace string values with numerical values</span>
+                    <span class="k">for</span> <span class="n">fp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">free_parameter_names</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">fp</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+                            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">free_parameters</span><span class="p">[</span><span class="n">fp</span><span class="p">]))</span>
+
+                    <span class="c1"># the string can now be evaluated as a float</span>
+                    <span class="n">constrainted_parameters</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.enforce_parameter_inequality_constraints"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.enforce_parameter_inequality_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">enforce_parameter_inequality_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">parameters</span><span class="p">):</span>
+
+        <span class="c1"># evaluation string</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_constraints</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">eval_str</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="k">for</span> <span class="n">pn</span><span class="p">,</span><span class="n">pv</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">eval_str</span> <span class="o">=</span> <span class="n">eval_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">pn</span><span class="p">,</span><span class="nb">str</span><span class="p">(</span><span class="n">pv</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">eval</span><span class="p">(</span><span class="n">eval_str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">PyposmatBadParameterError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PyposmatBaseSampler.run_simulations"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.engines.html#pypospack.pyposmat.engines.base_sampler.PyposmatBaseSampler.run_simulations">[docs]</a>    <span class="k">def</span> <span class="nf">run_simulations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">i_iteration</span><span class="p">,</span><span class="n">n_samples</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; base method to override</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">i_iteration</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">n_samples</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">int</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span><span class="nb">str</span><span class="p">]</span>
+        
+
+        <span class="c1"># define some convenience local variables for readability</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i_iteration</span>
+        <span class="k">if</span> <span class="n">n_samples</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_n_samples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;n_samples&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_n_samples</span> <span class="o">=</span> <span class="n">n_samples</span>
+
+        <span class="n">_sampling_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">sampling_type</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">n_samples</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">pass</span> </div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

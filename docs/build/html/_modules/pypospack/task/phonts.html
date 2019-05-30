@@ -1,0 +1,448 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.task.phonts &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.task.phonts</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pypospack.task</span> <span class="k">import</span> <span class="n">Task</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.phonts</span> <span class="k">as</span> <span class="nn">phonts</span>
+<div class="viewcode-block" id="PhontsSimulation"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsSimulation">[docs]</a><span class="k">class</span> <span class="nc">PhontsSimulation</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        task_name(str): This is the name of the simulation of the simulation.</span>
+<span class="sd">            The primary purpose of this name is to be used as the jobname</span>
+<span class="sd">            when submitting the job using a submission script, and also</span>
+<span class="sd">            to store the unique key value of a simulation within a workflow.</span>
+<span class="sd">        task_directory(str): This is the location of the directory for</span>
+<span class="sd">            where the simulation files exist.</span>
+<span class="sd">        structure_filename(str): This is the location of the POSCAR of the </span>
+<span class="sd">            structure which we want to study.</span>
+<span class="sd">        restart(str): When set to True, this class will attempt to restart</span>
+<span class="sd">            the PhonTS simulation from scratch</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        task_name(str): The name of the simulation job.</span>
+<span class="sd">        task_directory(str): The path of the directory where this simulation</span>
+<span class="sd">            is to be executed.</span>
+<span class="sd">        structure_filename(str): Attribute initialized to None.</span>
+<span class="sd">        structure(pypospack.crystal.SimulationCell): Attribute initialized to </span>
+<span class="sd">            None</span>
+<span class="sd">        filename(str): name of the phonts input file  Initialized to be</span>
+<span class="sd">            &lt;task_dir&gt;/phonons_input.dat</span>
+
+<span class="sd">        potential(pypospack.potential.Potential)</span>
+<span class="sd">        fp_interface(str): must be</span>
+<span class="sd">            VASP, QE, or LAMMPS</span>
+<span class="sd">        phonts_bin(str): the path of the phonts executable, by default </span>
+<span class="sd">            pypospack looks for PHONTS_BIN in the PATH os variable</span>
+<span class="sd">        vasp_bin(str): the path of the vasp executable, by default</span>
+<span class="sd">            pypoppack looks in VASP_BIN in the PATH of the os variable</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="o">=</span><span class="s1">&#39;phonts&#39;</span><span class="p">,</span>
+            <span class="n">task_directory</span><span class="o">=</span><span class="s1">&#39;phonts&#39;</span><span class="p">,</span>
+            <span class="n">structure_filename</span><span class="o">=</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">,</span>
+            <span class="n">phonts_filename</span><span class="o">=</span><span class="s1">&#39;phonons_input.dat&#39;</span><span class="p">,</span>
+            <span class="n">restart</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">Task</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="n">restart</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PHONT_INTERACTIONS</span> <span class="o">=</span> <span class="n">phonts</span><span class="o">.</span><span class="n">PHONTS_INTERACTIONS</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">structure_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phonts_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">task_directory</span><span class="p">,</span><span class="n">phonts_filename</span><span class="p">)</span>
+
+        <span class="c1"># external force evaluation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fp_interface</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d3_cutoff</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="mf">0.005</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phonts_bin</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PHONTS_BIN&#39;</span><span class="p">]</span>
+
+        <span class="c1"># internal interatomic potential parameters</span>
+        <span class="c1"># needed for passing empirical potentials --- to be implemented</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># job manager attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_scheduler</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slurm_vasp_dict</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># phonon calculation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PHONTS_CALC_TYPES</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;phonons_only&#39;</span><span class="p">,</span><span class="s1">&#39;iterations&#39;</span><span class="p">,</span><span class="s1">&#39;qha&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calculation_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter_steps</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixing</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qha</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimize</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">phonon_kpoints</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pdos</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">30.</span><span class="p">,</span><span class="mi">200</span><span class="p">,</span><span class="mf">10.</span><span class="p">]</span>
+
+        <span class="c1"># optimization keywords</span>
+        <span class="c1"># phonts_calc_types</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quench_steps</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CELL_CONTROL_TYPES</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="s1">&#39;fixed_cell&#39;</span><span class="p">,</span> <span class="s1">&#39;free_cell&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;orthorhombic_cell&#39;</span><span class="p">,</span> <span class="s1">&#39;hydrostatic_pressure&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_control</span> <span class="o">=</span> <span class="s1">&#39;fixed_cell&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_min_step</span> <span class="o">=</span> <span class="mf">0.000001</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell_min_step</span> <span class="o">=</span> <span class="mf">0.1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_force</span> <span class="o">=</span> <span class="mf">1e-8</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">quench_only</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># set private attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># external conditions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="p">[</span><span class="mf">300.</span><span class="p">,</span><span class="mf">1200.</span><span class="p">,</span><span class="mi">9</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pressure</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">calculation_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculation_type</span>
+
+    <span class="nd">@calculation_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">calculation_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">calculation_type</span><span class="p">):</span>
+         <span class="k">if</span> <span class="n">calculation_type</span> <span class="ow">is</span> <span class="s1">&#39;phonons_only&#39;</span><span class="p">:</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_calculation_type</span> <span class="o">=</span> <span class="n">calculation_type</span>
+         <span class="k">elif</span> <span class="n">calculation_type</span> <span class="ow">is</span> <span class="s1">&#39;iterations&#39;</span><span class="p">:</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_calculation_type</span> <span class="o">=</span> <span class="n">calculation_type</span>
+         <span class="k">elif</span> <span class="n">calculation_type</span> <span class="ow">is</span> <span class="s1">&#39;qha&#39;</span><span class="p">:</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_calcualtion_type</span> <span class="o">=</span> <span class="n">calculation_type</span>
+         <span class="k">else</span><span class="p">:</span>
+             <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;calculation_type not supported&quot;</span>
+             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">interaction_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span>
+
+    <span class="nd">@interaction_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">interaction_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">interaction_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">interaction_type</span> <span class="o">==</span> <span class="s1">&#39;AbInitio&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span> <span class="o">=</span> <span class="n">interaction_type</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="o">=</span> <span class="s1">&#39;VASP&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="mf">0.005</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;cannot set the PhonTS interface to </span><span class="si">{}</span><span class="s2">&quot;</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="n">msg_err</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">interaction_type</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fp_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fp_interface</span>
+
+    <span class="nd">@fp_interface</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">fp_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">fp_interface</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span> <span class="o">!=</span> <span class="s1">&#39;AbInitio&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span> <span class="o">=</span> <span class="s1">&#39;AbInitio&#39;</span>
+        <span class="k">if</span> <span class="n">fp_interface</span> <span class="ow">in</span> <span class="n">phonts</span><span class="o">.</span><span class="n">PHONTS_FP_INTERFACES</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fp_interface</span> <span class="o">=</span> <span class="n">fp_interface</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid fp_interface parameter&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span> 
+    <span class="k">def</span> <span class="nf">temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span>
+
+    <span class="nd">@temperature</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">temperature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temperature</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        We can accept two forms of temperature:</span>
+<span class="sd">        -- a numeric variable</span>
+<span class="sd">        -- a list of numerics of length one --&gt; [float(T)]</span>
+<span class="sd">        -- a list of numerics of length three --&gt;[float(t0),float(t1),int(N_t)]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span><span class="nb">int</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">temperature</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span> <span class="o">=</span> <span class="nb">list</span><span class="p">[</span><span class="n">temperature</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">temperature</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">temperature</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_temperature</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">temperature</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;temperature must be either a single temperature&quot;</span>
+                <span class="n">msg_err</span> <span class="o">+=</span> <span class="s2">&quot;or [float(t1),float(t2),int(N)]&quot;</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="s2">&quot;temperature must be either a single temperature&quot;</span>
+            <span class="n">msg_err</span> <span class="o">+=</span> <span class="s2">&quot;or [float(t1),float(t2),int(N)]&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PhontsSimulation.write_phonts_input_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsSimulation.write_phonts_input_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_phonts_input_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;phonons_input.dat&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="PhontsSimulation.write_submission_script"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsSimulation.write_submission_script">[docs]</a>    <span class="k">def</span> <span class="nf">write_submission_script</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_scheduler</span> <span class="o">==</span> <span class="s1">&#39;slurm&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">])</span>
+            <span class="n">slurm</span><span class="o">.</span><span class="n">write_phonts_batch_script</span><span class="p">(</span>\
+                    <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">],</span>
+                    <span class="n">job_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;job_name&#39;</span><span class="p">],</span>
+                    <span class="n">email</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;email&#39;</span><span class="p">],</span>
+                    <span class="n">qos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;qos&#39;</span><span class="p">],</span>
+                    <span class="n">ntasks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;ntasks&#39;</span><span class="p">],</span>
+                    <span class="n">time</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_scheduler</span> <span class="o">==</span> <span class="s1">&#39;sge&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_scheduler</span> <span class="o">==</span> <span class="s1">&#39;pbs&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PhontsSimulation.run"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsSimulation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orig_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_directory</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job_scheduler</span> <span class="o">==</span> <span class="s1">&#39;slurm&#39;</span><span class="p">:</span>
+            <span class="n">cmd_s</span> <span class="o">=</span> <span class="s1">&#39;sbatch </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">slurm_phonts_dict</span><span class="p">[</span><span class="s1">&#39;filename&#39;</span><span class="p">])</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cmd_s</span><span class="p">)</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PhontsSimulation.force_evaluation_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsSimulation.force_evaluation_to_string">[docs]</a>    <span class="k">def</span> <span class="nf">force_evaluation_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span>  <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="ow">in</span> <span class="n">phonts_fp_interfaces</span><span class="p">:</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_external_force_evaluation_to_string</span><span class="p">()</span> 
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_internal_force_evaluation_to_string</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="s2">&quot;either the potential must be specified or an &quot;</span>
+            <span class="n">err_msg</span> <span class="o">+=</span> <span class="s2">&quot;external method must be provided&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">str_out</span></div>
+    
+    <span class="k">def</span> <span class="nf">_get_external_force_evaluation_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="o">==</span> <span class="s1">&#39;VASP&#39;</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="o">==</span> <span class="s1">&#39;QE&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;fp_interface == QE not supported&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="o">==</span> <span class="s1">&#39;LAMMPS&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;fp_interface == LAMMPS not supported&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">str_out</span>
+
+    <span class="k">def</span> <span class="nf">_get_internal_force_evaluation_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_potential_type</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_potential_params</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">return</span> <span class="n">str_out</span> 
+    
+<div class="viewcode-block" id="PhontsSimulation.simulation_cell_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsSimulation.simulation_cell_to_string">[docs]</a>    <span class="k">def</span> <span class="nf">simulation_cell_to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">)</span>
+
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">,</span><span class="n">crystal</span><span class="o">.</span><span class="n">SimulationCell</span><span class="p">):</span>
+            <span class="c1"># get relevant information</span>
+            <span class="n">n_species</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span>
+            <span class="n">a0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">a0</span>
+            <span class="n">a1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">a1</span><span class="o">/</span><span class="n">a0</span>
+            <span class="n">a2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">a2</span><span class="o">/</span><span class="n">a0</span>
+            <span class="n">a3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">a3</span><span class="o">/</span><span class="n">a0</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">n_atoms</span>
+
+            <span class="c1"># build string</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;species </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_species</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+                <span class="n">s_charge</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_charge</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">s_amu</span> <span class="o">=</span> <span class="n">crystal</span><span class="o">.</span><span class="n">get_amu</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">s_amu</span><span class="p">,</span><span class="n">s_charge</span><span class="p">)</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;Lattice </span><span class="si">{:.10f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a0</span><span class="p">)</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;cell </span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="s2"> </span><span class="si">{:.10f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">a1</span><span class="p">,</span><span class="n">a2</span><span class="p">,</span><span class="n">a3</span><span class="p">)</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;natoms </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n_atoms</span><span class="p">)</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;fractional</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">symbol</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{:10f}</span><span class="s2"> </span><span class="si">{:10f}</span><span class="s2"> </span><span class="si">{:10f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg_out</span> <span class="o">=</span> <span class="s2">&quot;structure must be an instance of &quot;</span>
+            <span class="n">msg_out</span> <span class="o">+=</span> <span class="s2">&quot;pypospack.crystal.SimulationCell&quot;</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_out</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">str_out</span></div></div>
+
+<div class="viewcode-block" id="PhontsBte"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsBte">[docs]</a><span class="k">class</span> <span class="nc">PhontsBte</span><span class="p">(</span><span class="n">PhontsSimulation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="p">,</span>
+            <span class="n">task_directory</span><span class="p">,</span>
+            <span class="n">phonts_filename</span><span class="p">,</span>
+            <span class="n">structure_filename</span><span class="p">,</span>
+            <span class="n">restart</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">PhontsSimulation</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="n">phonts_filename</span><span class="o">=</span><span class="n">phonts_filename</span><span class="p">,</span>
+                <span class="n">structure_filename</span><span class="o">=</span><span class="n">structure_filename</span><span class="p">,</span>
+                <span class="n">restart</span><span class="o">=</span><span class="n">restart</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span><span class="o">=</span><span class="s1">&#39;AbInitio&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span><span class="o">=</span><span class="s1">&#39;VASP&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span><span class="o">=</span><span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span><span class="o">=</span><span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d3_cutoff</span><span class="o">=</span><span class="mf">5.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta</span><span class="o">=</span><span class="mf">0.005</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculation_type</span> <span class="o">=</span> <span class="s1">&#39;iterations&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iter_steps</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phonon_kpoints</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="p">[</span><span class="mi">300</span><span class="p">,</span> <span class="mi">1200</span><span class="p">,</span><span class="mi">9</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="PhontsBte.write_phonts_input_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsBte.write_phonts_input_file">[docs]</a>    <span class="k">def</span> <span class="nf">write_phonts_input_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">phonts_config_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;interaction_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;is_prep_step&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;fp_interface&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;numerical_2der&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;numerical_3der&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;d3_cutoff&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d3_cutoff</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;delta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta</span>
+     
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;calculation_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_type</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;iter_steps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_steps</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;phonon_kpoints&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonon_kpoints</span>
+        <span class="n">phonts_config_dict</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span>
+        <span class="n">phonts_input_file</span> <span class="o">=</span> <span class="n">PhontsInputfile</span><span class="p">(</span>
+                <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phonts_filename</span><span class="p">,</span>
+                <span class="n">structure_filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">,</span>
+                <span class="n">phonts_config_dict</span><span class="o">=</span><span class="n">phonts_config_dict</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="PhontsBte_PrepStep"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsBte_PrepStep">[docs]</a><span class="k">class</span> <span class="nc">PhontsBte_PrepStep</span><span class="p">(</span><span class="n">PhontsSimulation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="p">,</span>
+            <span class="n">task_directory</span><span class="p">,</span>
+            <span class="n">simulation_filename</span><span class="p">,</span>
+            <span class="n">phonts_filename</span><span class="p">,</span>
+            <span class="n">restart</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">PhontsBte</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="n">phonts_filename</span><span class="o">=</span><span class="n">phonts_filename</span><span class="p">,</span>
+                <span class="n">structure_filename</span><span class="o">=</span><span class="n">structure_filename</span><span class="p">,</span>
+                <span class="n">restart</span><span class="o">=</span><span class="n">restart</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PhontsBte_IntermediateStep"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsBte_IntermediateStep">[docs]</a><span class="k">class</span> <span class="nc">PhontsBte_IntermediateStep</span><span class="p">(</span><span class="n">PhontsSimulation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="p">,</span>
+            <span class="n">task_directory</span><span class="p">,</span>
+            <span class="n">simulation_filename</span><span class="p">,</span>
+            <span class="n">phonts_filename</span><span class="p">,</span>
+            <span class="n">restart</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">PhontsBte</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="n">phonts_filename</span><span class="o">=</span><span class="n">phonts_filename</span><span class="p">,</span>
+                <span class="n">structure_filename</span><span class="o">=</span><span class="n">structure_filename</span><span class="p">,</span>
+                <span class="n">restart</span><span class="o">=</span><span class="n">restart</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PhontsBte_FinalStep"><a class="viewcode-back" href="../../../pypospack/api/pypospack.task.html#pypospack.task.phonts.PhontsBte_FinalStep">[docs]</a><span class="k">class</span> <span class="nc">PhontsBte_FinalStep</span><span class="p">(</span><span class="n">PhontsSimulation</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">task_name</span><span class="p">,</span>
+            <span class="n">task_directory</span><span class="p">,</span>
+            <span class="n">simulation_filename</span><span class="p">,</span>
+            <span class="n">phonts_filename</span><span class="p">,</span>
+            <span class="n">restart</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">PhontsBte</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
+                <span class="n">task_directory</span><span class="o">=</span><span class="n">task_directory</span><span class="p">,</span>
+                <span class="n">phonts_filename</span><span class="o">=</span><span class="n">phonts_filename</span><span class="p">,</span>
+                <span class="n">structure_filename</span><span class="o">=</span><span class="n">structure_filename</span><span class="p">,</span>
+                <span class="n">restart</span><span class="o">=</span><span class="n">restart</span><span class="p">)</span>
+      
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span> <span class="o">=</span> <span class="kc">False</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

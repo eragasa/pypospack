@@ -1,0 +1,276 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.data.pipeline &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.data.pipeline</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.io.filesystem</span> <span class="k">import</span> <span class="n">OrderedDictYAMLLoader</span>
+
+
+<div class="viewcode-block" id="BasePipeSegment"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.BasePipeSegment">[docs]</a><span class="k">class</span> <span class="nc">BasePipeSegment</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base object for Pyposmat data pipeline objects to inherit from</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parameter_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># normalized</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_error_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># normalized</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_qoi_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># normalized</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pca_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="BasePipeSegment.process_kwargs"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.BasePipeSegment.process_kwargs">[docs]</a>    <span class="k">def</span> <span class="nf">process_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{}</span>  <span class="c1"># use default args</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>  <span class="c1"># use configred args</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># use default args</span>
+        <span class="k">return</span> <span class="n">kwargs</span></div>
+
+<div class="viewcode-block" id="BasePipeSegment.select_data"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.BasePipeSegment.select_data">[docs]</a>    <span class="k">def</span> <span class="nf">select_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># no subselection if both are none</span>
+        <span class="k">if</span> <span class="n">cols</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span>
+
+        <span class="n">_df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">clusters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># subselect by cluster ids</span>
+            <span class="n">df_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">:</span>
+                <span class="n">_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster_id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">cid</span><span class="p">]</span>
+                <span class="n">df_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_df</span><span class="p">)</span>
+            <span class="n">_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">df_list</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># subselect by column types</span>
+            <span class="n">_names</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="s1">&#39;param&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+            <span class="k">if</span> <span class="s1">&#39;qoi&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+            <span class="k">if</span> <span class="s1">&#39;err&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+            <span class="k">if</span> <span class="s1">&#39;n_param&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameter_names</span>
+            <span class="k">if</span> <span class="s1">&#39;n_qoi&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_qoi_names</span>
+            <span class="k">if</span> <span class="s1">&#39;n_err&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_error_names</span>
+            <span class="k">if</span> <span class="s1">&#39;pca&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pca_names</span>
+            <span class="k">if</span> <span class="s1">&#39;manifold&#39;</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="n">_names</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span>
+            <span class="n">_df</span> <span class="o">=</span> <span class="n">_df</span><span class="p">[</span><span class="n">_names</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">_df</span></div>
+
+<div class="viewcode-block" id="BasePipeSegment.log"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.BasePipeSegment.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PyposmatPipeline"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline">[docs]</a><span class="k">class</span> <span class="nc">PyposmatPipeline</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">o_logger</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">configuration_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">data_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">df</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span> <span class="o">=</span> <span class="n">o_logger</span>  <span class="c1"># logging file object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="n">configuration_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span> <span class="o">=</span> <span class="n">data_fn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">df</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parameter_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># normalized</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_error_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># normalized</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_qoi_names</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># normalized</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pca_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PyposmatPipeline.read_configuration"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.read_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">OrderedDictYAMLLoader</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">config</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.write_configuration"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.write_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">write_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.read_data"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.read_data">[docs]</a>    <span class="k">def</span> <span class="nf">read_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">qoi_names</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.log"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.reset"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o_segment</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o_segment</span><span class="p">,</span> <span class="n">BasePipeSegment</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">df</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_parameter_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">n_parameter_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_error_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">n_error_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_qoi_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">n_qoi_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pca_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">pca_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span> <span class="o">=</span> <span class="n">o_segment</span><span class="o">.</span><span class="n">manifold_names</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.spawn_pipeline_segment"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.spawn_pipeline_segment">[docs]</a>    <span class="k">def</span> <span class="nf">spawn_pipeline_segment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">segment_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">segment_type</span> <span class="o">==</span> <span class="s1">&#39;preprocess&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.preprocess</span> <span class="k">import</span> <span class="n">PyposmatPreprocessor</span>
+            <span class="n">o_segment</span> <span class="o">=</span> <span class="n">PyposmatPreprocessor</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">segment_type</span> <span class="o">==</span> <span class="s1">&#39;pca&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.pca_analysis</span> <span class="k">import</span> <span class="n">PyposmatPcaAnalysis</span>
+            <span class="n">o_segment</span> <span class="o">=</span> <span class="n">PyposmatPcaAnalysis</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">segment_type</span> <span class="o">==</span> <span class="s1">&#39;cluster&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.cluster_analysis</span> <span class="k">import</span> <span class="n">SeatonClusterAnalysis</span>
+            <span class="n">o_segment</span> <span class="o">=</span> <span class="n">SeatonClusterAnalysis</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">segment_type</span> <span class="o">==</span> <span class="s1">&#39;manifold&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.manifold_analysis</span> <span class="k">import</span> <span class="n">PyposmatManifoldAnalysis</span>
+            <span class="n">o_segment</span> <span class="o">=</span> <span class="n">PyposmatManifoldAnalysis</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">segment_type</span> <span class="o">==</span> <span class="s1">&#39;plot&#39;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">pypospack.pyposmat.data.plotting</span> <span class="k">import</span> <span class="n">PyposmatPlotter</span>
+            <span class="n">o_segment</span> <span class="o">=</span> <span class="n">PyposmatPlotter</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;unknown segment type&quot;</span><span class="p">)</span>
+
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">o_logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">o_logger</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">n_parameter_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_parameter_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">n_error_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_error_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">n_qoi_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_qoi_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">pca_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pca_names</span>
+        <span class="n">o_segment</span><span class="o">.</span><span class="n">manifold_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manifold_names</span>
+
+        <span class="k">return</span> <span class="n">o_segment</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.make_function_calls"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.make_function_calls">[docs]</a>    <span class="k">def</span> <span class="nf">make_function_calls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">o_segment</span><span class="p">,</span> <span class="n">calls</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">calls</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;calling function </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">calls</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;function&#39;</span><span class="p">]))</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">o_segment</span><span class="p">,</span> <span class="n">calls</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;function&#39;</span><span class="p">])</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="n">calls</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;args&#39;</span><span class="p">]</span>
+            <span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatPipeline.run"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.data.html#pypospack.pyposmat.data.pipeline.PyposmatPipeline.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">pipeline_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;starting step </span><span class="si">{}</span><span class="s2"> of </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">)))</span>  <span class="c1"># +1 to count like a normal person</span>
+            <span class="n">step_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">o_segment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spawn_pipeline_segment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;segment_type&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">make_function_calls</span><span class="p">(</span><span class="n">o_segment</span><span class="o">=</span><span class="n">o_segment</span><span class="p">,</span>
+                                     <span class="n">calls</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;function_calls&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">o_segment</span><span class="p">)</span>
+            <span class="n">step_end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">step_delta</span> <span class="o">=</span> <span class="n">step_end_time</span><span class="o">-</span><span class="n">step_start_time</span>
+            <span class="n">step_delta</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">step_delta</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;step </span><span class="si">{}</span><span class="s2"> complete in </span><span class="si">{}</span><span class="s2"> seconds&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">index</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">step_delta</span><span class="p">))</span>
+        <span class="n">pipeline_end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">pipeline_delta</span> <span class="o">=</span> <span class="n">pipeline_end_time</span><span class="o">-</span><span class="n">pipeline_start_time</span>
+        <span class="n">pipeline_delta</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">pipeline_delta</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;pipeline complete in </span><span class="si">{}</span><span class="s2"> seconds</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pipeline_delta</span><span class="p">))</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

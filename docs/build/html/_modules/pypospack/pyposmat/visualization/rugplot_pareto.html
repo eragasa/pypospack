@@ -1,0 +1,441 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.pyposmat.visualization.rugplot_pareto &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../../about.html" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" accesskey="U">pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.pyposmat.visualization.rugplot_pareto</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span> <span class="nn">copy</span><span class="o">,</span><span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatDataFile</span>
+<span class="kn">from</span> <span class="nn">pypospack.pyposmat.data</span> <span class="k">import</span> <span class="n">PyposmatConfigurationFile</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.patches</span> <span class="k">as</span> <span class="nn">mpatches</span>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot">[docs]</a><span class="k">class</span> <span class="nc">PyposmatParetoRugplot</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Attributes:</span>
+<span class="sd">            parameter_names (list):  A list of parameter names taken from the configuration file</span>
+<span class="sd">            qoi_names(list): A list of qoi names taken from the configuration file</span>
+<span class="sd">            error_names(list): A list of error names taken from the configuration file</span>
+<span class="sd">            qoi_v_names(list): A list of testing qoi names taken from the configuration file</span>
+<span class="sd">            error_v_names(list): A list of testing error names taken from the configuration file</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_directory</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_fn</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_reference_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="kc">None</span>   
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_validation_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_excluded_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_nrows</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_ncols</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_marker_size</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_marker_type</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors_default</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;red&#39;</span><span class="p">,</span><span class="s1">&#39;blue&#39;</span><span class="p">,</span><span class="s1">&#39;green&#39;</span><span class="p">]</span>        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_width</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_style</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_color</span> <span class="o">=</span> <span class="s1">&#39;grey&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_width</span><span class="o">=</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_style</span><span class="o">=</span><span class="s1">&#39;-&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_legend_location</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_format</span> <span class="o">=</span> <span class="s1">&#39;svg&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_dpi</span> <span class="o">=</span> <span class="mi">1200</span>
+    <span class="k">def</span> <span class="nf">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">msg</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.read_configuration"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.read_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">read_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration_fn</span>
+           
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span> <span class="o">=</span> <span class="n">PyposmatConfigurationFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">_filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">parameter_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">error_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_validation_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_validation_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">error_validation_names</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_targets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">qoi_validation_targets</span></div>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.read_datafile"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.read_datafile">[docs]</a>    <span class="k">def</span> <span class="nf">read_datafile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">_filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_fn</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">PyposmatDataFile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">_filename</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        
+        <span class="p">(</span><span class="n">_nrows</span><span class="p">,</span><span class="n">_ncols</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_nrows</span> <span class="o">=</span> <span class="n">_nrows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_ncols</span> <span class="o">=</span> <span class="n">_ncols</span></div>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.make_plot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.make_plot">[docs]</a>    <span class="k">def</span> <span class="nf">make_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="p">,</span><span class="n">include_qois</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">include_qois_v</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">qoi_excluded_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            include_qois (bool): Including fitting qois in the rugplot</span>
+<span class="sd">            include_qois_v (bool): Including the testing qois in the rugplot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_fn</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">if</span> <span class="n">qoi_excluded_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_excluded_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_excluded_names</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">qoi_excluded_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">_qoi_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">include_qois</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">+=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span> <span class="k">if</span> <span class="n">q</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_excluded_names</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">include_qois_v</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">+=</span> <span class="p">[</span><span class="n">q</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span> <span class="k">if</span> <span class="n">q</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_excluded_names</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate_normed_errors</span><span class="p">(</span><span class="n">qoi_names</span><span class="o">=</span><span class="n">_qoi_names</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_reference_potential_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">reference_potentials</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">_reference_potentials_names</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">_reference_potential_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">_reference_potential_names</span><span class="p">)]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">_reference_potential_names</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_df</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span>
+    
+        <span class="n">_fig</span><span class="p">,</span><span class="n">_ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_vertical_datum_line_to_plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">_ax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_results_to_plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">_ax</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="n">_qoi_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_reference_potentials_to_plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">_ax</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="n">_qoi_names</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_horizontal_separator</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">_ax</span><span class="p">)</span>
+        <span class="c1"># set limits</span>
+        <span class="n">_ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">_ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">_qoi_names</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_x_axis_labels</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">_ax</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_y_axis_labels</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">_ax</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="n">_qoi_names</span><span class="p">)</span>
+        
+        
+        <span class="n">_ref_data_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">reference_potentials</span><span class="p">]</span>
+        <span class="n">_ref_data_colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors_default</span>
+        <span class="n">_best_data_name</span> <span class="o">=</span> <span class="s2">&quot;BEST&quot;</span>
+        <span class="n">_best_data_color</span> <span class="o">=</span> <span class="s2">&quot;grey&quot;</span>
+        <span class="n">_legend_location</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_legend_location</span>
+        <span class="n">_handles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_ref_data_name</span><span class="p">):</span>
+            <span class="n">_label</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="n">_color</span> <span class="o">=</span> <span class="n">_ref_data_colors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">_color</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">_label</span><span class="p">))</span>
+
+
+        <span class="n">_handles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mpatches</span><span class="o">.</span><span class="n">Patch</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">_best_data_color</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">_best_data_name</span><span class="p">))</span>
+
+        <span class="n">_ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="o">=</span><span class="n">_handles</span><span class="p">,</span><span class="n">loc</span><span class="o">=</span><span class="n">_legend_location</span><span class="p">)</span>
+        
+        <span class="n">_fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+        <span class="n">_plot_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_fn</span>
+        <span class="n">_plot_dpi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_dpi</span>
+        <span class="k">if</span> <span class="n">_plot_fn</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;png&#39;</span><span class="p">,</span><span class="s1">&#39;eps&#39;</span><span class="p">,</span><span class="s1">&#39;svg&#39;</span><span class="p">]:</span>
+            <span class="n">_plot_format</span> <span class="o">=</span> <span class="n">_plot_fn</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_plot_fn</span> <span class="o">=</span> <span class="n">plot_fn</span> <span class="o">+</span> <span class="s2">&quot;.png&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_fn</span> <span class="o">=</span> <span class="n">_plot_fn</span>
+
+            <span class="n">_plot_format</span> <span class="o">=</span> <span class="s2">&quot;.png&quot;</span>
+       
+        <span class="c1">#s = (&quot;{}\n  plot_format:{}\n  plot_dpi:{}&quot;.format(_plot_fn,_plot_format,_plot_dpi))</span>
+        <span class="c1">#print(s)</span>
+        <span class="n">_fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">_plot_fn</span><span class="p">,</span><span class="nb">format</span><span class="o">=</span><span class="n">_plot_format</span><span class="p">,</span><span class="n">dpi</span><span class="o">=</span><span class="n">_plot_dpi</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PyposmatParetoRugplot.calculate_normed_errors"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.calculate_normed_errors">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_normed_errors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">qoi_names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        If a pandas.DataFrame is passed to df, then it will be set as the df attribute </span>
+<span class="sd">        for this class.  It willl</span>
+<span class="sd">        Args:</span>
+<span class="sd">            df (pandas.DataFrame)</span>
+<span class="sd">            qoi_names (list) - a list of qoi names.  Default behavior will use all the </span>
+<span class="sd">                qois specified in the configuration object</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">qoi_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_qoi_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_validation_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">:</span>
+            
+            <span class="k">if</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+
+                <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">nen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nen</span><span class="p">)</span>
+                
+                
+                <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_targets</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span><span class="p">:</span>
+                <span class="n">en</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.err_v&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">nen</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.nerr_v&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">normed_error_validation_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nen</span><span class="p">)</span>
+
+                <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_targets</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="mi">80</span><span class="o">*</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:^80}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;debugging information&#39;</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="mi">80</span><span class="o">*</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;qoi_name:</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;qoi_names</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;  </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_qoi_names</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="mi">80</span><span class="o">*</span><span class="s2">&quot;-&quot;</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{:^80}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;debugging information&#39;</span><span class="p">)</span>
+                <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;qoi_names</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">nen</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="n">qn</span><span class="p">]</span><span class="o">/</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span></div>
+               
+<div class="viewcode-block" id="PyposmatParetoRugplot.add_results_to_plot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.add_results_to_plot">[docs]</a>    <span class="k">def</span> <span class="nf">add_results_to_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ax</span><span class="p">,</span><span class="n">qoi_names</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">iqn</span><span class="p">,</span><span class="n">qn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">nrows</span><span class="p">,</span><span class="n">ncols</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_df</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">if</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_df</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)]</span>
+            <span class="k">elif</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_df</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr_v&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">nrows</span><span class="o">*</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span><span class="o">-</span><span class="n">iqn</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.add_reference_potentials_to_plot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.add_reference_potentials_to_plot">[docs]</a>    <span class="k">def</span> <span class="nf">add_reference_potentials_to_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="n">qoi_names</span><span class="p">,</span>
+            <span class="n">reference_data_marker_size</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span>
+            <span class="n">reference_data_marker_type</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span><span class="p">,</span>
+            <span class="n">reference_data_colors</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">_default_data_colors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors_default</span>
+        
+        <span class="n">_reference_potential_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">reference_potentials</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">reference_data_marker_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_marker_size</span><span class="o">=</span><span class="n">reference_data_marker_size</span>
+        <span class="k">if</span> <span class="n">reference_data_marker_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_marker_type</span> <span class="o">=</span> <span class="n">reference_data_marker_type</span>
+        <span class="k">if</span> <span class="n">reference_data_colors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_data_colors</span><span class="p">,</span><span class="nb">dict</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">reference_data_colors</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_data_colors</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+                <span class="n">_default_data_colors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">reference_data_colors</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_reference_potential_names</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">_default_data_colors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">_reference_potential_names</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">_default_data_colors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="n">_marker_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_marker_size</span>
+        <span class="n">_marker_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_marker_type</span>
+        <span class="n">_marker_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_colors</span>
+       
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span><span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">iqn</span><span class="p">,</span><span class="n">qn</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">):</span>
+                <span class="p">(</span><span class="n">nrows</span><span class="p">,</span><span class="n">ncols</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_df</span><span class="o">.</span><span class="n">shape</span>
+                <span class="k">if</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_names</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)]</span>
+                <span class="k">elif</span> <span class="n">qn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span><span class="p">:</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.nerr_v&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">qn</span><span class="p">)]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span><span class="o">-</span><span class="n">iqn</span><span class="p">]</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span>
+                    <span class="n">s</span><span class="o">=</span><span class="n">_marker_size</span><span class="p">,</span>
+                    <span class="n">marker</span><span class="o">=</span><span class="n">_marker_type</span><span class="p">,</span>
+                    <span class="n">color</span><span class="o">=</span><span class="n">_marker_color</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;sim_id&#39;</span><span class="p">]]</span>
+                    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.add_x_axis_labels"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.add_x_axis_labels">[docs]</a>    <span class="k">def</span> <span class="nf">add_x_axis_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ax</span><span class="p">):</span>
+        <span class="c1"># set numbers to percentages</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_xticks</span><span class="p">()</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;</span><span class="si">{:,.0%}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">])</span></div>
+    
+<div class="viewcode-block" id="PyposmatParetoRugplot.add_y_axis_labels"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.add_y_axis_labels">[docs]</a>    <span class="k">def</span> <span class="nf">add_y_axis_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ax</span><span class="p">,</span><span class="n">qoi_names</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_latex_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">latex_labels</span> 
+            <span class="n">_y_ticks_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">_latex_labels</span><span class="p">[</span><span class="n">qn</span><span class="p">][</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">qn</span> <span class="ow">in</span> <span class="n">qoi_names</span><span class="p">]</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.family&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;serif&#39;</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;font.serif&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Helvetica&#39;</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.usetex&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s1">&#39;text.latex.preamble&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="sa">r</span><span class="s1">&#39;\usepackage</span><span class="si">{amsmath}</span><span class="s1">&#39;</span><span class="p">]</span>
+            
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># use text labels</span>
+            <span class="n">_y_ticks_labels</span> <span class="o">=</span> <span class="n">qoi_names</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">sca</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">qoi_names</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">)),</span>
+                <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">_y_ticks_labels</span><span class="p">))</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.add_horizontal_separator"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.add_horizontal_separator">[docs]</a>    <span class="k">def</span> <span class="nf">add_horizontal_separator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ax</span><span class="p">,</span>
+            <span class="n">qoi_v_separator_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">qoi_v_separator_style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">qoi_v_separator_color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">qoi_v_separator_width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_width</span> <span class="o">=</span> <span class="n">qoi_v_separator_width</span>
+        <span class="k">if</span> <span class="n">qoi_v_separator_style</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_style</span> <span class="o">=</span> <span class="n">qoi_v_separator_style</span>
+        <span class="k">if</span> <span class="n">qoi_v_separator_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_color</span> <span class="o">=</span> <span class="n">qoi_v_separator_color</span>
+
+        <span class="n">_qoi_v_separator_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_width</span>
+        <span class="n">_qoi_v_separator_style</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_style</span>
+        <span class="n">_qoi_v_separator_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">qoi_v_separator_color</span>
+
+        <span class="n">_qoi_v_separator_location</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">qoi_validation_names</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span>
+                <span class="n">_qoi_v_separator_location</span><span class="p">,</span>
+                <span class="n">color</span> <span class="o">=</span> <span class="n">_qoi_v_separator_color</span><span class="p">,</span>
+                <span class="n">linestyle</span> <span class="o">=</span> <span class="n">_qoi_v_separator_style</span><span class="p">,</span>
+                <span class="n">linewidth</span> <span class="o">=</span> <span class="n">_qoi_v_separator_width</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyposmatParetoRugplot.add_vertical_datum_line_to_plot"><a class="viewcode-back" href="../../../../pypospack/api/pypospack.pyposmat.visualization.html#pypospack.pyposmat.visualization.rugplot_pareto.PyposmatParetoRugplot.add_vertical_datum_line_to_plot">[docs]</a>    <span class="k">def</span> <span class="nf">add_vertical_datum_line_to_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">,</span>
+            <span class="n">datum_line_width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">datum_line_style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">datum_line_color</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">datum_line_width</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_width</span> <span class="o">=</span> <span class="n">datum_line_width</span>
+        <span class="k">if</span> <span class="n">datum_line_style</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_style</span> <span class="o">=</span> <span class="n">datum_line_style</span>
+        <span class="k">if</span> <span class="n">datum_line_color</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_color</span> <span class="o">=</span> <span class="n">datum_line_color</span>
+
+        <span class="n">_datum_line_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_width</span>
+        <span class="n">_datum_line_style</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_style</span>
+        <span class="n">_datum_line_color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datum_line_color</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">_datum_line_color</span><span class="p">,</span>
+                <span class="n">linestyle</span><span class="o">=</span><span class="n">_datum_line_style</span><span class="p">,</span>
+                <span class="n">linewidth</span><span class="o">=</span><span class="n">_datum_line_width</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../../pyposmat.html" >pypospack.pyposmat</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>

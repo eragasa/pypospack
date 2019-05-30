@@ -1,0 +1,758 @@
+
+
+<!doctype html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>pypospack.io.phonts &#8212; Materials Ex Machina 2017.7.22 documentation</title>
+    <link rel="stylesheet" href="../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
+    <link rel="author" title="About these documents" href="../../../about.html" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for pypospack.io.phonts</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;pypospack.io.phonts</span>
+
+<span class="sd">This module provides input and output routines and classes for managing</span>
+<span class="sd">simulations for Phonon Transport Simulation (PhonTS), written by </span>
+<span class="sd">A. Chernatiynskiy and S.R. Phillpot.  PhonTS is a lattice dynamics code </span>
+<span class="sd">that calculates thermal conductivity via the solution of the Boltzmann </span>
+<span class="sd">Transport Equation (BTE) for phonons.</span>
+
+<span class="sd">This module&#39;s purpose is to automate the work required to interface PhonTS to</span>
+<span class="sd">other codes such as LAMMPS for additional potentials, and first principals</span>
+<span class="sd">electronic structure calculations (VASP).  While an interface is defined</span>
+<span class="sd">for Quantum Expresso QE) for PhonTS, this interface is not implemented with</span>
+<span class="sd">pypospack.io.phonts.</span>
+
+<span class="sd">For a more a more in-depth understand of the PhonTS refer to the foundation</span>
+<span class="sd">papers:</span>
+
+<span class="sd">A. Chernatiynskiy and S.R. Phillpot, PRB 82, 134301 (2010)</span>
+<span class="sd">A. Chernatiynskiy and S.R. Phillpot, Comp. Phys. Comm. (2015)</span>
+
+<span class="sd">This module does not implement all the functionality which is available in</span>
+<span class="sd">PhonTS.</span>
+
+<span class="sd">Requirements</span>
+<span class="sd">============</span>
+
+<span class="sd">The use of this module requires setting the enviornment variable the </span>
+<span class="sd">.bash_profile or similar script on your system</span>
+
+<span class="sd">export PHONTS_BIN=~/bin/PhonTS</span>
+
+<span class="sd">Job Schedulers</span>
+<span class="sd">==============</span>
+
+<span class="sd">Due to the wide variety and implementations of the cluster job schedulers,</span>
+<span class="sd">it is not possible to write all the possibilities of the job scheduler. The</span>
+<span class="sd">general strategy for dealing with job submissions is to create a </span>
+
+<span class="sd">pypospack.io.slurm</span>
+<span class="sd">pypospack.io.rocks</span>
+<span class="sd">pypospack.io.pbs</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">__author__</span> <span class="o">=</span> <span class="s2">&quot;Eugene J. Ragasa, Xie Xiong&quot;</span>
+<span class="n">__copyright__</span> <span class="o">=</span> <span class="s2">&quot;Copyright (C) 2016,2017&quot;</span>
+<span class="n">__license__</span> <span class="o">=</span> <span class="s2">&quot;Simplified BSD License&quot;</span>
+<span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;1.0&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">pathlib</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">shlex</span><span class="o">,</span> <span class="nn">subprocess</span><span class="o">,</span><span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.vasp</span> <span class="k">as</span> <span class="nn">vasp</span>
+<span class="kn">import</span> <span class="nn">pypospack.io.slurm</span> <span class="k">as</span> <span class="nn">slurm</span>
+<span class="kn">import</span> <span class="nn">pypospack.crystal</span> <span class="k">as</span> <span class="nn">crystal</span>
+<span class="kn">import</span> <span class="nn">pypospack.potential</span> <span class="k">as</span> <span class="nn">potential</span>
+<span class="kn">import</span> <span class="nn">pypospack.crystal</span> <span class="k">as</span> <span class="nn">crystal</span>
+<span class="kn">from</span> <span class="nn">pypospack.task</span> <span class="k">import</span> <span class="n">Task</span>
+<span class="kn">from</span> <span class="nn">pypospack.crystal</span> <span class="k">import</span> <span class="n">get_amu</span>
+<span class="c1"># *****************************************************************************</span>
+<span class="c1"># ****    ERROR EXCEPTION HANDLING CLASSES                                 ****</span>
+<span class="c1"># *****************************************************************************</span>
+
+<div class="viewcode-block" id="PhontsError"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsError">[docs]</a><span class="k">class</span> <span class="nc">PhontsError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Error class for reading/writing VASP INCAR IO issues &quot;&quot;&quot;</span>
+        <span class="ne">Exception</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">*</span><span class="n">args</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<span class="c1"># *****************************************************************************</span>
+<span class="c1"># ****     CORE CLASSES                                                    ****</span>
+<span class="c1"># *****************************************************************************</span>
+<span class="n">PHONTS_INTERACTIONS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;AbInitio&#39;</span><span class="p">]</span>
+<span class="n">PHONTS_FP_INTERFACES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;VASP&#39;</span><span class="p">,</span><span class="s1">&#39;QE&#39;</span><span class="p">,</span><span class="s1">&#39;LAMMPS&#39;</span><span class="p">]</span>
+<span class="n">job_schedulers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;slurm&#39;</span><span class="p">,</span><span class="s1">&#39;rocks&#39;</span><span class="p">,</span><span class="s1">&#39;pbs&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="simulation_cell_to_phonts_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.simulation_cell_to_phonts_string">[docs]</a><span class="k">def</span> <span class="nf">simulation_cell_to_phonts_string</span><span class="p">(</span><span class="n">simulation_cell</span><span class="p">,</span><span class="n">charges</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    This function converts as simulation cell and a dictionary of charges</span>
+<span class="sd">    into the simulation cell secton of the PhonTS input file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        simulation_cell(pypospack.crystal.SimulationCell): This arguement</span>
+<span class="sd">            expects the simulation cell to either to be a SimulationCell</span>
+<span class="sd">            object, or an object which inherits those methods.</span>
+<span class="sd">        charges(OrderedDict): This keys of this dictionary should have the </span>
+<span class="sd">            ISO chemical symbols of the atoms while the values of these </span>
+<span class="sd">            keys should provide floats of the charge.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        (str): a string of the the simulation cell in PhonTS format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">simulation_cell</span><span class="p">,</span><span class="n">crystal</span><span class="o">.</span><span class="n">SimulationCell</span><span class="p">):</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="s1">&#39;simulation cell is not an instance of &#39;</span>
+        <span class="n">err_msg</span> <span class="o">+=</span> <span class="s1">&#39;pypospack.crystal.SimulationCell&#39;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="p">)</span>
+
+    <span class="n">_charges</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">charges</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">simulation_cell</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="n">_charges</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">charges</span><span class="p">:</span>
+            <span class="n">_charges</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">charges</span><span class="p">[</span><span class="n">c</span><span class="p">]</span>
+
+    <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;species </span><span class="si">{n_symbols}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">n_symbols</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">simulation_cell</span><span class="o">.</span><span class="n">symbols</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">simulation_cell</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{s}</span><span class="s2"> </span><span class="si">{amu}</span><span class="s2"> </span><span class="si">{chrg}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span>
+                <span class="n">amu</span><span class="o">=</span><span class="n">get_amu</span><span class="p">(</span><span class="n">s</span><span class="p">),</span>
+                <span class="n">chrg</span><span class="o">=</span><span class="n">_charges</span><span class="p">[</span><span class="n">s</span><span class="p">])</span>
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;Lattice </span><span class="si">{:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;cell </span><span class="si">{a1:10.6f}</span><span class="s2"> </span><span class="si">{a2:10.6f}</span><span class="s2"> </span><span class="si">{a3:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">a1</span><span class="o">=</span><span class="n">simulation_cell</span><span class="o">.</span><span class="n">a1</span><span class="p">,</span>
+        <span class="n">a2</span><span class="o">=</span><span class="n">simulation_cell</span><span class="o">.</span><span class="n">a2</span><span class="p">,</span>
+        <span class="n">a3</span><span class="o">=</span><span class="n">simulation_cell</span><span class="o">.</span><span class="n">a3</span><span class="p">)</span>
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;natoms </span><span class="si">{n}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">simulation_cell</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
+    <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;fractional</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">simulation_cell</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">simulation_cell</span><span class="o">.</span><span class="n">atomic_basis</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">s</span><span class="p">:</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="si">{s}</span><span class="s2"> </span><span class="si">{a1:10.6f}</span><span class="s2"> </span><span class="si">{a2:10.6f}</span><span class="s2"> </span><span class="si">{a3:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">s</span><span class="o">=</span><span class="n">s</span><span class="p">,</span>
+                        <span class="n">a1</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">a2</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                        <span class="n">a3</span><span class="o">=</span><span class="n">a</span><span class="o">.</span><span class="n">position</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">str_out</span></div>
+
+<div class="viewcode-block" id="abinitio_interface_to_string"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.abinitio_interface_to_string">[docs]</a><span class="k">def</span> <span class="nf">abinitio_interface_to_string</span><span class="p">(</span>
+        <span class="n">fp_interface</span><span class="o">=</span><span class="s1">&#39;VASP&#39;</span><span class="p">,</span>
+        <span class="n">is_prep_step</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">numerical_2der</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> 
+        <span class="n">numerical_3der</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">d3_cutoff</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+        <span class="n">delta</span><span class="o">=</span><span class="mf">0.005</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        fp_interface(str): first-principals interface.  Can be VASP, QE or</span>
+<span class="sd">            LAMMPS.  Default is set to LAMMPS.</span>
+<span class="sd">        numerical_2der(bool):</span>
+<span class="sd">        numerical_3der(bool):</span>
+<span class="sd">        d3_cutoff(float):</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#&lt;--- check the arguments of the functions</span>
+    <span class="k">if</span> <span class="n">fp_interface</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;VASP&#39;</span><span class="p">,</span><span class="s1">&#39;QE&#39;</span><span class="p">,</span><span class="s1">&#39;LAMMPS&#39;</span><span class="p">]:</span>
+        <span class="n">msg_out</span> <span class="o">=</span> <span class="s2">&quot;fp_interface must either be VASP, QE, or LAMMPS or None&quot;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_out</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">is_start</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;is_start must be a boolean&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">numerical_2der</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;numerical_2der must be boolean&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">numerical_3der</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;numerical_3der must be boolean&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">asr_3der</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;asr_3der must be boolean&quot;</span><span class="p">)</span>
+    <span class="c1">#if type(3d_cutoff) not in [int,float]:</span>
+    <span class="c1">#    raise ValueError(&quot;3d_cutoff must be a numerical value&quot;)</span>
+
+    <span class="c1">#&lt;--- nested function to convert bool to &#39;T&#39; or &#39;F&#39;</span>
+    <span class="k">def</span> <span class="nf">bool2char</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="s1">&#39;T&#39;</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="s1">&#39;F&#39;</span>
+
+    <span class="n">str_out</span> <span class="o">=</span> \
+        <span class="p">(</span>
+            <span class="s2">&quot;FP_interface </span><span class="si">{fp_interface}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;AbInitio </span><span class="si">{ab_init_0}</span><span class="s2"> </span><span class="si">{ab_init_1}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;numerical_2der </span><span class="si">{num_2der}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;numerical_3der </span><span class="si">{num_3der}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;delta </span><span class="si">{delta:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;D3_cutoff </span><span class="si">{d3_cutoff:10.6f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">fp_interface</span><span class="o">=</span><span class="n">fp_interface</span><span class="p">,</span>
+            <span class="n">ab_init_0</span><span class="o">=</span><span class="n">bool2char</span><span class="p">(</span><span class="n">is_start</span><span class="p">),</span><span class="n">ab_init_1</span><span class="o">=</span><span class="n">bool2char</span><span class="p">(</span><span class="ow">not</span> <span class="n">is_start</span><span class="p">),</span>
+            <span class="n">numerical_2der</span><span class="o">=</span><span class="n">bool2char</span><span class="p">(</span><span class="n">numerical_2der</span><span class="p">),</span>
+            <span class="n">numerical_3der</span><span class="o">=</span><span class="n">bool2char</span><span class="p">(</span><span class="n">numerical_3der</span><span class="p">),</span>
+            <span class="n">delta</span><span class="o">=</span><span class="n">delta</span><span class="p">,</span>
+            <span class="n">d3_cutoff</span><span class="o">=</span><span class="n">d3_cutoff</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">str_out</span></div>
+
+<div class="viewcode-block" id="phonts_kpoints_section_to_str"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.phonts_kpoints_section_to_str">[docs]</a><span class="k">def</span> <span class="nf">phonts_kpoints_section_to_str</span><span class="p">(</span><span class="n">k1</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span><span class="n">k2</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span><span class="n">k3</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span><span class="n">kbte</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Define the kpoint mesh for Phonons</span>
+
+<span class="sd">    Defines the k-point mesh on which phonon properties are to be calculated.</span>
+<span class="sd">    kx, ky, and kz determine resolutions in the reciprocal space.  PhonTS</span>
+<span class="sd">    automatically create an odd-valued grid, even if an even-grid is provided.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kx(int): kpoint mesh resolution in the b1 direction, reciprocal lattice</span>
+<span class="sd">        ky(int): kpoint mesh resolution in thee b2 direction, reciprocal lattice</span>
+<span class="sd">        kz(int): kpoint mesh resolution in the b3 direction, reciprocal lattice</span>
+<span class="sd">        kbte(int): additional resolution for the finer grid in the z direction,</span>
+<span class="sd">            for more accurate determination of the energy conservation surface</span>
+<span class="sd">            in thermal conductivity calculations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;kpoints </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k1</span><span class="p">,</span><span class="n">k2</span><span class="p">,</span><span class="n">k3</span><span class="p">,</span><span class="n">kbte</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">str_out</span></div>
+
+<div class="viewcode-block" id="phonts_bte_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.phonts_bte_section">[docs]</a><span class="k">def</span> <span class="nf">phonts_bte_section</span><span class="p">():</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="phonts_dispersions"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.phonts_dispersions">[docs]</a><span class="k">def</span> <span class="nf">phonts_dispersions</span><span class="p">():</span>
+    <span class="k">pass</span></div>
+
+
+<span class="c1"># *****************************************************************************</span>
+<span class="c1"># ****     CORE CLASSES                                                    ****</span>
+<span class="c1"># *****************************************************************************</span>
+<div class="viewcode-block" id="PhontsInputFile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile">[docs]</a><span class="k">class</span> <span class="nc">PhontsInputFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        force_evaluation(str):</span>
+<span class="sd">        phonon_kpoints(list of int): K-point mesh in on which phonon properties</span>
+<span class="sd">            are to be calculated.  It should be an array with four elements,</span>
+<span class="sd">            [N1,N2,N3,N4], where N4 specifies the finer grid along the z-axis</span>
+<span class="sd">            for more accurate determination of the energy conversation surface</span>
+<span class="sd">            in thermal conductivity simulations.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;phonon_input.dat&#39;</span><span class="p">,</span>
+            <span class="n">structure_filename</span><span class="o">=</span><span class="s1">&#39;POSCAR&#39;</span><span class="p">,</span>
+            <span class="n">phonts_configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># intitialize attributes    </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># process constructor arguements</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">structure_filename</span>
+        <span class="k">if</span> <span class="n">phonts_configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">phonts_configuration</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="n">str_phonts_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_simulation_cell_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_iteraction_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_calculation_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">end</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">str_phonts_input</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PhontsInputFile.process_phonts_configuration"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.process_phonts_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">process_phonts_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">phonts_configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            phonts_configuration(dict):</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">phonts_configuration</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">phonts_configuration</span><span class="p">)</span>
+
+        <span class="c1">#process interaction type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;interaction_type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span> <span class="o">==</span> <span class="s1">&#39;AbInitio&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;is_prep_step&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;fp_interface&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;numerical_2der&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;numerical_3der&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">d3_cutoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;d3_cutoff&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;delta&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculation_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configurationp</span><span class="p">[</span><span class="s1">&#39;calculation_type&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_type</span> <span class="o">==</span> <span class="s1">&#39;iterations&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iter_steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;iter_steps&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">phonons_kpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;phonon_kpoints&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configurationp</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PhontsInputFile.on_interaction_type_changed"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.on_interaction_type_changed">[docs]</a>    <span class="k">def</span> <span class="nf">on_interaction_type_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span> <span class="o">==</span> <span class="s1">&#39;AbInitio&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span> <span class="o">=</span> <span class="s1">&#39;VASP&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">d3_cutoff</span> <span class="o">=</span> <span class="mf">5.0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta</span><span class="o">=</span><span class="mf">0.005</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">interaction_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span>
+
+    <span class="nd">@interaction_type</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">interaction_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">interaction_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">interaction_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">PHONTS_INTERACTIONS</span><span class="p">:</span>
+            <span class="n">msg_err</span> <span class="o">=</span> <span class="p">(</span>
+                 <span class="s2">&quot;interaction_type is not supported. Supported interactions &quot;</span>
+                 <span class="s2">&quot;types supported by pypospack is contained in &quot;</span>
+                 <span class="s2">&quot;pypospack.io.phonts.PHONTS_INTERACTIONS.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg_err</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interaction_type</span> <span class="o">=</span> <span class="n">interaction_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_interaction_type_changed</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PhontsInputFile.write"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="n">str_phonts_input</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_header_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_simulation_cell_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_force_evaluation_section</span><span class="p">()</span>
+        <span class="n">str_phonts_input</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_phonts_calculated_properties</span><span class="p">()</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">str_phonts_input</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PhontsInputFile.get_header_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.get_header_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_header_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;# PhonTS input file created pypospack.</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+<div class="viewcode-block" id="PhontsInputFile.get_simulation_cell_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.get_simulation_cell_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_simulation_cell_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">structure_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">structure_filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">structure_filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_poscar_file</span><span class="p">()</span>
+
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;# </span><span class="si">{:*^78}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;simulation cell&#39;</span><span class="p">)</span>
+        <span class="n">charges</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">is_charge</span><span class="p">:</span>
+                <span class="n">charges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span><span class="o">.</span><span class="n">get_charges</span><span class="p">()</span>
+        <span class="n">str_out</span> <span class="o">+=</span> <span class="n">simulation_cell_to_phonts_string</span><span class="p">(</span>
+            <span class="n">simulation_cell</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">structure</span><span class="p">,</span>
+            <span class="n">charges</span><span class="o">=</span><span class="n">charges</span><span class="p">)</span></div>
+   
+<div class="viewcode-block" id="PhontsInputFile.get_interaction_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.get_interaction_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_interaction_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;# </span><span class="si">{:*^78}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;INTERACTION SECTION&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interaction_type</span> <span class="o">==</span> <span class="s1">&#39;AbInitio&#39;</span><span class="p">:</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="n">abinitio_iterface_to_string</span><span class="p">(</span>
+                    <span class="n">fp_interface</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fp_interface</span><span class="p">,</span>
+                    <span class="n">is_prep_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_prep_step</span><span class="p">,</span>
+                    <span class="n">numerical_2der</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numerical_2der</span><span class="p">,</span>
+                    <span class="n">numerical_3der</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">numerical_3der</span><span class="p">,</span>
+                    <span class="n">d3_cutoff</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">d3_cutoff</span><span class="p">,</span>
+                    <span class="n">delta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delta</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PhontsInputFile.get_calculation_section"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.get_calculation_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_calculation_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">bool2char</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">b</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;T&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;F&#39;</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s2">&quot;# </span><span class="si">{:*^78}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;INTERACTION SECTION&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculation_type</span> <span class="o">==</span> <span class="s1">&#39;iterations&#39;</span><span class="p">:</span>
+            <span class="n">str_out</span> <span class="o">+=</span> <span class="p">(</span>
+                    <span class="s2">&quot;Iterations </span><span class="si">{is_iterations}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;iter_steps </span><span class="si">{iter_steps}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;kpoints </span><span class="si">{k1}</span><span class="s2"> </span><span class="si">{k2}</span><span class="s2"> </span><span class="si">{k2}</span><span class="s2"> </span><span class="si">{k4}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">is_iterations</span><span class="o">=</span><span class="n">bool2char</span><span class="p">(</span><span class="kc">True</span><span class="p">),</span>
+                <span class="n">iter_steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;iter_steps&#39;</span><span class="p">],</span>
+                <span class="n">k1</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;phonon_kpoints&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">k2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;phonon_kpoints&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">k3</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;phonon_kpoints&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">k4</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;phonon_kpoints&#39;</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">temperature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonts_configuration</span><span class="p">[</span><span class="s1">&#39;temperature&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;temperature </span><span class="si">{t1}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">t1</span><span class="o">=</span><span class="n">temperature</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">str_out</span> <span class="o">+=</span> <span class="s2">&quot;temperature </span><span class="si">{t1}</span><span class="s2"> </span><span class="si">{t2}</span><span class="s2"> </span><span class="si">{N_t}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">t1</span><span class="o">=</span><span class="n">temperature</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">t2</span><span class="o">=</span><span class="n">temperature</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">N_t</span><span class="o">=</span><span class="n">temperature</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span></div>
+<div class="viewcode-block" id="PhontsInputFile.read_poscar_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsInputFile.read_poscar_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_poscar_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;PhontsInputFile requires a structure file&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_cell</span> <span class="o">=</span> <span class="n">vasp</span><span class="o">.</span><span class="n">Poscar</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation_cell</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">structure_filename</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="PhontsBteData"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsBteData">[docs]</a><span class="k">class</span> <span class="nc">PhontsBteData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        directory(str): the directory where the phonts simulation</span>
+<span class="sd">            output files exist</span>
+<span class="sd">        natoms(int):number of atoms in the simulation cel</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        directory(str): the directory where the phonts simulation</span>
+<span class="sd">            output files exist</span>
+<span class="sd">        ph_lt_file(pypospack.io.phonts.PhononLifetimeFile)</span>
+<span class="sd">        ph_freq_file(pypospack.io.phonts.PhononFrequencyFile)</span>
+<span class="sd">        natoms(int):number of atoms in the simulation cel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">directory</span><span class="p">,</span><span class="n">natoms</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span><span class="n">directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_filename</span> <span class="o">=</span> <span class="s1">&#39;phon_lifetime.dat&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_filename</span> <span class="o">=</span> <span class="s1">&#39;freq.dat&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">natoms</span> <span class="o">=</span> <span class="n">natoms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PhontsBteData.read"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsBteData.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">directory</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">directory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">directory</span> <span class="o">=</span> <span class="n">directory</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span> <span class="o">=</span> <span class="n">PhononLifetimeFile</span><span class="p">(</span>
+            <span class="n">natoms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_filename</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span> <span class="o">=</span> <span class="n">PhononFrequencyFile</span><span class="p">(</span>
+            <span class="n">natoms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">directory</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_filename</span><span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PhontsBteData.build_data"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsBteData.build_data">[docs]</a>    <span class="k">def</span> <span class="nf">build_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">temp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">temp</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;temp=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">temp</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_data_at_temp</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PhontsBteData.build_data_at_temp"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsBteData.build_data_at_temp">[docs]</a>    <span class="k">def</span> <span class="nf">build_data_at_temp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">temp</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This method consolidates the data contained in two different files</span>
+<span class="sd">        so that we can compare phonon frequencies with with phonon lifetimes.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            temp(int): the temperature from the BTE calculation, this value</span>
+<span class="sd">                must be in list of values contained in the list ph_lt_file.temp</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># initialize our list</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">kpoint_keys_format</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{kp1:.6f}</span><span class="s2">_</span><span class="si">{kp2:.6f}</span><span class="s2">_</span><span class="si">{kp3:.6f}</span><span class="s2">&quot;</span>
+
+        <span class="n">freq_n_rows</span><span class="p">,</span> <span class="n">freq_n_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">lt_n_rows</span><span class="p">,</span> <span class="n">lt_n_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="c1">#these indices are the column index for the columns kp1,kp2,kp3 in </span>
+        <span class="c1">#phonon frequency file (ph_fr_file) </span>
+        <span class="n">freq_kp1_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;kp1&#39;</span><span class="p">)</span>
+        <span class="n">freq_kp2_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;kp2&#39;</span><span class="p">)</span>
+        <span class="n">freq_kp3_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;kp3&#39;</span><span class="p">)</span>
+
+        <span class="c1"># these indices are the the column indices for the columns kp1,kp2,kp3</span>
+        <span class="c1"># in the lifetime frequency file (ph_lt_file)</span>
+        <span class="n">lt_kp1_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;kp1&#39;</span><span class="p">)</span>
+        <span class="n">lt_kp2_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;kp2&#39;</span><span class="p">)</span>
+        <span class="n">lt_kp3_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;kp3&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">freq_n_rows</span><span class="p">):</span>
+           <span class="n">freq_kpoint_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpoint_keys_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+               <span class="n">kp1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">freq_kp1_idx</span><span class="p">],</span>
+               <span class="n">kp2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">freq_kp2_idx</span><span class="p">],</span>
+               <span class="n">kp3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">freq_kp3_idx</span><span class="p">])</span>
+           <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lt_n_rows</span><span class="p">):</span>
+               <span class="n">lt_kpoint_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kpoint_keys_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                   <span class="n">kp1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span>\
+                          <span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_kp1_idx</span><span class="p">],</span>
+                   <span class="n">kp2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span>\
+                          <span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_kp2_idx</span><span class="p">],</span>
+                   <span class="n">kp3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span>\
+                          <span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_kp3_idx</span><span class="p">])</span>
+
+               <span class="k">if</span> <span class="n">freq_kpoint_key</span> <span class="o">==</span> <span class="n">lt_kpoint_key</span><span class="p">:</span>
+                   <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">):</span>
+                       <span class="c1"># here we are building the row for the phonon frequency</span>
+                       <span class="c1"># and the associated limetime with that phonon</span>
+                       <span class="c1"># ph_id(int) - unique integer assigned to a phonon for</span>
+                       <span class="c1">#        identification</span>
+                       <span class="c1"># kp1,kp2,kp3 - the location of the kpoint associated with</span>
+                       <span class="c1">#     phonon frequency represented in the basis of the </span>
+                       <span class="c1">#     reciprocal lattice</span>
+                       <span class="c1"># fr - this is the frequency of the phonon in meV</span>
+                       <span class="c1"># lt - this is the phonon lifetime in ps</span>
+                       <span class="n">ph_id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">])</span>
+                       <span class="n">kp1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span>\
+                           <span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_kp1_idx</span><span class="p">]</span>
+                       <span class="n">kp2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span>\
+                           <span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_kp2_idx</span><span class="p">]</span>
+                       <span class="n">kp3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span>\
+                           <span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_kp3_idx</span><span class="p">]</span>
+
+                       <span class="c1"># we need the index associated with the phonon freq</span>
+                       <span class="n">fr_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+                           <span class="s2">&quot;freq</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+
+                       <span class="c1"># wew need the index associated with the phonon lifetime</span>
+                       <span class="n">lt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">col_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+                           <span class="s2">&quot;lt</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+                       <span class="n">fr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_freq_file</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">fr_idx</span><span class="p">]</span>
+                       <span class="n">lt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_lt_file</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">][</span><span class="n">j</span><span class="p">,</span><span class="n">lt_idx</span><span class="p">]</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                           <span class="n">ph_id</span><span class="p">,</span>
+                           <span class="n">kp1</span><span class="p">,</span><span class="n">kp2</span><span class="p">,</span><span class="n">kp3</span><span class="p">,</span>
+                           <span class="n">fr</span><span class="p">,</span><span class="n">lt</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">temp</span><span class="p">])</span></div></div>
+
+<div class="viewcode-block" id="PhononLifetimeFile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhononLifetimeFile">[docs]</a><span class="k">class</span> <span class="nc">PhononLifetimeFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">natoms</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;phon_lifetime.dat&#39;</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">col_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">,</span><span class="s1">&#39;kp1&#39;</span><span class="p">,</span><span class="s1">&#39;kp2&#39;</span><span class="p">,</span><span class="s1">&#39;kp3&#39;</span><span class="p">]</span>\
+                <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;lt</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="p">)]</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">natoms</span> <span class="o">=</span> <span class="n">natoms</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">read_phon_lifetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">temp</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+
+<div class="viewcode-block" id="PhononLifetimeFile.read"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhononLifetimeFile.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">read_phon_lifetime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="PhononLifetimeFile.print"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhononLifetimeFile.print">[docs]</a>    <span class="k">def</span> <span class="nf">print</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+       <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+           <span class="nb">print</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="PhononFrequencyFile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhononFrequencyFile">[docs]</a><span class="k">class</span> <span class="nc">PhononFrequencyFile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">natoms</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;freq.dat&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">,</span><span class="s1">&#39;kp1&#39;</span><span class="p">,</span><span class="s1">&#39;kp2&#39;</span><span class="p">,</span><span class="s1">&#39;kp3&#39;</span><span class="p">]</span>\
+                <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;freq</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">natoms</span> <span class="o">=</span> <span class="n">natoms</span>
+
+<div class="viewcode-block" id="PhononFrequencyFile.read"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhononFrequencyFile.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">except</span> <span class="n">FileNotFoundErr</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span>
+  
+        <span class="n">values_all</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">values_all</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">])</span>
+   
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values_all</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PhononFrequencyFile.print"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhononFrequencyFile.print">[docs]</a>    <span class="k">def</span> <span class="nf">print</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="get_data_from_phonts_file"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.get_data_from_phonts_file">[docs]</a><span class="k">def</span> <span class="nf">get_data_from_phonts_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="c1">#def process_first_line(line):</span>
+    <span class="c1">#    args = line.strip().split()</span>
+    <span class="c1">#    args = [arg.strip() for arg in args]</span>
+    <span class="c1">#    args = args[1:]</span>
+    <span class="c1">#    return args</span>
+    
+    <span class="c1">#labels = None</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">data_all</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="c1"># except FileNotFoundErr</span>
+  
+    <span class="c1">#initialize variables</span>
+    <span class="n">values_all</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+       <span class="c1"># if i == 0:</span>
+           <span class="c1"># labels = process_first_line(line)</span>
+       <span class="c1"># else:</span>
+           <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+           <span class="n">values_all</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">])</span>
+   
+    <span class="n">data_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values_all</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">data_all</span></div>
+
+<div class="viewcode-block" id="get_freq_data"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.get_freq_data">[docs]</a><span class="k">def</span> <span class="nf">get_freq_data</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;freq.dat&#39;</span><span class="p">):</span>
+    <span class="n">freq_data</span> <span class="o">=</span> <span class="n">get_data_from_phonts_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">freq_data</span></div>
+
+
+<div class="viewcode-block" id="read_phon_lifetime"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.read_phon_lifetime">[docs]</a><span class="k">def</span> <span class="nf">read_phon_lifetime</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;phon_lifetime.dat&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reads phonon lifetime information</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">subselect_table_block</span><span class="p">(</span><span class="n">i_start</span><span class="p">,</span><span class="n">lines</span><span class="p">):</span>
+        <span class="n">i</span><span class="o">=</span><span class="n">i_start</span><span class="o">+</span><span class="mi">1</span>
+        
+        <span class="n">table</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">!=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+    
+    <span class="n">line</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1">#initialize</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">]</span>
+    
+    <span class="n">temperatures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">phon_lifetime</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">il</span><span class="p">,</span><span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;# Temp:&#39;</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+            <span class="n">temperatures</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">phon_lifetime</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="n">subselect_table_block</span><span class="p">(</span><span class="n">il</span><span class="p">,</span><span class="n">lines</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span><span class="n">v</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">phon_lifetime</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span></div>
+
+<span class="c1">#******************************************************************************</span>
+<span class="c1"># POST PROCESSING SCRIPTS</span>
+<span class="c1">#******************************************************************************</span>
+
+<div class="viewcode-block" id="PhontsPdosDatafile"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsPdosDatafile">[docs]</a><span class="k">class</span> <span class="nc">PhontsPdosDatafile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">df</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;(pandas.DataFrame)&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_df</span>
+
+<div class="viewcode-block" id="PhontsPdosDatafile.read"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.PhontsPdosDatafile.read">[docs]</a>    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;pdos.dat&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">get_pdos_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="get_pdos_data"><a class="viewcode-back" href="../../../pypospack/api/pypospack.io.html#pypospack.io.phonts.get_pdos_data">[docs]</a><span class="k">def</span> <span class="nf">get_pdos_data</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s1">&#39;pdos.dat&#39;</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">process_first_line</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">args</span>
+
+    <span class="n">pdos_labels</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pdos_data</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="c1"># except FileNotFoundError</span>
+
+    <span class="c1">#initialize variables</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pdos_labels</span> <span class="o">=</span> <span class="n">process_first_line</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">float</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">])</span>
+
+    <span class="n">pdos_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pdos_data</span><span class="p">,</span><span class="n">pdos_labels</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">Materials Ex Machina 2017.7.22 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Eugene J. Ragasa.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.0.1.
+    </div>
+  </body>
+</html>
