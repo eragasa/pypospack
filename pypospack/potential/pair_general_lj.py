@@ -26,6 +26,7 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     Reference:
         Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
     """
+
     assert isinstance(r, np.ndarray) or isinstance(r, float)
     assert isinstance(b1, float)
     assert isinstance(b2, float)
@@ -40,7 +41,11 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
 
     assert type(phi) is type(r)
 
-    return phi
+    #print((5*"{:+10.4e} ").format(b1,b2,r1,V0,delta))
+    #if isinstance(phi,np.ndarray):
+    #    if np.isfinite(phi).any():
+    #        print('need to fix here')
+    #return phi
 
 def func_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,h):
 

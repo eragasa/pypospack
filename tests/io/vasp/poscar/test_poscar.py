@@ -1,3 +1,4 @@
+import pytest
 import os
 import pypospack.crystal as crystal
 import pypospack.io.vasp as vasp
@@ -7,7 +8,6 @@ import numpy as np
 def test_Si_diamond():
     sim_cell = vasp.Poscar()
     sim_cell.read('Si_dia_unit.relax.gga.vasp')
-
 
 class TestSimulationCell(object):
 

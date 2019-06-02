@@ -145,7 +145,7 @@ class AbstractLammpsSimulation(Task):
     def on_init(self,configuration=None):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
-
+        
         try:
             self.configure_potential(potential=self.configuration['potential'])
         except KeyError:

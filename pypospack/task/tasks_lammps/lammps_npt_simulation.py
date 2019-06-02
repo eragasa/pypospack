@@ -23,8 +23,8 @@ class LammpsNptSimulation(LammpsSimulation):
             task_name,
             task_directory,
             structure_filename,
-            restart=None,
-            fullauto=None,
+            restart=False,
+            fullauto=False,
             temperature=None,
             pressure=0,
             time_total=None,
@@ -52,7 +52,8 @@ class LammpsNptSimulation(LammpsSimulation):
         self.lattice_fn = 'lattice.out'
     
     def get_task_name(structure,temperature):
-        task_name = '{s}.lmps_npt_{T}'.format(s=structure,T=str(int(T)))
+        T = str(int(temperature))
+        task_name = '{s}.lmps_npt_{T}'.format(s=structure,T=T)
         return task_name
     
     def postprocess(self):
@@ -276,15 +277,29 @@ class LammpsNptSimulation(LammpsSimulation):
             "velocity all create {temp} {seed} mom yes dist gaussian loop all".format(
                 temp=_temp0,
                 seed=_seed1),
+            "# ramping the temperature",
             "# fix for Nose-Hoover style thermostat ----------------------------------------",
-            "fix 20 all npt temp {temp0} {temp1} {tempdamp} aniso 0.0 0.0 {pressdamp} drag {drag} couple xyz".format(
+            "fix npt1 all npt temp {temp0} {temp1} {tempdamp} aniso 0.0 0.0 {pressdamp} drag {drag} couple xyz".format(
                 temp0=_temp0,temp1=_temp1,tempdamp=_tempdamp,
                 press0=_press0,press1=_press1,pressdamp=_pressdamp,
                 drag=_drag),
-            "fix 21 all ave/time 1 5000 5000 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice.out",
+            "fix npt1out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice1.out",
             "run {n_time_steps}".format(n_time_steps=_n_time_steps),
-            "unfix 20",
-            "unfix 21",
+            "unfix npt1",
+            "unfix npt1out",
+            "# holding temperature here",
+            "# fix for Nose-Hoover style thermostat ----------------------------------------",
+            "fix npt2 all npt temp {temp0} {temp1} {tempdamp} aniso 0.0 0.0 {pressdamp} drag {drag} couple xyz".format(
+                temp0=_temp1,temp1=_temp1,tempdamp=_tempdamp,
+                press0=_press0,press1=_press1,pressdamp=_pressdamp,
+                drag=_drag),
+            "fix npt2out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice2.out",
+            "compute rdf2 all rdf 50"
+            "fix rdf2out all ave/time 100 1 100 c_myrdf2[*] file rdf.out mode vector"
+
+            "run {n_time_steps}".format(n_time_steps=_n_time_steps),
+            "unfix npt2",
+            "unfix npt2out",
         ])
 
         return str_out

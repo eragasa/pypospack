@@ -18,16 +18,16 @@ class BuckinghamPotential(PairPotential):
     Args:
         symbols(list): a list of chemicals
     """
-
+    PAIR_POTENTIAL_PARAMETERS = ['A','rho','C']
     def __init__(self,symbols):
-        PAIR_POTENTIAL_PARAMETERS = ['A','rho','C']
+
         PairPotential.__init__(self,
                 symbols,
                 potential_type='buckingham',
                 is_charge=True)
 
         # override the base attributes
-        self.pair_potential_parameters = PAIR_POTENTIAL_PARAMETERS
+        self.pair_potential_parameters = self.PAIR_POTENTIAL_PARAMETERS
 
 
     def _init_parameter_names(self):
@@ -39,10 +39,9 @@ class BuckinghamPotential(PairPotential):
                 self.PYPOSPACK_CHRG_FORMAT.format(s=s))
 
         for sp in self.symbol_pairs:
-            for p in self.pair_potential_parameters:
+            for p in self.PAIR_POTENTIAL_PARAMETERS:
                 self.parameter_names.append(
-                        self.PYPOSPACK_PAIR_FORMAT.format(
-                            s1=sp[0],s2=sp[1],p=p))
+                        self.PYPOSPACK_PAIR_FORMAT.format(s1=sp[0],s2=sp[1],p=p))
 
         return list(self.parameter_names)
 

@@ -56,3 +56,4 @@ from pypospack.task.tasks_lammps.lmps_min_all import LammpsStructuralMinimizatio
 from pypospack.task.tasks_lammps.elastic_calculation import LammpsElasticCalculation
 from pypospack.task.tasks_lammps.lammps_npt_simulation import LammpsNptSimulation
 from pypospack.task.tasks_lammps.lmps_min_sf import LammpsStackingFaultMinimization
+from pypospack.task.tasks_lammps.lammps_npt_simulation import LammpsNptSimulation
