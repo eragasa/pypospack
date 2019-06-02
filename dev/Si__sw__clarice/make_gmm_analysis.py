@@ -179,7 +179,9 @@ if __name__ == "__main__":
     o_data.read(filename=data_fn)
     o_data.create_normalized_errors(
             normalize_type='by_qoi_target',
-            qoi_targets=o_config.qoi_targets)
+           qoi_targets=o_config.qoi_targets)
+    print(o_config.normalized_error_names)
+    print(o_data.df.columns)
     o_data.df['score'] = o_data.df[o_config.normalized_error_names].abs().sum(axis=1)
 
     name_1 = o_config.qoi_names[0]
