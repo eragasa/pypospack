@@ -82,7 +82,7 @@ assert o.formalisms['density']['Ni'] == potentials['density']['Ni']['formalism']
 print(o.parameters['p0']['density']['Ni'])
 print(o.parameters['popt']['density']['Ni'])
 
-def plot_results():
+def plot_results(filename='fit_eam_punmishin.eps'):
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(3,1)
@@ -112,12 +112,12 @@ def plot_results():
             rho,
             o.setfl_reader.embedding_function('Ni'),
             label='from_file')
-    ax[2].plot(
-            rho,
-            o.formalisms['embedding']['Ni'](r,**o.parameters['popt']['embedding']['Ni']),
-            label='fitted')
+    #ax[2].plot(
+    #        rho,
+    #        o.formalisms['embedding']['Ni'](r,**o.parameters['popt']['embedding']['Ni']),
+    #        label='fitted')
     plt.show()
-
+    fig.savefig(filename)
 def func_zopemishin_embedding_function(rho,a0,B0,E0,beta,lattice_type='fcc'):
     """ fits the embedding function to the zope mishin equation of state
 
@@ -175,6 +175,7 @@ arg_names = [k for k in inspect.getargspec(func_zopemishin_embedding_function)[0
 print(arg_names)
 args = [potentials['embedding']['Ni']['param'][k] for k in arg_names]
 
+plot_results()
 embedding = func_zopemishin_embedding_function(rho,*args)
 assert embedding.size == rho.size
 o.fit_eos_embedding_function(
@@ -182,10 +183,10 @@ o.fit_eos_embedding_function(
         symbol='Ni',
         param0=potentials['embedding']['Ni']['param'],
         bounds=[
-            (0,     0,     -np.inf,      -np.inf),
-            (np.inf,np.inf,0, np.inf)
+
+            (3., 1e4,     -6,      -0.4890e-1),
+            (4,  1e6,     -4,       0.4890e-1)
             ]
         )
 print(o.parameters['p0']['embedding']['Ni'])
 print(o.parameters['popt']['embedding']['Ni'])
-plot_results()

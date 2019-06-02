@@ -198,9 +198,16 @@ class EamPotentialFitter(object):
         rho = create_rho(rhomax,rhoN)
         embedding = np.array(self.setfl_reader.density_function(symbol))
 
+        print(param0)
         # iterate until convergence
         while True:
-            popt,pcov = curve_fit(func_embedding,rho,embedding,method='trf',p0=p0,bounds=bounds)
+            try:
+                popt,pcov = curve_fit(func_embedding,rho,embedding,method='trf',p0=p0,bounds=bounds)
+            except ValueError:
+                print(param0)
+                print([(k[0],k[1]) for k in zip(arg_names,popt)])
+
+            print([(k[0],k[1]) for k in zip(arg_names,popt)])
 
             if all([np.abs(k[1]/k[0]-1) < 0.01 for k in zip(popt,p0)]):
                 break

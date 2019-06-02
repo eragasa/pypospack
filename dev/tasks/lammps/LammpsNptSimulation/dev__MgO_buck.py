@@ -1,8 +1,13 @@
-import os,time
+import sys
+import os
+import time
+import importlib
 from collections import OrderedDict
 
 import pypospack.utils
-from lammps_npt_simulation import LammpsNptSimulation
+from pypospack.lammps import LammpsNptSimulation
+sys.path.append(os.path.abspath(os.path.join("..","LammpsSimulationScaffold")))
+from lammps_npt_scaffold import LammpsSimulationScaffold
 
 # definition of the potential
 MgO_LewisCatlow = OrderedDict()
