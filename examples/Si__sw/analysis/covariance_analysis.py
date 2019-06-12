@@ -54,36 +54,50 @@ def covariance_analysis(config,data_directory,output_directory):
 
         fig, ax = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
 
-        ax[0,0].matshow(data_results.df[o_config.free_parameter_names].corr())
+
+        corr = data_results.df[o_config.free_parameter_names].corr(method='pearson').values
+        xtick_labels = [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names]
+        ytick_labels = [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names]
+        ax[0,0].matshow(corr,cmap='coolwarm',vmin=-1,vmax=1)
+        for m in range(len(o_config.free_parameter_names)):
+            for n in range(len(o_config.free_parameter_names)):
+                ax[0,0].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
         plt.sca(ax[0,0])
-        plt.xticks(
-                range(len(o_config.free_parameter_names)),
-                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
-        plt.yticks(range(len(o_config.free_parameter_names)),
-                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
+        plt.xticks(range(len(o_config.free_parameter_names)),xtick_labels)
+        plt.yticks(range(len(o_config.free_parameter_names)),ytick_labels)
 
-        ax[0,1].matshow(data_results.df[o_config.qoi_names].corr())
+        corr = data_results.df[o_config.qoi_names].corr().values
+        ax[0,1].matshow(corr,cmap='coolwarm',vmin=-1,vmax=1)
+        for m in range(len(o_config.qoi_names)):
+            for n in range(len(o_config.qoi_names)):
+                ax[0,1].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
         plt.sca(ax[0,1])
-        plt.xticks(range(len(o_config.qoi_names)),
-                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
-        plt.yticks(range(len(o_config.qoi_names)),o_config.qoi_names,
-                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
+        xtick_labels = [o_config.latex_labels[k]['label'] for k in o_config.qoi_names]
+        ytick_labels = [o_config.latex_labels[k]['label'] for k in o_config.qoi_names]
+        plt.xticks(range(len(o_config.qoi_names)),xtick_labels)
+        plt.yticks(range(len(o_config.qoi_names)),ytick_labels)
 
-        ax[1,0].matshow(data_kde.df[o_config.free_parameter_names].corr())
+        corr = data_kde.df[o_config.free_parameter_names].corr().values
+        xtick_labels = [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names]
+        ytick_labels = [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names]
+        ax[1,0].matshow(corr,cmap='coolwarm',vmin=-1,vmax=1)
+        for m in range(len(o_config.free_parameter_names)):
+            for n in range(len(o_config.free_parameter_names)):
+                ax[1,0].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
         plt.sca(ax[1,0])
-        plt.xticks(
-                range(len(o_config.free_parameter_names)),
-                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
-        plt.yticks(
-                range(len(o_config.free_parameter_names)),
-                [o_config.latex_labels[k]['label'] for k in o_config.free_parameter_names])
+        plt.xticks(range(len(o_config.free_parameter_names)),xtick_labels)
+        plt.yticks(range(len(o_config.free_parameter_names)),ytick_labels)
 
-        ax[1,1].matshow(data_kde.df[o_config.qoi_names].corr())
+        corr = data_kde.df[o_config.qoi_names].corr().values
+        xtick_labels = [o_config.latex_labels[k]['label'] for k in o_config.qoi_names]
+        ytick_labels = [o_config.latex_labels[k]['label'] for k in o_config.qoi_names]
+        ax[1,1].matshow(corr,cmap='coolwarm',vmin=-1,vmax=1)
+        for m in range(len(o_config.qoi_names)):
+            for n in range(len(o_config.qoi_names)):
+                ax[1,1].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
         plt.sca(ax[1,1])
-        plt.xticks(range(len(o_config.qoi_names)),
-                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
-        plt.yticks(range(len(o_config.qoi_names)),o_config.qoi_names,
-                [o_config.latek_labels[k]['label'] for k in o_config.qoi_names])
+        plt.xticks(range(len(o_config.qoi_names)),xtick_labels)
+        plt.yticks(range(len(o_config.qoi_names)),ytick_labels)
 
         if not os.path.exists(output_directory):
             os.mkdir(output_directory)
@@ -99,6 +113,7 @@ if __name__ == "__main__":
             'data','Si__sw__data','pareto_optimization_unconstrained')
     output_directory = 'covariance_matrix_plot' 
     config_fn = os.path.join(data_directory,'pyposmat.config.in')
+    print("configuration file path:{}".format(config_fn))
     o_config = PyposmatConfigurationFile()
     o_config.read(filename=config_fn)
     

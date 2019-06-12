@@ -1,5 +1,7 @@
 import pytest
-from lammps_npt_simulation import LammpsNptSimulation
+from pypospack.task.lammps import LammpsNptSimulation
+pypospack.task.tasks_lammps.lammps_npt_simulation import LammpsNptSimulation
+
 
 def test__get_task_name():
 

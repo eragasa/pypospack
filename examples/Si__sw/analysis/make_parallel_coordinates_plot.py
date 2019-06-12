@@ -96,7 +96,7 @@ if __name__ == "__main__":
         shutil.rmtree(plot_dir)
     os.mkdir(plot_dir)
     
-    figure_fn = os.path.join(plot_dir,'parallel_plot.eps')
+    figure_fn = os.path.join(plot_dir,'parallel_plot.jpg')
     
     o_plot = PyposmatParallelCoordinatesPlot()
     o_plot.create_subplots()
@@ -122,9 +122,13 @@ if __name__ == "__main__":
             config=ref_config_fn,
             data=ref_data_fn,
             linewidth=5)
-            
+    o_plot.set_legend() 
+    o_plot.set_ylabel('fractional error')
+    o_plot.set_xticks(
+            config=parallel_plot_config['p_q_free']['config_fn'],
+            names='qoi_names')
     o_plot.show_figure()
-    o_plot.save_figure(filename=plot_fn)
+    o_plot.save_figure(filename=figure_fn)
     exit()
     # initialization
     o_plot = PyposmatParallelCoordinatesPlot()

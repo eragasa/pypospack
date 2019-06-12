@@ -5,9 +5,7 @@ import importlib
 from collections import OrderedDict
 
 import pypospack.utils
-from pypospack.lammps import LammpsNptSimulation
-sys.path.append(os.path.abspath(os.path.join("..","LammpsSimulationScaffold")))
-from lammps_npt_scaffold import LammpsSimulationScaffold
+from pypospack.task.lammps import LammpsNptSimulation
 
 # definition of the potential
 MgO_LewisCatlow = OrderedDict()
@@ -47,7 +45,7 @@ npt_task_configuration['structure_filename'] = MgO_structure_definition['filenam
 npt_task_configuration['temperature'] = 1000 # in Kelvin
 npt_task_configuration['pressure'] = 0
 npt_task_configuration['time_step'] = 0.001 # in picoseconds
-npt_task_configuration['time_total'] = 0.001 * 10000
+npt_task_configuration['time_total'] = 0.001 * 1000
 npt_task_configuration['supercell'] = [10,10,10]
 
 import inspect
@@ -103,4 +101,4 @@ if __name__ == "__main__":
             parameters = MgO_LewisCatlow['parameters'])
     o.on_init(o.task_configuration)
     o.on_config(o.task_configuration)
-
+    o.on_ready(o.task_configuration)

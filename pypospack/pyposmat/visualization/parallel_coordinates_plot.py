@@ -144,7 +144,8 @@ class PyposmatParallelCoordinatesPlot(PyposmatAbstractPlot):
             raise ValueError('unknown normalize_type:{}'.format(normalize_type))
 
         x = range(len(normalized_error_names))
-         
+
+        self.reference_handles = []
         for i,row in self.data.df.iterrows():
             if labels is None:
                 label = row['sim_id']
@@ -156,7 +157,7 @@ class PyposmatParallelCoordinatesPlot(PyposmatAbstractPlot):
             else:
                 color = colors[i]
 
-            self.ax.plot(
+            self.reference_handles += self.ax.plot(
                     x,
                     row[names],
                     color=color,
@@ -164,18 +165,51 @@ class PyposmatParallelCoordinatesPlot(PyposmatAbstractPlot):
                     linewidth=linewidth,
                     alpha=alpha)
 
-    def set_legend(self,handles,location):
-        plt.legend(handles=handles,loc=location)
+    def set_legend(self,handles=None,location=None):
+        if handles is None:
+            print(type(self.legend_patches))
+            print(self.legend_patches)
+            print(type(self.reference_handles))
+            print(self.reference_handles)
+            handles_ = self.legend_patches + self.reference_handles
+
+        if location is None:
+            location_ = 'upper right'
+
+        plt.legend(handles=handles_,loc=location)
 
     def set_xlabel(self,label,ax=None):
         if ax is None:
-            ax = self.ax
-        ax.set_xlabel(label)
+            ax_ = self.ax
+        ax_.set_xlabel(label)
     
-    def set_ylabel(self,label):
+    def set_ylabel(self,label,ax=None):
         if ax is None:
-            ax = self.ax
-        ax.set_xlabel(label)
+            ax_ = self.ax
+        ax_.set_ylabel(label)
+
+    def set_xticks(self,config,names,ax=None):
+        if isinstance(config,PyposmatConfigurationFile):
+            config_ = config
+        elif isinstance(config,str):
+            config_ = PyposmatConfigurationFile()
+            config_.read(config)
+        else:
+            raise TypeError()
+
+        if names == 'qoi_names':
+            names_ = config_.qoi_names
+        elif isinstance(names,list):
+            names_ = names
+        else:
+            raise TypeError()
+
+        if ax is None:
+            ax_ = self.ax
+        latex_labels = [config_.latex_labels[k]['label'] for k in names_]
+        print(latex_labels)
+        ax_.set_xticks(range(len(latex_labels)))
+        ax_.set_xticklabels(latex_labels)
 
     def set_xlimits(self,x_lim_min,x_lim_max,ax=None):
         if ax is None:
