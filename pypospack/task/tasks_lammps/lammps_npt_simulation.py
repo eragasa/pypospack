@@ -285,7 +285,8 @@ class LammpsNptSimulation(LammpsSimulation):
                 drag=_drag),
             "fix npt1out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice1.out",
             "run {n_time_steps}".format(n_time_steps=_n_time_steps),
-            "# holding temperature here",
+            "unfix npt1",
+            "unfix npt1out",
             "# fix for Nose-Hoover style thermostat ----------------------------------------",
             "fix npt2 all npt temp {temp0} {temp1} {tempdamp} aniso 0.0 0.0 {pressdamp} drag {drag} couple xyz".format(
                 temp0=_temp1,temp1=_temp1,tempdamp=_tempdamp,
@@ -294,8 +295,7 @@ class LammpsNptSimulation(LammpsSimulation):
             "fix npt2out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice2.out",
             "compute rdf2 all rdf 50",
             "fix rdf2out all ave/time 100 1 100 c_rdf2[*] file rdf2.out mode vector",
-
-            "run {n_time_steps}".format(n_time_steps=_n_time_steps),
+            "run {n_time_steps}\n".format(n_time_steps=_n_time_steps)
         ])
 
         return str_out

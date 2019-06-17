@@ -1,0 +1,285 @@
+LAMMPS (12 Dec 2018)
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /Users/eugeneragasa/repos/pypospack/dev/tasks/lammps/LammpsNptSimulation/Si_dia_unit.npt_T1000_P0/lammps.structure
+  triclinic box = (0 0 0) to (5.43 5.43 5.43) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  8 atoms
+replicate 10 10 10
+  triclinic box = (0 0 0) to (54.3 54.3 54.3) with tilt (0 0 0)
+  1 by 1 by 1 MPI processor grid
+  8000 atoms
+  Time spent = 0.000913858 secs
+change_box all x scale 1 y scale 1 z scale 1 remap
+  triclinic box = (0 0 0) to (54.3 54.3 54.3) with tilt (0 0 0)
+  triclinic box = (0 0 0) to (54.3 54.3 54.3) with tilt (0 0 0)
+  triclinic box = (0 0 0) to (54.3 54.3 54.3) with tilt (0 0 0)
+# ---- define interatomic potential
+include potential.mod
+mass 1 28.086
+
+group Si type 1
+8000 atoms in group Si
+
+pair_style sw
+pair_coeff * * Si.parameters Si
+
+
+neighbor 1.0 bin
+neigh_modify every 1 delay 0 check yes
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax iso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 4.77118
+  ghost atom cutoff = 4.77118
+  binsize = 2.38559, bins = 23 23 23
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 5.26 | 5.26 | 5.26 Mbytes
+Step PotEng Lx Ly Lz Xy Xz Yz Press Pxx Pyy Pzz Pxy Pxz Pyz c_eatoms 
+       0   -34697.586         54.3         54.3         54.3            0            0            0    532.64171    532.64171    532.64171    532.64171 4.4249959e-10 4.4274437e-10 4.4239356e-10   -34697.586 
+       3     -34697.6    54.309498    54.309498    54.309498            0            0            0 -1.0569038e-05 -1.0569038e-05 -1.0569038e-05 -1.0569039e-05 -2.0573232e-10 -1.9812815e-10 -1.9812815e-10     -34697.6 
+Loop time of 0.039964 on 1 procs for 3 steps with 8000 atoms
+
+98.3% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = energy tolerance
+  Energy initial, next-to-last, final = 
+        -34697.5860368     -34697.5999993     -34697.5999993
+  Force two-norm initial, final = 159.678 3.16955e-06
+  Force max component initial, final = 159.678 3.16955e-06
+  Final line search alpha, max atom move = 0.910682 2.88645e-06
+  Iterations, force evaluations = 3 6
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.037034   | 0.037034   | 0.037034   |   0.0 | 92.67
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00020885 | 0.00020885 | 0.00020885 |   0.0 |  0.52
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 0          | 0          | 0          |   0.0 |  0.00
+Other   |            | 0.002721   |            |       |  6.81
+
+Nlocal:    8000 ave 8000 max 8000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    4995 ave 4995 max 4995 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  224000 ave 224000 max 224000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 224000
+Ave neighs/atom = 28
+Neighbor list builds = 0
+Dangerous builds = 0
+unfix 1
+#------------------------------------------------------------------------------
+# RUN THERMOSTAT
+# running using an NPT Nose-Hoover style thermostat
+#------------------------------------------------------------------------------
+variable tempdamp equal 0.1
+variable pressdamp equal 1.0
+
+timestep 0.001
+# set thermo -----------------------------------------------------------------
+thermo 100
+thermo_style custom step temp pe ke etotal press lx ly lz press pxx pyy pzz pxy pxz pyz vol
+thermo_modify flush yes
+# set averaging ---------------------------------------------------------------
+variable boxx equal lx
+variable boxy equal ly
+variable boxz equal lz
+variable boxp equal press
+variable boxt equal temp
+# calculate averages every 10000 steps
+# set initial velocities ------------------------------------------------------
+reset_timestep 0
+velocity all create 1000 6608406 mom yes dist gaussian loop all
+# ramping the temperature
+# fix for Nose-Hoover style thermostat ----------------------------------------
+fix npt1 all npt temp 1000 1000 0.1 aniso 0.0 0.0 1.0 drag 1.0 couple xyz
+fix npt1out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice1.out
+run 1000
+Per MPI rank memory allocation (min/avg/max) = 4.26 | 4.26 | 4.26 Mbytes
+Step Temp PotEng KinEng TotEng Press Lx Ly Lz Press Pxx Pyy Pzz Pxy Pxz Pyz Volume 
+       0         1000     -34697.6    1033.9519   -33663.648    6894.3301    54.309498    54.309498    54.309498    6894.3301    7077.1223     6776.677     6829.191    52.159515     60.77778   -123.89437    160187.03 
+     100    543.01981    -34172.98    561.45636   -33611.524   -1348.5165    54.452433    54.452433    54.452433   -1348.5165   -1240.6133   -1451.4852   -1353.4509    517.49196    94.892129     309.4689    161455.13 
+     200    456.87549   -34016.615    472.38729   -33544.227    -1733.693    54.465416    54.465416    54.465416    -1733.693   -1707.7626   -1692.8643   -1800.4521    132.59253   -119.45743    1.9949346    161570.65 
+     300    563.68419    -34057.61    582.82234   -33474.788    3258.8668    54.373526    54.373526    54.373526    3258.8668    3373.1812    3328.1057    3075.3134     -646.142   -92.687311   -170.43324    160754.26 
+     400    639.93275   -34066.786    661.65968   -33405.127   -896.70618      54.4561      54.4561      54.4561   -896.70618   -651.81756   -896.34235   -1141.9586    21.921036    262.16786    244.55989    161487.75 
+     500    650.34714   -34007.405    672.42766   -33334.978   -1451.6947    54.468668    54.468668    54.468668   -1451.6947    -1378.232    -1685.725    -1291.127    759.24759    195.69016    23.969507     161599.6 
+     600    695.66877   -33984.931    719.28804   -33265.643    1823.2721    54.416585    54.416585    54.416585    1823.2721    1932.1564    1654.5225    1883.1373   -51.744663   -309.16184    -189.9009    161136.48 
+     700    731.67562   -33954.297     756.5174    -33197.78   -600.51502    54.465627    54.465627    54.465627   -600.51502   -662.35138   -591.23567   -547.95801   -1003.1473    -219.8105   -137.40799    161572.53 
+     800    751.39249   -33908.629    776.90369   -33131.725   -904.55453    54.478615    54.478615    54.478615   -904.55453   -854.12054    -1017.357   -842.18601     42.33766     305.4882    9.8536919    161688.14 
+     900    754.70475   -33848.348    780.32841    -33068.02    1005.9976    54.445866    54.445866    54.445866    1005.9976    974.91172    864.75658    1178.3244    889.18312    241.86689    433.64853    161396.73 
+    1000    795.83404   -33830.259    822.85411   -33007.405   -159.40071     54.47812     54.47812     54.47812   -159.40071   -346.46781    -82.44855   -49.285772     -183.402   -630.02379    -9.267588    161683.74 
+Loop time of 14.196 on 1 procs for 1000 steps with 8000 atoms
+
+Performance: 6.086 ns/day, 3.943 hours/ns, 70.442 timesteps/s
+99.0% CPU use with 1 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 13.434     | 13.434     | 13.434     |   0.0 | 94.63
+Neigh   | 0.33329    | 0.33329    | 0.33329    |   0.0 |  2.35
+Comm    | 0.04407    | 0.04407    | 0.04407    |   0.0 |  0.31
+Output  | 0.001018   | 0.001018   | 0.001018   |   0.0 |  0.01
+Modify  | 0.33899    | 0.33899    | 0.33899    |   0.0 |  2.39
+Other   |            | 0.04431    |            |       |  0.31
+
+Nlocal:    8000 ave 8000 max 8000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    4995 ave 4995 max 4995 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    0 ave 0 max 0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  219874 ave 219874 max 219874 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 219874
+Ave neighs/atom = 27.4842
+Neighbor list builds = 34
+Dangerous builds = 0
+# holding temperature here
+# fix for Nose-Hoover style thermostat ----------------------------------------
+fix npt2 all npt temp 1000 1000 0.1 aniso 0.0 0.0 1.0 drag 1.0 couple xyz
+fix npt2out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice2.out
+compute rdf2 all rdf 50
+fix rdf2out all ave/time 100 1 100 c_rdf2[*] file rdf2.out mode vector
+run 1000# ---- define output variables ----
+WARNING: One or more atoms are time integrated more than once (../modify.cpp:283)
+Neighbor list info ...
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 4.77118
+  ghost atom cutoff = 4.77118
+  binsize = 2.38559, bins = 23 23 23
+  2 neighbor lists, perpetual/occasional/extra = 1 1 0
+  (1) pair sw, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+  (2) compute rdf, occasional, half/full from (1)
+      attributes: half, newton on
+      pair build: halffull/newton
+      stencil: none
+      bin: none
+Per MPI rank memory allocation (min/avg/max) = 5.401 | 5.401 | 5.401 Mbytes
+Step Temp PotEng KinEng TotEng Press Lx Ly Lz Press Pxx Pyy Pzz Pxy Pxz Pyz Volume 
+    1000    795.83404   -33830.259    822.85411   -33007.405   -159.40071     54.47812     54.47812     54.47812   -159.40071   -346.46781    -82.44855   -49.285772     -183.402   -630.02379    -9.267588    161683.74 
+    1100     1121.482   -33490.829    1159.5584   -32331.271     936.1767    54.543467    54.543467    54.543467     936.1767    1085.5586    962.10845    760.86302    566.89271    717.57149    456.60448    162266.26 
+    1200    1441.6476   -33107.433    1490.5943   -31616.839   -831.70946    54.673903    54.673903    54.673903   -831.70946   -642.46025   -978.35998   -874.30814   -806.12698   -354.47821   -117.84686    163433.18 
+    1300    1791.0715   -32692.324    1851.8818   -30840.443    1026.9113    54.768118    54.768118    54.768118    1026.9113    1201.3667    1178.4194     700.9479    1230.8285    615.00772    534.65281    164279.53 
+    1400    2188.7667   -32312.221    2263.0795   -30049.141   -348.53348    54.915573    54.915573    54.915573   -348.53348   -327.19848   -257.03765   -461.36432   -598.88015     1685.854   -307.69322       165610 
+    1500    2503.7815   -31893.248    2588.7896   -29304.458    541.26966    55.009453    55.009453    55.009453    541.26966    973.95766     135.5274    514.32393    814.06207   -503.97669   -1436.6931     166460.8 
+    1600     2769.166   -31529.339    2863.1845   -28666.155    -565.7236    55.122696    55.122696    55.122696    -565.7236   -1269.9179    65.603281   -492.85619    409.14656   -893.23703    1283.7619    167490.95 
+    1700     2968.882   -31235.781    3069.6812     -28166.1    586.77278    55.171609    55.171609    55.171609    586.77278    914.52824    1118.0022   -272.21207   -933.54884     858.5698     3201.798    167937.22 
+    1800    3134.4706   -31045.131    3240.8919    -27804.24    -933.1956    55.232395    55.232395    55.232395    -933.1956   -1046.5102   -688.85764    -1064.219   -1958.2326    45.440041   -620.80612    168492.91 
+    1900    3233.4086    -30907.42     3343.189   -27564.231    371.46962    55.248297    55.248297    55.248297    371.46962    403.08455     1414.767   -703.44269    1187.5132   -1091.3894   -52.434255    168638.48 
+    2000    3233.6022    -30763.48    3343.3891   -27420.091   -1487.7161    55.275952    55.275952    55.275952   -1487.7161   -2596.5715   -1378.7033   -487.87361    1509.8798    618.59018   -223.11367    168891.85 
+Loop time of 15.8813 on 1 procs for 1000 steps with 8000 atoms
+
+Performance: 5.440 ns/day, 4.411 hours/ns, 62.967 timesteps/s
+99.6% CPU use with 1 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 13.769     | 13.769     | 13.769     |   0.0 | 86.70
+Neigh   | 1.3488     | 1.3488     | 1.3488     |   0.0 |  8.49
+Comm    | 0.063588   | 0.063588   | 0.063588   |   0.0 |  0.40
+Output  | 0.0018337  | 0.0018337  | 0.0018337  |   0.0 |  0.01
+Modify  | 0.64911    | 0.64911    | 0.64911    |   0.0 |  4.09
+Other   |            | 0.04914    |            |       |  0.31
+
+Nlocal:    8000 ave 8000 max 8000 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    4997 ave 4997 max 4997 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    100782 ave 100782 max 100782 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  201564 ave 201564 max 201564 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 201564
+Ave neighs/atom = 25.1955
+Neighbor list builds = 127
+Dangerous builds = 0
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+pypospack:output_section:begin
+print "num_atoms = ${natoms}"
+num_atoms = 8000
+print "a11 = ${a11}"
+a11 = 55.2759524174158
+print "a22 = ${a22}"
+a22 = 55.2759524174158
+print "a33 = ${a33}"
+a33 = 55.2759524174158
+print "a12 = ${tilt_xy}"
+a12 = 0
+print "a13 = ${tilt_xz}"
+a13 = 0
+print "a23 = ${tilt_yz}"
+a23 = 0
+print "tot_press = ${tot_press}"
+tot_press = -1487.71611540196
+print "pxx = ${press_xx}"
+pxx = -2596.57147436773
+print "pyy = ${press_yy}"
+pyy = -1378.70326682956
+print "pzz = ${press_zz}"
+pzz = -487.873605008539
+print "pxy = ${press_xy}"
+pxy = 1509.87984455698
+print "pxz = ${press_xz}"
+pxz = 618.590183298978
+print "pyz = ${press_yz}"
+pyz = -223.113671787452
+print "pypospack:output_section:done"
+pypospack:output_section:done
+print "pypospack:lammps_sim:done"
+pypospack:lammps_sim:done
+Total wall time: 0:00:30

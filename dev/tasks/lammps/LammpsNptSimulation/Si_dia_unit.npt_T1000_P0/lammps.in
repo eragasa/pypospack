@@ -1,0 +1,92 @@
+# ---- initialize simulations
+clear
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+atom_modify map array
+# ---- create atoms
+read_data /Users/eugeneragasa/repos/pypospack/dev/tasks/lammps/LammpsNptSimulation/Si_dia_unit.npt_T1000_P0/lammps.structure
+replicate 10 10 10
+change_box all x scale 1 y scale 1 z scale 1 remap
+# ---- define interatomic potential
+include potential.mod
+# ---- define settings
+compute eng all pe/atom
+compute eatoms all reduce sum c_eng
+# ---- run minimization
+reset_timestep 0
+fix 1 all box/relax iso 0.0 vmax 0.001
+thermo 10
+thermo_style custom step pe lx ly lz xy xz yz press pxx pyy pzz pxy pxz pyz c_eatoms
+min_style cg
+minimize 1e-25 1e-25 5000 10000
+unfix 1
+#------------------------------------------------------------------------------
+# RUN THERMOSTAT
+# running using an NPT Nose-Hoover style thermostat
+#------------------------------------------------------------------------------
+variable tempdamp equal 0.1
+variable pressdamp equal 1.0
+
+timestep 0.001
+# set thermo -----------------------------------------------------------------
+thermo 100
+thermo_style custom step temp pe ke etotal press lx ly lz press pxx pyy pzz pxy pxz pyz vol
+thermo_modify flush yes
+# set averaging ---------------------------------------------------------------
+variable boxx equal lx
+variable boxy equal ly
+variable boxz equal lz
+variable boxp equal press
+variable boxt equal temp
+# calculate averages every 10000 steps
+# set initial velocities ------------------------------------------------------
+reset_timestep 0
+velocity all create 1000 6608406 mom yes dist gaussian loop all
+# ramping the temperature
+# fix for Nose-Hoover style thermostat ----------------------------------------
+fix npt1 all npt temp 1000 1000 0.1 aniso 0.0 0.0 1.0 drag 1.0 couple xyz
+fix npt1out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice1.out
+run 1000
+# holding temperature here
+# fix for Nose-Hoover style thermostat ----------------------------------------
+fix npt2 all npt temp 1000 1000 0.1 aniso 0.0 0.0 1.0 drag 1.0 couple xyz
+fix npt2out all ave/time 1 500 500 v_boxx v_boxy v_boxz v_boxp v_boxt file lattice2.out
+compute rdf2 all rdf 50
+fix rdf2out all ave/time 100 1 100 c_rdf2[*] file rdf2.out mode vector
+run 1000# ---- define output variables ----
+variable natoms equal "count(all)"
+variable tot_energy equal "c_eatoms"
+variable a11 equal "xhi-xlo"
+variable a22 equal "yhi-ylo"
+variable a33 equal "zhi-zlo"
+variable tilt_xy equal "xy"
+variable tilt_xz equal "xz"
+variable tilt_yz equal "yz"
+variable tot_press equal "press"
+variable press_xx equal "pxx"
+variable press_yy equal "pyy"
+variable press_zz equal "pzz"
+variable press_xy equal "pxy"
+variable press_xz equal "pxz"
+variable press_yz equal "pyz"
+
+# ---- output ----
+print "pypospack:output_section:begin"
+print "num_atoms = ${natoms}"
+print "a11 = ${a11}"
+print "a22 = ${a22}"
+print "a33 = ${a33}"
+print "a12 = ${tilt_xy}"
+print "a13 = ${tilt_xz}"
+print "a23 = ${tilt_yz}"
+print "tot_press = ${tot_press}"
+print "pxx = ${press_xx}"
+print "pyy = ${press_yy}"
+print "pzz = ${press_zz}"
+print "pxy = ${press_xy}"
+print "pxz = ${press_xz}"
+print "pyz = ${press_yz}"
+print "pypospack:output_section:done"
+print "pypospack:lammps_sim:done"

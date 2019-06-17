@@ -13,6 +13,22 @@ class TsneManifold(Manifold):
    
     manifold_type = 'TSNE'
 
+    DEFAULT_MANIFOLD_CONFIGURATION = OrderedDict(
+            [
+                ('n_components', 2),
+                ('init',' pca'),
+                ('random_state', 0),
+                ('perplexity', 50),
+                ('learning_rate', 10),
+                ('n_iter', 5000),
+                ('n_iter_without_progress', 500),
+                ('min_grad_norm', 1e-8),
+                ('metric', 'euclidean'),
+                ('init', 'pca'),
+                ('verbose', 2)
+            ]
+        )
+
     def __init__(self,
                  pyposmat_configuration,
                  pyposmat_data,
@@ -25,6 +41,11 @@ class TsneManifold(Manifold):
                 )
 
     def initialize_manifold_configuration(self, configuration=None):
+        """
+
+        Overrides the default behavior of the abstract Manifold class
+
+        """
         DEFAULT_TSNE_MANIFOLD_CONFIGURATION = OrderedDict()
         DEFAULT_TSNE_MANIFOLD_CONFIGURATION['n_components'] = 2
         DEFAULT_TSNE_MANIFOLD_CONFIGURATION['init'] = 'pca'
