@@ -8,27 +8,32 @@ class PairPotential(Potential):
                 potential_type=potential_type,
                 is_charge=is_charge)
         self.pair_evaluations = None
-        self.pair_potential_parameters = None
-        self.symbol_pairs = None
+        #self.pair_potential_parameters = None
+        #self.symbol_pairs = None
+
+    def _init_parameter_names(self):
+        return self.initialize_parameter_names(self,self.symbols)
+
+    def _init_parameters(self):
+        return self.initialize_parameters()
 
     def initialize_parameter_names(self,symbols=None):
-        assert symbol_pairs is None or isinstance(symbol_pairs,list)
-
         if symbols is None:
             symbols = self.symbols
-            
+
         self.symbol_pairs = list(determine_symbol_pairs(symbols))
-        
+
         # initialize attribute to populate
         self.parameter_names = []
-        for s in self.symbols:
-            fmt = self.PYPOSPACK_CHRG_FORMAT
-            self.parameter_names.append(fmt.format(s=s))
+        if self.is_charge:
+            for s in self.symbols:
+                fmt = self.PYPOSPACK_CHRG_FORMAT
+                self.parameter_names.append(fmt.format(s=s))
 
         for sp in self.symbol_pairs:
-            for p in self.pair_potential_paramters:
+            for p in self.pair_potential_parameters:
                 fmt = self.PYPOSPACK_PAIR_FORMAT
-                self.parameter_names.apppend(fmt.format(s1=sp[0],s2=sp[1],p=p))
+                self.parameter_names.append(fmt.format(s1=sp[0],s2=sp[1],p=p))
 
         return self.parameter_names
 

@@ -76,6 +76,9 @@ def gmm_analysis(
     assert os.path.isfile(config_fn)
     assert os.path.isfile(data_fn)
 
+    if not os.path.isdir(output_directory):
+        os.mkdir(output_directory)
+
     o_config = PyposmatConfigurationFile()
     o_config.read(filename=config_fn)
 
@@ -103,7 +106,7 @@ def gmm_analysis(
     #plot the criteria
     print('bic_n_components:{}'.format(bic_n_components))
     print('aic_n_components:{}'.format(aic_n_components))
-    plot_fn=os.path.join(output_directory,'aic_bic_plot.eps')
+    plot_fn=os.path.join(output_directory,'aic_bic_plot.jpg')
     plot_gmm_aic_bic(
             filename=plot_fn,
             n_components=n_components,
@@ -112,6 +115,8 @@ def gmm_analysis(
             aic_n_components=aic_n_components,
             bic_n_components=bic_n_components)
 
+    filename = os.path.join('gmm_analysis','gmm_analysis.jpg')
+    plot_gmm(models[bic_n_components],data,filename=filename)
 def plot_gmm_aic_bic(
         filename,
         n_components,
@@ -196,29 +201,8 @@ if __name__ == "__main__":
         output_directory='gmm_analysis',
         max_components=20)
     exit()
-    n_components = np.arange(1,max_components)
-    models = [GaussianMixture(n_components=n,covariance_type='full',random_state=0).fit(data)
-            for n in n_components]
 
-    bic, idx = min((val, idx) for (idx, val) in enumerate([m.bic(data) for m in models]))
-    bic_n_components = n_components[idx]
-
-    aic, idx = min((val, idx) for (idx, val) in enumerate([m.aic(data) for m in models]))
-    aic_n_components = n_components[idx]
-
-    print("bic:{:.4f} @ {} components".format(bic,bic_n_components))
-    print("aic:{:.4f} @ {} components".format(aic,aic_n_components))
-    plt.close()
-    fig, ax = plt.subplots(1,1)
-    ax.plot(n_components, [m.bic(data) for m in models], label='BIC')
-    ax.plot(n_components, [m.aic(data) for m in models], label='AIC')
-    ax.legend(loc='best')
-    ax.set_xlabel('n_components')
-    fig.savefig(os.path.join('gmm_analysis','aic_bic_plt.eps'),dpi=1200)
-
-    plt.close()
-
-    filename = os.path.join('gmm_analysis','gmm_analysis.eps')
+    filename = os.path.join('gmm_analysis','gmm_analysis.jpg')
     plot_gmm(models[bic_n_components],data,filename=filename)
 
     from pypospack.pyposmat.visualization import PyposmatParallelCoordinatesPlot

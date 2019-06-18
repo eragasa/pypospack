@@ -31,15 +31,15 @@ def plot_ellipse(position,covariance,ax=None,**kwargs):
         width, height = 2 * np.sqrt(covariance)
 
     # draw ellipse
-
     for nsig in range(1,4):
         ax.add_patch(Ellipse(position,nsig*width,nsig*height,angle,**kwargs))
 
-def plot_gmm(gmm,X,label=True,ax=None,dpi=1200,filename=None):
+def plot_gmm(gmm,X,labels=None,ax=None,dpi=1200,filename=None,xlims=None,ylims=None):
+    cluster_id = gmm.fit(X).predict(X)
+    plt.close('all')
+
     if ax is None:
         fig, ax = plt.subplots(1,1)
-
-    cluster_id = gmm.fit(X).predict(X)
 
     if isinstance(X,np.ndarray):
         x = X[:,0]
@@ -48,21 +48,34 @@ def plot_gmm(gmm,X,label=True,ax=None,dpi=1200,filename=None):
         x = X[X.columns[0]]
         y = X[X.columns[1]]
 
-    if label:
-        ax.scatter(x,y,c=cluster_id,s=1,cmap='viridis',zorder=2)
-    else:
-        ax.scatter(x,y,s=40,zorder=2)
+    ax.scatter(x,y,c=cluster_id,s=1,cmap='viridis',zorder=2,label=[k+1 for k in cluster_id])
 
     w_factor = 0.2 / gmm.weights_.max()
     for pos, covar, w in zip(gmm.means_,gmm.covariances_,gmm.weights_):
+        print(pos)
+        print(covar)
+        print(w)
         plot_ellipse(pos,covar,alpha=w*w_factor,ax=ax)
 
-    ax.set_xlabel(X.columns[0])
-    ax.set_ylabel(X.columns[1])
-    
+    if labels is None:
+        ax.set_xlabel(X.columns[0])
+        ax.set_ylabel(X.columns[1])
+    else:
+        ax.set_xlabel(labels[0])
+        ax.set_ylabel(labels[1])
+
+    if xlims is not None:
+        ax.set_xlim(xlims)
+    if ylims is not None:
+        ax.set_ylim(ylims)
+
+    ax.legend()
+    #ax.set(adjustable='box', aspect='equal')
     if filename is None:
         plt.show()
     else:
+        fig.set_size_inches(5,5)
+        fig.tight_layout()
         fig.savefig(filename,dpi=dpi)
 
 def gmm_analysis(
@@ -103,7 +116,7 @@ def gmm_analysis(
     #plot the criteria
     print('bic_n_components:{}'.format(bic_n_components))
     print('aic_n_components:{}'.format(aic_n_components))
-    plot_fn=os.path.join(output_directory,'aic_bic_plot.eps')
+    plot_fn=os.path.join(output_directory,'aic_bic_plot.png')
     plot_gmm_aic_bic(
             filename=plot_fn,
             n_components=n_components,
@@ -111,7 +124,7 @@ def gmm_analysis(
             bic_criteria=bic_criteria,
             aic_n_components=aic_n_components,
             bic_n_components=bic_n_components)
-    
+
 def plot_gmm_aic_bic(
         filename,
         n_components,
@@ -123,7 +136,7 @@ def plot_gmm_aic_bic(
         bic_color='red'):
 
     fig,ax = plt.subplots(1,1)
-    
+
     plot_dpi=1200
     loc_legend = 'upper right'
 
@@ -151,7 +164,7 @@ def plot_gmm_aic_bic(
     fig.savefig(filename,dpi=plot_dpi)
     plt.close('all')
 if __name__ == "__main__":
-    
+
     # pypospack root directory
     pypospack_root_dir = pypospack.utils.get_pypospack_root_directory()
 
@@ -184,43 +197,52 @@ if __name__ == "__main__":
     print(o_data.df.columns)
     o_data.df['score'] = o_data.df[o_config.normalized_error_names].abs().sum(axis=1)
 
-    name_1 = o_config.qoi_names[0]
-    name_2 = o_config.qoi_names[1]
-    data = o_data.df[[name_1,name_2]] 
-    max_components = 21
-    
-    gmm_analysis(
-        config_fn=config_fn,
-        data_fn=data_fn,
-        names=[name_1,name_2],
-        output_directory='gmm_analysis',
-        max_components=20)
+    # do AIC and BIC analysis
+    if True:
+        name_1 = o_config.qoi_names[0]
+        name_2 = o_config.qoi_names[1]
+        data = o_data.df[[name_1,name_2]]
+        max_components = 21
+        gmm_analysis(
+            config_fn=config_fn,
+            data_fn=data_fn,
+            names=[name_1,name_2],
+            output_directory='gmm_analysis',
+            max_components=20)
 
+    # make plot for 4 components
+    if True:
+        filename = os.path.join('gmm_analysis','gmm_analysis.png')
+        name_1 = o_config.qoi_names[0]
+        name_2 = o_config.qoi_names[1]
+        data = o_data.df[[name_1,name_2]]
+        n_components = 4
+        gmm = GaussianMixture(n_components=n_components,
+                              covariance_type='full',
+                              random_state=0).fit(data)
+        plt.close()
+        plot_gmm(gmm,
+                 data,
+                 labels = [
+                     r'{} [{}]'.format(
+                         o_config.latex_labels[name_1]['label'],
+                         o_config.latex_labels[name_1]['units']),
+                     r'{} [{}]'.format(
+                         o_config.latex_labels[name_2]['label'],
+                         o_config.latex_labels[name_2]['units'])],
+                 filename=filename)
     exit()
-    n_components = np.arange(1,max_components)
-    models = [GaussianMixture(n_components=n,covariance_type='full',random_state=0).fit(data) 
-            for n in n_components]
 
-    bic, idx = min((val, idx) for (idx, val) in enumerate([m.bic(data) for m in models]))
-    bic_n_components = n_components[idx]
 
-    aic, idx = min((val, idx) for (idx, val) in enumerate([m.aic(data) for m in models]))
-    aic_n_components = n_components[idx]
-
-    print("bic:{:.4f} @ {} components".format(bic,bic_n_components))
-    print("aic:{:.4f} @ {} components".format(aic,aic_n_components))
     plt.close()
     fig, ax = plt.subplots(1,1)
     ax.plot(n_components, [m.bic(data) for m in models], label='BIC')
     ax.plot(n_components, [m.aic(data) for m in models], label='AIC')
     ax.legend(loc='best')
     ax.set_xlabel('n_components')
-    fig.savefig(os.path.join('gmm_analysis','aic_bic_plt.eps'),dpi=1200)
+    fig.savefig(os.path.join('gmm_analysis','aic_bic_pltpngs'),dpi=1200)
 
-    plt.close()
 
-    filename = os.path.join('gmm_analysis','gmm_analysis.eps')
-    plot_gmm(models[bic_n_components],data,filename=filename)
 
     from pypospack.pyposmat.visualization import PyposmatParallelCoordinatesPlot
 
@@ -265,5 +287,5 @@ if __name__ == "__main__":
             data=ref_data_fn,
             linewidth=5)
 
-    o_plot.save_figure(filename=os.path.join('gmm_analysis','gmm_parallel_plot.eps')) 
+    o_plot.save_figure(filename=os.path.join('gmm_analysis','gmm_parallel_plot.eps'))
     exit()

@@ -24,7 +24,7 @@ def plot_corr(df,plot_fn,size=10):
     ax.matshow(corr)
     plt.xticks(range(len(corr.columns)), corr.columns)
     plt.yticks(range(len(corr.columns)), corr.columns)
-   
+
     plt.tight_layout()
     fig.savefig(plot_fn)
     plt.close(fig)
@@ -62,6 +62,7 @@ def covariance_analysis(config,data_directory,output_directory):
         for m in range(len(o_config.free_parameter_names)):
             for n in range(len(o_config.free_parameter_names)):
                 ax[0,0].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
+        ax[0,0].set_ylabel("unfiltered")
         plt.sca(ax[0,0])
         plt.xticks(range(len(o_config.free_parameter_names)),xtick_labels)
         plt.yticks(range(len(o_config.free_parameter_names)),ytick_labels)
@@ -85,6 +86,8 @@ def covariance_analysis(config,data_directory,output_directory):
             for n in range(len(o_config.free_parameter_names)):
                 ax[1,0].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
         plt.sca(ax[1,0])
+        ax[1,0].set_ylabel("filtered")
+        ax[1,0].set_xlabel("parameters")
         plt.xticks(range(len(o_config.free_parameter_names)),xtick_labels)
         plt.yticks(range(len(o_config.free_parameter_names)),ytick_labels)
 
@@ -95,6 +98,8 @@ def covariance_analysis(config,data_directory,output_directory):
         for m in range(len(o_config.qoi_names)):
             for n in range(len(o_config.qoi_names)):
                 ax[1,1].text(m,n,'{:.2f}'.format(corr[m,n]),color='w',ha='center')
+        ax[1,0].set_xlabel("QOI")
+
         plt.sca(ax[1,1])
         plt.xticks(range(len(o_config.qoi_names)),xtick_labels)
         plt.yticks(range(len(o_config.qoi_names)),ytick_labels)
@@ -111,12 +116,12 @@ if __name__ == "__main__":
     data_directory = os.path.join(
             pypospack.utils.get_pypospack_root_directory(),
             'data','Si__sw__data','pareto_optimization_unconstrained')
-    output_directory = 'covariance_matrix_plot' 
+    output_directory = 'covariance_matrix_plot'
     config_fn = os.path.join(data_directory,'pyposmat.config.in')
     print("configuration file path:{}".format(config_fn))
     o_config = PyposmatConfigurationFile()
     o_config.read(filename=config_fn)
-    
+
     covariance_analysis(config=o_config,
                         data_directory=data_directory,
                         output_directory=output_directory)

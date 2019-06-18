@@ -1,5 +1,14 @@
 import time
-import fcntl
+
+try:
+    import fcntl
+except ModuleNotFoundError as e:
+    import platform
+    if platform.system() == 'Windows':
+        print("fnctl cannot be loaded on a windows platform")
+        pass
+    else:
+        raise
 import errno
 
 
@@ -34,6 +43,6 @@ class PyposmatLogFile(object):
 
             # write message
             f.write(self.msg_format.format(_s))
-            
+
             # release the lock
             fcntl.flock(f, fcntl.LOCK_UN)

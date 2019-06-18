@@ -45,6 +45,8 @@ class LennardJonesPotential(PairPotential):
                 symbols,
                 potential_type='lj',
                 is_charge=False)
+        self.initialize_parameter_names()
+        self.initialize_parameters()
 
 
     # this method overrides the parents stub
@@ -52,6 +54,7 @@ class LennardJonesPotential(PairPotential):
         self.symbol_pairs = list(
                 determine_symbol_pairs(self.symbols)
         )
+        print(self.symbol_pairs)
         self.parameter_names = []
         for s in self.symbol_pairs:
             for p in self.global_potential_parameters:
@@ -88,7 +91,7 @@ class LennardJonesPotential(PairPotential):
         assert isinstance(parameters,OrderedDict)
         assert type(r_cut) in [int,float,type(None)]
 
-        # <----------------------------copy a local of the parameters 
+        # <----------------------------copy a local of the parameters
         for k in self.parameters:
             try:
                 self.parameters[k] = parameters[k]
@@ -112,24 +115,24 @@ class LennardJonesPotential(PairPotential):
                     sigma = self.parameters['{}{}_sigma'.format(s[0],s[1])],
                     r_cut_pair = self.parameters['{}{}_r_cut_pair'.format(s[0],s[1])]
             )
-        
+
         return self.potential_evaluations
-    
+
     # same as parent class
     def lammps_potential_section_to_string(self):
         """ lammps potential section to string """
         raise NotImplementedError
-    
+
     # same as parent class
     def gulp_potential_section_to_string(self):
         """ lamps gulp potential section to string """
         raise NotImplementedError
-    
+
     # same as parent class
     def phonts_potential_section_to_string(self):
         """ phonts potential section to string """
-        raise NotImplementedError 
-    
+        raise NotImplementedError
+
     # same as parent class
     def write_lammps_potential_file(self):
         """ write lammps potential section to file """
@@ -139,4 +142,3 @@ class LennardJonesPotential(PairPotential):
     def write_gulp_potential_section(self):
         """ write gulp potential section """
         raise NotImplementedError
-
