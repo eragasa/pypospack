@@ -105,7 +105,7 @@ def gmm_analysis(
     print('aic_n_components:{}'.format(aic_n_components))
     if not os.path.exists(output_directory):
         os.mkdir(output_directory)
-    plot_fn=os.path.join(output_directory,'aic_bic_plot.eps')
+    plot_fn=os.path.join(output_directory,'aic_bic_plot.png')
     plot_gmm_aic_bic(
             filename=plot_fn,
             n_components=n_components,
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     o_data.create_normalized_errors(
             normalize_type='by_qoi_target',
            qoi_targets=o_config.qoi_targets)
-    
+
     o_data.df['score'] = o_data.df[o_config.normalized_error_names].abs().sum(axis=1)
 
     name_1 = o_config.qoi_names[0]
@@ -212,7 +212,7 @@ if __name__ == "__main__":
         names=o_config.qoi_names + o_config.free_parameter_names,
         output_directory = output_directory,
         max_components=100)
-    
+
 
     gmm = GaussianMixture(
             n_components=min(aic_n_components,bic_n_components),
@@ -257,5 +257,5 @@ if __name__ == "__main__":
             data=ref_data_fn,
             linewidth=5)
 
-    o_plot.save_figure(filename=os.path.join(output_directory,'gmm_parallel_plot.eps'))
+    o_plot.save_figure(filename=os.path.join(output_directory,'gmm_parallel_plot.png'))
     exit()

@@ -1,4 +1,4 @@
-import os
+    import os
 from collections import OrderedDict
 import pypospack.utils
 from pypospack.qoi import QoiDatabase
@@ -31,12 +31,12 @@ potential_formalism['symbols'] = ['Si']
 #-----------------------------------------------------------------------------
 # <---------------- INITIAL PARAMETER DEFINITION
 # units need to be in metal units
-# For uniform distributions, 
-#     a = is the low of the rnage, 
+# For uniform distributions,
+#     a = is the low of the rnage,
 #     b = is the high of the
 parameter_distribution = OrderedDict()
 parameter_distribution['SiSiSi_epsilon'] = ['uniform',{'a': 2.1, 'b':2.2}]
-parameter_distribution['SiSiSi_sigma'] = ['uniform',{'a': 1.0, 'b':3.0}] 
+parameter_distribution['SiSiSi_sigma'] = ['uniform',{'a': 1.0, 'b':3.0}]
 parameter_distribution['SiSiSi_a'] = ['uniform',{'a': 1.5, 'b':2.0}]
 parameter_distribution['SiSiSi_lambda'] = ['uniform',{'a': 20.0, 'b':32}]
 parameter_distribution['SiSiSi_gamma'] = ['uniform',{'a': 1.0, 'b':2.0}]
@@ -146,7 +146,7 @@ latex_labels['Si_dia.E_coh'] = OrderedDict()
 latex_labels['Si_dia.E_coh']['label'] = '$E_C$'
 latex_labels['Si_dia.E_coh']['units'] = 'eV/atom'
 latex_labels['Si_dia.a0'] =OrderedDict()
-latex_labels['Si_dia.a0']['label'] = '$a0$'
+latex_labels['Si_dia.a0']['label'] = '$a_0$'
 latex_labels['Si_dia.a0']['units'] = '\\A'
 latex_labels['Si_dia.c11'] = OrderedDict()
 latex_labels['Si_dia.c11']['label'] = r'$c_{11}$'
