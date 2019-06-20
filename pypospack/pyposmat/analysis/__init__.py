@@ -1,1 +1,1 @@
-from analysis import AbstractAnalysis 
+from pypospack.pyposmat.analysis.analysis import AbstractAnalysis 

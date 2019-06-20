@@ -4,7 +4,7 @@
 
 from abc import ABC, abstractmethod
 
-class AbstractAnalysis():
+class AbstractAnalysis(ABC):
     def __init__(self,
                  pyposmat_configuration,
                  pyposmat_data,

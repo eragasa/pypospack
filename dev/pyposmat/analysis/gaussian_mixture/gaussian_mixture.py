@@ -2,6 +2,7 @@
 
 # author: Eugene J. Ragasa <eragasa@ufl.edu>
 # License: MIT
+
 import os
 
 import numpy as np
@@ -16,6 +17,32 @@ import pypospack.utils
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.analysis import AbstractAnalysis
+
+class GmmClusterAnalysis(AbstractAnalysis):
+
+    def __init__(self,
+                 pyposmat_configuration,
+                 pyposmat_data,
+                 names,
+                 n_components):
+        AbstractAnalysisClass.__init__(
+                self,
+                pyposmat_configuration=pyposmat_configuration,
+                pyposmat_data=pyposmat_data,
+                names=names)
+
+        assert isinstance(n_components,int)
+        assert n_components > 0
+        self.n_components = n_components
+        self.initialize_model(n_components=n_components)
+
+    def initialize_model(self,n_components):
+        self.model = GaussianMixture(n_components=n_components,
+                                     covariance_type='full',
+                                     random_state=0)
+        self.model.fit(self.data.df[self.names])
+        self.data.df['cluster_id'] = self.model.predict(self.data.df[self.names])
+
 
 def plot_ellipse(position,covariance,ax=None,**kwargs):
     if ax is None:
@@ -107,30 +134,6 @@ class GmmInformationCriteriaAnalysis(AbstractAnalysis):
     def plot(self,filename,dpi=1200):
         plt.close("all")
 
-class GmmClusterAnalysis(AbstractAnalysisClass):
-
-    def __init__(self,
-                 pyposmat_configuration,
-                 pyposmat_data,
-                 names,
-                 n_components):
-        AbstractAnalysisClass.__init__(
-                self,
-                pyposmat_configuration=pyposmat_configuration,
-                pyposmat_data=pyposmat_data,
-                names=names)
-
-        assert isinstance(n_components,int)
-        assert n_components > 0
-        self.n_components = n_components
-        self.initialize_model(n_components=n_components)
-
-    def initialize_model(self,n_components):
-        self.model = GaussianMixture(n_components=n_components,
-                                     covariance_type='full',
-                                     random_state=0)
-        self.model.fit(self.data.df[self.names])
-        self.data.df['cluster_id'] = self.model.predict(self.data.df[self.names])
 
 class GmmDataFile():
     pass
