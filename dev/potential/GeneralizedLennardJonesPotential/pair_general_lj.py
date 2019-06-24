@@ -27,7 +27,7 @@ def func_cutoff_mishin2004(r, rc, hc, h0):
         else:
             return (x_rc**4)/(1+x_rc**4) * (r_0**4)/(1+r_r0**4)
 
-def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
+def func_pair_generalized_lj(r,b1,b2,r1,V0,delta):
     """
     Reference:
         Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
@@ -51,11 +51,11 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     #if isinstance(phi,np.ndarray):
     #    if np.isfinite(phi).any():
     #        print('need to fix here')
-    #return phi
+    return phi
 
-def func_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,hc,h0):
+def func_pair_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,hc,h0):
 
-    phi = function_generalized_lj_pair(r,b1,b2,r1,V0,delta)
+    phi = func_pair_generalized_lj(r,b1,b2,r1,V0,delta)
     psi = func_cutoff_mishin2004(r,rc,hc,h0)
 
     return psi*phi
@@ -69,14 +69,14 @@ class GeneralizedLennardJonesPotential(PairPotential):
 
     pair_potential_parameters=['b1','b2','r1','V0','delta','rc','hc','h0']
     potential_type='general_lj'
-
+    callable_func=func_pair_generalized_lj_w_cutoff
     def __init__(self, symbols):
         potential_type = GeneralizedLennardJonesPotential.potential_type
         PairPotential.__init__(self,
                                symbols=symbols,
                                potential_type=potential_type,
                                is_charge=False)
-        self.function_pair = func_generalized_lj_w_cutoff
+        self.function_pair = func_pair_generalized_lj_w_cutoff
 
     # this method overrides the parents stub
     def _init_parameter_names(self):
