@@ -77,7 +77,7 @@ class TestCutoffFunction(object):
         self.ax[0].plot(x,y,alpha=0.5)
         self.ax[0].set_xlim(self.x_limits)
         self.ax[0].set_ylim(self.y_limits)
-
+     
     def plot_forces_w_cutoffs(self,func,func_parameters,r_cut=None):
         x = self.r
         f = func(x,**func_parameters)
@@ -87,16 +87,29 @@ class TestCutoffFunction(object):
         self.ax[1].plot(x[1:],y,alpha=0.5)
         self.ax[1].set_xlim(self.x_limits)
         self.ax[1].set_ylim(self.y_limits)
+    
+    def show(self):
+        self.ax[0].set_xlabel(r'$r_{ij}$')
+        self.ax[0].set_ylabel(r'$V(r_{ij})$')
+        self.ax[1].set_xlabel(r'$r_{ij}$')
+        self.ax[1].set_ylabel(r'$\partial V(r_{ij})/\partial r_{ij}$')
 
-    def create_plot(self):
-
+        plt.tight_layout()
         plt.show()
 
+    def savefig(self,filename, dpi=1200):
+        self.ax[0].set_xlabel(r'$r_{ij}$')
+        self.ax[0].set_ylabel(r'$V(r_{ij})')
+        self.ax[1].set_xlabel(r'$r_{ij}$')
+        self.ax[1].set_ylabel(r'$\partial V(r_{ij})/\partial r_{ij}$')
+
+        plt.tight_layout()
+        self.fig.savefig(filename,dpi=dpi)
 if __name__ == "__main__":
     r_max = 5.
     r_cut = 2.
     r_N = 1000
-    fig_fn = "fig_cutoff_functions.eps"
+    fig_fn = "fig_cutoff_functions.png"
 
     o = TestCutoffFunction()
     o.subplots()
@@ -110,8 +123,9 @@ if __name__ == "__main__":
     o.plot_potential_w_cutoffs(func=func_lj,func_parameters=lj_parameters,r_cut=r_cut)
     o.plot_forces(func=func_lj,func_parameters=lj_parameters)
     o.plot_forces_w_cutoffs(func=func_lj,func_parameters=lj_parameters,r_cut=r_cut)
-    plt.show()
-    o.fig.savefig(fig_fn,dpi=1200)
+    o.show()
+    o.savefig(filename=fig_fn,dpi=1200)
+
     exit()
     plt.close('all')
     r = create_r_ij(r_max,n)
@@ -130,6 +144,10 @@ if __name__ == "__main__":
     ax[0].plot(
             x=r,
             y=func_cutoff(r,func_lj(r,**lj_param),r_cut))
+    self.ax[0].set_xlabel(r'$r_{ij}$')
+    self.ax[0].set_ylabel(r'$V(r_{ij})')
+    self.ax[1].set_xlabel(r'$r_{ij}$')
+    self.ax[1].set_ylabel(r'$\partial V(r_{ij})/\partial r_{ij}')
     plt.show()
     exit()
     from scipy.misc import derivative
