@@ -11,15 +11,21 @@ __copyright__ = "Copyright (C) 2019"
 __license__ = "Simplified BSD License"
 __version__ = 20171102
 
-def func_cutoff_mishin2003(r,rc,h):
-    x = (r-rc)/h
-    psi = np.ones(r.size) * (x**4/(1+x**4))
-    
-    # define the cutoff indicator, 1 except when x > x_cut
-    cutoff_ind = np.ones(r.size)
-    cutoff_ind[r > rc] = 0
-    
-    return cutoff_ind*psi
+def func_cutoff_mishin2004(r, rc, hc, h0):
+    x_rc = (r-rc)/hc
+    x_0 =  (r-0)/h0
+
+    if isinstance(r, np.ndarray):
+        psi_rc = np.ones(r.size) * (x_rc**4)/(1+x_rc**4)
+        psi_0  = np.ones(r.size) * (x_0**4)/(1+x_0**4)
+        cutoff_ind = np.ones(r.size)
+        cutoff_ind[r > rc] = 0
+        return cutoff_ind * psi_rc * psi_0
+    else:
+        if r>rc:
+            return 0
+        else:
+            return (x_rc**4)/(1+x_rc**4) * (r_0**4)/(1+r_r0**4)
 
 def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     """
@@ -47,10 +53,10 @@ def function_generalized_lj_pair(r,b1,b2,r1,V0,delta):
     #        print('need to fix here')
     #return phi
 
-def func_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,h):
+def func_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,hc,h0):
 
     phi = function_generalized_lj_pair(r,b1,b2,r1,V0,delta)
-    psi = func_cutoff_mishin2003(r,rc,h)
+    psi = func_cutoff_mishin2004(r,rc,hc,h0)
 
     return psi*phi
 
@@ -61,15 +67,16 @@ class GeneralizedLennardJonesPotential(PairPotential):
         symbols(list): a list of chemical symbols.
     """
 
+    pair_potential_parameters=['b1','b2','r1','V0','delta','rc','hc','h0']
+    potential_type='general_lj'
 
     def __init__(self, symbols):
-        self.pair_potential_parameters=['b1','b2','r1','V0','delta']
-        self.potential_type_name='general_lj'
+        potential_type = GeneralizedLennardJonesPotential.potential_type
         PairPotential.__init__(self,
                                symbols=symbols,
-                               potential_type=self.potential_type_name,
+                               potential_type=potential_type,
                                is_charge=False)
-        self.function_pair = function_generalized_lj_pair
+        self.function_pair = func_generalized_lj_w_cutoff
 
     # this method overrides the parents stub
     def _init_parameter_names(self):
