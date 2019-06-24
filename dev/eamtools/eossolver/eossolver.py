@@ -10,6 +10,8 @@ from collections import OrderedDict
 
 import numpy as np
 
+from pypospack.crystal import get_nearest_neighbor_information
+
 def determine_pair_names(symbols):
     pair_names = []
     for i1,s1 in enumerate(symbols):
@@ -24,12 +26,7 @@ def get_density_at_a(a,
         func_density_param,
         lattice_type='fcc'):
 
-    if lattice_type == 'fcc':
-        n_NN = [12,6,24,12,24,8]
-        d_NN = [a/np.sqrt(2.),a,a*np.sqrt(1.5),a*np.sqrt(2.0),a*np.sqrt(2.5),a*np.sqrt(3.0)]
-    else:
-        m = '{} is not an implmeented lattice_type'.format(lattice_type = 'fcc')
-        raise ValueError(m)
+    n_dd, d_nn = get_nearest_neighbor_information(a, lattice_type)
 
     #calculate total density
     if isinstance(a,np.ndarray):
@@ -50,12 +47,7 @@ def get_pair_energy_at_a(a,
         func_pair_param,
         lattice_type='fcc'):
 
-
-    if lattice_type == 'fcc':
-        n_NN = [12,6,24,12,24,8]
-        d_NN = [a/np.sqrt(2.),a,a*np.sqrt(1.5),a*np.sqrt(2.0),a*np.sqrt(2.5),a*np.sqrt(3.0)]
-    else:
-        m = '{} is not an implmeented lattice_type'.format(lattice_type = 'fcc')
+    n_dd, d_nn = get_nearest_neighbor_information(a, lattice_type)
 
     # calculate total energy
     if isinstance(a,np.ndarray):
