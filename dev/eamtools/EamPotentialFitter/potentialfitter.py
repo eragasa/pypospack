@@ -1,3 +1,8 @@
+__author__ = "Eugene J. Ragasa"
+__copyright__ = "Copyright (C) 2019"
+__license__ = "Simplified BSD License"
+__version__ = 20190624
+
 import inspect
 from collections import OrderedDict
 
@@ -9,11 +14,13 @@ from scipy.optimize import curve_fit
 from pypospack.eamtools import SeatonSetflReader
 from pypospack.eamtools import create_r
 from pypospack.eamtools import create_rho
-# functions for the mishin2003 density function
-from pypospack.potential.eamdens_mishin2003 import func_cutoff_mishin2003
-from pypospack.potential.eamdens_mishin2003 import func_mishin2003_density
-from pypospack.potential.eamdens_mishin2003 import func_mishin2003_density_w_cutoff
-from pypospack.potential.pair_general_lj import func_generalized_lj_w_cutoff
+# functions for the mishin2004 density function
+from pypospack.potential.eamdens_mishin2004 import (func_cutoff_mishin2004,
+                                                    func_density_mishin2004,
+                                                    func_density_mishin2004_w_cutoff)
+# functions for the mishin2004 pair potential
+from pypospack.potential.pair_general_lj import (func_pair_generalized_lj,
+                                                 func_pair_generalized_lj_w_cutoff)
 
 class EamSetflFitterException(BaseException): pass
 
@@ -86,6 +93,8 @@ class EamPotentialFitter(object):
 
         self.setfl_reader = None
 
+    def initialize_from_setfl_file(filename):
+        pass
     def read_setfl_file(self,filename):
         """ reads a setfl file
 
@@ -105,7 +114,7 @@ class EamPotentialFitter(object):
 
         pair_name = "".join(symbol_pair)
 
-        arg_names = [k for k in inspect.getargspec(func_pair_potential)[0] if k!= 'r']
+        arg_names = [k for k in inspect.signature(func_pair_potential).parameters if k!= 'r']
         p0 = [param0[k] for k in arg_names if k != 'r']
 
         # maximum interatomic spacing distance
@@ -218,6 +227,7 @@ class EamPotentialFitter(object):
         self.parameters['popt']['embedding'][symbol] = OrderedDict(
                     [(k[0],k[1]) for k in zip(arg_names,popt)])
         self.formalisms['embedding'][symbol] = func_embedding
+
 if __name__ == "__main__":
     pass
 

@@ -7,8 +7,8 @@ from scipy.optimize import brentq
 import pypospack.utils
 from pypospack.eamtools import create_r
 
-from pypospack.potential.eamdens_mishin2003 import func_mishin2003_density_w_cutoff
-from pypospack.potential.pair_general_lj import func_generalized_lj_w_cutoff
+from pypospack.potential.eamdens_mishin2004 import func_density_mishin2004_w_cutoff
+from pypospack.potential.pair_general_lj import func_pair_generalized_lj_w_cutoff
 from pypospack.potential.eamembed_eos_zopemishin import func_zopemishin_eos
 from pypospack.potential.eamembed_eos_zopemishin import func_zopemishin_embedding_function
 # currently in development
@@ -23,7 +23,7 @@ potentials['setfl_fn'] = os.path.join(
         'data','potentials','Ni__eam','Mishin-Ni-Al-2009.eam.alloy')
 potentials['density'] = OrderedDict()
 potentials['density']['Ni'] = OrderedDict()
-potentials['density']['Ni']['formalism'] = func_mishin2003_density_w_cutoff
+potentials['density']['Ni']['formalism'] = func_density_mishin2004_w_cutoff
 potentials['density']['Ni']['param'] = OrderedDict()
 potentials['density']['Ni']['param']['r0'] = -3.138
 potentials['density']['Ni']['param']['A0'] = 1.
@@ -32,11 +32,13 @@ potentials['density']['Ni']['param']['C0'] = 2.0329e2
 potentials['density']['Ni']['param']['y'] = 1.9521
 potentials['density']['Ni']['param']['gamma'] = 1.6802e3
 potentials['density']['Ni']['param']['rc']=5.168
-potentials['density']['Ni']['param']['h']=3.32
+potentials['density']['Ni']['param']['hc']=3.32
+potentials['density']['Ni']['param']['h0']=0.75
 
 potentials['pair'] = OrderedDict()
 potentials['pair']['NiNi'] = OrderedDict()
-potentials['pair']['NiNi']['formalism'] = func_generalized_lj_w_cutoff 
+potentials['pair']['NiNi']['formalism'] = func_pair_generalized_lj_w_cutoff 
+potentials['pair']['NiNi']['pair'] = ['Ni', 'Ni']
 potentials['pair']['NiNi']['param'] = OrderedDict()
 potentials['pair']['NiNi']['param']['b1'] = 4.7067e-3     # no units
 potentials['pair']['NiNi']['param']['b2'] = 0.15106       # no units
@@ -44,14 +46,15 @@ potentials['pair']['NiNi']['param']['r1'] = 3.8673e-4      # angs
 potentials['pair']['NiNi']['param']['delta'] = 3.6046e3   # eV
 potentials['pair']['NiNi']['param']['V0'] = -3.5126e3     # eV
 potentials['pair']['NiNi']['param']['rc'] = 5.168         # angs
-potentials['pair']['NiNi']['param']['h'] = 3.3228         # angs
+potentials['pair']['NiNi']['param']['hc'] = 3.3228         # angs
+potentials['pair']['NiNi']['param']['h0'] = 3.3228         # angs
 
 potentials['embedding'] = OrderedDict()
 potentials['embedding']['Ni'] = OrderedDict()
 potentials['embedding']['Ni']['formalism'] = func_zopemishin_eos
 potentials['embedding']['Ni']['param'] = OrderedDict()
 potentials['embedding']['Ni']['param']['a0'] = 0.3138 * 10
-potentials['embedding']['Ni']['param']['B0'] = 1.1914e4 * 10
+potentials['embedding']['Ni']['param']['B'] = 1.1914e4 * 10
 potentials['embedding']['Ni']['param']['E0'] = -4.45
 potentials['embedding']['Ni']['param']['beta'] = 0.4890e-2
 
@@ -118,6 +121,7 @@ def plot_results(filename='fit_eam_punmishin.eps'):
     #        label='fitted')
     plt.show()
     fig.savefig(filename)
+
 def func_zopemishin_embedding_function(rho,a0,B0,E0,beta,lattice_type='fcc'):
     """ fits the embedding function to the zope mishin equation of state
 
