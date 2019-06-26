@@ -7,7 +7,7 @@ any widely deployed python package.
 """
 import warnings
 import numpy as np
-
+from numpy import linalg
 from scipy import stats, integrate, optimize
 from sklearn import preprocessing
 from sklearn.exceptions import DataConversionWarning
@@ -121,12 +121,12 @@ class GaussianKde(stats.gaussian_kde):
         self._data_covariance = new_cov
         self._data_inv_cov = linalg.inv(new_cov)
     def evaluate(self, X):
-        self.eigdecomposition_cov_matrix_fix()
+        self._eigdecomposition_cov_matrix_fix()
         X_ = self._scale_points(X)
         return stats.gaussian_kde.evaluate(self,X_)
      
     def resample(self, size=None):
-        self.eigdecomposition_cov_matrix_fix()
+        self._eigdecomposition_cov_matrix_fix()
         X = stats.gaussian_kde.resample(self, size)
         X_ = self._unscale_points(X)
         return X_

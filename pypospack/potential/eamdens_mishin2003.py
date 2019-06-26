@@ -8,8 +8,8 @@ import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamDensityFunction
 
-def func_cutoff_mishin2003(r,rc,h):
-    x = (r-rc)/h
+def func_cutoff_mishin2003(r,rc,hc):
+    x = (r-rc)/hc
 
     if isinstance(r,np.ndarray):
         psi = np.ones(r.size) * (x**4)/(1+x**4)
@@ -25,7 +25,12 @@ def func_cutoff_mishin2003(r,rc,h):
     # define the cutoff indicator, 1 except when x > x_cut
     cutoff_ind = np.ones(r.size)
     cutoff_ind[r > rc] = 0
-    
+
+def func_cutoff_mishin2003_r0(r, h0):
+    x = r/h0
+
+    if isinstance(r,np.ndarray):
+        psi = np.ones(r.size) * (x**4)/(1+x**4)
 
 def func_mishin2003_density(r,r0,A0,B0,C0,y,gamma):
     """

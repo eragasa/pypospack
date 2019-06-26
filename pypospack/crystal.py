@@ -646,6 +646,18 @@ class RadialDistributionFunction(object):
         # Number of particles in shell/total number of particles/volume of shell/number density
         # shell volume = 4/3*pi(r_outer**3-r_inner**3)
 
+class FaceCenteredCubic(SimulationCell):
+
+    def get_nearest_neighbor_information(a):
+        n_NN = [12,6,24,12,24,8]
+        d_NN = [a/np.sqrt(2.),a,a*np.sqrt(1.5),a*np.sqrt(2.0),a*np.sqrt(2.5),a*np.sqrt(3.0)]
+        return n_NN, d_NN
+
+def get_nearest_neighbor_information(a, lattice_type):
+    lattice_types = { 
+            'fcc':FaceCenteredCubic }
+    return lattice_types[lattice_type].get_nearest_neighbor_information(a)
+
 def get_fcc_nearest_neighbor_distance(a0,NN):
     assert isinstance(a0,float)
     assert isinstance(NN,int) or isinstance(NN,float)

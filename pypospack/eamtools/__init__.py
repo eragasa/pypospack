@@ -95,6 +95,14 @@ class EamCurveFitter(object):
 class EamFuncflFile(object):
     pass
 
+def get_setfl_pair_order(symbols):
+    pairs = []
+    for i,s_i in enumerate(symbols):
+        for j,s_j in enumerate(symbols):
+            if i >= j:
+                pairs.append([s_i,s_j])
+    return pairs
+
 class EamSetflFile(object):
     """
 
@@ -955,4 +963,6 @@ class SeatonSetflReader(object):
         rN = self.n_r
 
         r = create_r(rmax,rN)
-        return self._body["pair_function"][symbol_pair]/r
+        return self._body["pair_function"][symbol_pair]
+
+

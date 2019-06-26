@@ -1,20 +1,22 @@
-from collections import OrderedDict
 import copy
+from collections import OrderedDict
 import numpy as np
-from pypospack.potential import Potential
-from pypospack.potential import PairPotential
-from pypospack.potential import EamDensityFunction
-from pypospack.potential import ExponentialDensityFunction
-from pypospack.potential import Mishin2003DensityFunction
-from pypospack.potential import EamEmbeddingFunction
-from pypospack.potential import FinnisSinclairEmbeddingFunction
-from pypospack.potential import EamEmbeddingEquationOfState
-from pypospack.potential import RoseEquationOfStateEmbeddingFunction
+
+from pypospack.potential.loader import (
+        get_pair_potential,
+        get_eam_density_function,
+        get_eam_embedding_function)
+from pypospack.potential import (
+        Potential,
+        PairPotential,
+        EamDensityFunction,
+        EamEmbeddingFunction,
+        EamEmbeddingEquationOfState)
+from pypospack.crystal import (
+        SimulationCell,
+        FaceCenteredCubic)
 from pypospack.eamtools import EamSetflFile
 
-from pypospack.potential import BornMayerPotential
-from pypospack.potential import MorsePotential
-from pypospack.potential import GeneralizedLennardJonesPotential
 class EamPotential(Potential):
     """embedded energy method potential
 
@@ -39,6 +41,12 @@ class EamPotential(Potential):
        rho_max(float): the maximum electron density
 
     """
+        
+    # parameter format strings
+    PYPOSPACK_EAM_PAIR_FORMAT = "{s1}{s2}_eam_pair_{p}"
+    PYPOSPACK_EAM_DENSITY_FORMAT = "{s1}_eam_density_{p}"
+    PYPOSPACK_EAM_EMBEDDING_FORMAT = "{s1}_eam_embedding_{p}"
+    potential_type = 'eam'
     def __init__(self,
             symbols,
             func_pair=None,
@@ -46,16 +54,28 @@ class EamPotential(Potential):
             func_embedding=None,
             filename=None):
 
-        # parameter format strings
-        self.PYPOSPACK_EAM_PAIR_FORMAT = "{s1}{s2}_eam_pair_{p}"
-        self.PYPOSPACK_EAM_DENSITY_FORMAT = "{s1}_eam_density_{p}"
-        self.PYPOSPACK_EAM_EMBEDDING_FORMAT = "{s1}_eam_embedding_{p}"
-        
         # these are pypospack.potential.Potential objects
         self.obj_pair = None
         self.obj_density = None
         self.obj_embedding = None
 
+        self.setfl_filename_src = filename
+        self.setfl_filename_dst = "{}.eam.alloy".format("".join(symbols))
+        self.setfl = None
+
+        potential_type = EamPotential.potential_type
+        Potential.__init__(self,
+                symbols=symbols,
+                potential_type=potential_type,
+                is_charge = False)
+
+        if filename is None:
+            self.set_obj_pair(func_pair=func_pair)
+            self.set_obj_density(func_density=func_density)
+            self.set_obj_embedding(func_embedding=func_embedding)
+        else:
+            raise NotImplementedError()
+        
         self.N_r = None
         self.r_max = None
         self.r_cut = None
@@ -70,25 +90,6 @@ class EamPotential(Potential):
         self.density = None
         self.embedding = None
 
-        self.symbols = symbols
-
-        self.setfl_filename_src = filename
-        self.setfl_filename_dst = "{symbols}.eam.alloy".format(
-                symbols="".join(self.symbols))
-        self.setfl = None
-
-        if filename is None:
-            self.set_obj_pair(func_pair=func_pair)
-            self.set_obj_density(func_density=func_density)
-            self.set_obj_embedding(func_embedding=func_embedding)
-        else:
-            pass
-            #raise NotImplementedError()
-
-        Potential.__init__(self,
-                symbols=symbols,
-                potential_type='eam',
-                is_charge = False)
 
     def lammps_potential_section_to_string(self,setfl_dst_filename):
         """provide string for the potential section
@@ -119,9 +120,13 @@ class EamPotential(Potential):
 
 
     def _init_parameter_names(self):
-        if all([self.obj_pair is not None,
-                self.obj_density is not None,
-                self.obj_embedding is not None]):
+
+        all_potentials_defined = all([
+            self.obj_pair is not None,
+            self.obj_density is not None,
+            self.obj_embedding is not None])
+
+        if all_potentials_defined:
             p_params = ['p_{}'.format(p) for p in self.obj_pair.parameter_names]
             d_params = ['d_{}'.format(p) for p in self.obj_density.parameter_names]
             e_params = ['e_{}'.format(p) for p in self.obj_embedding.parameter_names]
@@ -236,72 +241,23 @@ class EamPotential(Potential):
 
         assert isinstance(func_pair,str)
 
-        if func_pair == 'morse':
-            self.obj_pair = MorsePotential(symbols=self.symbols)
-        elif func_pair == 'bornmayer':
-            self.obj_pair = BornMayerPotential(symbols=self.symbols)
-        elif func_pair == 'generalized_lj':
-            self.obj_pair =  GeneralizedLennardJonesPotential(symbols=self.symbols)
-        else:
-            s  = ["func_pair must be a PairPotential"]
-            s += ["    type(func_pair)={}".format(str(type(func_pair)))]
-            s += ["    func_pair={}".format(func_pair)]
-            s = "\n".join(s)
-
-            # TODO: should create a custom error handler
-            self._log(s)
-            raise ValueError(s)
-        
-        if not isinstance(self.obj_pair,PairPotential):
-            s  = ["func_pair must be a PairPotential"]
-            s += ["    type(func_pair)={}".format(str(type(func_pair)))]
-            s += ["    func_pair={}".format(func_pair)]
-            s = "\n".join(s)
-            
-            # TODO: should create a custom error handler
-            self._log(s)
-            raise ValueError(s)
+        self.obj_pair = get_pair_potential(name=func_pair,
+                                           symbols=self.symbols)
 
     def set_obj_density(self,func_density):
 
         assert isinstance(func_density,str)
 
-        if func_density == 'eam_dens_exp':
-            self.obj_density = ExponentialDensityFunction(symbols=self.symbols)
-        elif func_density == 'eam_dens_mishin2003':
-            self.obj_density = Mishin2003DensityFunction(symbols=self.symbols)
-        else:
-            msg_err = "func_dens must be an EamDensityfunction"
-            raise ValueError(msg_err)
-
-        #<--- ensure that the potential configured is an EamDensityFunction
-        if not isinstance(self.obj_density,EamDensityFunction):
-            msg_err = (
-                "func_dens must be an EamDensityFunction\n"
-                 "\tfunc_density={}\n"
-                 "\ttype(attr.obj_density)={}\n").format(
-                         func_density,
-                         type(self.obj_density))
-            raise ValueError(msg_err)
+        self.obj_density = get_eam_density_function(name=func_density,
+                                                    symbols=self.symbols)
 
     def set_obj_embedding(self,func_embedding):
 
         assert isinstance(func_embedding,str)
 
-        # this programming is a little sloppy.  some software architecture needs to be implemented here
-        # for a more clean object oriented approach
-        if func_embedding == 'eam_embed_universal':
-            self.obj_embedding = UniversalEmbeddingFunction(symbols=self.symbols)
-        elif func_embedding == 'eam_embed_bjs':
-            self.obj_embedding = BjsEmbeddingFunction(symbols=self.symbols)
-        elif func_embedding == 'eam_embed_fs':
-            self.obj_embedding = FinnisSinclairEmbeddingFunction(symbols=self.symbols)
-        elif func_embedding == 'eam_embed_eos_rose':
-            self.obj_embedding = RoseEquationOfStateEmbeddingFunction(symbols=self.symbols)
-        else:
-            msg_err = "func_embedding must be a EamEmbeddingFunction"
-            raise ValueError(msg_err)
-
+        self.obj_embedding = get_eam_embedding_function(name=func_embedding,
+                                                        symbols=self.symbols)
+                                                        
         # If the Embedding Function is determined from the Equation of State, then
         # the density function and the pair function need to be provided to the
         # embedding function object since these values are determine by numerical
@@ -311,9 +267,6 @@ class EamPotential(Potential):
             self.density_fn = self.obj_density 
             self.pair_fn = self.obj_pair 
 
-        if not isinstance(self.obj_embedding,EamEmbeddingFunction):
-            msg_err = "func_embedding must be a EamEmbeddingFunction"
-            raise ValueError(msg_err)
 
     def evaluate_pair(self,r,parameters=None,rcut=None):
         assert isinstance(r,np.ndarray)
@@ -372,42 +325,33 @@ class EamPotential(Potential):
     def evaluate_embedding(self,
             rho=None,
             parameters=None):
-        #<--- check arguments of the function
+        
+        assert isinstance(parameters,dict) or parameters is None
+        assert isinstance(rho, np.ndarray) or rho is None
+        
         if parameters is not None:
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
-        if rho is not None:
-            if isinstance(rho,np.ndarray):
-                self.rho = np.copy(rho)
-            else:
-                raise ValueError("r must be a numpy.ndarray")
-            self.rho = np.copy(rho)
-        #<--- grab the parameters for the embedding function
+
+        p_params = [p for p in self.parameters if p.startswith('p_')]
+        d_params = [d for d in self.parameters if d.startswith('d_')]
         e_params = [p for p in self.parameters if p.startswith('e_')]
+        
+        if rho is not None: self.rho = np.copy(rho)
 
-        _parameters = OrderedDict()
-        for p in e_params:
-            _parameter_name = p.partition('_')[2]
-            _parameters[_parameter_name] = self.parameters[p]
 
-        #<--- for solving embedding function implicitly from the RoseEquationOfState
-        if type(self.obj_embedding) == RoseEquationOfStateEmbeddingFunction:
-            if parameters is not None:
-                self.obj_embedding.evaluate(
-                    rho=self.rho,
-                    parameters=parameters, # pass in all parameters not just a subset
-                    o_pair=self.obj_pair,
-                    o_density=self.obj_density)
-            else:
-                self.obj_embedding.evaluate(
-                    rho=self.rho,
-                    r=self.r,
-                    parameters=self.parameters, # pass in all parameters not just a subset
-                    o_pair=self.obj_pair,
-                    o_density=self.obj_density)
-
+        if isinstance(self.obj_embedding, EamEmbeddingEquationOfState):
+            self.obj_embedding.evaluate(rho=self.rho,
+                                        parameters=parameters,
+                                        o_pair=self.obj_pair,
+                                        o_density=self.obj_density)
         else:
-            self.obj_embedding.evaluate(
+            _parameters = OrderedDict()
+            for p in e_params:
+                _parameter_name = p.partition('_')[2]
+                _parameters[_parameter_name] = self.parameters[p]
+            
+                self.obj_embedding.evaluate(
                 rho=self.rho,
                 parameters=_parameters)
 

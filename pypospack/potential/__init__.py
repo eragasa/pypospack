@@ -78,6 +78,9 @@ def determine_3body_triplets(symbols):
 #------------------------------------------------------------------------------
 from pypospack.potential.potential import Potential
 from pypospack.potential.pair import PairPotential
+from pypospack.potential.eam_density_function import EamDensityFunction
+from pypospack.potential.eam_embedding_function import EamEmbeddingFunction
+from pypospack.potential.eam_embedding_eos import EamEmbeddingEquationOfState
 
 #------------------------------------------------------------------------------
 # These are pair potentials.
@@ -87,11 +90,11 @@ from pypospack.potential.pair_buckingham import BuckinghamPotential
 from pypospack.potential.pair_bornmayer import BornMayerPotential
 from pypospack.potential.pair_lj import LennardJonesPotential
 from pypospack.potential.pair_general_lj import GeneralizedLennardJonesPotential
-pair_potentials = [
+pair_potential_names = [
         'buckingham',
         'morse',
-        'bornmayer'
-        'lj'
+        'bornmayer',
+        'lj',
         'general_lj'
 ]
 
@@ -102,49 +105,49 @@ pair_potentials = [
 from pypospack.potential.threebody_tersoff import TersoffPotential
 from pypospack.potential.threebody_stillingerweber import StillingerWeberPotential
 
-threebody_potentials = [
+threebody_potential_names = [
         "sw",
         "tersoff"
 ]
-from pypospack.potential.eam_density_function import EamDensityFunction
-from pypospack.potential.eam_embedding_function import EamEmbeddingFunction
-from pypospack.potential.eam_embedding_eos import EamEmbeddingEquationOfState
 #------------------------------------------------------------------------------
 # These are analyical EAM density functions
 #------------------------------------------------------------------------------
 from pypospack.potential.eamdens_exponential import ExponentialDensityFunction
 from pypospack.potential.eamdens_mishin2003 import Mishin2003DensityFunction
-eam_density_functions = [
+from pypospack.potential.eamdens_mishin2004 import Mishin2004DensityFunction
+eam_density_names = [
     'eam_dens_exp',
-    'eam_dens_mishin2003'
+    'eam_dens_mishin2004'
 ]
 
 #------------------------------------------------------------------------------
 # These are analytical EAM embedding functions
 #------------------------------------------------------------------------------
-eam_embedding_function = []
 from pypospack.potential.eamembed_bjs import BjsEmbeddingFunction
 from pypospack.potential.eamembed_universal import UniversalEmbeddingFunction
 from pypospack.potential.eamembed_fs import FinnisSinclairEmbeddingFunction
 
+eam_embedding_analytical_names = [
+        'eam_embed_bjs',
+        'eam_embed_universal',
+        'eam_embed_fs',
+]
 #------------------------------------------------------------------------------
 # These potentials are EAM embedding functions which are fit by solving an
 # equation of state
 #------------------------------------------------------------------------------
 from pypospack.potential.eamembed_eos_rose import RoseEquationOfStateEmbeddingFunction
+from pypospack.potential.eamembed_eos_zopemishin import ZopeMishinEosEmbeddingFunction 
 
-eam_embedding_functions = [
-        'eam_embed_bjs',
-        'eam_embed_universal',
-        'eam_embed_fs',
-        'eam_embed_eos_rose'
+eam_embedding_eos_names = [
+        'eam_embed_eos_rose',
+        'eam_embed_eos_zopemishin'
 ]
 
-eam_eos_embedding_functions = [
-        'eam_embed_eos_rose'
-]
+eam_embedding_names = eam_embedding_analytical_names + eam_embedding_eos_names
 
 from pypospack.potential.eam import EamPotential
+
 def PotentialObjectMap(potential_type='all'):
     potential_map = OrderedDict()
     potential_map['buckingham'] = OrderedDict()
@@ -183,6 +186,10 @@ def PotentialObjectMap(potential_type='all'):
     potential_map['eam_dens_mishin2003']['module'] = 'pypospack.potential'
     potential_map['eam_dens_mishin2003']['class'] = 'Mishin2003DensityFunction'
 
+    potential_map['eam_dens_mishin2004'] = OrderedDict()
+    potential_map['eam_dens_mishin2004']['module'] = 'pypospack.potential'
+    potential_map['eam_dens_mishin2004']['class'] = 'Mishin2004DensityFunction'
+    
     potential_map['eam_embed_bjs'] = OrderedDict()
     potential_map['eam_embed_bjs']['module'] = 'pypospack.potential'
     potential_map['eam_embed_bjs']['class'] = 'BjsEmbeddingFunction'
@@ -226,6 +233,8 @@ if False:
                 'morse':['pypospack.potential','MorsePotential'],
                 'tersoff':['pypospack.potential','Tersoff']}
         return copy.deepcopy(potential_map)
+
+
 
 def get_supported_potentials():
     supported_potentials = list(get_potential_map().keys())

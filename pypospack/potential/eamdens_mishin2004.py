@@ -3,35 +3,48 @@ __copyright__ = "Copyright (C) 2017"
 __license__ = "Simplified BSD License"
 __version__ = 20171102
 
-import copy
+import copy,inspect
 import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamDensityFunction
+from pypospack.potential import determine_symbol_pairs
 
 def func_cutoff_mishin2004(r, rc, hc, h0):
-    x_rc = (r-rc)/hc
-    x_0 =  (r-0)/h0
-
-    if isinstance(r, np.ndarray):
-        psi_rc = np.ones(r.size) * (x_rc**4)/(1+x_rc**4)
-        psi_0  = np.ones(r.size) * (x_0**4)/(1+x_0**4)
-        cutoff_ind = np.ones(r.size)
-        cutoff_ind[r > rc] = 0
-        return cutoff_ind * psi_rc * psi_0
-    else:
-        if r>rc:
-            return 0
+    if isinstance(r,float):
+        if r > rc:
+            ind_rc = 0
         else:
-            return (x_rc**4)/(1+x_rc**4) * (r_0**4)/(1+r_r0**4)
+            ind_rc = 1
+
+        xrc = (r-rc)/hc
+        psi_c = (xrc**4)/(1+xrc**4)
+
+        x0 = r/h0
+        psi_0 = (x0**4)/(1+x0**4)
+        
+        psi = psi_c * psi_0 * ind_rc
+    else:
+        ind_rc = np.ones(r.size)
+        ind_rc[r > rc] = 0
+        
+        xrc = (r-rc)/hc
+        psi_c = (xrc**4)/(1+xrc**4)
+
+        x0 = r/h0
+        psi_0 = (x0**4)/(1+x0**4)
+        
+        psi = psi_c * psi_0 * ind_rc
+
+    return psi
 
 def func_density_mishin2004(r,r0,A0,B0,C0,y,gamma):
     z = r - r0
 
-    phi = A0 * z^y * np.exp(-gamma*z) * (1 + B0 * np.exp(-gamma*z)) + C0
+    phi = A0 * z**y * np.exp(-gamma*z) * (1 + B0 * np.exp(-gamma*z)) + C0
 
     return phi
 
-def func_density_mishin2004_w_cutoff(r, r0, A0, B0, y, gamma, rc, hc, h0):
+def func_density_mishin2004_w_cutoff(r, r0, A0, B0, C0, y, gamma, rc, hc, h0):
     phi = func_density_mishin2004(r, r0, A0, B0, C0, y, gamma)
     psi = func_cutoff_mishin2004(r, rc, hc, h0)
 
@@ -58,7 +71,7 @@ class Mishin2004DensityFunction(EamDensityFunction):
 
     potential_type = 'eamdens_mishin2004'
     density_function = func_density_mishin2004_w_cutoff
-    density_function_parameters = ['A0','B0','C0','y','gamma', 'rc', 'hr', 'h0']
+    density_function_parameters = ['r0', 'A0','B0','C0','y','gamma', 'rc', 'hc', 'h0']
     def __init__(self,symbols):
         EamDensityFunction.__init__(
                 self,
@@ -97,11 +110,11 @@ class Mishin2004DensityFunction(EamDensityFunction):
                 variable passed into r_cut will be ignored.
         """
         assert isinstance(r,np.ndarray) or isinstance(r,float)
-        assert isinstance(parameters,OrderedDict)
+        assert isinstance(parameters,dict)
         assert type(r_cut) in [int,float,type(None)]
         # attribute.parameters[p] <--- arg:parameters[p]
         for s in self.symbols:
-            for p in self.density_func_parameters:
+            for p in self.density_function_parameters:
                 pn = "{}_{}".format(s,p)
                 try:
                     self.parameters[pn] = parameters[pn]
@@ -114,7 +127,7 @@ class Mishin2004DensityFunction(EamDensityFunction):
                     for k,v in parameters.items():
                         print("    {}:{}".format(k,v))
                     print('attr -> density_func_parameters')
-                    for v in self.density_func_parameters:
+                    for v in self.density_function_parameters:
                         print("    {}".format(v))
                     raise
         # cannot evaluate because
@@ -126,34 +139,9 @@ class Mishin2004DensityFunction(EamDensityFunction):
 
         # each species has a unique density function
         for s in self.symbols:
-            A0 = self.parameters['{}_A0'.format(s)]
-            B0 = self.parameters['{}_B0'.format(s)]
-            C0 = self.parameters['{}_C0'.format(s)]
-            y = self.parameters['{}_y'.format(s)]
-            gamma = self.parameters['{}_gamma'.format(s)]
-
-            parameters = [A0,B0,C0,y,gamma]
-            if r_cut is None:
-                density = self.density_function(r,*parameters)
-                self.density_evaluations[s] = copy.deepcopy(density)
-            else:
-                density = self.density_function(r,rho0,beta,r0)
-                rcut = np.max(r[np.where(r<r_cut)])
-                rcut_step = r[1] - r[0]
-                density_rc = self.density_function(rcut,*parameters)
-                density_rc_p1 = self.density_function(
-                    rcut + rcut_step,
-                    *parameters
-                )
-                density_rc_m1 = self.density_function(
-                    rcut-rcut_step,
-                    *parameters
-                )
-                drhodr_at_rc = (density_rc_p1 - density_rc)/rcut_step
-
-                density = density - density_rc -drhodr_at_rc * (r-rcut)
-                density[np.where(r>=_rcut)] = 0
-                self.density_evaluations[s] = copy.deepcopy(_rho)
+            params = [self.parameters['{}_{}'.format(s,k)] for k in self.density_function_parameters]
+            print(r)
+            self.density_evaluations[s] = Mishin2004DensityFunction.density_function(r,*params)
 
         return copy.deepcopy(self.density_evaluations)
 
