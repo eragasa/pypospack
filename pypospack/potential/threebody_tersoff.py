@@ -1,38 +1,19 @@
-from pypospack.potential import Potential
+from pypospack.potential import ThreeBodyPotential
 from collections import OrderedDict
 import os
 
 
-class TersoffPotential(Potential):
+class TersoffPotential(ThreeBodyPotential):
 
+    potential_type = 'tersoff'
+    threebody_parameter_names = ['m','gamma','lambda3','c','d','costheta0','n','beta',
+                           'lambda2','B','R','D','lambda1','A']
     def __init__(self, symbols):
-        super().__init__(symbols=symbols)
-        self._pot_type = 'tersoff'
-        self._init_parameter_names()
-        self._fname_potential_file = 'potential.mod'
+        potential_type = TersoffPotential.potential_type
+        ThreeBodyPotential.__init__(self,
+                                    symbols=symbols,
+                                    potential_type=potential_type)
         self.lmps_parameter_filename = 'lmps_parameter_filename'
-
-    def _init_parameter_names(self):
-        # TODO: This is only written for a single element potential
-        for i in range(len(self.symbols)):
-            for j in range(len(self.symbols)):
-                for k in range(len(self.symbols)):
-                    el1 = self.symbols[i]
-                    el2 = self.symbols[j]
-                    el3 = self.symbols[k]
-                    self._add_parameter_names(el1, el2, el3)
-
-    def _add_parameter_names(self, el1, el2, el3):
-        s = "{}{}{}".format(el1, el2, el3)
-        tersoff_param_names = ['m','gamma','lambda3','c','d','costheta0','n','beta',
-                               'lambda2','B','R','D','lambda1','A']
-        for p in tersoff_param_names:
-            self.param_names.append("{}_{}".format(s, p))
-
-    def _init_parameters(self):
-        self.parameters = OrderedDict()
-        for p in self.parameter_names:
-            self.parameters[p] = None
 
     def lammps_potential_section_to_string(self, parameters=None):
 
@@ -48,6 +29,8 @@ class TersoffPotential(Potential):
         for i, s in enumerate(self.symbols):
             str_out += "group {} type {}\n".format(s, i+1)
         str_out += "\n"
+
+        str_out += "pair_style tersoff\n"
 
         return str_out
 

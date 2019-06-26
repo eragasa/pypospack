@@ -5,9 +5,13 @@ __license__ = "Simplified BSD License"
 __version__ = "1.0"
 
 from collections import OrderedDict
-from pypospack.potential import Potential
+from pypospack.potential import ThreeBodyPotential
 
-class StillingerWeberPotential(Potential):
+class StillingerWeberPotential(ThreeBodyPotential):
+    threebody_parameter_names = [
+        'epsilon', 'sigma', 'a' 'lambda', 'gamma', 'costheta0', 'A',
+        'B', 'p', 'q', 'tol']
+    potential_type = 'stillingerweber'
     def __init__(self,symbols):
         """
         Args:
@@ -22,7 +26,7 @@ class StillingerWeberPotential(Potential):
         _potential_type = 'stillingerweber'
         _is_charge = False
 
-        Potential.__init__(self,
+        ThreeBodyPotential.__init__(self,
                 symbols=symbols,
                 potential_type=_potential_type,
                 is_charge=_is_charge)

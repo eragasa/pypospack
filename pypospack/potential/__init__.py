@@ -78,6 +78,7 @@ def determine_3body_triplets(symbols):
 #------------------------------------------------------------------------------
 from pypospack.potential.potential import Potential
 from pypospack.potential.pair import PairPotential
+from pypospack.potential.threebody import ThreeBodyPotential
 from pypospack.potential.eam_density_function import EamDensityFunction
 from pypospack.potential.eam_embedding_function import EamEmbeddingFunction
 from pypospack.potential.eam_embedding_eos import EamEmbeddingEquationOfState

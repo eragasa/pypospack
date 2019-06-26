@@ -258,11 +258,6 @@ class EamPotential(Potential):
         self.obj_embedding = get_eam_embedding_function(name=func_embedding,
                                                         symbols=self.symbols)
                                                         
-        # If the Embedding Function is determined from the Equation of State, then
-        # the density function and the pair function need to be provided to the
-        # embedding function object since these values are determine by numerical
-        # inversion of the equation of state
-
         if isinstance(self.obj_embedding,EamEmbeddingEquationOfState):
             self.density_fn = self.obj_density 
             self.pair_fn = self.obj_pair 
@@ -277,18 +272,10 @@ class EamPotential(Potential):
 
         # pair potential parameters are prepended with 'p_'
         p_params = [p for p in self.parameters if p.startswith('p_')]
-
         # subselect the parameters required for the pair potential
-        _parameters = OrderedDict()
-        for p in p_params:
-            _parameter_name = p.partition('_')[2]
-            _parameters[_parameter_name] = self.parameters[p]
+        _parameters = OrderedDict([(p.partition('_')[2],self.parameters[p]) for p in p_params])
 
-        self.obj_pair.evaluate(
-                r=r,
-                parameters=_parameters,
-                r_cut=rcut)
-
+        self.obj_pair.evaluate(r=r, parameters=_parameters, r_cut=rcut)
         self.pair = copy.deepcopy(self.obj_pair.potential_evaluations)
 
     def evaluate_density(self,
@@ -323,37 +310,52 @@ class EamPotential(Potential):
         return _dens_eval
 
     def evaluate_embedding(self,
-            rho=None,
-            parameters=None):
-        
-        assert isinstance(parameters,dict) or parameters is None
+                           r=None,
+                           rho=None,
+                           parameters=None):
+        """ evaluate the embedding function 
+
+        Args:
+            r (np.ndarray, None): An array of interatomc distances.  If set is 
+                set to None, then the attribute r will be used.  By default, 
+                this is set to None.
+            rho (np.ndarray, None): An an array of electron densities.  If set
+                to None,  then the attribute rho will be used.  By default, 
+                this is set to None.
+            parameters (dict, None): A dictionary of parameters, with the key
+                being the parameter name, and the value bein the name of the
+                parameter.  By default, this is set to None.
+        """
+
+        assert isinstance(r, np.ndarray) or r is None
         assert isinstance(rho, np.ndarray) or rho is None
+        assert isinstance(parameters,dict) or parameters is None
         
+        if rho is not None: 
+            self.rho = np.copy(rho)
+        assert isinstance(self.rho, np.ndarray)
+
         if parameters is not None:
             for p in self.parameters:
                 self.parameters[p] = parameters[p]
 
-        p_params = [p for p in self.parameters if p.startswith('p_')]
-        d_params = [d for d in self.parameters if d.startswith('d_')]
-        e_params = [p for p in self.parameters if p.startswith('e_')]
-        
-        if rho is not None: self.rho = np.copy(rho)
-
 
         if isinstance(self.obj_embedding, EamEmbeddingEquationOfState):
-            self.obj_embedding.evaluate(rho=self.rho,
+            if r is not None:
+                self.r = np.copy(r)
+            assert isinstance(self.r, np.ndarray)
+            self.obj_embedding.evaluate(r=self.r,
+                                        rho=self.rho,
                                         parameters=parameters,
                                         o_pair=self.obj_pair,
                                         o_density=self.obj_density)
         else:
-            _parameters = OrderedDict()
-            for p in e_params:
-                _parameter_name = p.partition('_')[2]
-                _parameters[_parameter_name] = self.parameters[p]
-            
-                self.obj_embedding.evaluate(
-                rho=self.rho,
-                parameters=_parameters)
+            p_params = [p for p in self.parameters if p.startswith('p_')]
+            _parameters = OrderedDict(
+                    [(p.partition('_')[2], self.parameters[p]) for p in e_params]
+                    )
+            self.obj_embedding.evaluate(rho=self.rho,
+                                        parameters=_parameters)
 
         #<--- set the internal attribute
         self.embedding = copy.deepcopy(self.obj_embedding.embedding_evaluations)
