@@ -12,18 +12,20 @@ __license__ = "Simplified BSD License"
 __version__ = 20171102
 
 def func_cutoff_mishin2004(r, rc, hc, h0):
-    ind_rc = np.ones(r.size)
-    ind_rc[r > rc] = 0
-    
-    xrc = (r-rc)/hc
-    psi_c = (xrc**4)/(1+xrc**4)
+    x_rc = (r-rc)/hc
+    x_0 =  (r-0)/h0
 
-    x0 = r/h0
-    psi_0 = (x0**4)/(1+x0**4)
-    
-    psi = psi_c * psi_0 * ind_rc
-
-    return psi
+    if isinstance(r, np.ndarray):
+        psi_rc = np.ones(r.size) * (x_rc**4)/(1+x_rc**4)
+        psi_0  = np.ones(r.size) * (x_0**4)/(1+x_0**4)
+        cutoff_ind = np.ones(r.size)
+        cutoff_ind[r > rc] = 0
+        return cutoff_ind * psi_rc * psi_0
+    else:
+        if r>rc:
+            return 0
+        else:
+            return (x_rc**4)/(1+x_rc**4) * (r_0**4)/(1+r_r0**4)
 
 def func_pair_generalized_lj(r,b1,b2,r1,V0,delta):
     """
@@ -51,10 +53,10 @@ def func_pair_generalized_lj(r,b1,b2,r1,V0,delta):
     #        print('need to fix here')
     return phi
 
-def func_pair_generalized_lj_w_cutoff(r, b1, b2, r1, V0, delta, rc, hc, h0):
+def func_pair_generalized_lj_w_cutoff(r,b1,b2,r1,V0,delta,rc,hc,h0):
 
     phi = func_pair_generalized_lj(r,b1,b2,r1,V0,delta)
-    psi = func_cutoff_mishin2004(r,rc,hc, h0)
+    psi = func_cutoff_mishin2004(r,rc,hc,h0)
 
     return psi*phi
 
@@ -92,7 +94,7 @@ class GeneralizedLennardJonesPotential(PairPotential):
             self.parameters[v] = None
 
     # this method overrides the parent stub
-    def evaluate(self, r, parameters, r_cut=None):
+    def evaluate(self, r, parameters, r_cut=None,h=None,mollifier_type=None):
         """evaluate the pair potential
 
         This method evaluates the generalized lennard jones potential
@@ -122,10 +124,47 @@ class GeneralizedLennardJonesPotential(PairPotential):
         # <----------------------------evaluate the parameters now
         self.potential_evaluations = OrderedDict()
         for s in self.symbol_pairs:
-            params = [self.parameters['{}_{}'.format("".join(s),k)]\
-                      for k in self.pair_potential_parameters]
-            self.potential_evaluations["".join(s)] \
-                    = GeneralizedLennardJonesPotential.callable_func(r, *params)
+            # <------------------------extract the paramters for symbol pair
+            b1 = self.parameters['{}{}_b1'.format(s[0],s[1])]
+            b2 = self.parameters['{}{}_b2'.format(s[0],s[1])]
+            r1 = self.parameters['{}{}_r1'.format(s[0],s[1])]
+            V0 = self.parameters['{}{}_V0'.format(s[0],s[1])]
+            delta = self.parameters['{}{}_delta'.format(s[0],s[1])]
+            parameters = (b1,b2,r1,V0,delta)
+            # <------------------------determine radial cutoff
+            if '{}{}_rcut'.format(s[0], s[1]) in self.parameters:
+                rc = self.parameters['{}{}_rcut'.format(s[0].s[1])]
+            else:
+                rc = global_rcut
+            # <------------------------embedded morse function
+            func_pair = self.function_pair
+            pair_name = '{}{}'.format(s[0], s[1])
+
+
+            if r_cut is None:
+                # <------------------without mollifier
+                V = func_pair(r, *parameters)
+                self.potential_evaluations[pair_name] = copy.deepcopy(V)
+            else:
+                # <-----------------derivative based mollifer
+                _rcut = np.max(r[np.where(r < r_cut)])
+                r_step = r[1] - r[0]
+
+                V_rc = func_pair(_rcut, *parameters)
+                V_rc_p1 = func_pair(_rcut+r_step, *parameters)
+                V_rc_m1 = func_pair(_rcut-r_step, *parameters)
+                dVdr_at_rc = (V_rc_p1-V_rc)/r_step
+
+                # calculate morse with cutoff
+                V = func_pair(r, *parameters)
+
+                # apply the cutoff
+                V = V - V_rc - dVdr_at_rc * (r-_rcut)
+
+                # V=0, where r <= _rcut
+                V[np.where(r >= _rcut)] = 0.0
+
+                self.potential_evaluations[pair_name] = copy.deepcopy(V)
 
         return self.potential_evaluations
 

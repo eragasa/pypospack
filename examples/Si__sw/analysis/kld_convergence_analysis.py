@@ -11,8 +11,10 @@ from scipy.stats import gaussian_kde
 
 import pypospack.utils
 from pypospack.statistics import kullbach_lieber_divergence
+from pypospack.statistics import GaussianKde
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
+
 
 def covariance_analysis(data_fn,names):
     assert isinstance(data_fn,str)
@@ -26,7 +28,7 @@ def covariance_analysis(data_fn,names):
     print("eigenvalues:\n",w)
     print("eigenvectors:\n",v)
 
-def calculate_kld(data_1_fn,data_2_fn,names,n_samples=10000):
+def calculate_kld(data_1_fn,data_2_fn,names,n_samples=2000):
     assert isinstance(data_1_fn,str)
     assert isinstance(data_2_fn,str)
     assert isinstance(n_samples,int)
@@ -40,8 +42,22 @@ def calculate_kld(data_1_fn,data_2_fn,names,n_samples=10000):
     data_2 = PyposmatDataFile()
     data_2.read(filename=data_2_fn)
 
-    kde_1 = gaussian_kde(data_1.df[names].T)
-    kde_2 = gaussian_kde(data_2.df[names].T)
+    w1,v1 = linalg.eig(np.cov(data_1.df[names].T))
+    w2,v2 = linalg.eig(np.cov(data_2.df[names].T))
+  
+    cov1_ill_conditioned = any([k < 0 for k in w1.tolist()])
+    cov2_ill_conditioned = any([k < 0 for k in w2.tolist()])
+
+    any_ill_conditioned = any([cov1_ill_conditioned,cov2_ill_conditioned])
+
+    if any_ill_conditioned:
+        print('using ill-conditioned kde')
+        kde_1 = GaussianKde(data_1.df[names].T)
+        print(kde_1.n, kde_1.d)
+        kde_2 = GaussianKde(data_2.df[names].T)
+    else:
+        kde_1 = gaussian_kde(data_1.df[names].T)
+        kde_2 = gaussian_kde(data_2.df[names].T)
     
     kld = kullbach_lieber_divergence(kde_1,kde_2,n_samples)
     return kld
@@ -69,6 +85,7 @@ def calculate_kld_parameters(config,data_directory,kld_param_fn='pyposmat.kld_pa
         if i == 0:
             kld[i]['results'] = None
             kld[i]['kde'] = None
+
             kld[i]['filter'] = calculate_kld(
                 data_1_fn=os.path.join(data_directory,'pyposmat.results.{}.out'.format(i)),
                 data_2_fn=os.path.join(data_directory,'pyposmat.kde.{}.out'.format(i+1)),
@@ -130,9 +147,15 @@ def calculate_kld_qois(config,data_directory,kld_qoi_fn='pyposmat.kld_qoi.out'):
             kld[i]['filter'] = calculate_kld(
                 data_1_fn=os.path.join(data_directory,'pyposmat.results.{}.out'.format(i)),
                 data_2_fn=os.path.join(data_directory,'pyposmat.kde.{}.out'.format(i+1)),
-                names = o_config.qoi_names,
+                names = [k for k in o_config.qoi_names if k != "Si_dia.B"],
                 n_samples=n_samples)
         else:
+            data_1_path = os.path.join(data_directory,'pyposmat.results.{}.out'.format(i-1))
+            data_2_path = os.path.join(data_directory,'pyposmat.results.{}.out'.format(i))
+            
+            o_data_1 = PyposmatDataFile()
+            o_data_1.read(filename=data_1_path)
+
             kld[i]['results'] = calculate_kld(
                 data_1_fn=os.path.join(data_directory,'pyposmat.results.{}.out'.format(i-1)),
                 data_2_fn=os.path.join(data_directory,'pyposmat.results.{}.out'.format(i)),
@@ -199,12 +222,26 @@ def dev__kld_calculation_1d_kde():
     rv_kde_1 = gaussian_kde(X_norm)
     X_kde = rv_kde_1.resample(size=1000)
     rv_kde_2 = gaussian_kde(X_kde)
+
+    assert isinstance(rv_kde_1,gaussian_kde)
+    assert isinstance(rv_kde_1,gaussian_kde)
     kld = kullbach_lieber_divergence(rv_kde_1,rv_kde_2,1000)
 
     print(kld)
     return kld
 
 if __name__ == "__main__":
+    kld_output_path = "kld_analysis"
+    try:
+        os.mkdir(kld_output_path)
+    except FileExistsError as e:
+        if os.path.isdir(kld_output_path):
+            pass
+        else:
+            raise
+    except Exception as e:
+        raise
+
     dev__kld_calculation_1d_kde()
     n_samples = 10000
     data_directory = os.path.join(
@@ -218,14 +255,17 @@ if __name__ == "__main__":
     kld_param_fn = 'pyposmat.kld_param.out'
     kld_qoi_fn = 'pyposmat.kld_qoi.out'
 
-    if not os.path.isfile(kld_param_fn):
-        calculate_kld_parameters(
-                config=o_config,
-                data_directory=data_directory,
-                kld_param_fn='kld_param_fn.out')
-
     if not os.path.isfile(kld_qoi_fn):
+        kld_qoi_fn = os.path.join(kld_output_path,'pyposmat.kld_qoi.out')
         calculate_kld_qois(
                 config=o_config,
                 data_directory=data_directory,
-                kld_qoi_fn='pyposmat.kld_qoi.out')
+                kld_qoi_fn=kld_qoi_fn)
+    
+    if not os.path.isfile(kld_param_fn):
+        kld_param_fn = os.path.join(kld_output_path,'pyposmat.kld_param.out')
+        calculate_kld_parameters(
+                config=o_config,
+                data_directory=data_directory,
+                kld_param_fn=kld_param_fn)
+

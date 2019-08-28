@@ -6,7 +6,7 @@ __version__ = 20180524
 import copy,inspect
 import numpy as np
 from collections import OrderedDict
-from pypospack.potential import EamEmbeddingFunction
+from pypospack.potential import EamEmbeddingEquationOfState
 
 from pypospack.potential.eam_embedding_eos import \
         get_omega,\
@@ -91,7 +91,7 @@ def func_zopemishin_embedding_function(rho,a0,B0,E0,beta,lattice_type='fcc'):
 
     return E_embedding
 
-class ZopeMishinEosEmbeddingFunction(EamEmbeddingFunction):
+class ZopeMishinEosEmbeddingFunction(EamEmbeddingEquationOfState):
     """Implementation of the Eam Embedding class for the universal equation of state
     Args:
         symbols(list of str)
@@ -109,7 +109,8 @@ class ZopeMishinEosEmbeddingFunction(EamEmbeddingFunction):
         rho_max(float)
         rho(numpy.ndarray)
     """    
-    
+    potential_type = 'eam_embed_zopemishin'
+    eos_parameter_names = ['a0', 'B0', 'E0', 'beta', 'lattice_type']    
     def __init__(self,
             symbols,
             obj_density_function=None,
@@ -118,7 +119,10 @@ class ZopeMishinEosEmbeddingFunction(EamEmbeddingFunction):
             lattice_a0 = None,
             parameters=None):
 
-        EamEmbeddingEquationOfState.__init__(self,symbols=symbols)
+        potential_type = ZopeMishinEosEmbeddingFunction.potential_type
+        EamEmbeddingEquationOfState.__init__(self,
+                                             symbols=symbols,
+                                             potential_type=potential_type)
         
         # define member variables, and initialize with None
         self.parameters =None
@@ -142,12 +146,6 @@ class ZopeMishinEosEmbeddingFunction(EamEmbeddingFunction):
 
         if lattice_a0 is not None:
             self.lattice_a0 = lattice_a0
-    def __init__(self,
-            symbols):
-        self.embedding_func_parameters = ['F0','gamma','F1']
-        EamEmbeddingFunction.__init__(self,
-                symbols=symbols,
-                potential_type = 'eam_embed_bjs')
 
     def _init_parameter_names(self):
         PARAMETER_NAME_FORMAT = "{s}_{pn}"
@@ -387,7 +385,7 @@ class ZopeMishinEosEmbeddingFunction(EamEmbeddingFunction):
         """
         # attribute.parameters[p] <--- arg:parameters[p]
         for s in self.symbols:
-            for p in self.embedding_func_parameters:
+            for p in self.eos_parameter_names:
                 pn = "{}_{}".format(s,p)
                 self.parameters[pn] = parameters[pn]
 

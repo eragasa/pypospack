@@ -8,57 +8,36 @@ import numpy as np
 from collections import OrderedDict
 from pypospack.potential import EamDensityFunction
 
-def func_cutoff_mishin2003(r,rc,hc):
-    x = (r-rc)/hc
+def func_cutoff_mishin2004(r, rc, hc, h0):
+    x_rc = (r-rc)/hc
+    x_0 =  (r-0)/h0
 
-    if isinstance(r,np.ndarray):
-        psi = np.ones(r.size) * (x**4)/(1+x**4)
+    if isinstance(r, np.ndarray):
+        psi_rc = np.ones(r.size) * (x_rc**4)/(1+x_rc**4)
+        psi_0  = np.ones(r.size) * (x_0**4)/(1+x_0**4)
         cutoff_ind = np.ones(r.size)
         cutoff_ind[r > rc] = 0
-        return cutoff_ind*psi
+        return cutoff_ind * psi_rc * psi_0
     else:
         if r>rc:
             return 0
         else:
-            return (x**4)/(1+x**4)
-    
-    # define the cutoff indicator, 1 except when x > x_cut
-    cutoff_ind = np.ones(r.size)
-    cutoff_ind[r > rc] = 0
+            return (x_rc**4)/(1+x_rc**4) * (r_0**4)/(1+r_r0**4)
 
-def func_cutoff_mishin2003_r0(r, h0):
-    x = r/h0
-
-    if isinstance(r,np.ndarray):
-        psi = np.ones(r.size) * (x**4)/(1+x**4)
-
-def func_mishin2003_density(r,r0,A0,B0,C0,y,gamma):
-    """
-    Reference:
-        Y. Mishin.  Acta Materialia. 52 (2004) 1451-1467
-    """
-
+def func_density_mishin2004(r,r0,A0,B0,C0,y,gamma):
     z = r - r0
 
-    exp_gamma_z = np.exp(-gamma*z)
-    density = A0*z**y*exp_gamma_z*(1+B0*exp_gamma_z)+C0
+    phi = A0 * z^y * np.exp(-gamma*z) * (1 + B0 * np.exp(-gamma*z)) + C0
 
-    return density
+    return phi
 
-def func_mishin2003_density_w_cutoff(r,r0,A0,B0,C0,y,gamma,rc,h):
+def func_density_mishin2004_w_cutoff(r, r0, A0, B0, y, gamma, rc, hc, h0):
+    phi = func_density_mishin2004(r, r0, A0, B0, C0, y, gamma)
+    psi = func_cutoff_mishin2004(r, rc, hc, h0)
 
-    rho = func_mishin2003_density(
-            r=r,
-            r0=r0,
-            A0=A0,
-            B0=B0,
-            C0=C0,
-            y=y,
-            gamma=gamma)
-    psi = func_cutoff_mishin2003(r=r,rc=rc,h=h)
-    return psi*rho
+    return psi*phi
 
-class Mishin2003DensityFunction(EamDensityFunction):
+class Mishin2004DensityFunction(EamDensityFunction):
     """
     Args:
         symbols(list of str)
@@ -77,13 +56,14 @@ class Mishin2003DensityFunction(EamDensityFunction):
         r(numpy.ndarray)
     """
 
-    density_function_parameters = ['A0','B0','C0','y','gamma']
+    potential_type = 'eamdens_mishin2004'
+    density_function = func_density_mishin2004_w_cutoff
+    density_function_parameters = ['A0','B0','C0','y','gamma', 'rc', 'hr', 'h0']
     def __init__(self,symbols):
         EamDensityFunction.__init__(
                 self,
                 symbols=symbols,
-                potential_type='eamdens_mishin2003')
-        self.density_function = function_mishin2003_density
+                potential_type=Mishin2004DensityFunction.potential_type)
 
     def _init_parameter_names(self):
         self.parameter_names = []
