@@ -19,6 +19,7 @@ class BuckinghamPotential(PairPotential):
         symbols(list): a list of chemicals
     """
     PAIR_POTENTIAL_PARAMETERS = ['A','rho','C']
+    potential_type = 'buckingham'
     def __init__(self,symbols):
 
         PairPotential.__init__(self,
@@ -104,16 +105,16 @@ class BuckinghamPotential(PairPotential):
                         print('key_requested:',s)
                         print('keys:',self.parameters.keys())
                         raise
-                    except TypeError as te: 
+                    except TypeError as te:
                         s = str(te)
                         print(self.param_dict)
                         print('key_requested:',s)
                         print('keys:',self.parameters.keys())
                         raise
-        
+
 
         return str_out
-    
+
     # overrides the parents class
     def gulp_potential_section_to_string(self,parameters=None,r_cut=10.0):
         """ get GULP potential to string
@@ -144,13 +145,13 @@ class BuckinghamPotential(PairPotential):
 
             str_out += "{s1} core {s2} core {A} {rho} {C} {r_cut}\n".format(
                     s1=s1,s2=s2,A=A,rho=rho,C=C,r_cut=r_cut)
-        
+
         return str_out
-    
+
     # same as parent class
     def phonts_potential_section_to_string(self):
-        raise NotImplementedError 
-    
+        raise NotImplementedError
+
     # same as parent class
     def write_lammps_potential_file(self):
         raise NotImplementedError

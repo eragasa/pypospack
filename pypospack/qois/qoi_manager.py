@@ -1,5 +1,5 @@
 """
-EJR 09OCT2018 - refactored from pypospack.qoi module, as part of the effort to move all qoi classes as a pypospack.qoi.package, 
+EJR 09OCT2018 - refactored from pypospack.qoi module, as part of the effort to move all qoi classes as a pypospack.qoi.package,
 """
 import copy,importlib
 from collections import OrderedDict
@@ -7,19 +7,19 @@ from pypospack.qoi import QoiDatabase
 from pypospack.qoi import get_qoi_map
 
 class QoiManager(object):
-    """ Manager of Quantities of Interest 
-    
-    This class manages quantities of interest the simulation of multiple 
+    """ Manager of Quantities of Interest
+
+    This class manages quantities of interest the simulation of multiple
     quantities of interest will often require the results from the same
     simulation.  The purpose of this class is to identify the values required
     from different simulations, and then identify which simulations need to
     be done first.
 
     Args:
-        qoi_database(OrderedDict):this is a dictionary of key-value pairs, where 
-            the key value is unique qoi_id for this set of simulations, the value 
-            contains the necessary configuration information necessary for 
-            configuration of object instantiated with Qoi base class.  
+        qoi_database(OrderedDict):this is a dictionary of key-value pairs, where
+            the key value is unique qoi_id for this set of simulations, the value
+            contains the necessary configuration information necessary for
+            configuration of object instantiated with Qoi base class.
             Normally, this object is passed from the PyposmatConfigurationFile
             object using the `qois` attribute.
         fullauto(bool,optional): Set to True by default; this class will be
@@ -28,16 +28,16 @@ class QoiManager(object):
             so that helper methods can be individually tests.
     Attributes:
         qois(OrderedDict):this is a dictionary of key-value pairs, where the key
-            value is unique qoi_id for this set of simulations, the value 
-            contains the necessary configuration information necessary for 
+            value is unique qoi_id for this set of simulations, the value
+            contains the necessary configuration information necessary for
             configuration of object instantiated with Qoi base class.
         qoi_info(pypospack.qoi.QoiDatabase)
         qoi_names (list): list of qoi_names
         qoi_targets (dict): key is the qoi_name, value is the reference value
         qoi_errors (dict): key is the qoi_name, value is the error
-        qoi_dict (dict): 
-    """ 
-    def __init__(self,qoi_database= None,fullauto=True):
+        qoi_dict (dict):
+    """
+    def __init__(self,qoi_database=None,fullauto=True):
         assert any([
             isinstance(qoi_database,QoiDatabase),
             type(qoi_database) is type(None),
@@ -52,7 +52,7 @@ class QoiManager(object):
         self.tasks = None
 
         self.__init_QoiDatabase(qoi_database=qoi_database)
-  
+
         if fullauto:
             self.configure()
             self.determine_tasks()
@@ -96,9 +96,9 @@ class QoiManager(object):
             msg_err = 'Unknown qoi_simulation_type: {}'.format(
                     qoi_simulation_type)
             raise ValueError(msg_err)
-        
+
         return qoiname
-    
+
     def configure__obj_Qoi(self):
         self.obj_qoi = OrderedDict()
         self.qois = OrderedDict()
@@ -120,17 +120,17 @@ class QoiManager(object):
                     _qoiname = self.get_qoi_name(
                         qoi_simulation_type=_qoi_simulation_type,
                         structures=qoiv['structures'])
-                    
+
                     _qoitype = qoiv['qoi_type']
                     _module = qoimapv['module']
                     _class = qoimapv['class']
                     _structures = qoiv['structures']
-                    
+
                     try:
                         _qoi_options = qoiv['qoi_options']
                     except KeyError as e:
                         _qoi_options = None
-                    
+
                     self._add_obj_Qoi(
                          qoi_name = _qoiname,
                          module_name = _module,
@@ -157,14 +157,14 @@ class QoiManager(object):
                 "qoi_database argument must be None,QoiDatabase, or str"
                 )
             raise ValueError(msg_err)
-    
+
     def __init_QoiDatabase_from_None(self):
         self.qoidb = QoiDatabase()
 
     def __init_QoiDatabase_from_file(self,qoi_database_filename):
         assert isinstance(qoi_database_filename,str)
         self.qoidb = QoiDatabase()
-        self.qoidb.read(filename=qoi_database_filename) 
+        self.qoidb.read(filename=qoi_database_filename)
 
     def __init_QoiDatabase_from_QoiDatabase(self,obj_QoiDatabase):
         assert isinstance(obj_QoiDatabase,QoiDatabase)
@@ -184,8 +184,8 @@ class QoiManager(object):
             structures(:obj:`list` of :obj:`str):
 
         """
-        
-        if self.obj_Qoi is None: 
+
+        if self.obj_Qoi is None:
             self.obj_Qoi = OrderedDict()
 
         if qoi_name not in self.obj_Qoi.keys():
@@ -245,8 +245,8 @@ class QoiManager(object):
             except TypeError as e:
                 msg_err = "Cannot calculate qoi for \'{}\'.".format(n_qoi)
                 raise ValueError(msg_err+str(e))
-        
-        
+
+
         for k_qoi,v_qoi in self.qois.items():
             try:
                 qoi_id = self.qois[k_qoi]['qoi_name']

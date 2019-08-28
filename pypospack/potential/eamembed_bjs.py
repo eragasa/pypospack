@@ -19,14 +19,14 @@ class BjsEmbeddingFunction(EamEmbeddingFunction):
         parameters(OrderedDict): The key is the symbol associated with the
             embedding function.  On initialization, the value of each parameter
             is set to None.
-        embedding(OrderedDict): The key is the symbol associated with the 
+        embedding(OrderedDict): The key is the symbol associated with the
             embedding function.
         N_rho(int)
         d_rho(float)
         rho_max(float)
         rho(numpy.ndarray)
-    """    
-    
+    """
+    potential_type = 'eam_embed_bjs'
     def __init__(self,symbols):
         self.embedding_func_parameters = ['F0','gamma','F1']
         EamEmbeddingFunction.__init__(self,
@@ -61,7 +61,7 @@ class BjsEmbeddingFunction(EamEmbeddingFunction):
                 The value should be a numeric value.
             rho_cut(float): This would be the density cutoff.  However the
                 embedding energy is increasing with increasing electron
-                density so the a r_cut has no physical meaning.  Any 
+                density so the a r_cut has no physical meaning.  Any
                 variable passed into r_cut will be ignored.
         """
         # attribute.parameters[p] <--- arg:parameters[p]
@@ -77,9 +77,9 @@ class BjsEmbeddingFunction(EamEmbeddingFunction):
             F0 = self.parameters['{}_F0'.format(s)]
             gamma = self.parameters['{}_gamma'.format(s)]
             F1 = self.parameters['{}_F1'.format(s)]
-            
+
             with np.errstate(all='raise'):
                 self.embedding_evaluations[s] \
                     = F0*(1-gamma*np.log(rho))*rho**gamma + F1*gamma
-        
+
         return copy.deepcopy(self.embedding_evaluations)

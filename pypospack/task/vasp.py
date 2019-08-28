@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """pypospack.task.vasp
 
-Input and output functions and classes for VASP 
+Input and output functions and classes for VASP
 
 """
 __author__ = "Eugene J. Ragasa"
@@ -12,6 +12,7 @@ __version__ = "1.0"
 import os,shutil,subprocess,yaml,copy,pathlib
 from collections import OrderedDict
 import numpy as np
+from pypospack.crystal import SimulationCell
 import pypospack.crystal as crystal
 import pypospack.dft as dft
 import pypospack.io.vasp as vasp
@@ -35,7 +36,7 @@ class VaspSimulation(Task):
         task_name(str):
         task_directory(str): where to create a directory
         restart(bool): if this flag is set to True, then it will
-            attempt to restart the simulation from information 
+            attempt to restart the simulation from information
             contained in task_directory.  Default is True.
 
     Attributes:
@@ -52,8 +53,31 @@ class VaspSimulation(Task):
         self.incar = vasp.Incar()
         self.potcar = vasp.Potcar()
         self.kpoints = vasp.Kpoints()
+        self.contcar = vasp.Contcar()
+
+    def initialize_poscar(poscar):
+        if isinstance(filename, str):
+            self.initialize_poscar_from_file(filename=poscar)
+        elif isinstance(filename, obj_simulation_cell):
+            self.initialize_poscar_from_object(obj_simulation_cell=poscar)
+        else:
+            msg = ("Unsupported type for initialization of a Poscar file. "
+                   "type = {}").format(str(type(poscar)))
+            raise TypeError(msg)
+            
+    def initialize_poscar_from_file(filename):
+        assert isinstance(filename,str)
+        self.poscar.read(filename=filename)
+
+    def initialize_poscar_from_obj(obj_simulation_cell):
+        assert isinstance(obj_simulation_cell, SimulationCell)
+        self.poscar.copy(obj_simulation_cell)
+
+    def initialize_incar_from_file(filename):
+        assert isinstance(filename,str)
+        self.incar.read(filename,str)
         #if self.status == 'INIT':
- 
+
             # additional items to add
             #additional_config_dict = {\
             #    'incar':self.set_incar,
@@ -64,13 +88,13 @@ class VaspSimulation(Task):
             #additional_ready_dict = {}
             #additional_run_dict = {}
             #additional_post_dict = {}
-            
+
             # update configuration dictionaries
             #self.config_dict.update(additional_config_dict)
             #self.ready_dict.update(additional_config_dict)
             #self.run_dict.update(additional_ready_dict)
             #self.post_dict.update(additional_post_dict)
-            
+
             #self.status = 'INIT'
 
     def restart(self):
@@ -93,7 +117,7 @@ class VaspSimulation(Task):
         elif poscar_exists and incar_exists and kpoints_exists and potcar_exists:
             self.status = 'CONFIG'
         else:
-            pathlib.Path(self.task_directory).mkdir(parents=True, exist_ok=True)  
+            pathlib.Path(self.task_directory).mkdir(parents=True, exist_ok=True)
             #shutil.rmtree(self.task_directory)
             #os.mkdir(self.task_directory)
             self.status = 'INIT'
@@ -120,7 +144,7 @@ class VaspSimulation(Task):
     def run(self,job_type='slurm',exec_dict=[]):
         self.job_type = job_type
         if self.job_type == 'slurm':
-            
+
             # create file so we know that job is submitted
             fname = os.path.join(self.task_directory,'jobSubmitted')
             with open(fname,'w') as f:
@@ -178,20 +202,20 @@ class VaspSimulation(Task):
     def read_poscar(self,poscar=None):
         """ read in a poscar file or object
 
-        This method reads in new structural information into the class.  It does 
+        This method reads in new structural information into the class.  It does
         not write the POSCAR file which may already exist in the the simulation
         directory.
 
         Args:
-            poscar (:obj:`str` or :obj:`pypospack.crystal.SimulationCell`): 
-                structure information file either provided as the location of a 
-                POSCAR file, or from an instance of 
+            poscar (:obj:`str` or :obj:`pypospack.crystal.SimulationCell`):
+                structure information file either provided as the location of a
+                POSCAR file, or from an instance of
                 :obj:`pypospack.crystal.SimulationCell`
 
         """
         if poscar is None:
             poscar = os.path.join(self.task_directory,'POSCAR')
-        
+
         if isinstance(poscar,crystal.SimulationCell):
             self.poscar = vasp.Poscar(poscar)
         elif isinstance(poscar,str):
@@ -245,7 +269,7 @@ class VaspSimulation(Task):
             raise VaspSimulationError
 
     def config_incar(self):
-        
+
         # if spin-polarized calculations, then set magmom tag
         if self.incar.ispin == 2:
             _magmom_str = '{}*{}'.format(self.poscar.n_atoms,1.0)
@@ -295,7 +319,7 @@ class VaspSimulation(Task):
             self.kpoints.mesh_type = 'Gamma'
 
         # check to see if we have a hexagonal cell
-        
+
     def write_kpoints(self):
         self.kpoints.write(\
                 os.path.join(\
@@ -363,7 +387,7 @@ class VaspStructuralMinimization(VaspSimulation):
     The default configuration will do a full structural minimization using
     the GGA functional.  The energy cutoff for the plane waves will be set
     at the highest ENMAX contained in the POTCAR files.  The Kpoints will be
-    set at the 6x6x6 kpoint mesh in the Brillioun zone.  Forces are 
+    set at the 6x6x6 kpoint mesh in the Brillioun zone.  Forces are
     minimized to 1e-3 ev/Angs.
 
     Args:
@@ -433,7 +457,7 @@ class VaspWorkflow(object):
             xc(str): the exchange correlation functional.  The choices are
                 LDA and GGA.  LDA is the local density approximation. GGA
                 is General Gradient Approximation.
-            incar_dict(dict): a dictionary of the tags and values for the 
+            incar_dict(dict): a dictionary of the tags and values for the
                 INCAR input file.  The tags are contained in the keys in
                 lower case.  The setting the each respective take is contained
                 in the value section of the key-value pair.
@@ -512,7 +536,7 @@ class VaspWorkflow(object):
         # set slurm_dict
         if isinstance(slurm_dict, dict):
             self.slurm_dict = copy.deepcopy(slurm_dict)
-      
+
         self.manifest = None
         self.task_list = None
         self.tasks = None
@@ -533,7 +557,7 @@ class VaspWorkflow(object):
             assert isinstance(
                     self.manifest,
                     SlurmSimulationManifest)
-        
+
         # check conditions to initialize simulation manifest
         is_manifest_configured = not any(
                 [self.manifest.task_list is None,
@@ -545,7 +569,7 @@ class VaspWorkflow(object):
         if all([not is_manifest_configured,\
                 is_self_configured]):
 
-            # the manifest task list should be the same as 
+            # the manifest task list should be the same as
             # the task list
             self.manifest.task_list = copy.deepcopy(self.task_list)
             for task_name in self.task_list:
@@ -557,7 +581,7 @@ class VaspWorkflow(object):
                 self.manifest.tasks[task_name]['complete'] = False
             self.manifest.write(self.manifest_filename)
 
-        # --- raises errors 
+        # --- raises errors
         elif all([not is_manifest_configured,\
                 not is_self_configured]):
             msg_err = (
@@ -584,7 +608,7 @@ class VaspWorkflow(object):
                             str(type(self.tasks))
                             )
             raise ValueError(msg_err)
-                
+
     def start(self):
         try:
             self.create_simulations()
@@ -607,7 +631,7 @@ class VaspWorkflow(object):
             self.manifest.tasks[task_name]['submitted'] = False
             self.manifest.tasks[task_name]['complete'] = False
 
-        # TODO: i should do some process checking here 
+        # TODO: i should do some process checking here
         # This should be added into the pypospack.task.vasp.VaspSimulation
         # import subprocess
         # from subprocess import check_output, CalledProcessError
@@ -739,7 +763,7 @@ class VaspKpointsConvergence(VaspWorkflow):
             slurm_dict=None,full_auto=True,
             rho_min=1,rho_max=10,d_rho=0.1,
             kpoint_min=3,kpoint_max=15):
-       
+
         VaspWorkflow.__init__(self,directory=directory,
             structure=structure,xc=xc,incar_dict=incar_dict,
             slurm_dict=slurm_dict,full_auto=full_auto,
@@ -760,7 +784,7 @@ class VaspKpointsConvergence(VaspWorkflow):
 
         if self.full_auto is True:
             self.do_full_auto()
-    
+
         # --- PROCESS ARGUMENTS ---
         # process the dictionary attribute
     def do_full_auto(self):
@@ -779,7 +803,7 @@ class VaspKpointsConvergence(VaspWorkflow):
                 d_rho=self.d_rho,
                 kpoint_min=self.kpoint_min,
                 kpoint_max=self.kpoint_max)
-        
+
         # create_task_list
         self.task_list = [*kpoint_meshes] # <--- convert keys of dict to list
         self.tasks = OrderedDict()
@@ -836,7 +860,7 @@ class VaspEncutConvergence(object):
     def __init__(self,directory=None,structure='POSCAR',xc='GGA',
             encut_min=None,encut_max=None,encut_step=25,
             incar_dict=None,kpoints_dict=None,slurm_dict=None,full_auto=True):
-        
+
         self.orig_directory = os.getcwd()
         self.filename_results = 'converg.encut.results'
         self.manifest_filename = 'pypospack.manifest.yaml'
@@ -891,7 +915,7 @@ class VaspEncutConvergence(object):
 
         # determine energy cutoff
         if any([encut_min is None, encut_max is None]):
-            # create a potcar containing the information contained in the 
+            # create a potcar containing the information contained in the
             # potcar files
             potcar = vasp.Potcar()
             potcar.symbols = self.poscar.symbols
@@ -933,8 +957,8 @@ class VaspEncutConvergence(object):
         # set kpoints_dict
         self.kpoints_dict = None
         if isinstance(kpoints_dict, dict):
-            self.kpoints_dict = copy.deepcopy(kpoints_dict) 
-        
+            self.kpoints_dict = copy.deepcopy(kpoints_dict)
+
         # set slurm_dict
         if isinstance(slurm_dict, dict):
             self.slurm_dict = copy.deepcopy(slurm_dict)
@@ -964,7 +988,7 @@ class VaspEncutConvergence(object):
                 self.manifest.tasks[task_name]['created'] = True
                 self.manifest.tasks[task_name]['submitted'] = False
                 self.manifest.tasks[task_name]['complete'] = False
-            
+
             self.run_simulations()
             for task_name in self.task_list:
                 self.manifest.tasks[task_name]['submitted'] = True
@@ -1023,7 +1047,7 @@ class VaspEncutConvergence(object):
             str_encut = str(encut)
             incar_dict = copy.deepcopy(self.incar_dict)
             incar_dict['encut'] = encut
-            
+
             task_name = str_encut
             task_directory = os.path.join(self.directory,task_name)
             self.tasks[task_name] = VaspSimulation(
@@ -1073,7 +1097,7 @@ class VaspEncutConvergence(object):
                     'total_energy':total_energy,
                     'n_atoms':n_atoms,
                     'total_energy_per_atom':total_energy_per_atom}
-         
+
 # ---- temporary classes until i can write a VaspSimulationManager ---
 
 class SimulationManifest(object):
@@ -1112,5 +1136,3 @@ class SlurmSimulationManifest(SimulationManifest):
 
         with open(self.filename,'w') as f:
             yaml.dump(manifest,f,default_flow_style=False)
-
-

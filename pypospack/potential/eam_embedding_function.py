@@ -1,6 +1,8 @@
 from pypospack.potential import Potential
 
 class EamEmbeddingFunction(Potential):
+
+    potential_type = 'eam_embed_base'
     def __init__(self,
             symbols,
             potential_type='eamembed'):

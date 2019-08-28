@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*- 
-""" Implementation of LammpsSimulation abstract and implemented classes 
+# -*- coding: utf-8 -*-
+""" Implementation of LammpsSimulation abstract and implemented classes
 
 This module implements simulation tasks.  An abstract class is implemented in
 LAMMPS simulation tasks, this class should be subclassed for new implementations
-requiring LAMMPS simulations.  Tasks which do not require a LAMMPS simulation 
+requiring LAMMPS simulations.  Tasks which do not require a LAMMPS simulation
 should subclass the pypospack.io.base.Task instead.
 
 Attributes:
@@ -14,7 +14,7 @@ Attributes:
 Todo:
     * nothing as this point
 """
-import os, copy, shutil,importlib, subprocess
+import os, copy, shutil, importlib, subprocess
 from collections import OrderedDict
 import numpy as np
 # import pypospack.potential as potential
@@ -22,7 +22,9 @@ import pypospack.io.vasp as vasp
 import pypospack.io.lammps as lammps
 from pypospack.task import Task
 from pypospack.io.eamtools import EamSetflFile
-from pypospack.potential import Potential,EamPotential,PotentialObjectMap
+from pypospack.potential import (Potential,
+                                 EamPotential,
+                                 PotentialObjectMap)
 from pypospack.potential import StillingerWeberPotential
 
 atom_style_list = ['charge','atomic']
@@ -36,7 +38,7 @@ lammps_simulation_map = {\
             'class':'LammpsPositionMinimization'},
         'min_none':{
             'module':'pypospack.task.lammps',
-            'class':'LammpsStaticCalculations'},
+            'class':'LammpsStaticCalculation'},
         'elastic':{
             'module':'pypospack.task.lammps',
             'class':'LammpsElasticCalculation'},

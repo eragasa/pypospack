@@ -18,8 +18,10 @@ import scipy.stats
 
 # we are wrapping up the pyposmat engine
 from pypospack.pyposmat.engines import PyposmatEngine
-from pypospack.pyposmat.data import PyposmatConfigurationFile
-from pypospack.pyposmat.data import PyposmatDataFile
+from pypospack.pyposmat.data import (PyposmatConfigurationFile,
+                                     PyposmatDataFile,
+                                     PyposmatLogFile)
+from pypospack.pyposmat.data import  PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatLogFile
 from pypospack.potential import PotentialObjectMap
 
@@ -50,7 +52,6 @@ class PyposmatSampler(PyposmatEngine):
     """
     def __init__(self,
                  configuration='pyposmat.configuration.yaml',
-                 mpi_rank=None,
                  mpi_size=None,
                  base_directory=None):
 

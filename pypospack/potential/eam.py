@@ -15,6 +15,7 @@ from pypospack.eamtools import EamSetflFile
 from pypospack.potential import BornMayerPotential
 from pypospack.potential import MorsePotential
 from pypospack.potential import GeneralizedLennardJonesPotential
+
 class EamPotential(Potential):
     """embedded energy method potential
 
@@ -26,7 +27,7 @@ class EamPotential(Potential):
        func_density(str):
        func_embedding(str):
        filename(str):
-    
+
     Attributes:
        symbols(list of str): the list of symbols
        obj_pair(OrderedDict of PairPotential)
@@ -39,6 +40,8 @@ class EamPotential(Potential):
        rho_max(float): the maximum electron density
 
     """
+
+    potential_type = "eam"
     def __init__(self,
             symbols,
             func_pair=None,
@@ -50,7 +53,7 @@ class EamPotential(Potential):
         self.PYPOSPACK_EAM_PAIR_FORMAT = "{s1}{s2}_eam_pair_{p}"
         self.PYPOSPACK_EAM_DENSITY_FORMAT = "{s1}_eam_density_{p}"
         self.PYPOSPACK_EAM_EMBEDDING_FORMAT = "{s1}_eam_embedding_{p}"
-        
+
         # these are pypospack.potential.Potential objects
         self.obj_pair = None
         self.obj_density = None
@@ -251,13 +254,13 @@ class EamPotential(Potential):
             # TODO: should create a custom error handler
             self._log(s)
             raise ValueError(s)
-        
+
         if not isinstance(self.obj_pair,PairPotential):
             s  = ["func_pair must be a PairPotential"]
             s += ["    type(func_pair)={}".format(str(type(func_pair)))]
             s += ["    func_pair={}".format(func_pair)]
             s = "\n".join(s)
-            
+
             # TODO: should create a custom error handler
             self._log(s)
             raise ValueError(s)
@@ -308,8 +311,8 @@ class EamPotential(Potential):
         # inversion of the equation of state
 
         if isinstance(self.obj_embedding,EamEmbeddingEquationOfState):
-            self.density_fn = self.obj_density 
-            self.pair_fn = self.obj_pair 
+            self.density_fn = self.obj_density
+            self.pair_fn = self.obj_pair
 
         if not isinstance(self.obj_embedding,EamEmbeddingFunction):
             msg_err = "func_embedding must be a EamEmbeddingFunction"

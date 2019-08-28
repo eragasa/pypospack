@@ -3,7 +3,7 @@ import pypospack.crystal as crystal
 class LammpsStructure(crystal.SimulationCell):
     def __init__(self,obj=None):
         crystal.SimulationCell.__init__(self,obj)
-        
+
     def write(self, filename, symbol_list=None, atom_style=None):
         if symbol_list is None:
             symbol_list = self.symbols
@@ -26,6 +26,8 @@ class LammpsStructure(crystal.SimulationCell):
         yz                         = self.H[1,2] * a0
 
         file = open(filename,'w')
+
+        # this is the header section
         file.write("# {}\n".format(symbol_list))
         file.write("\n")
         file.write("{} atoms\n".format(total_number_of_atoms))
@@ -50,15 +52,23 @@ class LammpsStructure(crystal.SimulationCell):
                     posz = self.H[2,2]*atom.position[2]*a0
                     if atom_style == 'atomic':
                         str_out = "{} {} {:10.4f} {:10.4f} {:10.4f}\n"
-                        str_out = str_out.format(atom_id, 
-                                                 i_symbol + 1, 
-                                                 posx,posy,posz)
+                        str_out = str_out.format(atom_id,
+                                                 i_symbol + 1,
+                                                 posx, posy, posz)
                     elif atom_style == 'charge':
                         str_out = "{} {} {:10.4f} {:10.4f} {:10.4f} {:10.4f}\n"
                         str_out = str_out.format(atom_id,
                                                  i_symbol + 1,
-                                                 chrg, posx,posy,posz)
+                                                 chrg,
+                                                 posx, posy, posz)
                     file.write(str_out)
                     atom_id += 1
         file.close()
 
+def write_lammps_structure_file(simulation_cell, filename):
+    assert isinstance(simulation_cell=crystal.SimulationCell)
+
+    structure_str = ""
+
+    with open(filename,'w') as f:
+        f.write(structure_str)

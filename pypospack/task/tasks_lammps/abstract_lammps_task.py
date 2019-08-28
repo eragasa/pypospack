@@ -145,7 +145,7 @@ class AbstractLammpsSimulation(Task):
     def on_init(self,configuration=None):
         if configuration is not None:
             self.configuration = copy.deepcopy(configuration)
-        
+
         try:
             self.configure_potential(potential=self.configuration['potential'])
         except KeyError:
@@ -163,7 +163,6 @@ class AbstractLammpsSimulation(Task):
             # if setfl_filename_src is set, then we just copy the
             # EAM potential file.
 
-
             if all([self.potential.obj_pair is None,
                     self.potential.obj_density is None,
                     self.potential.obj_embedding is None,
@@ -177,11 +176,11 @@ class AbstractLammpsSimulation(Task):
                             src=eam_setfl_filename_src,
                             dst=eam_setfl_filename_dst)
                 except FileNotFoundError as e:
-                    print('o.potential.obj_pair:{}'.format(self.potential.obj_pair))
-                    print('o.potential.obj_density:{}'.format(self.potential.obj_density))
-                    print('o.potential.obj_embedding:{}'.format(self.potential.obj_embedding))
-                    print('eam_setfl_filename_src:{}'.format(eam_setfl_filename_src))
-                    print('eam_setfl_filename_dst:{}'.format(eam_setfl_filename_dst))
+                    msg  = 'o.potential.obj_pair:{}\n'.format(self.potential.obj_pair)
+                    msg += 'o.potential.obj_density:{}\n'.format(self.potential.obj_density)
+                    msg += 'o.potential.obj_embedding:{}\n'.format(self.potential.obj_embedding)
+                    msg += 'eam_setfl_filename_src:{}\n'.format(eam_setfl_filename_src)
+                    msg += 'eam_setfl_filename_dst:{}\n'.format(eam_setfl_filename_dst)
                     raise
 
             elif all([self.potential.obj_pair is not None,

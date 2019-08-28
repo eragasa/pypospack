@@ -11,8 +11,7 @@ def poscar_to_gulp_string(poscar):
         return simulation_cell_to_gulp_string(simcell)
 
 def simulation_cell_to_gulp_string(sim_cell):
-    if not isinstance(sim_cell,crystal.SimulationCell):
-        raise ValueError('simcell is not an instance of pypospack simulation cell')
+    assert isinstance(sim_cell,crystal.SimulationCell)
 
     H = sim_cell.H * sim_cell.a0
     str_out = "vectors\n"
@@ -51,4 +50,3 @@ class GulpInputFile(object):
     def __init__(self):
         self.potential = None
         self.potential
-

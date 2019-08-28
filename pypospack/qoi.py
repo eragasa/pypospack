@@ -33,7 +33,7 @@ def get_qoi_map():
                        'a31_min_pos', 'a32_min_pos','a33_min_pos',
                       ],
                 'module':'pypospack.qoi',
-                'class':'RelaxedStructureCalculations'},
+                'class':'RelaxedPositionCalculations'},
             'lmps_min_all':{
                 'qoi':['Ecoh_min_all',
                        'a1_min_all', 'a2_min_all', 'a3_min_all',
@@ -121,10 +121,10 @@ class Qoi(object):
         self.qoi_type = qoi_type
         self.structures = copy.deepcopy(structures)
         self.tasks = None
-    
+
     def determine_tasks(self):
         raise NotImplementedError
-    
+
     def calculate_qoi(self):
         raise NotImplementedError
 
@@ -139,7 +139,7 @@ class Qoi(object):
 
     @property
     def predicted_value(self):
-        return self._predicted_value 
+        return self._predicted_value
 
     @predicted_value.setter
     def predicted_value(self, qhat):
@@ -163,7 +163,7 @@ class Qoi(object):
             task_structure,
             bulk_structure_name=None,
             task_options=None):
-        
+
         self.__initialize_task_configuration()
 
         # add task
@@ -177,7 +177,7 @@ class Qoi(object):
 
     def process_task_results(self,task_results):
         assert isinstance(task_results,dict)
-        
+
         self.__initialize_task_results()
 
     def add_required_simulation(self,structure,simulation_type):
@@ -187,7 +187,7 @@ class Qoi(object):
         self.required_simulations[simulation_name]['simulation_type'] = simulation_type
         self.required_simulations[simulation_name]['precedent_tasks'] = None
         return simulation_name
-    
+
     def add_precedent_task(self,
             task_name,precedent_task_name,precedent_variables):
         """add a precedent task
@@ -210,10 +210,10 @@ class Qoi(object):
                           task_name,
                           precedent_task_name)
             raise ValueError(s)
-       
+
         if precedent_task_name not in self.required_simulations.keys():
             s = ( 'Tried to add predecessor_task_name to task_name.  '
-                  'predecessor_task_name task_name does not exist in ' 
+                  'predecessor_task_name task_name does not exist in '
                   'required_simulations.\n'
                   '\ttask_name: {}\n'
                   '\tpredecessor_task_name: {}\n' ).format(

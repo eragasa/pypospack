@@ -63,22 +63,48 @@ def get_pair_energy_at_a(a,
         n = k[0]
         r = k[1]
         phi += n * func_pair(r,*args)
- 
+
     # divide by 2, to eliminate double counting
     return 0.5 * phi
 
 
 class EamEmbeddingEquationOfState(EamEmbeddingFunction):
+
+    potential_type = 'eam_eos_base'
     def __init__(self,
-            symbols,
-            potential_type="eam_embed_eos"):
+                 symbols,
+                 obj_density_function=None,
+                 obj_pair_function=None,
+                 lattice_type=None,
+                 lattice_a0=None,
+                 parameters=None
+                 ):
+
+        potential_type_ = 'eam_eos_base'
 
         EamEmbeddingFunction.__init__(self,
-                symbols=symbols,
-                potential_type=potential_type)
+                                      symbols=symbols,
+                                      potential_type='eam_eos_base')
 
-        self.is_eos = True
-        self.density_fn = None
-        self.pair_fn = None
-        self.r_cut = None
+        # define member variables, and initialize with None
+        self.parameters =None
+        self.obj_density_fn = None
+        self.obj_pair_fn = None
+        self.lattice_type = None
+        self.lattice_a0 = None
 
+        # process arguments
+        if parameters is not None:
+            self.parameters = copy.deepcopy(parameters)
+
+        if obj_density_function is not None:
+            self.obj_density_fn = obj_density_function
+
+        if obj_pair_function is not None:
+            self.obj_pair_fn = obj_pair_function
+
+        if lattice_type is not None:
+            self.lattice_type = lattice_type
+
+        if lattice_a0 is not None:
+            self.lattice_a0 = lattice_a0

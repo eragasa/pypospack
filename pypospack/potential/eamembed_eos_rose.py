@@ -12,35 +12,36 @@ def rose_equation_of_state(a,a0,e_coh):
     Args:
         B0 - isothermal bulk modulus
         dB0_dP - first derivative of pressure w.r.t to Pressure
-        omega = 
+        omega =
     """
-    
+
     a_star = (a/a0-1)/sqrt
     return E
 
 class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
     """ An equation of state defined by the Rose Equation of the State
 
-    This class implements the determination of the embedding function by 
-    inverse solution of the Rose-Vinet Equation of State[1]. This method 
+    This class implements the determination of the embedding function by
+    inverse solution of the Rose-Vinet Equation of State[1]. This method
     is outlined in by Foiles[1].
 
     Args:
         symbols(list of str): a list of symbols.
-        obj_density_function(EamDensityFunction,optional): an object which 
+        obj_density_function(EamDensityFunction,optional): an object which
             is an instance of the eam density function.
-        obj_pair_function(PairPotential,optional): an object which is an 
+        obj_pair_function(PairPotential,optional): an object which is an
             instance of a pair potential.
-        lattice_type(str,optional): the type of metal lattice that we have, 
+        lattice_type(str,optional): the type of metal lattice that we have,
             the acceptable lattice types are fcc, bcc, and hcp.
-        lattice_a0(str,optional): the lattice parameter of the lattice type 
+        lattice_a0(str,optional): the lattice parameter of the lattice type
             referenced in lattice_type.
         parameters(OrderedDict,optional): the parameters to be evaluated
     Notes:
         [1] Foiles, Baskes, and Daw., Phys. Rev. B., 1986
         [2] Brent, R. P., Algorithms for Minimization Without Derivatives. Englewood Cliffs, NJ: Prentice-Hall, 1973. Ch. 3-4
     """
-
+    potential_type = 'eam_embed_rose'
+    potential_parameter_names = ['ecoh','latticetype','B','a0']
     def __init__(self,
             symbols,
             obj_density_function=None,
@@ -49,7 +50,15 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
             lattice_a0 = None,
             parameters=None):
 
-        EamEmbeddingEquationOfState.__init__(self,symbols=symbols)
+        EamEmbeddingEquationOfState.__init__(
+                self,
+                symbols=symbols,
+                potential_type = 'eam_embed_rose',
+                obj_density_function = obj_density_function,
+                obj_pair_function = obj_pair_function,
+                lattice_type = lattice_type,
+                lattice_a0 = lattice_a0,
+                parameters = parameters)
 
         # define member variables, and initialize with None
         self.parameters =None
@@ -64,7 +73,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
 
         if obj_density_function is not None:
             self.obj_density_fn = obj_density_function
-        
+
         if obj_pair_function is not None:
             self.obj_pair_fn = obj_pair_function
 
@@ -96,9 +105,9 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
         # the equation of state function
         e_coh = self.parameters["{}_ecoh".format(s)]
         bulk_modulus = self.parameters["{}_B".format(s)]
-        
+
         a0 = self.parameters["{}_a0"]
-       
+
         # this should be replaced with ore general code which implements a base class
         # lattice to retrieve all this reference data
 
@@ -106,10 +115,10 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
             V = a0**3
             n_atoms_per_unit_cell = 4
             omega = V/n_atoms_per_unit_cell
-        
-        
+
+
         e_rose = - e_coh
-        
+
 
     def equation_of_state(self,rho,parameters=None):
         if parameters is None:
@@ -136,7 +145,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
         else:
             if self.obj_pair_fn is None:
                 raise ValueError("pair potential function attribute is None")
-        
+
         # need to add error handling code here as well
         if o_density is not None:
             self.obj_density_fn = o_density
@@ -146,7 +155,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
 
         assert isinstance(parameters,OrderedDict)
         # we can define rho at a point as a function
-       
+
         # nested function for development
         def rhofxn(a,args):
             """
@@ -166,12 +175,12 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
             if lattice_type == 'fcc':
                 n_NN = [12,6,24,12,24,8]
                 d_NN = [a/np.sqrt(2.),a,a*np.sqrt(1.5),a*np.sqrt(2.0),a*np.sqrt(2.5),a*np.sqrt(3.0)]
-            
+
             _rho = 0.
 
             if isinstance(r,np.ndarray) and isinstance(rho,np.ndarray):
                 _density = self.obj_density_fn.density_evaluations[s]
-            
+
                 for i in range(len(n_NN)):
                     _rho += n_NN[i] * np.interp(
                             d_NN[i],
@@ -191,9 +200,9 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
                                 d_NN[i],
                                 rho_fxn_parameters
                             )[s]
-            
+
             return _rho-_rho_bar
-        
+
         def pairfxn(r,args,pair_key=None,r_vector=None):
 
             pair_fxn_parameters = OrderedDict()
@@ -205,7 +214,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
             if lattice_type == 'fcc':
                 n_NN = [12,6,24,12,24,8]
                 d_NN = [a/np.sqrt(2.),a,a*np.sqrt(1.5),a*np.sqrt(2.0),a*np.sqrt(2.5),a*np.sqrt(3.0)]
-            
+
             _pot = 0.
 
             if isinstance(r_vector,np.ndarray):
@@ -252,7 +261,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
                 _B = parameters['e_{}_B'.format(s)]
             except KeyError as e:
                 _B = parameters['{}_B'.format(s)]
-            
+
             try:
                 _a0 = parameters['e_{}_a0'.format(s)]
             except KeyError as e:
@@ -263,7 +272,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
                 _n_atoms_per_unit_cell = 4
 
             for k,rhostar in enumerate(rho):
-        
+
                 # for each rho, we need to determine the lattice parameter which produces
                 # the rho for an atom in the corresponding lattice type.
                 try:
@@ -277,15 +286,15 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
                     # this error is thrown due to the brent bounding bracket [a, b] not including a zero
                     raise PypospackBadEamEosError(parameters=parameters)
 
-                # here we determine astar as in equation 5 in Foiles. Phys Rev B (33) 12. Jun 1986 
+                # here we determine astar as in equation 5 in Foiles. Phys Rev B (33) 12. Jun 1986
                 # 160.22 is the conversion with _esub in eV, _B in GPa, and _omega in Angs^3
-                _esub = abs(_ecoh) 
-                _omega = (_a0**3)/_n_atoms_per_unit_cell 
+                _esub = abs(_ecoh)
+                _omega = (_a0**3)/_n_atoms_per_unit_cell
                 astar = ((a/_a0)-1)/((_esub/(9*_B*_omega) * 160.22)**0.5)
 
                 # now determine the rose energy as in Equation 4
                 _e_rose = -_esub*(1+astar)*np.exp(-astar)
-                
+
                 # now find the pair potential for the lattice constant
                 _pair_key = '{}{}'.format(s,s)
                 _e_pot = pairfxn(a,parameters,_pair_key,r)
@@ -305,5 +314,3 @@ if __name__ == "__main__":
     assert o.density_fn is None
     assert o.pair_fn is None
     assert o.r_cut is None
-
-    

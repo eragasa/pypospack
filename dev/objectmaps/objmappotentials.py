@@ -16,8 +16,11 @@ potential_subclasses = OrderedDict()
 for k,v in cls_members:
     if issubclass(v,pypospack.potential.Potential):
         potential_subclasses[k] = v
-print(potential_subclasses)
+        print(v.potential_type)
+exit()
 
+
+print(list(potential_subclasses.keys()))
 print(80*'-')
 print('pair_potential_formalisms')
 print(80*'-')
@@ -35,7 +38,7 @@ print(80*'-')
 eam_embedding_formalisms = OrderedDict()
 for k,v in cls_members:
     if issubclass(v,pypospack.potential.EamEmbeddingFunction):
-        eam_embedding_formalisms[k] = v 
+        eam_embedding_formalisms[k] = v
 print(eam_embedding_formalisms)
 
 print(80*'-')
@@ -74,6 +77,5 @@ print(80*'-')
 three_body_formalisms = OrderedDict()
 for k,v in cls_members:
     if issubclass(v,pypospack.potential.ThreeBodyPotential):
-        threebody_potential_formalisms[k] = v 
+        threebody_potential_formalisms[k] = v
 print(threebody_potential_formalisms)
-

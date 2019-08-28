@@ -9,8 +9,8 @@ Attributes:
     atom_info(dict): dictionary of chemical symbols, and a dictionary of their values
 """
 __author__ = "Eugene J. Ragasa"
-__copyright__ = "Copyright (C) 2016,2017,2018,2019"
-__license__ = "MIT License"
+__copyright__ = "Copyright (C) 2016,2017"
+__license__ = "Simplified BSD License"
 __version__ = "1.0"
 
 import copy, subprocess, yaml, os
@@ -28,27 +28,27 @@ iso_chem_symbols = ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al',
         'Cf','Es','Fm','Md','No','Lr','Rf','Db','Sg','Bh','Hs','Mt','Ds','Rg',
         'Uub','Uut','Uuq','Uup','Uuh','Uus','Uuo']
 
-def get_atomic_weight(symbol):
-    atomic_weights = {
-        'Ar':39.948,
-        'Mg':24.305,
-        'O' :15.9994,
-        'Si':28.0855,
-        'Ni':58.6934,
-        'Al':26.981539
-    }
+atom_info = {}
+atom_info['Ar'] = {'atomic_mass':39.948}
+atom_info['Mg'] = {'atomic_mass':24.305}
+atom_info['O'] = {'atomic_mass':15.9994}
+atom_info['Si'] = {'atomic_mass':28.0855}
+atom_info['Ni'] = {'atomic_mass':58.6934}
+atom_info['Al'] = {'atomic_mass':26.981539}
 
-    try:
-        amu = atomic_weights[symbol]
-    except KeyError as e:
-        if symbol in iso_chem symbols:
-            msg = "The atomic weight of symbol {} has not been implemented"
-            raise NotImplementedError(msg.format(symbol))
-        else:
-            msg = "The symbol {} is not a valid ISO chemical symbol"
-    return amu
+def get_amu(symbol):
+    """ get atomic mass unit
 
-class Atom():
+    this method gets the the atomic mass unit for a given chemical symbol.
+
+    Args:
+        symbol(str): the ISO chemical symbol of an atom
+
+    Returns:
+        float: the mass of the atom, in atomic mass units
+    """
+
+    return atom_info[symbol]['atomic_mass']
 
 def cartesian2direct(x,H):
     """ transforms cartesian coordinates to direct coordinates
@@ -197,34 +197,7 @@ class StructureDatabase(object):
 
         return copy.deepcopy(structure_dict)
 
-class Atom(object):
-    """description of an atom
 
-    This position is a data structure which contains information about an
-    individual atom
-
-    Args:
-        symbol (str): the standard ISO symbol for an element
-        position (list of float): the position of the atom the units
-           are dependent upon use.
-        magmom (float): the magnetic moment of the atom.
-
-    Attributes:
-        symbol (str): the standard ISO symbol for an element
-        position (numpy.ndarray): the position of the atom, usually in direct
-            coordinates
-        magentic_moment (float): the magnetic moment of the atom
-    """
-    def __init__(self, symbol, position, magmom = 0):
-
-        self.symbol = symbol
-        if isinstance(position,list):
-            self.position = np.array(position)
-        elif isinstance(position,np.ndarray):
-            self.position = position.copy()
-        else:
-            raise TypeError('position must either be a list of numeric values or a numpy array')
-        self.magnetic_moment = magmom
 
 
 class SimulationCell(object):
