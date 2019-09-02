@@ -41,14 +41,12 @@ def get_atomic_weight(symbol):
     try:
         amu = atomic_weights[symbol]
     except KeyError as e:
-        if symbol in iso_chem symbols:
+        if symbol in iso_chem_symbols:
             msg = "The atomic weight of symbol {} has not been implemented"
             raise NotImplementedError(msg.format(symbol))
         else:
             msg = "The symbol {} is not a valid ISO chemical symbol"
     return amu
-
-class Atom():
 
 def cartesian2direct(x,H):
     """ transforms cartesian coordinates to direct coordinates
@@ -416,7 +414,7 @@ class SimulationCell(object):
 
         return return_value
 
-    def add_atom(self, symbol, position):
+    def add_atom(self, symbol, position, magmom=0.):
         """add an atom to the structure
 
         Checks to see if an existing atom exists at the position we are trying
@@ -425,7 +423,8 @@ class SimulationCell(object):
 
         Args:
             symbol (str): the symbol of the atom to be added
-            position (str): the position of the atom to be added
+            position (list): the position of the atom to be added
+            magmom (float): magnetic moment of the atom
 
         Raises:
             ValueError: If an atom already exists in the position.
@@ -439,7 +438,9 @@ class SimulationCell(object):
                 err_msg += ",".join([str(i),a,a.symbol,a.position])
             raise ValueError(err_msg)
         else:
-            self.atomic_basis.append(Atom(symbol,position))
+            self.atomic_basis.append(
+                Atom(symbol,position,magmom=magmom)
+            )
 
     def remove_atom(self,symbol, position):
         """ remove an atom from the structure
@@ -525,16 +526,26 @@ class SimulationCell(object):
         for i in range(3):
             self.H[i,:] = self.H[i,:] / self.a0
 
+    def atomic_basis_to_string(self):
+        # print atomic basis
+        str_n_cols = 5
+        str_atomic_basis_header_fmt = "{:10}   {:10} {:10} {:10} {:10}\n"
+        str_atomic_basis_row_fmt = "{:10} {:10.6f} {:10.6f} {:10.6f} {:10.6f}\n"
+        str_out = str_atomic_basis_header_fmt.format('symbol','x','y','z','magmom')
+        for a in self.atomic_basis:
+            str_out += str_atomic_basis_row_fmt.format(
+                a.symbol,
+                a.position[0],
+                a.position[1],
+                a.position[2],
+                a.magnetic_moment)
+        return str_out
+
     def __str__(self):
         str_out = "a = {}\n".format(self.a0)
-        str_out += "atom list:\n"
-        for a in self.atomic_basis:
-            str_out = "{} {:10.6f} {:10.6f} {:10.6f} {:10.6f}"
-            str_out += str_out.format(a.symbol,
-                                      a.position[0],
-                                      a.position[1],
-                                      a.position[2],
-                                      a.magnetic_moment)
+        str_out += "atomic_basis:\n"
+        str_out += self.atomic_basis_to_string()
+        return str_out
 
 def make_super_cell(structure, sc):
     """makes a supercell from a given cell
@@ -654,7 +665,7 @@ class FaceCenteredCubic(SimulationCell):
         return n_NN, d_NN
 
 def get_nearest_neighbor_information(a, lattice_type):
-    lattice_types = { 
+    lattice_types = {
             'fcc':FaceCenteredCubic }
     return lattice_types[lattice_type].get_nearest_neighbor_information(a)
 
