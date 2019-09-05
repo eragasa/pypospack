@@ -23,4 +23,5 @@ cell.add_atom('Fe', [0.5, 0.0, 0.75], magmom=-2.22)
 cell.add_atom('Fe', [0.0, 0.5, 0.75], magmom=-2.22)
 
 poscar = vasp.Poscar(cell)
-poscar.write('POSCAR')
+poscar.write('Fe_fcc_afm_D.init.vasp')
+print(poscar.get_magmom_tag())

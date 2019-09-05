@@ -224,6 +224,14 @@ class Atom(object):
             raise TypeError('position must either be a list of numeric values or a numpy array')
         self.magnetic_moment = magmom
 
+    @property
+    def magmom(self):
+        return self.magnetic_moment
+
+    @magmom.setter
+    def magmom(self, magmom):
+        self.magnetic_moment = magmom
+
 
 class SimulationCell(object):
     """A structural representation of a material system
@@ -442,7 +450,7 @@ class SimulationCell(object):
                 Atom(symbol,position,magmom=magmom)
             )
 
-    def remove_atom(self,symbol, position):
+    def remove_atom(self, symbol, position):
         """ remove an atom from the structure
 
         This method checks for atom at the position, if an atom exists.  It is
@@ -453,24 +461,18 @@ class SimulationCell(object):
             position (:obj:`list` of :obj:`float`): the position of the atom
 
         """
-        self.ptol = 1e-4
+        self.ptol = 1e-3
         for i,a in enumerate(self.atomic_basis):
             if (a.symbol == symbol):
                 diff = [abs(position[j]-a.position[j]) for j in range(3)]
-                is_atom = True
-                for j in range(3):
-                    if diff[j] >= self.ptol:
-                        is_atom = False
-                if is_atom:
-                    self.atomic_basis.remove(self.atomic_basis[i])
+                if all([k < self.ptol for k in diff]):
+                    del self.atomic_basis[i]
                     return
-
-        # no atom found
         err_msg = "Tried to remove {} @ {}, no atom found"
         err_msg = err_msg.format(symbol,position)
         raise ValueError(err_msg)
 
-    def add_interstitial(self,symbol,position):
+    def add_interstitial(self, symbol, position):
         """ add an interstitial to the atomic basis
 
         Args:
@@ -480,7 +482,7 @@ class SimulationCell(object):
         self.add_atom(symbol,position)
         self.interstitials.append([symbol,position])
 
-    def add_vacancy(self,symbol,position):
+    def add_vacancy(self, symbol, position):
         """ create a vacancy
 
         Creates a vacancy by removing an atom from the atomic basis
@@ -541,18 +543,55 @@ class SimulationCell(object):
                 a.magnetic_moment)
         return str_out
 
+    def vacancies_to_string(self):
+        print("vacancies:")
+        print(self.vacancies)
+        if self.vacancies == []:
+            return ""
+        else:
+            str_out = ""
+            return str_out
+
+    def interstitials_to_string(self):
+        print("interstitials:")
+        print(self.interstitials)
+        str_out = ""
+        if self.interstitials == []:
+            return ""
+        else:
+            str_out = ""
+            return str_out
+
+    def lattice_to_string(self):
+        str_out += "a0 = {}\n".format(self.a0)
+        str_out += "a1 = {:10.6f} {:10.6f} {:10.6f}\n".format(
+            self.a0 * self.h1[0],
+            self.a0 * self.h1[1],
+            self.a0 * self.h1[2])
+        str_out += "a2 = {:10.6f} {:10.6f} {:10.6f}\n".format(
+            self.a0 * self.h2[0],
+            self.a0 * self.h2[1],
+            self.a0 * self.h2[2])
+        str_out += "a3 = {:10.6f} {:10.6f} {:10.6f}\n".format(
+            self.a0 * self.h3[0],
+            self.a0 * self.h3[1],
+            self.a0 * self.h3[2])
+
     def __str__(self):
-        str_out = "a = {}\n".format(self.a0)
+        str_out = "lattice:"
+        str_out += self.lattice_to_str()
         str_out += "atomic_basis:\n"
         str_out += self.atomic_basis_to_string()
+        str_out += self.vacancies_to_string()
+        str_out += self.interstitials_to_string()
         return str_out
 
 def make_super_cell(structure, sc):
     """makes a supercell from a given cell
 
     Args:
-        structure (pyflamestk.base.Structure): the base structure from which
-            the supercell will be made from.
+        structure(pypospack.crystal.SimulationCell): the base structure from
+            which the supercell will be made from.
         sc (:obj:`list` of :obj:`int`): the number of repeat units in the h1, h2, and h3
             directions
     """
@@ -580,10 +619,14 @@ def make_super_cell(structure, sc):
                     position = [(i+position[0])/sc[0],\
                                 (j+position[1])/sc[1],\
                                 (k+position[2])/sc[2]]
-                    supercell.add_atom(symbol,position)
+                    magmom = atom.magmom
+                    supercell.add_atom(
+                        symbol=symbol,
+                        position=position,
+                        magmom=magmom)
 
     # return a copy of the supercell
-    return copy.deepcopy(supercell)
+    return supercell
 
 class RadialDistributionFunction(object):
 
