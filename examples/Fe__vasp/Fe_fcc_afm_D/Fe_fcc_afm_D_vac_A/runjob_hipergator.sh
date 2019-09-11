@@ -10,8 +10,9 @@
 #SBATCH --qos=phillpot-b              # Queue you are submitting to 
 pwd; hostname; date
 
-module load intel/2019.1.144  
-module load openmpi/4.0.0
-module load vasp/5.4.4
+module load intel/2016.0.109
+module load impi/5.1.1 
 
-srun --mpi=pmi2 vasp_std > vasp.log
+export VASP_BIN=/home/eragasa/opt/vasp/vasp.5.4.4/bin/vasp_std
+
+srun --mpi=pmi2 $VASP_BIN > vasp.log
