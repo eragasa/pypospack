@@ -31,10 +31,47 @@ class SlurmSubmissionScript(object):
             self.configuration['time'] = '1:00:00'
         if 'memory' not in self.configuration:
             self.configuration['memory'] = '4gb'
+
+    def section_header_section_to_str(self):
+        job_name_ = self.configuration['job_name']
+        qos_ = self.configuration['qos']
+        email_ = self.configuration['email']
+        ntasks_ = self.configuration['ntasks']
+        time_ = self.configuration['time']
+        output_ = self.configuration['output']
+        error_ = self.configuration['error']
+
+        str_out = '#!/bin/bash\n'
+        str_out += '#SBATCH --job-name={}\n'.format(_job_name)
+        str_out += '#SBATCH --qos={}\n'.format(_qos)
+        str_out += '#SBATCH --mail-type=END\n'
+        str_out += '#SBATCH --mail-user={}\n'.format(_email)
+        str_out += '#SBATCH --ntasks={}\n'.format(_ntasks)
+        str_out += '#SBATCH --distribution=cyclic:cyclic\n'
+        str_out += '#SBATCH --mem={}\n'.format(_memory)
+        str_out += '#SBATCH --time={}\n'.format(_time)
+        str_out += '#SBATCH --output={}\n'.format(_output)
+        str_out += '#SBATCH --error={}\n'.format(_error)
+
+        return str_out
+
+    def section_load_modules_to_str(self, modules=None):
+
+        # since modules argument is specified, replace modules entry
+        if modules is not None:
+            self.configuration['modules'] = list(modules)
+        modules_ = self.configuration['modules']
+
+        str_out = ""
+        for module in modules_:
+            str_out += "module load {}\n".format(module)
+
+        return str_out
+
     def write(self,filename='runjob.slurm',job_name='default'):
         self.filename=filename
-       
-        self.configuration['job_name'] = job_name 
+
+        self.configuration['job_name'] = job_name
         _job_name = self.configuration['job_name']
         _qos = self.configuration['qos']
         _email = self.configuration['email']
@@ -69,11 +106,11 @@ class SlurmSubmissionScript(object):
         s += '#<---------- load necessary modules\n'
         if 'modules' in self.configuration:
             for module_name in self.configuration['modules']:
-                s += "module load {}\n".format(module_name)	
-	
+                s += "module load {}\n".format(module_name)
+
         s += '#<---------- run application\n'
         s += 'srun --mpi=pmi2 {}\n'.format(_cmd)
-        s += 'touch jobCompleted\n'    
+        s += 'touch jobCompleted\n'
         s += 'echo end_time:$(date)\n'
 
         with open(filename,'w') as f:
@@ -99,15 +136,15 @@ def write_phonts_batch_script(filename,job_name,email,qos,ntasks,time,
     s += 'echo slurm_job_num_nodes:$SLURM_JOB_NUM_NODES\n'
     s += 'echo slurm_cpus_on_node:$SLURM_CPUS_ON_NODE\n'
     s += 'echo slurm_ntasks:$SLURM_NTASKS\n'
-    
+
     s += 'echo working directory:$(pwd)\n'
     s += 'echo hostname:$(hostname)\n'
     s += 'echo start_time:$(date)\n'
-    
+
     s += 'module load intel openmpi\n'
     s += '\n'
     s += 'srun --mpi=pmi2 $PHONTS_BIN > phonts.log\n'
-    s += 'touch jobCompleted\n'    
+    s += 'touch jobCompleted\n'
     s += 'echo end_time:$(date)\n'
 
     with open(filename,'w') as f:
@@ -120,7 +157,7 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
 
     intel_compiler_string = ""
     mpi_compiler_string = ""
-    
+
     if vasp_bin is None:
         _vasp_bin = os.environ['VASP_BIN']
     else:
@@ -147,16 +184,15 @@ def write_vasp_batch_script(filename,job_name,email,qos,ntasks,time,
     s += 'echo slurm_job_num_nodes:$SLURM_JOB_NUM_NODES\n'
     s += 'echo slurm_cpus_on_node:$SLURM_CPUS_ON_NODE\n'
     s += 'echo slurm_ntasks:$SLURM_NTASKS\n'
-    
+
     s += 'echo working directory:$(pwd)\n'
     s += 'echo hostname:$(hostname)\n'
     s += 'echo start_time:$(date)\n'
 
     s += 'module load intel/2016.0.109\n'
     s += 'module load impi\n'
-    s += 'srun --mpi=pmi2 $VASP_BIN > vasp.log\n' 
+    s += 'srun --mpi=pmi2 $VASP_BIN > vasp.log\n'
     s += 'echo end_time:$(date)\n'
 
     with open(filename,'w') as f:
         f.write(s)
-
