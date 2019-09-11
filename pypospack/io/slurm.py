@@ -22,7 +22,7 @@ class SlurmSubmissionScript(object):
         if 'email' not in self.configuration:
             raise ValueError('no email provided')
         if 'ntasks' not in self.configuration:
-            self.configuration = '16'
+            self.configuration['ntasks'] = '16'
         if 'output' not in self.configuration:
             self.configuration['output'] = 'job.out'
         if 'error' not in self.configuration:
@@ -35,23 +35,25 @@ class SlurmSubmissionScript(object):
     def section_header_section_to_str(self):
         job_name_ = self.configuration['job_name']
         qos_ = self.configuration['qos']
-        email_ = self.configuration['email']
+        mail_ = self.configuration['mail']
+        mail_type_ = self.configuration['mail_type']
         ntasks_ = self.configuration['ntasks']
         time_ = self.configuration['time']
         output_ = self.configuration['output']
         error_ = self.configuration['error']
+        memory_ = self.configuration['memory']
 
         str_out = '#!/bin/bash\n'
-        str_out += '#SBATCH --job-name={}\n'.format(_job_name)
-        str_out += '#SBATCH --qos={}\n'.format(_qos)
-        str_out += '#SBATCH --mail-type=END\n'
-        str_out += '#SBATCH --mail-user={}\n'.format(_email)
-        str_out += '#SBATCH --ntasks={}\n'.format(_ntasks)
+        str_out += '#SBATCH --job-name={}\n'.format(job_name_)
+        str_out += '#SBATCH --qos={}\n'.format(qos_)
+        str_out += '#SBATCH --mail-type={}\n'.format(mail_type_)
+        str_out += '#SBATCH --mail-user={}\n'.format(mail_)
+        str_out += '#SBATCH --ntasks={}\n'.format(ntasks_)
         str_out += '#SBATCH --distribution=cyclic:cyclic\n'
-        str_out += '#SBATCH --mem={}\n'.format(_memory)
-        str_out += '#SBATCH --time={}\n'.format(_time)
-        str_out += '#SBATCH --output={}\n'.format(_output)
-        str_out += '#SBATCH --error={}\n'.format(_error)
+        str_out += '#SBATCH --mem={}\n'.format(memory_)
+        str_out += '#SBATCH --time={}\n'.format(time_)
+        str_out += '#SBATCH --output={}\n'.format(output_)
+        str_out += '#SBATCH --error={}\n'.format(error_)
 
         return str_out
 
