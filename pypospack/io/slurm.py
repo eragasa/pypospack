@@ -2,6 +2,17 @@
 import copy
 from collections import OrderedDict
 
+slurm_default_configuration_list = [
+    ('job_name', 'default_job'),
+    ('qos', 'phillpot-b'),
+    ('email', 'eragasa@ufl.edu'),
+    ('ntasks', '16'),
+    ('output', 'job.out'),
+    ('error', 'job.err'),
+    ('time', '1:00:00'),
+    ('memory', '4gb')
+]
+
 class SlurmSubmissionScript(object):
 
     def __init__(self,slurm_dict=None):
@@ -70,53 +81,58 @@ class SlurmSubmissionScript(object):
 
         return str_out
 
-    def write(self,filename='runjob.slurm',job_name='default'):
+    def section_slurm_debug_to_str(self):
+        str_out = "\n".join([
+            'echo slurm_job_id:$SLURM_JOB_ID'
+            'echo slurm_job_name:$SLURM_JOB_NAME'
+            'echo slurm_job_nodelist:$SLURM_JOB_NODELIST'
+            'echo slurm_job_num_nodes:$SLURM_JOB_NUM_NODES'
+            'echo slurm_cpus_on_node:$SLURM_CPUS_ON_NODE'
+            'echo slurm_ntasks:$SLURM_NTASKS'
+            'echo working directory:$(pwd)'
+            'echo hostname:$(hostname)'
+            'echo start_time:$(date)'
+        ]) + "\n"
+        return str_out
+
+    def section_command_to_str(self,command=None):
+        if command is not None:
+            self.configuration['command'] = command
+        command_ = self.configuration['command']
+
+        if isinstance(command_, str):
+            str_out = command_
+        elif isinstance(command_, list):
+            str_out = "\n".join(command_) + "\n"
+        else:
+            raise TypeError()
+
+        return str_out
+
+    def section_postprocessing_to_str(self):
+        str_out = "touch jobComplete\n"
+        str_out += "echo end_time:$(date)\n"
+        return str_out
+
+    def slurm_script_string(self):
+        str_out = self.section_header_section_to_str()
+        str_out += "#<---------- SLURM debug information"
+        str_out += self.section_slurm_debug_to_str()
+        str_out += '#<---------- load necessary modules\n'
+        str_out += '#<---------- run application\n'
+        str_out += self.section_command_to_str()
+        str_out += '#<---------- post-processing steps'
+        str_out += section_postprocessing_to_str()
+        return str_out
+
+    def write(self,filename='runjob.slurm',job_name=None):
         self.filename=filename
+        if job_name is not None:
+            self.configuration['job_name'] = job_name
 
-        self.configuration['job_name'] = job_name
-        _job_name = self.configuration['job_name']
-        _qos = self.configuration['qos']
-        _email = self.configuration['email']
-        _ntasks = self.configuration['ntasks']
-        _time = self.configuration['time']
-        _output = self.configuration['output']
-        _error = self.configuration['error']
-        _cmd = self.configuration['command']
-        _memory = self.configuration['memory']
-
-        s = '#!/bin/bash\n'
-        s += '#SBATCH --job-name={}\n'.format(_job_name)
-        s += '#SBATCH --qos={}\n'.format(_qos)
-        s += '#SBATCH --mail-type=END\n'
-        s += '#SBATCH --mail-user={}\n'.format(_email)
-        s += '#SBATCH --ntasks={}\n'.format(_ntasks)
-        s += '#SBATCH --distribution=cyclic:cyclic\n'
-        s += '#SBATCH --mem={}\n'.format(_memory)
-        s += '#SBATCH --time={}\n'.format(_time)
-        s += '#SBATCH --output={}\n'.format(_output)
-        s += '#SBATCH --error={}\n'.format(_error)
-        s += 'echo slurm_job_id:$SLURM_JOB_ID\n'
-        s += 'echo slurm_job_name:$SLURM_JOB_NAME\n'
-        s += 'echo slurm_job_nodelist:$SLURM_JOB_NODELIST\n'
-        s += 'echo slurm_job_num_nodes:$SLURM_JOB_NUM_NODES\n'
-        s += 'echo slurm_cpus_on_node:$SLURM_CPUS_ON_NODE\n'
-        s += 'echo slurm_ntasks:$SLURM_NTASKS\n'
-        s += 'echo working directory:$(pwd)\n'
-        s += 'echo hostname:$(hostname)\n'
-        s += 'echo start_time:$(date)\n'
-
-        s += '#<---------- load necessary modules\n'
-        if 'modules' in self.configuration:
-            for module_name in self.configuration['modules']:
-                s += "module load {}\n".format(module_name)
-
-        s += '#<---------- run application\n'
-        s += 'srun --mpi=pmi2 {}\n'.format(_cmd)
-        s += 'touch jobCompleted\n'
-        s += 'echo end_time:$(date)\n'
-
+        str_out = self.slurm_script_string(self)
         with open(filename,'w') as f:
-            f.write(s)
+            f.write(str_out)
 
 def write_phonts_batch_script(filename,job_name,email,qos,ntasks,time,
         output='job.out',error='job.err'):

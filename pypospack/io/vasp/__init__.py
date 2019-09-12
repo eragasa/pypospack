@@ -137,13 +137,14 @@ class VaspMinimizeStructure(object):
         pass
 
 class Incar(object):
+
     def __init__(self, filename="INCAR"):
         """ object for dealing with input and output to VASP via INCAR file
 
         Args:
         filename (str): the filename of the INCAR file, default:'INCAR'
         """
-        self._filename = filename
+        self.filename = filename
 
         self._fmt_section = '# {:*^78}\n'
         self._fmt_arg = '{:<30}! {}\n'
@@ -156,6 +157,7 @@ class Incar(object):
         self.__init_symmetry()
         self.__init_scf()
         self.__init_spin()
+        self.__init_mixer()
         self.__init_ionic_relaxation()
         self.__init_output()
 
@@ -170,6 +172,7 @@ class Incar(object):
     def __init_symmetry(self):
         self.isym = 2
         self.symprec = 1e-4
+
     def __init_scf(self):
         self.ediff = 1e-6 # convergece criteria in eV
         self.nelm = 40 # maximum number of SCF steps
@@ -180,7 +183,15 @@ class Incar(object):
 
     def __init_spin(self):
         self.ispin=1
+        self.lorbit=None
+        self.rwigs=None
         self.magmom=None
+
+    def __init_mixer(self):
+        self.amix = None
+        self.bmix = None
+        self.amix_mag = None
+        self.bmix_mag = None
 
     def __init_ionic_relaxation(self):
         self.ibrion = None
@@ -202,13 +213,21 @@ class Incar(object):
         else:
             return False
 
-    @property
-    def filename(self):
-        return self._filename
+    def get_section_string(self, comment):
+        str_out = '# {:*^78}\n'.format(comment)
+        return str_out
 
-    @filename.setter
-    def filename(self, fn):
-        self._filename = fn
+    def get_option_string(self, option_flag, option_value):
+        try:
+            option_comment = self._cmt_dict[option_flag][option_value]
+            str_out = '{:<30}! {}\n'.format(
+                "{} = {}".format(option_flag, option_value),
+                option_comment
+            )
+        except KeyError as e:
+            str_out = '{} = {}\n'.format(option_flag, option_value)
+        return str_out
+
 
     def write(self,filename=None):
         """write poscar file
@@ -275,6 +294,8 @@ class Incar(object):
                     self.lwave = args[1]
                 elif args[0] == 'LCHARG':
                     self.lcharg = args[1]
+                elif args[0] == 'LORBIT':
+                    self.lorbit = int(args[1])
                 elif args[0] == 'LVTOT':
                     self.lvtot = args[1]
                 elif args[0] == 'LREAL':
@@ -285,6 +306,18 @@ class Incar(object):
                     self.isym = int(args[1])
                 elif args[0] == 'SYMPREC':
                     self.symprec = float(args[1])
+                elif args[0] == 'RWIGS':
+                    self.rwigs = float(rwigs)
+                elif args[0] == 'NPAR':
+                    self.npar = int(args[1])
+                elif args[0] == "AMIX":
+                    self.amix = float(args[1])
+                elif args[0] == 'BMIX':
+                    self.bmix = float(args[1])
+                elif args[0] == 'AMIX_MAG':
+                    self.amix_mag = float(args[1])
+                elif args[1] == 'BMIX_MAG':
+                    self.bmix_mag = float(args[1])
                 else:
                     err_msg = "pypospack does not support tag {}".format(args[0])
                     raise VaspIncarError(err_msg)
@@ -301,10 +334,27 @@ class Incar(object):
         str_out += self.__sym_information_to_string()
         str_out += self.__scf_information_to_string()
         str_out += self.__spin_polarization_to_string()
+        str_out += self._mixer_to_string()
         str_out += self.__ionic_relaxation_to_string()
         str_out += self.__output_configuration_to_string()
         return str_out
 
+    def _mixer_to_string(self):
+
+        mixing_tags = [self.amix, self.bmix, self.amix_mag, self.bmix_mag]
+        if all([k is None for k in mixing_tags]):
+            return ""
+        else:
+            str_out = self.get_section_string("MIXING")
+            if self.amix is not None:
+                str_out += self.get_option_string('AMIX',self.amix)
+            if self.bmix is not None:
+                str_out += self.get_option_string('BMIX',self.bmix)
+            if self.amix_mag is not None:
+                str_out += self.get_option_string('AMIX_MAG', self.amix_mag)
+            if self.bmix_mag is not None:
+                str_out += self.get_option_string('BMIX_MAG', self.bmix_mag)
+            return str_out
     def __system_information_to_string(self):
         str_out = "SYSTEM = {}\n\n".format(self.system)
         return str_out
@@ -366,16 +416,47 @@ class Incar(object):
 
         return str_out
 
-    def __spin_polarization_to_string(self):
+    def _spin_polarization_to_string(self):
         fmt = "{} = {}"
 
         str_out = self._fmt_section.format('SPIN POLARIZATION CONFIGURATION')
-        str_out += self._fmt_arg.format(fmt.format('ISPIN',self.ispin),self._cmt_dict['ISPIN'][self.ispin])
+
+        if self.ispin==1:
+            str_out += self._fmt_arg.format(fmt.format('ISPIN',self.ispin),self._cmt_dict['ISPIN'][self.ispin])
+
         if self.ispin == 2:
-            str_out += fmt.format('MAGMOM',self.magmom) + '\n'
+            str_out += self._fmt_arg.format(fmt.format('ISPIN',self.ispin),self._cmt_dict['ISPIN'][self.ispin])
+
+            if self.lorbit is not None:
+                if self.lorbit < 10:
+                    if self.rwigs is not None:
+                        str_out += self.get_option_string('LORBIT',self.lorbit)
+                        str_out += self.get_option_string('RWIGS',self.rwigs)
+                    else:
+                        if self.lorbit == 0:
+                            self.lorbit = 10
+                        elif self.lorbit == 1:
+                            self.lorbit = 11
+                        elif self.lorbit == 2:
+                            self.lorbit = 12
+                        elif self.lorbit == 5:
+                            self.lorbit = 10
+                        else:
+                            raise VaspIncarError('')
+                        str_out += self.get_option_string('LORBIT',self.lorbit)
+                else:
+                    str_out += self.get_option_string('LORBIT',self.lorbit)
+
+            if self.magmom is not None:
+                str_out += fmt.format('MAGMOM',self.magmom) + '\n'
+
         str_out += '\n'
 
         return str_out
+
+    @DeprecationWarning
+    def __spin_polarization_to_string(self):
+        return self._spin_polarization_to_string()
 
     def __ionic_relaxation_to_string(self):
         fmt = "{} = {}"
@@ -1017,6 +1098,15 @@ def initialize_incar_comments():
     comments_dict["LREAL"]['.FALSE.'] = 'projection done in reciprocal space'
     comments_dict["LREAL"]['On'] = 'method of King-Smith, et al. Phys. Rev B 44, 13063 (1991).'
     comments_dict["LREAL"]['Auto'] = 'unpublished method of G. Kresse'
+
+    comments_dict['LORBIT'] = {}
+    comments_dict['LORBIT'][0] = 'DOSCAR and PROCAR'
+    comments_dict['LORBIT'][1] = 'DOSCAR and lm-decomposted PROCAR'
+    comments_dict['LORBIT'][2] = 'DOSCAR,lm_decomposed PROCAR, phase factors'
+    comments_dict['LORBIT'][5] = 'DOSCAR, PROCAR'
+    comments_dict['LORBIT'][10] = 'DOSCAR, PROCAR'
+    comments_dict['LORBIT'][11] = 'DOSCAR, lm-decomposed PROCAR'
+    comments_dict['LORBIT'][12] = 'DOSCAR, lm-decomposed PROCAR, phase factors'
 
     comments_dict["ISPIN"] = {}
     comments_dict["ISPIN"][1] = 'non-spin polarized calculations'

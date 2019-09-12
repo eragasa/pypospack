@@ -28,12 +28,12 @@ def get_kpoint_mesh(simulation_cell,linear_kpoint_density):
     b1_length = np.dot(simulation_cell.b1,simulation_cell.b1)**0.5
     b2_length = np.dot(simulation_cell.b2,simulation_cell.b2)**0.5
     b3_length = np.dot(simulation_cell.b3,simulation_cell.b3)**0.5
-    
+
     #linear_kpoint_density = kpoints_1/b1_length -->i
     kpoints_1 = linear_kpoint_density*b1_length
     kpoints_2 = linear_kpoint_density*b2_length
     kpoints_3 = linear_kpoint_density*b3_length
-    
+
     kpoints_1_round = int(kpoints_1+0.5)
     kpoints_2_round = int(kpoints_2+0.5)
     kpoints_3_round = int(kpoints_3+0.5)
@@ -41,8 +41,11 @@ def get_kpoint_mesh(simulation_cell,linear_kpoint_density):
     return [kpoints_1_round,kpoints_2_round,kpoints_3_round]
 
 def determine_kpoint_meshes(simulation_cell,
-        rho_min=1, rho_max=10, d_rho=0.1,
-        kpoint_min=3,kpoint_max=15):
+                            rho_min=1,
+                            rho_max=10,
+                            d_rho=0.1,
+                            kpoint_min=3,
+                            kpoint_max=15):
     """
 
    Args:
@@ -53,11 +56,11 @@ def determine_kpoint_meshes(simulation_cell,
         rho_max(float): largest linear kpoint density to end.  Default is 10.
         d_rho(float): the size of the step of the linear kpoint density. Default
             is 0.1
-        kpoint_min(int): Minimum number of kpoints in a linear direction.  
+        kpoint_min(int): Minimum number of kpoints in a linear direction.
             Default is 3, which is appropriate for approximately cubic
             crystals.
         kpoint_max(int): Maximum number of kpoints is a linear direction.
-            Default is 15, which is appropriate for approximately cubic 
+            Default is 15, which is appropriate for approximately cubic
             crystals.
 
     Returns:
@@ -79,7 +82,7 @@ def determine_kpoint_meshes(simulation_cell,
     for rho in np.arange(rho_min,rho_max,d_rho):
         old_kp_mesh = copy.copy(new_kp_mesh)
         new_kp_mesh = get_kpoint_mesh(simulation_cell,rho)
-        
+
         if old_kp_mesh is None:
             key = kpoints2key(new_kp_mesh)
             kpoint_meshes[key] = list(new_kp_mesh)
@@ -92,4 +95,3 @@ def determine_kpoint_meshes(simulation_cell,
                 key = kpoints2key(new_kp_mesh)
                 kpoint_meshes[key] = list(new_kp_mesh)
     return copy.deepcopy(kpoint_meshes)
-            
