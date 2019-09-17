@@ -8,21 +8,23 @@ __version__ = "1.0"
 import time,sys,os,copy,shutil,importlib
 from collections import OrderedDict
 import numpy as np
+from numpy.linalg import LinAlgError
 import scipy.stats
 from pypospack.kde import Chiu1999_h
 from pypospack.pyposmat.engines import PyposmatEngine
-from pypospack.pyposmat.data import PyposmatConfigurationFile
-from pypospack.pyposmat.data import PyposmatDataFile
-from pypospack.pyposmat.data import PyposmatLogFile
-from pypospack.pyposmat.data import PyposmatBadParametersFile
+from pypospack.pyposmat.data import (
+        PyposmatConfigurationFile,
+        PyposmatDataFile,
+        PyposmatLogFile,
+        PyposmatBadParametersFile)
+
 from pypospack.task.task_manager import PypospackTaskManagerError
 from pypospack.potential import PotentialObjectMap
-# necessary exceptions to handle for this class
-from numpy.linalg import LinAlgError
-from pypospack.exceptions import LammpsSimulationError
-from pypospack.exceptions import PyposmatBadParameterError
-from pypospack.exceptions import PypospackBadKdeBandwidthType
-from pypospack.exceptions import PypospackBadEamEosError
+from pypospack.exceptions import (
+        LammpsSimulationError,
+        PyposmatBadParameterError,
+        PypospackBadKdeBandwidthType,
+        PypospackBadEamEosError)
 
 
 class PyposmatMonteCarloSampler(PyposmatEngine):

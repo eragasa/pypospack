@@ -19,7 +19,7 @@ setfl_reader.read()
 
 
 density_types = ['eam_dens_exp','eam_dens_mishin']
-embedding_types = ['eam_embed_universal','eam_embed_bjs'
+embedding_types = ['eam_embed_universal','eam_embed_bjs']
 
 o_potential = EamPotential(symbols=['Ni','Al'],
         func_pair=)

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from pypospack.potential import Potential
 
 class ThreeBodyPotential(Potential):

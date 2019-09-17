@@ -125,11 +125,20 @@ class GmmClusterAnalysis(AbstractAnalysisClass):
         self.n_components = n_components
         self.initialize_model(n_components=n_components)
 
-    def initialize_model(self,n_components):
+    def initialize_model(self,n_components,col_names=None):
         self.model = GaussianMixture(n_components=n_components,
                                      covariance_type='full',
                                      random_state=0)
-        self.model.fit(self.data.df[self.names])
+        if names is None:
+            self.model.fit(self.data.df[self.names])
+        elif names == 'parameters':
+            self.model.fit(self.data.df[self.parameter_names])
+        elif names == "qois":
+            self.model.fit(self.data.df[self.qoi_names])
+        elif isinstance(names, list):
+            self.model.fit(self.data.df[names]
+        else:
+            raise TypeError()
         self.data.df['cluster_id'] = self.model.predict(self.data.df[self.names])
 
 class GmmDataFile():

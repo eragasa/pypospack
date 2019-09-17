@@ -140,7 +140,6 @@ class Mishin2004DensityFunction(EamDensityFunction):
         # each species has a unique density function
         for s in self.symbols:
             params = [self.parameters['{}_{}'.format(s,k)] for k in self.density_function_parameters]
-            print(r)
             self.density_evaluations[s] = Mishin2004DensityFunction.density_function(r,*params)
 
         return copy.deepcopy(self.density_evaluations)

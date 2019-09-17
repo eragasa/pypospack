@@ -106,7 +106,7 @@ class EamPotentialFitter(object):
         self.setfl_reader = SeatonSetflReader(path=filename)
         self.setfl_reader.read()
 
-    def fit_potential_pair(self,func_pair_potential,symbol_pair,param0,rlow=None):
+    def fit_potential_pair(self,func_pair_potential,symbol_pair,param0,bounds,rlow=None,rhigh=None):
 
         if not isinstance(self.setfl_reader,SeatonSetflReader):
             m = "the read_setfl_command method must be run before this method"
@@ -116,25 +116,34 @@ class EamPotentialFitter(object):
 
         arg_names = [k for k in inspect.signature(func_pair_potential).parameters if k!= 'r']
         p0 = [param0[k] for k in arg_names if k != 'r']
-
+        bounds_ = [
+                [bounds[k][0] for k in arg_names],
+                [bounds[k][1] for k in arg_names]]
+        for i in range(len(arg_names)):
+                print(arg_names[i],p0[i],bounds_[0][i], bounds_[1][i])
         # maximum interatomic spacing distance
         rmax = self.setfl_reader.n_r * self.setfl_reader.d_r
 
         # interatomic spacing distance step size
         rN = self.setfl_reader.n_r
 
-        if rlow is None:
+        if rlow is None and rhigh is None:
             r = create_r(rmax,rN)
             phi = np.array(self.setfl_reader.pair_function(pair_name))
         else:
             r_ = create_r(rmax,rN)
             phi_ = np.array(self.setfl_reader.pair_function(pair_name))
-            r = r_[r_>rlow]
-            phi = phi_[r_>rlow]
-
+            r = r_[np.all([r_>rlow,r_<rhigh],axis=0)]
+            phi = phi_[np.all([r_>rlow,r_<rhigh],axis=0)]
         # iterate until convergence
         while True:
-            popt,pcov = curve_fit(func_pair_potential,r,phi,method='trf',p0=p0)
+            popt,pcov = curve_fit(f=func_pair_potential,
+                                  xdata=r,
+                                  ydata=phi,
+                                  p0=p0,
+                                  check_finite=False,
+                                  bounds=bounds_,
+                                  method='trf')
 
             if all([np.abs(k[1]/k[0]-1) < 0.01 for k in zip(popt,p0)]):
                 break
@@ -145,7 +154,13 @@ class EamPotentialFitter(object):
                 [(k[0],k[1]) for k in zip(arg_names,popt)])
         self.formalisms['pair'][pair_name] = func_pair_potential
 
-    def fit_density_function(self,func_density,symbol,param0,rlow=None):
+    def fit_density_function(self,
+                             func_density,
+                             symbol,
+                             param0,
+                             bounds,
+                             rlow=None,
+                             rhigh=None):
 
         if not isinstance(self.setfl_reader,SeatonSetflReader):
             m = "the read_setfl_command method must be run before this method"
@@ -153,27 +168,35 @@ class EamPotentialFitter(object):
 
         arg_names = [k for k in inspect.getargspec(func_density)[0] if k!= 'r']
         p0 = [param0[k] for k in arg_names]
-      
+        bounds_ = [
+                [bounds[k][0] for k in arg_names],
+                [bounds[k][1] for k in arg_names]]
+        for i in range(len(arg_names)):
+                print(arg_names[i],p0[i],bounds_[0][i], bounds_[1][i])
         # maximum interatomic spacing distance
         rmax = self.setfl_reader.n_r * self.setfl_reader.d_r
 
         # interatomic spacing distance step size
         rN = self.setfl_reader.n_r
         
-        if rlow is None:
+        if rlow is None and rhigh is None:
             r = create_r(rmax,rN)
             rho = np.array(self.setfl_reader.density_function(symbol))
         else:
-            # temporary arrays
             r_ = create_r(rmax,rN)
             rho_ = np.array(self.setfl_reader.density_function(symbol))
-            # final arrays
-            r = r_[r_>rlow]
-            rho = rho_[r_>rlow]
+            r = r_[np.all([r_>rlow,r_<rhigh],axis=0)]
+            rho = rho_[np.all([r_>rlow,r_<rhigh],axis=0)]
 
         # iterate until convergence
         while True:
-            popt,pcov = curve_fit(func_density,r,rho,method='trf',p0=p0)
+            popt,pcov = curve_fit(f=func_density,
+                                  xdata=r,
+                                  ydata=rho,
+                                  p0=p0,
+                                  check_finite=False,
+                                  bounds=bounds_,
+                                  method='trf')
 
             if all([np.abs(k[1]/k[0]-1) < 0.01 for k in zip(popt,p0)]):
                 break
@@ -197,7 +220,11 @@ class EamPotentialFitter(object):
                         if k not in ['rho','lattice_type']
         ]
         p0 = [param0[k] for k in arg_names]
-
+        bounds_ = [
+                [bounds[k][0] for k in arg_names],
+                [bounds[k][1] for k in arg_names]]
+        for i in range(len(arg_names)):
+                print(arg_names[i],p0[i],bounds_[0][i], bounds_[1][i])
         # maximum interatomic spacing distance
         rhomax = self.setfl_reader.n_rho * self.setfl_reader.d_rho
 
@@ -209,19 +236,13 @@ class EamPotentialFitter(object):
 
         print(param0)
         # iterate until convergence
-        while True:
-            try:
-                popt,pcov = curve_fit(func_embedding,rho,embedding,method='trf',p0=p0,bounds=bounds)
-            except ValueError:
-                print(param0)
-                print([(k[0],k[1]) for k in zip(arg_names,popt)])
-
-            print([(k[0],k[1]) for k in zip(arg_names,popt)])
-
-            if all([np.abs(k[1]/k[0]-1) < 0.01 for k in zip(popt,p0)]):
-                break
-     
-            p0=popt
+        popt,pcov = curve_fit(f=func_embedding,
+                              xdata=rho,
+                              ydata=embedding,
+                              method='trf',
+                              p0=p0,
+                              bounds=bounds_,
+                              verbose=2)
 
         self.parameters['p0']['embedding'][symbol] = param0
         self.parameters['popt']['embedding'][symbol] = OrderedDict(

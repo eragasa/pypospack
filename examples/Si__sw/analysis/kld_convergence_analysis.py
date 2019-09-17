@@ -51,9 +51,7 @@ def calculate_kld(data_1_fn,data_2_fn,names,n_samples=2000):
     any_ill_conditioned = any([cov1_ill_conditioned,cov2_ill_conditioned])
 
     if any_ill_conditioned:
-        print('using ill-conditioned kde')
         kde_1 = GaussianKde(data_1.df[names].T)
-        print(kde_1.n, kde_1.d)
         kde_2 = GaussianKde(data_2.df[names].T)
     else:
         kde_1 = gaussian_kde(data_1.df[names].T)
@@ -138,8 +136,7 @@ def calculate_kld_qois(config,data_directory,kld_qoi_fn='pyposmat.kld_qoi.out'):
     kld = OrderedDict()
     s = [",".join(['iteration','results','kde','filter'])]
     print(s)
-    for i in range(5):
-    #for i in range(o_config.n_iterations):
+    for i in range(o_config.n_iterations):
         kld[i] = OrderedDict()
         if i == 0:
             kld[i]['results'] = None
@@ -255,13 +252,6 @@ if __name__ == "__main__":
     kld_param_fn = 'pyposmat.kld_param.out'
     kld_qoi_fn = 'pyposmat.kld_qoi.out'
 
-    if not os.path.isfile(kld_qoi_fn):
-        kld_qoi_fn = os.path.join(kld_output_path,'pyposmat.kld_qoi.out')
-        calculate_kld_qois(
-                config=o_config,
-                data_directory=data_directory,
-                kld_qoi_fn=kld_qoi_fn)
-    
     if not os.path.isfile(kld_param_fn):
         kld_param_fn = os.path.join(kld_output_path,'pyposmat.kld_param.out')
         calculate_kld_parameters(
@@ -269,3 +259,10 @@ if __name__ == "__main__":
                 data_directory=data_directory,
                 kld_param_fn=kld_param_fn)
 
+    if not os.path.isfile(kld_qoi_fn):
+        kld_qoi_fn = os.path.join(kld_output_path,'pyposmat.kld_qoi.out')
+        calculate_kld_qois(
+                config=o_config,
+                data_directory=data_directory,
+                kld_qoi_fn=kld_qoi_fn)
+    

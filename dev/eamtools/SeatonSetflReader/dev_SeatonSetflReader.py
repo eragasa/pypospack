@@ -18,36 +18,21 @@ import numpy as np
 
 # local source
 import pypospack.utils
-from pypospack.eamtools import SeatonSetflReader
+from pypospack.eamtools import (SeatonSetflReader,
+                                get_setfl_pair_order)
 
-def create_r(r_max,n):
-    r = r_max/n * np.linspace(1,n,n)
-    return r
+if False:
+    def create_r(r_max,n):
+        r = r_max/n * np.linspace(1,n,n)
+        return r
 
-def get_setfl_pair_order(symbols):
-    pairs = []
-    for i,s_i in enumerate(symbols):
-        for j,s_j in enumerate(symbols):
-            if i >= j:
-                pairs.append([s_i,s_j])
-    return pairs
-
-def test__setfl_pair_order(symbols):
-    symbols = ['Ni','Al']
-
-    pairs = setfl_pair_order(symbols)
-
-    assert isinstance(pairs,list)
-    assert all([isinstance(pair,list) for pair in paris])
-    
-    expected_pairs = [
-                ['Ni','Ni'],
-                ['Al','Ni'],
-                ['Al','Al']
-            ]
-
-    for test_pair, expected_pair in zip(pairs,expected_pairs):
-        assert test_pair == expected_pair
+    def get_setfl_pair_order(symbols):
+        pairs = []
+        for i,s_i in enumerate(symbols):
+            for j,s_j in enumerate(symbols):
+                if i >= j:
+                    pairs.append([s_i,s_j])
+        return pairs
 
 def plot_eam_potential_from_setflfile(filename):
     import matplotlib.pyplot as plt

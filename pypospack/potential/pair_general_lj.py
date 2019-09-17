@@ -65,23 +65,23 @@ class GeneralizedLennardJonesPotential(PairPotential):
         symbols(list): a list of chemical symbols.
     """
 
-    pair_potential_parameters=['b1','b2','r1','V0','delta','rc','hc','h0']
+    pair_function=func_pair_generalized_lj_w_cutoff
+    pair_parameter_names=['b1','b2','r1','V0','delta','rc','hc','h0']
     potential_type='general_lj'
-    callable_func=func_pair_generalized_lj_w_cutoff
     def __init__(self, symbols):
         potential_type = GeneralizedLennardJonesPotential.potential_type
         PairPotential.__init__(self,
                                symbols=symbols,
                                potential_type=potential_type,
                                is_charge=False)
-        self.function_pair = func_pair_generalized_lj_w_cutoff
+        self.pair_function = GeneralizedLennardJonesPotential.pair_function
 
     # this method overrides the parents stub
     def _init_parameter_names(self):
         self.symbol_pairs = list(determine_symbol_pairs(self.symbols))
         self.parameter_names = []
         for s in self.symbol_pairs:
-            for p in self.pair_potential_parameters:
+            for p in self.pair_parameter_names:
                 self.parameter_names.append(self.PYPOSPACK_PAIR_FORMAT.format(s1=s[0], s2=s[1], p=p))
         return list(self.parameter_names)
 
@@ -123,9 +123,9 @@ class GeneralizedLennardJonesPotential(PairPotential):
         self.potential_evaluations = OrderedDict()
         for s in self.symbol_pairs:
             params = [self.parameters['{}_{}'.format("".join(s),k)]\
-                      for k in self.pair_potential_parameters]
+                      for k in self.pair_parameter_names]
             self.potential_evaluations["".join(s)] \
-                    = GeneralizedLennardJonesPotential.callable_func(r, *params)
+                    = self.pair_function(r, *params)
 
         return self.potential_evaluations
 

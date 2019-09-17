@@ -7,16 +7,21 @@ def get_potential(module_name, class_name, symbols):
 
 def get_pair_potential(name,symbols):
     pair_potentials = {
-            'buckingham':{'module':'pypospack.potential',
-                          'class':'BuckinghamPotential'},
-            'morse':{'module':'pypospack.potential',
-                     'class':'MorsePotential'},
-            'bornmayer':{'module':'pypospack.potential',
-                         'class':'BornMayerPotential'},
-            'lj':{'module':'pypospack.potential',
-                  'class':'LennardJonesPotential'},
-            'general_lj':{'module':'pypospack.potential',
-                          'class':'GeneralizedLennardJonesPotential'}
+            'buckingham':{
+                'module':'pypospack.potential',
+                'class':'BuckinghamPotential'},
+            'morse':{
+                'module':'pypospack.potential',
+                'class':'MorsePotential'},
+            'bornmayer':{
+                'module':'pypospack.potential',
+                'class':'BornMayerPotential'},
+            'lj':{
+                'module':'pypospack.potential',
+                'class':'LennardJonesPotential'},
+            'general_lj':{
+                'module':'pypospack.potential',
+                'class':'GeneralizedLennardJonesPotential'}
             }
 
     module_name = pair_potentials[name]['module']
@@ -26,8 +31,12 @@ def get_pair_potential(name,symbols):
 
 def get_3body_potential(name,symbols):
     threebody_potentials = {
-            'sw':{'module':'pypospack.potential','class':'TersoffPotential'},
-            'tersoff':{'module':'pypospack.potential','class':'StillingerWeberPotential'}
+            'sw':{
+                'module':'pypospack.potential',
+                'class':'TersoffPotential'},
+            'tersoff':{
+                'module':'pypospack.potential',
+                'class':'StillingerWeberPotential'}
             }
     module_name = threebody_potentials[name]['module']
     class_name = threebody_potentials[name]['class']
@@ -36,10 +45,13 @@ def get_3body_potential(name,symbols):
 
 def get_eam_density_function(name,symbols):
     eam_density_functions = {
-            'eam_dens_exp':{'module':'pypospack.potential',
-                            'class':'ExponentialDensityFunction'},
-            'eam_dens_mishin2004':{'module':'pypospack.potential',
-                                   'class':'Mishin2004DensityFunction'}}
+            'eam_dens_exp':{
+                'module':'pypospack.potential',
+                'class':'ExponentialDensityFunction'},
+            'eam_dens_mishin2004':{
+                'module':'pypospack.potential',
+                'class':'Mishin2004DensityFunction'}
+            }
     module_name = eam_density_functions[name]['module']
     class_name = eam_density_functions[name]['class']
 
@@ -61,7 +73,8 @@ def get_eam_embedding_function(name,symbols):
                 'class':'RoseEquationOfStateEmbeddingFunction'},
             'eam_embed_eos_zopemishin':{
                 'module':'pypospack.potential',
-                'class':'RoseEquationOfStateEmbeddingFunction'}}
+                'class':'ZopeMishinEosEmbeddingFunction'}
+            }
     module_name = eam_embedding_functions[name]['module']
     class_name = eam_embedding_functions[name]['class']
     return get_potential(module_name=module_name, class_name=class_name, symbols=symbols)

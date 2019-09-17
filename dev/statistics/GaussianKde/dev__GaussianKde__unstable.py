@@ -41,11 +41,12 @@ if __name__ == "__main__":
     def eigdecomposition_cov_matrix_fix(cov):
         eig_val, eig_vec = linalg.eig(cov)
         for i,v in enumerate(eig_val):
-            if v == 0:
-                eig_val[i] = 1e=15
+            if v <= 0:
+                eig_val[i] = 1e-15
         new_cov = linalg.multi_dot(
-                [eig_vec,np.diag(eig_val,linalg.inv(eig_vec))])
+                [eig_vec,np.diag(eig_val),linalg.inv(eig_vec)])
 
+    cov = eigdecomposition_cov_matrix_fix(pypospack_kde.covariance)
     pypospack_kde._data_covariance = cov
     pypospack_kde._data_inv_cov = linalg.inv(cov)
 

@@ -2,9 +2,11 @@
 """This module contains classes to interact with GULP."""
 from pypospack.exceptions import BadParameterException
 __author__ = "Eugene J. Ragasa"
-__copyright__ = "Copyright (C) 2017"
+__copyright__ = "Copyright (C) 2017,2018,2019"
 __license__ = "Simplified BSD License"
 __version__ = "1.0"
+
+from collections import OrderedDict
 
 class Potential(object):
     """base class for potential
@@ -89,32 +91,38 @@ class Potential(object):
         raise NotImplementedError
 
     def _get_mass(self, element):
-        if element == 'Mg':
-            return 24.305
-        elif element == "O":
-            return 15.999
-        elif element == 'Si':
-            return 28.086
-        elif element == 'Ni':
-            return 58.6934
-        elif element == 'Al':
-            return 26.982
-        else:
-            raise ValueError("element {} not in database".format(element))
+        amu = OrderedDict([
+            ('B',  10.811),
+            ('C',  12.0107),
+            ('N',  14.0067),
+            ('O',  15.999),
+            ('Mg', 24.305),
+            ('Al', 26.982),
+            ('Si', 28.0855),
+            ('Ni', 58.6934)
+            ])
+
+        try:
+            return amu[element]
+        except NameError as e:
+            raise
 
     def _get_name(self, element):
-        if element == "Mg":
-            return 'magnesium'
-        elif element == "O":
-            return 'oxygen'
-        elif element == 'Si':
-            return 'silicon'
-        elif element == 'Ni':
-            return 'nickel'
-        elif element == 'Al':
-            return 'aluminum'
-        else:
-            raise ValueError('element {} not in database'.format(element))
+        element_name = OrderedDict([
+            ('B',  'boron'),
+            ('C',  'carbon'),
+            ('N',  'nitrogen'),
+            ('O',  'oxygen'),
+            ('Mg', 'magnesium'),
+            ('Al', 'aluminum'),
+            ('Si', 'silicon'),
+            ('Ni', 'nickel')
+            ])
+
+        try:
+            return element_name['B']
+        except NameError as e:
+            raise
 
 if __name__ == "__main__":
     o = Potential(symbols=['Ni'])

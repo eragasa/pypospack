@@ -26,7 +26,7 @@ def get_density_at_a(a,
         func_density_param,
         lattice_type='fcc'):
 
-    n_dd, d_nn = get_nearest_neighbor_information(a, lattice_type)
+    n_NN, d_NN = get_nearest_neighbor_information(a, lattice_type)
 
     #calculate total density
     if isinstance(a,np.ndarray):
@@ -39,7 +39,6 @@ def get_density_at_a(a,
         n = k[0]
         r = k[1]
         rho += n * func_density(r,*args)
-
     return rho - rho_bar
 
 def get_pair_energy_at_a(a,
@@ -47,7 +46,7 @@ def get_pair_energy_at_a(a,
         func_pair_param,
         lattice_type='fcc'):
 
-    n_dd, d_nn = get_nearest_neighbor_information(a, lattice_type)
+    n_NN, d_NN = get_nearest_neighbor_information(a, lattice_type)
 
     # calculate total energy
     if isinstance(a,np.ndarray):

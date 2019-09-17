@@ -107,7 +107,7 @@ class Task(object):
                 and self.all_conditions_READY \
                 and self.all_conditions_RUNNING \
                 and self.all_conditions_POST \
-                and self.all_conditions_FINISHEDi:
+                and self.all_conditions_FINISHED:
             self.status = 'FINISHED'
        
     def get_conditions_init(self):
