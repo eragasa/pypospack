@@ -9,6 +9,12 @@ def thermal_conductivity_formula(x, k0, alpha, beta):
     pressure = x[:,1]
     return k0 * (1+beta*pressure) / (1+alpha*temperature)
 
+def log_thermal_conductivity_formala(x, k0, alpha, beta):
+    ln_temperature = np.log(x[:,0])
+    ln_pressure = np.log(x[:,1])
+
+    return np.log(k0) + np.log(1+beta*pressure) - np.log(1+alpha*temperature)
+
 with open(filename,'r') as f:
     lines = [k.strip() for k in f.readlines()]
 

@@ -14,7 +14,7 @@ def get_testing_sets(testing_name=None):
     testing_sets['Ni']['symbols'] = ['Ni']
     testing_sets['Ni']['symbol_pairs'] = [['Ni','Ni']]
     testing_sets['Ni']['parameter_names'] = [
-        'NiNi_b1', 'NiNi_b2', 'NiNi_r1', 'NiNi_V0', 'NiNi_delta'
+        'NiNi_b1', 'NiNi_b2', 'NiNi_r1', 'NiNi_V0', 'NiNi_delta', 'NiNi_rc', 'NiNi_hc', 'NiNi_h0'
     ]
     testing_sets['Ni']['parameters'] = OrderedDict([
         ('NiNi_b1', 1.),
