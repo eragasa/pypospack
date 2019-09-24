@@ -4,6 +4,24 @@ from scipy import optimize
 from sklearn.linear_model import LinearRegression
 filename = "ThermalConductivity_temperature.dat"
 
+def read_thermal_conductivity_data(path):
+    with open(path,'r') as f:
+        lines = [k.strip() for k in f.readlines()]
+
+    rows = []
+
+    for i line in enumerate(lines):
+        line_args = [k.strip() for k in line.split()]
+        if i == 0:
+            column_names = line_args
+        else:
+            row = [float(k) for k in line_args]
+
+    df = pd.DataFrame(data=rows,
+                      columns=column_names)
+    
+    return df
+
 def thermal_conductivity_formula(x, k0, alpha, beta):
     temperature = x[:,0]
     pressure = x[:,1]
@@ -15,24 +33,6 @@ def log_thermal_conductivity_formala(x, k0, alpha, beta):
 
     return np.log(k0) + np.log(1+beta*pressure) - np.log(1+alpha*temperature)
 
-with open(filename,'r') as f:
-    lines = [k.strip() for k in f.readlines()]
-
-
-rows =[]
-for i, line in enumerate(lines):
-    line_args = [k.strip() for k in line.split()]
-    if i == 0:
-        column_names = line_args
-    else:
-        row = [float(k) for k in line_args]
-        rows.append(row)
-
-# print column names
-print(column_names)
-
-# create a pandas dataframe
-df = pd.DataFrame(data=rows,columns=column_names)
 
 for k in ['k11','k22','k33']:
     print(80*'-')
