@@ -1,7 +1,6 @@
 import pytest
 import os
 
-import numpy as np
 from sklearn.mixture import GaussianMixture
 
 import pypospack.utils
@@ -33,7 +32,7 @@ o_config.read(filename=config_fn)
 o_data = PyposmatDataFile()
 o_data.read(filename=data_fn)
 
-max_components = 20
+max_components = 10
 
 output_path = 'test_gmm_analysis'
 
@@ -41,24 +40,6 @@ def test__GmmAnalysis____init__():
     gmm = GmmAnalysis(configuration=o_config,
                       data=o_data,
                       names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    assert isinstance(gmm.configuration, PyposmatConfigurationFile)
-    assert isinstance(gmm.data, PyposmatDataFile)
-    assert gmm.max_components == max_components
-    assert gmm.aic_criteria is None
-    assert gmm.bic_criteria is None
-
-@pytest.mark.parametrize('names',
-                        [
-                            ('qois'),
-                            ('parameters'),
-                            ('all')
-                        ])
-def test__GmmAnalysis____init____arg_names_string(names):
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=names,
                       output_path=output_path,
                       max_components=max_components)
     assert isinstance(gmm.configuration, PyposmatConfigurationFile)
@@ -149,76 +130,35 @@ def dev__GmmAnalysis__do_aic_analysis():
     for k in gmm.models:
         print(gmm.models[k])
 
-def table__cluster_info(gmm):
-    header_row = ['cluster_id', 'N']
-    for k, gmm_component in gmm.clusters.items():
-        print([
-            k,
-            '{:5}'.format(gmm_component['N']),
-            '{:10.6f}'.format(gmm_component['weight'])
-        ])
-        #print([k, gmm_component['N'], gmm_component['weight']])
-
-def plot__cluster_qoi(gmm):
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots(1,1)
-    qoi_targets = gmm.configuration.qoi_targets
-    n_targets = len(qoi_targets)
-    for k, gmm_component in gmm.clusters.items():
-        qhat = np.array(
-            [gmm_component['qois']['mean'][p] for p in gmm.configuration.qoi_names]
-        )
-        q = np.array(
-            [v for v in qoi_targets.values()]
-        )
-        pct_error = qhat/q - 1.
-        ax.plot(range(n_targets), pct_error)
-    plt.show()
-
-
-def table__cluster_parameters(gmm):
-    header_row = ['cluster_id', ''] + [p for p in gmm.configuration.parameter_names]
-    print(header_row)
-    for k, gmm_component in gmm.clusters.items():
-        n_parameters = len(gmm.configuration.parameter_names)
-        line_format = '{:5} {:5} ' + n_parameters *'{:+5.2e}  '
-        mean_info = [k, 'mu'] + [gmm_component['parameters']['mean'][p] for p in gmm.configuration.parameter_names]
-        std_info = ['', 'sigma'] + [gmm_component['parameters']['std'][p] for p in gmm.configuration.parameter_names]
-
-        print(line_format.format(*mean_info))
-        print(line_format.format(*std_info))
-
-def table__cluster_qois(gmm):
-
-    header_row = ['cluster_id', ''] + [p for p in gmm.configuration.qoi_names]
-    print(header_row)
-    for k, gmm_component in gmm.clusters.items():
-        n_qois = len(gmm.configuration.qoi_names)     
-        line_format = '{:5} {:5} ' + n_qois *'{:+5.2e}  '
-        mean_info = [k, 'mu'] + [gmm_component['qois']['mean'][p] for p in gmm.configuration.qoi_names]
-        std_info = ['', 'sigma'] + [gmm_component['qois']['std'][p] for p in gmm.configuration.qoi_names]
-
-        print(line_format.format(*mean_info))
-        print(line_format.format(*std_info))
-
 def dev__GmmAnalysis():
-    n_components = 20
+    n_components = 10
     gmm = GmmAnalysis(configuration=o_config,
                       data=o_data,
-                      names='all',
+                      names=o_config.normalized_error_names,
                       output_path=output_path,
                       max_components=max_components)
-    print(gmm.names)
     gmm.make_gmm_models()
     gmm.do_aic_analysis()
     gmm.do_bic_analysis()
     gmm.do_cluster_analysis(n_components=n_components)
 
-    # table__cluster_info(gmm)
-    # table__cluster_parameters(gmm)
-    # table__cluster_qois(gmm)
-    plot__cluster_qoi(gmm)
+    from sklearn.datasets import fetch_mldata
+    from sklearn.decomposition import PCA
+    from sklearn.manifold import TSNE
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    names_ = gmm.names
+    data_ = gmm.data.df[names_]
+    qoi_tsne = TSNE(n_components=2, verbose=1, perplexity=40, n_iter=300)
+    qoi_tsne_results = qoi_tsne.fit_transform(data_)
+    gmm.data.df['qoi_tsne_2d_one'] = qoi_tsne_results[:,0]
+    gmm.data.df['qoi_tsne_2d_two'] = qoi_tsne_results[:,1]
+    plt.figure(figsize=(16,10))
+    for cluster_id in gmm.cluster_ids:
+        plt.scatter(gmm.data.df['qoi_tsne_2d_one'].loc[gmm.data.df['cluster_id'] == cluster_id],
+                    gmm.data.df['qoi_tsne_2d_two'].loc[gmm.data.df['cluster_id'] == cluster_id])
+    plt.show()
 
 if __name__ == "__main__":
    dev__GmmAnalysis()
+

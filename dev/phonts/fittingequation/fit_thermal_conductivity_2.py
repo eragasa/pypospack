@@ -76,21 +76,23 @@ if __name__ == "__main__":
             b2 = float(regressor.coef_)
             beta = b2/b1
 
-            beta_regression_data.append([kxy,P,b1,b2,beta])
+            beta_regression_data.append([kxy, P, b1, b2, beta])
+            
             betas[kxy][P] = beta
 
-            print(P, b1, b2, beta)
-
             axes[i].scatter(X,Y)
+            axes[i].plot(np.array(temperatures), 
+                                  b1 + b2 * np.array(temperatures))
         axes[i].set_xlim(300,900)
         axes[i].set_xlabel('1/T [K]')
         axes[i].set_ylabel(kxy)
         axes[i].axis('auto')
 
-    beta_regression_df = pd.DataFrame(data=beta_regression_data,
-                                      columns=beta_regression_columns)
     plt.tight_layout()
     plt.show()
+    
+    beta_regression_df = pd.DataFrame(data=beta_regression_data,
+                                      columns=beta_regression_columns)
 
 
     alpha_regression_columns = ['kxy', 'T', 'a1', 'a2', 'alpha']
@@ -99,7 +101,6 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(1,3)
     for i,kxy in enumerate(kxys):
         alphas[kxy] = OrderedDict()
-        print(kxy)
         for T in temperatures:
             regressor = LinearRegression()
 
@@ -113,8 +114,8 @@ if __name__ == "__main__":
             alpha = a2/a1
             alphas[kxy][T] = alpha
 
-            print(T, a1, a2, alpha)
-            alpha_regression_data.append(kxy, T, a1, a2, alpha)
+            alpha_regression_data.append([kxy, T, a1, a2, alpha])
+
             axes[i].scatter(X,Y)
         axes[i].set_xlim(0,4)
         axes[i].set_xlabel('P [GPa]')
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     plt.draw()
     plt.show()
 
-    alpha_regressioN_df = pd.DataFrame(data=alpha_regression_data,
+    alpha_regression_df = pd.DataFrame(data=alpha_regression_data,
                                        columns=alpha_regression_columns)
 
     k0 = np.zeros(shape=(len(temperatures),len(pressures)))

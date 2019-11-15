@@ -13,10 +13,10 @@ from sklearn import metrics
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import Imputer
 
-from pypospack.exception import BadPreprocessorTypeException
-from pypospack.exception import BadManifoldTypeException
-from pypospack.exception import BadNearestNeighborTypeException
-from pypospack.exception import BadClusterTypeException
+# from pypospack.exception import BadPreprocessorTypeException
+# from pypospack.exception import BadManifoldTypeException
+# from pypospack.exception import BadNearestNeighborTypeException
+# from pypospack.exception import BadClusterTypeException
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data.cluster_analysis import PyposmatClusterAnalysis

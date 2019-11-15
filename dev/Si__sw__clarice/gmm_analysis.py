@@ -1,10 +1,8 @@
 import os
 from copy import deepcopy
-from collections import OrderedDict
-
+from sklearn.mixture import GaussianMixture
 import numpy as np
 import pandas as pd
-from sklearn.mixture import GaussianMixture
 
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
@@ -20,6 +18,7 @@ class GmmAnalysis(object):
         self._initialize_configuration(configuration=configuration)
         self._initialize_data(data=data)
         self._initialize_names(names=names)
+        self.names = deepcopy(names)
         self.output_path = output_path
 
         assert isinstance(max_components, int)
@@ -57,15 +56,6 @@ class GmmAnalysis(object):
     def _initialize_names(self, names):
         if isinstance(names, list):
             self.names = list(names)
-        elif isinstance(names, str):
-            if names == 'qois':
-                self.names = self.configuration.qoi_names
-            elif names == 'parameters':
-                self.names = self.configuration.parameter_names
-            elif names == 'all':
-                self.names = self.configuration.parameter_names + self.configuration.qoi_names
-            else:
-                raise TypeError
         else:
             raise TypeError
 
@@ -129,42 +119,12 @@ class GmmAnalysis(object):
         self.cluster_ids = list(set(self.data.df['cluster_id']))
         self.cluster_ids.sort()
 
-        self.clusters = OrderedDict()
+        self.clusters = {}
         for cluster_id in self.cluster_ids:
-            self.clusters[cluster_id] = OrderedDict([
-                ('cluster_id', cluster_id),
-                ('N', self.data.df.loc[self.data.df['cluster_id'] == cluster_id].shape[0])
-            ])
-        
-        n_clusters = len(self.cluster_ids)
-        for i in range(n_clusters):
-            self.clusters[i]['weight'] = gmm.weights_[i]
-            self.clusters[i]['mean'] = gmm.means_[i,:]
-            self.clusters[i]['covariance'] = gmm.covariances_[i,:]
-
-        for i in range(n_clusters):
-            self.clusters[i]['parameters'] = self._do_parameter_cluster_analysis(i)
-            self.clusters[i]['qois'] = self._do_qoi_cluster_analysis(i)
-    
-    def _do_parameter_cluster_analysis(self, cluster_id):
-        assert isinstance(cluster_id, int)
-        assert cluster_id in self.cluster_ids
-
-        data_ = self.data.df.loc[self.data.df['cluster_id'] == cluster_id]
-        analysis_dict = OrderedDict()
-        analysis_dict['mean'] = data_[self.configuration.parameter_names].mean()
-        analysis_dict['std'] = data_[self.configuration.parameter_names].std()
-        return analysis_dict
-
-    def _do_qoi_cluster_analysis(self, cluster_id):
-        assert isinstance(cluster_id, int)
-        assert cluster_id in self.cluster_ids
-
-        data_ = self.data.df.loc[self.data.df['cluster_id'] == cluster_id]
-        analysis_dict = OrderedDict()
-        analysis_dict['mean'] = data_[self.configuration.qoi_names].mean()
-        analysis_dict['std'] = data_[self.configuration.qoi_names].std()
-        return analysis_dict
+            self.clusters[cluster_id] = {
+                'cluster_id':cluster_id,
+                'N':self.data.df.loc[self.data.df['cluster_id'] == cluster_id].shape[0]
+            }
 
     @staticmethod
     def plot_ellipse(position, covariance, ax=None, **kwargs):
@@ -205,6 +165,9 @@ class GmmAnalysis(object):
 
         w_factor = 0.2 / gmm.weights_.max()
         for pos, covar, w in zip(gmm.means_,gmm.covariances_,gmm.weights_):
+            print(pos)
+            print(covar)
+            print(w)
             plot_ellipse(pos,covar,alpha=w*w_factor,ax=ax)
 
         if labels is None:

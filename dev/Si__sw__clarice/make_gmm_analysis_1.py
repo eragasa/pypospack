@@ -18,68 +18,7 @@ import pandas as pd
 
 
 from sklearn.mixture import GaussianMixture
-class GmmAnalysis(object):
-    pass
-def plot_ellipse(position,covariance,ax=None,**kwargs):
-    if ax is None:
-        fig, ax = plt.subplots(1,1)
-
-    if covariance.shape == (2,2):
-        U, s, Vt = np.linalg.svd(covariance)
-        angle = np.degrees(np.arctan2(U[1,0],U[0,0]))
-        width, height = 2 * np.sqrt(s)
-    else:
-        angle = 0
-        width, height = 2 * np.sqrt(covariance)
-
-    # draw ellipse
-    for nsig in range(1,4):
-        ax.add_patch(Ellipse(position,nsig*width,nsig*height,angle,**kwargs))
-
-def plot_gmm(gmm,X,labels=None,ax=None,dpi=1200,filename=None,xlims=None,ylims=None):
-    cluster_id = gmm.fit(X).predict(X)
-    plt.close('all')
-
-    if ax is None:
-        fig, ax = plt.subplots(1,1)
-
-    if isinstance(X,np.ndarray):
-        x = X[:,0]
-        y = X[:,1]
-    elif isinstance(X,pd.DataFrame):
-        x = X[X.columns[0]]
-        y = X[X.columns[1]]
-
-    ax.scatter(x,y,c=cluster_id,s=1,cmap='viridis',zorder=2,label=[k+1 for k in cluster_id])
-
-    w_factor = 0.2 / gmm.weights_.max()
-    for pos, covar, w in zip(gmm.means_,gmm.covariances_,gmm.weights_):
-        print(pos)
-        print(covar)
-        print(w)
-        plot_ellipse(pos,covar,alpha=w*w_factor,ax=ax)
-
-    if labels is None:
-        ax.set_xlabel(X.columns[0])
-        ax.set_ylabel(X.columns[1])
-    else:
-        ax.set_xlabel(labels[0])
-        ax.set_ylabel(labels[1])
-
-    if xlims is not None:
-        ax.set_xlim(xlims)
-    if ylims is not None:
-        ax.set_ylim(ylims)
-
-    ax.legend()
-    #ax.set(adjustable='box', aspect='equal')
-    if filename is None:
-        plt.show()
-    else:
-        fig.set_size_inches(5,5)
-        fig.tight_layout()
-        fig.savefig(filename,dpi=dpi)
-
+from gmm_analysis import GmmAnalysis
 def gmm_analysis(
         config_fn,
         data_fn,
@@ -110,6 +49,7 @@ def gmm_analysis(
     aic, aic_idx = min((val,idx) for (idx,val) in enumerate([m.aic(data) for m in models]))
     aic_n_components = n_components[aic_idx]
     aic_criteria = [m.aic(data) for m in models]
+
     # BIC analysis
     bic, bic_idx = min((val,idx) for (idx,val) in enumerate([m.bic(data) for m in models]))
     bic_n_components = n_components[bic_idx]
@@ -195,10 +135,15 @@ if __name__ == "__main__":
     o_data.create_normalized_errors(
             normalize_type='by_qoi_target',
            qoi_targets=o_config.qoi_targets)
-    print(o_config.normalized_error_names)
-    print(o_data.df.columns)
+
+    max_components = 10
+    gmm = GmmAnalysis(configuration=o_config,
+                      data=o_data,
+                      names=o_config.normalized_error_names)
+    gmm.make_gmm_models(max_components=max_components)
     o_data.df['score'] = o_data.df[o_config.normalized_error_names].abs().sum(axis=1)
 
+    exit()
     # do AIC and BIC analysis
     if True:
         name_1 = o_config.qoi_names[0]
