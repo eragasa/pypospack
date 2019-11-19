@@ -219,6 +219,6 @@ def dev__GmmAnalysis():
     # table__cluster_parameters(gmm)
     # table__cluster_qois(gmm)
     plot__cluster_qoi(gmm)
-
+    gmm.plot_gmm_analysis(n_components=20)
 if __name__ == "__main__":
    dev__GmmAnalysis()

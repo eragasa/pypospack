@@ -7,7 +7,7 @@ from sklearn.mixture import GaussianMixture
 import pypospack.utils
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
-from gmm_analysis import GmmAnalysis
+from pca_analysis import PcaAnalysis
 pypospack_root_dir = pypospack.utils.get_pypospack_root_directory()
 
 config_fn = os.path.join(
@@ -33,121 +33,10 @@ o_config.read(filename=config_fn)
 o_data = PyposmatDataFile()
 o_data.read(filename=data_fn)
 
-max_components = 20
+n_components = 2
 
-output_path = 'test_gmm_analysis'
+output_path = 'test_pca_analysis'
 
-def test__GmmAnalysis____init__():
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    assert isinstance(gmm.configuration, PyposmatConfigurationFile)
-    assert isinstance(gmm.data, PyposmatDataFile)
-    assert gmm.max_components == max_components
-    assert gmm.aic_criteria is None
-    assert gmm.bic_criteria is None
-
-@pytest.mark.parametrize('names',
-                        [
-                            ('qois'),
-                            ('parameters'),
-                            ('all')
-                        ])
-def test__GmmAnalysis____init____arg_names_string(names):
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=names,
-                      output_path=output_path,
-                      max_components=max_components)
-    assert isinstance(gmm.configuration, PyposmatConfigurationFile)
-    assert isinstance(gmm.data, PyposmatDataFile)
-    assert gmm.max_components == max_components
-    assert gmm.aic_criteria is None
-    assert gmm.bic_criteria is None
-
-def test__GmmAnalysis____init____w_filenames():
-    gmm = GmmAnalysis(configuration=config_fn,
-                      data=data_fn,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    assert isinstance(gmm.configuration, PyposmatConfigurationFile)
-    assert isinstance(gmm.data, PyposmatDataFile)
-    assert gmm.max_components == max_components
-    assert gmm.aic_criteria is None
-    assert gmm.bic_criteria is None
-
-def test__GmmAnalysis__make_gmm_models():
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-
-def test__GmmAnalysis__make_gmm_models():
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    gmm.make_gmm_models()
-    for k in gmm.models:
-        assert isinstance(gmm.models[k]['obj'], GaussianMixture)
-        assert isinstance(k, int)
-
-def test__GmmAnalysis__do_aic_analysis():
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    gmm.make_gmm_models()
-    gmm.do_aic_analysis()
-    for k in gmm.models:
-        assert isinstance(gmm.models[k]['aic'], float)
-    assert isinstance(gmm.aic_criteria, dict)
-    assert isinstance(gmm.aic_criteria['min_components'], int)
-    assert isinstance(gmm.aic_criteria['min_value'], float)
-
-def test__GmmAnalysis__do_bic_analysis():
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    gmm.make_gmm_models()
-    gmm.do_bic_analysis()
-    for k in gmm.models:
-        assert isinstance(gmm.models[k]['bic'], float)
-    assert isinstance(gmm.bic_criteria, dict)
-    assert isinstance(gmm.bic_criteria['min_components'], int)
-    assert isinstance(gmm.bic_criteria['min_value'], float)
-
-def test__GmmAnalysis__do_cluster_analysis():
-    n_components = 10
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    gmm.make_gmm_models()
-    gmm.do_cluster_analysis(n_components=n_components)
-
-    for k in gmm.cluster_ids:
-        assert isinstance(k, int)
-
-def dev__GmmAnalysis__do_aic_analysis():
-    gmm = GmmAnalysis(configuration=o_config,
-                      data=o_data,
-                      names=o_config.normalized_error_names,
-                      output_path=output_path,
-                      max_components=max_components)
-    gmm.make_gmm_models()
-    gmm.do_aic_analysis()
-    for k in gmm.models:
-        print(gmm.models[k])
 
 def table__cluster_info(gmm):
     header_row = ['cluster_id', 'N']
@@ -202,23 +91,16 @@ def table__cluster_qois(gmm):
         print(line_format.format(*mean_info))
         print(line_format.format(*std_info))
 
-def dev__GmmAnalysis():
-    n_components = 20
-    gmm = GmmAnalysis(configuration=o_config,
+def dev__PcaAnalysis():
+    n_components = 2
+    pca = PcaAnalysis(configuration=o_config,
                       data=o_data,
                       names='all',
                       output_path=output_path,
-                      max_components=max_components)
-    print(gmm.names)
-    gmm.make_gmm_models()
-    gmm.do_aic_analysis()
-    gmm.do_bic_analysis()
-    gmm.do_cluster_analysis(n_components=n_components)
-
-    # table__cluster_info(gmm)
-    # table__cluster_parameters(gmm)
-    # table__cluster_qois(gmm)
-    plot__cluster_qoi(gmm)
+                      n_components=n_components)
+    pca.make_pca_analysis()
+    pca.plot_pca_analysis()
+    pca.plot_cluster_analysis(cluster_type='optics')
 
 if __name__ == "__main__":
-   dev__GmmAnalysis()
+   dev__PcaAnalysis()

@@ -100,6 +100,6 @@ def dev__ManifoldAnalysis():
                       output_path=output_path,
                       n_components=n_components)
     # o.plot_manifold_analysis()
-    o.plot_cluster_analysis()
+    o.plot_cluster_analysis(cluster_type='optics')
 if __name__ == "__main__":
    dev__ManifoldAnalysis()

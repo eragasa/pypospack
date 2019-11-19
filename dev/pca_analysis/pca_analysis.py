@@ -4,30 +4,35 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-from sklearn.mixture import GaussianMixture
+
+import matplotlib.pyplot as plt
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import OPTICS
 
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 
-class GmmAnalysis(object):
+class PcaAnalysis(object):
 
     def __init__(self,
                  configuration,
                  data,
+                 n_components=2,
                  names=None,
-                 output_path='gmm_analysis',
-                 max_components=20):
+                 output_path='pca_analysis'):
         self._initialize_configuration(configuration=configuration)
         self._initialize_data(data=data)
         self._initialize_names(names=names)
         self.output_path = output_path
 
-        assert isinstance(max_components, int)
-        self.max_components = max_components
+        assert isinstance(n_components, int)
+        self.n_components = n_components
 
-        self.models = None
-        self.aic_criteria = None
-        self.bic_criteria = None
+        self.scaler = None
+        self.pca = None
         self.cluster_ids = None
 
     def _initialize_configuration(self, configuration):
@@ -69,55 +74,127 @@ class GmmAnalysis(object):
         else:
             raise TypeError
 
-    def make_gmm_models(self, max_components=None):
+    def make_pca_analysis(self):
         names_ = self.names
         data_ = self.data.df[names_]
 
-        if max_components is not None:
-            assert isinstance(max_components, int)
-            self.max_components = max_components
-        max_components_ = self.max_components
+        self.scaler = StandardScaler(copy=True, with_mean=True, with_std=True)
+        self.scaled_values = self.scaler.fit_transform(data_)
 
-        self.models = {}
-        n_components = [int(k) for k in np.arange(1, max_components_)]
-        for n in n_components:
-            self.models[n] = {}
-            self.models[n]['obj'] = GaussianMixture(n_components=n,
-                                                    covariance_type='full',
-                                                    random_state=0).fit(data_)
+        n_components_ = self.n_components
+        self.pca = PCA(n_components=n_components_)
+        pca_components = self.pca.fit_transform(self.scaled_values)
 
-    def do_aic_analysis(self):
-        # AIC analysis
-        models_ = self.models
-        names_ = self.names
-        data_ = self.data.df[names_]
-       
-        for k in self.models:
-            aic = self.models[k]['obj'].aic(data_)
-            self.models[k]['aic'] = aic
-        aic, aic_n_components = min([(v['aic'], k) for k, v in self.models.items()])
+        for i in range(n_components_):
+            self.data.df['pca_{}'.format(i+1)] = pca_components[:,i]
+
+    def plot_pca_analysis(self):
+
+        fig, ax = plt.subplots(1,3)
+
+        parameters_df = self.data.df[self.configuration.parameter_names]
+        scaled_parameters = StandardScaler().fit_transform(parameters_df)
+        parameters_pca = PCA(n_components=2).fit_transform(scaled_parameters)
+        self.data.df['pca_param_1'] = parameters_pca[:,0]
+        self.data.df['pca_param_2'] = parameters_pca[:,1]
+
+        qoi_df = self.data.df[self.configuration.qoi_names]
+        scaled_qois = StandardScaler().fit_transform(qoi_df)
+        qoi_pca = PCA(n_components=2).fit_transform(scaled_qois)
+        self.data.df['pca_qoi_1'] = qoi_pca[:,0]
+        self.data.df['pca_qoi_2'] = qoi_pca[:,1]
+
+        all_names = self.configuration.parameter_names + self.configuration.qoi_names
+        all_df = self.data.df[all_names]
+        all_scaled = StandardScaler().fit_transform(all_df) 
+        all_pca = PCA(n_components=2).fit_transform(all_scaled)
+        self.data.df['pca_1'] = all_pca[:,0]
+        self.data.df['pca_2'] = all_pca[:,1]
+
+        ax[0].scatter(self.data.df['pca_param_1'],
+                      self.data.df['pca_param_2'],
+                      s=1.)
+        ax[0].set_xlabel('pca_param_1')
+        ax[0].set_ylabel('pca_param_2')
+
+        ax[1].scatter(self.data.df['pca_qoi_1'],
+                      self.data.df['pca_qoi_2'],
+                      s=1.)
+        ax[1].set_xlabel('pca_qoi_1')
+        ax[1].set_ylabel('pca_qoi_2')
         
-        self.aic_criteria = {
-            'min_components':int(aic_n_components),
-            'min_value':float(aic)
-        }
+        ax[2].scatter(self.data.df['pca_1'],
+                      self.data.df['pca_2'],
+                      s=1.)
+        ax[2].set_xlabel('pca_1')
+        ax[2].set_ylabel('pca_2')
 
-    def do_bic_analysis(self):
-        models_ = self.models
-        names_ = self.names
-        data_ = self.data.df[names_]
-        
-        # BIC analysis
-        for k in self.models:
-            bic = self.models[k]['obj'].bic(data_)
-            self.models[k]['bic'] = bic
-        bic, bic_n_components = min([(v['bic'], k) for k, v in self.models.items()])
-        
-        self.bic_criteria = {
-            'min_components':int(bic_n_components),
-            'min_value':float(bic)
-        }
+        fig.tight_layout()
+        plt.show()
 
+    def plot_cluster_analysis(self,
+                              cluster_type='dbscan'):
+        fig, ax = plt.subplots(1,3)
+
+        parameters_df = self.data.df[self.configuration.parameter_names]
+        scaled_parameters = StandardScaler().fit_transform(parameters_df)
+        parameters_pca = PCA(n_components=2).fit_transform(scaled_parameters)
+        self.data.df['pca_param_1'] = parameters_pca[:,0]
+        self.data.df['pca_param_2'] = parameters_pca[:,1]
+
+        qoi_df = self.data.df[self.configuration.qoi_names]
+        scaled_qois = StandardScaler().fit_transform(qoi_df)
+        qoi_pca = PCA(n_components=2).fit_transform(scaled_qois)
+        self.data.df['pca_qoi_1'] = qoi_pca[:,0]
+        self.data.df['pca_qoi_2'] = qoi_pca[:,1]
+
+        all_names = self.configuration.parameter_names + self.configuration.qoi_names
+        all_df = self.data.df[all_names]
+        all_scaled = StandardScaler().fit_transform(all_df) 
+        all_pca = PCA(n_components=2).fit_transform(all_scaled)
+        self.data.df['pca_1'] = all_pca[:,0]
+        self.data.df['pca_2'] = all_pca[:,1]
+
+
+        if cluster_type == 'dbscan':
+            dbscan_args = {
+                'eps':0.25
+            }
+            cluster = DBSCAN(**dbscan_args)
+        elif cluster_type == 'optics':
+            optics_args = {
+                'min_samples':20,
+                'xi':0.1,
+                'min_cluster_size':0.1
+            }
+            cluster = OPTICS()
+
+        self.data.df['cluster_id'] = cluster.fit_predict(self.data.df[['pca_1', 'pca_2']])
+        self.cluster_ids = list(set(self.data.df['cluster_id'].values))
+        
+        for i in self.cluster_ids:
+            ax[0].scatter(self.data.df['pca_param_1'].loc[self.data.df['cluster_id'] == i],
+                          self.data.df['pca_param_2'].loc[self.data.df['cluster_id'] == i],
+                          s=1.)
+            ax[1].scatter(self.data.df['pca_qoi_1'].loc[self.data.df['cluster_id'] == i],
+                          self.data.df['pca_qoi_2'].loc[self.data.df['cluster_id'] == i],
+                          s=1.)
+            ax[2].scatter(self.data.df['pca_1'].loc[self.data.df['cluster_id'] == i],
+                          self.data.df['pca_2'].loc[self.data.df['cluster_id'] == i],
+                          s=1.)
+
+        ax[0].set_xlabel('pca_param_1')
+        ax[0].set_ylabel('pca_param_2')
+        ax[1].set_xlabel('pca_qoi_1')
+        ax[1].set_ylabel('pca_qoi_2')
+        ax[2].set_xlabel('pca_1')
+        ax[2].set_ylabel('pca_2')
+
+        fig.tight_layout()
+        plt.show()
+
+
+        pass
     def do_cluster_analysis(self, n_components):
         names_ = self.names
         data_ = self.data.df[names_]

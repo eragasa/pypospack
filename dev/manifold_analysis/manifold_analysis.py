@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
+from sklearn.cluster import OPTICS
 from sklearn.manifold import TSNE
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
@@ -147,14 +148,21 @@ class ManifoldAnalysis(object):
         print('learning total manifold...')
         self.make_manifold(names='all')
 
-        cluster_type = 'dbscan'
         if cluster_type == 'dbscan':
             dbscan_args = {
-                    'eps':0.5
+                'eps':0.5
             }
             cluster = DBSCAN(**dbscan_args)
         elif cluster_type == 'optics':
+            print('cluster_type:optics')
+            optics_args = {
+                'min_samples':20,
+                'xi':0.1,
+                'min_cluster_size':0.1
+            }
             cluster = OPTICS()
+        else:
+            raise ValueError
 
         if names == 'parameters':
             cols = ['tsne_param_1', 'tsne_param_2']

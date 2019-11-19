@@ -4,11 +4,17 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
+
+import matplotlib.pyplot as ilt
+
+from sklearn.manifold import TSNE
+from sklearn.cluster import DBSCAN
 from sklearn.mixture import GaussianMixture
 
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 
+class BaseAnalysis(object): pass
 class GmmAnalysis(object):
 
     def __init__(self,
@@ -117,6 +123,75 @@ class GmmAnalysis(object):
             'min_components':int(bic_n_components),
             'min_value':float(bic)
         }
+
+    def make_manifold(self, manifold_type='tsne', n_components=2, names='all'):
+        if names == 'parameters':
+            names_ = self.configuration.parameter_names
+        elif names == 'qois':
+            names_ = self.configuration.qoi_names
+        elif names == 'all':
+            names_ = self.configuration.parameter_names + self.configuration.qoi_names
+        else:
+            raise ValueError
+
+        data_ = self.data.df[names_]
+
+        if manifold_type == 'tsne':
+            manifold = TSNE(n_components=n_components)
+        
+        manifold_components = manifold.fit_transform(data_)
+
+        if names == 'parameters':
+            for i in range(n_components):
+                column_name = 'tsne_param_{}'.format(i+1)
+                self.data.df[column_name] = manifold_components[:,i]
+        elif names == 'qois':
+            for i in range(n_components):
+                self.data.df['tsne_qoi_{}'.format(i+1)] = manifold_components[:,i]
+        elif names == 'all':
+            for i in range(n_components):
+                self.data.df['tsne_{}'.format(i+1)] = manifold_components[:,i]
+        else:
+            raise ValueError
+
+    
+    def plot_gmm_analysis(self, n_components):
+
+        fig, ax = plt.subplots(1,3)
+
+        print('learning parameter manifold...')
+        self.make_manifold(names='parameters')
+        print('learning qoi manifold...')
+        self.make_manifold(names='qois')
+        print('learning total manifold...')
+        self.make_manifold(names='all')
+
+        self.do_cluster_analysis(n_components=n_components)
+        for i in self.cluster_ids:
+            ax[0].scatter(
+                self.data.df['tsne_param_1'].loc[self.data.df['cluster_id']==i],
+                self.data.df['tsne_param_2'].loc[self.data.df['cluster_id']==i],
+                s=1.)
+
+            ax[1].scatter(
+                self.data.df['tsne_qoi_1'].loc[self.data.df['cluster_id']==i],
+                self.data.df['tsne_qoi_2'].loc[self.data.df['cluster_id']==i],
+                s=1.)
+            
+            ax[2].scatter(
+                self.data.df['tsne_1'].loc[self.data.df['cluster_id']==i],
+                self.data.df['tsne_2'].loc[self.data.df['cluster_id']==i],
+                s=1.)
+
+        ax[0].set_xlabel('tsne_param_1')
+        ax[0].set_ylabel('tsne_param_2')
+        ax[1].set_xlabel('tsne_qoi_1')
+        ax[1].set_ylabel('tsne_qoi_2')
+        ax[2].set_xlabel('tsne_1')
+        ax[2].set_ylabel('tsne_2')
+
+        fig.tight_layout()
+        plt.show()
 
     def do_cluster_analysis(self, n_components):
         names_ = self.names
