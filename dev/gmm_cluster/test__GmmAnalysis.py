@@ -33,9 +33,13 @@ o_config.read(filename=config_fn)
 o_data = PyposmatDataFile()
 o_data.read(filename=data_fn)
 
-max_components = 20
+max_components = 50
 
 output_path = 'test_gmm_analysis'
+
+def cleanup():
+    if os.isdir(path):
+        shutil.rmtree(output_path)
 
 def test__GmmAnalysis____init__():
     gmm = GmmAnalysis(configuration=o_config,
@@ -176,6 +180,16 @@ def plot__cluster_qoi(gmm):
         ax.plot(range(n_targets), pct_error)
     plt.show()
 
+def test__GmmAnalysis__do_ic_analysis():
+
+    gmm = GmmAnalysis(configuration=o_config,
+                      data=o_data,
+                      names='all',
+                      output_path=output_path,
+                      max_components=max_components)
+    gmm.do_ic_analysis()
+    ic_plot_path = os.path.join(output_path,'ic_plot.png')
+    assert os.path.isfile(ic_plot_path)
 
 def table__cluster_parameters(gmm):
     header_row = ['cluster_id', ''] + [p for p in gmm.configuration.parameter_names]
@@ -203,7 +217,8 @@ def table__cluster_qois(gmm):
         print(line_format.format(*std_info))
 
 def dev__GmmAnalysis():
-    n_components = 20
+    max_components = 20
+    n_components = 10
     gmm = GmmAnalysis(configuration=o_config,
                       data=o_data,
                       names='all',
@@ -213,6 +228,7 @@ def dev__GmmAnalysis():
     gmm.make_gmm_models()
     gmm.do_aic_analysis()
     gmm.do_bic_analysis()
+    gmm.do_ic_analysis()
     gmm.do_cluster_analysis(n_components=n_components)
 
     # table__cluster_info(gmm)
@@ -220,5 +236,12 @@ def dev__GmmAnalysis():
     # table__cluster_qois(gmm)
     plot__cluster_qoi(gmm)
     gmm.plot_gmm_analysis(n_components=20)
+
 if __name__ == "__main__":
-   dev__GmmAnalysis()
+    n_components = 10
+    gmm = GmmAnalysis(configuration=o_config,
+                      data=o_data,
+                      names='all',
+                      output_path=output_path,
+                      max_components=max_components)
+    gmm.do_cluster_analysis(n_components=n_components)

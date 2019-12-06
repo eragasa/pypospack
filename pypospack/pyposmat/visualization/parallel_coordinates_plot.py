@@ -12,14 +12,20 @@ class PyposmatParallelCoordinatesPlot(PyposmatAbstractPlot):
     def __init__(self,config=None,data=None,excluded_names=[]):
         assert isinstance(excluded_names,list)
 
-        PyposmatAbstractPlot.__init__(self,config=config,data=data)
+        PyposmatAbstractPlot.__init__(self,
+                                      config=config,
+                                      data=data)
         self.legend_patches = []
         self.x_limits = None
         self.y_limits = None
         self.excluded_names = excluded_names
 
     def create_subplots(self,
-                        figsize=(10,5)):
+                        figsize=(10,5),
+                        nrows=1, ncols=1):
+        assert isinstance(nrows, int)
+        assert isinstance(ncols, int)
+
         PyposmatAbstractPlot.create_subplots(self,
                 nrows=1,ncols=1,
                 sharex=False,sharey=False,

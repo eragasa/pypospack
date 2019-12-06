@@ -11,6 +11,7 @@ from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 
 # base objects
+from pypospack.pyposmat.visualization.abstract_plot_new import AbstractPlot
 from pypospack.pyposmat.visualization.abstract_plot import PyposmatAbstractPlot
 from pypospack.pyposmat.visualization.datafile_visualization import PyposmatDataFileVisualization
 # specific plots
