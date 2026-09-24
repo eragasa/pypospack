@@ -126,8 +126,23 @@ claim about it.
    surface.~~
 8. ~~Add bounded tests and CI without calculator or scheduler execution.~~
 9. ~~Build, inspect, install, and import the distributions in isolation.~~
-10. Reassess findings after remote CI before merging and creating an annotated
-    release tag.
+10. ~~Reassess findings after remote CI before merging and creating an
+    annotated release tag.~~
+
+## Validation result
+
+Development commit `9082daf0` passed GitHub Actions run
+`35969698679` on Python 3.11 and 3.14. Each job passed 14 bounded tests,
+warning-clean package compilation, release-infrastructure lint and format
+checks, isolated wheel and source-distribution builds, boundary verification,
+wheel installation with data and structure extras, dependency checking, and
+selected imports outside the checkout.
+
+A local Python 3.14 validation additionally installed the built wheel in a new
+virtual environment and imported the explicit engine surface without invoking a
+calculator or workflow. The wheel contains 142 Python package modules and five
+distribution-metadata files; the source distribution contains 163 bounded
+files.
 
 ## Review result
 
@@ -135,7 +150,7 @@ Review outcome: `NO_BLOCKING_FINDINGS`
 
 Operator request: `NONE`
 
-Local release validation found no current technical blocker. This outcome does
-not imply scientific validation, calculator portability, publication, or
-release authorization. Remote CI and exact release-object evidence remain the
-next checks before tagging.
+Local and remote release validation found no current technical blocker. This
+outcome does not imply scientific validation, calculator portability,
+publication, or release authorization. Exact release-object and asset evidence
+must still be recorded if the baseline is tagged and published.
