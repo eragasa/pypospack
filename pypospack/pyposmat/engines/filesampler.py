@@ -7,7 +7,7 @@ from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatLogFile
 from pypospack.pyposmat.data import PyposmatBadParametersFile
-from pypospack.pyposmat.engines import PyposmatEngine
+from pypospack.pyposmat.engines.engine import PyposmatEngine
 
 # necessary errors which this class needs to handle
 from pypospack.exceptions import LammpsSimulationError

@@ -297,7 +297,8 @@ class PotentialInformation(object):
             self.filename = filename
 
         try:
-            yaml_potential_info = yaml.load(open(self.filename))
+            with open(self.filename) as input_stream:
+                yaml_potential_info = yaml.safe_load(input_stream)
         except:
             raise
 

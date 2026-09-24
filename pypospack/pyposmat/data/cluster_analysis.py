@@ -663,7 +663,7 @@ if __name__ == "__main__":
     rd['preprocessing']['performance']['cpu_time'] = \
         o.cpu_time_preprocess
 
-    if rd['preprocessing']['type'] is 'standard_scaler':
+    if rd['preprocessing']['type'] == 'standard_scaler':
         for k,v in rd['preprocessing']['results'].items():
             print("{},{},{}".format(k,v['mean'],v['var']))
 

@@ -111,7 +111,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
         # this should be replaced with ore general code which implements a base class
         # lattice to retrieve all this reference data
 
-        if self.parameters["{}_latticetype"] is 'fcc':
+        if self.parameters["{}_latticetype"] == 'fcc':
             V = a0**3
             n_atoms_per_unit_cell = 4
             omega = V/n_atoms_per_unit_cell
@@ -126,7 +126,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
         else:
             _p = parameters
 
-        if latt_type is 'fcc':
+        if latt_type == 'fcc':
             pass
 
     def evaluate(self,

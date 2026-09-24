@@ -103,7 +103,7 @@ class EamSetflFile(object):
            attribute is initialized as None.
         func_pair_potential(OrderedDict):  They has the format 'sym_i.sym_j' which
            are generated from unique combinations from the symbols attribute. The
-           pairs are selected as s_i, s_j \in S, where i <= j.  This attribute is 
+           pairs are selected as s_i, s_j \\in S, where i <= j.  This attribute is
            initialized as none.
            
     Ref:

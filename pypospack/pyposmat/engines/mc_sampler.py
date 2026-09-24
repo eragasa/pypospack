@@ -10,8 +10,11 @@ from collections import OrderedDict
 import numpy as np
 from numpy.linalg import LinAlgError
 import scipy.stats
+from pypospack.expressions import (
+        evaluate_constraint_expression,
+        evaluate_numeric_expression)
 from pypospack.kde import Chiu1999_h
-from pypospack.pyposmat.engines import PyposmatEngine
+from pypospack.pyposmat.engines.engine import PyposmatEngine
 from pypospack.pyposmat.data import (
         PyposmatConfigurationFile,
         PyposmatDataFile,
@@ -180,7 +183,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
         
         if self.mpi_rank == 0:
             m = ["R{}: Starting iteration N={}".format(self.mpi_rank,i_iteration)]
-            if _sampling_type is "from_file":
+            if _sampling_type == "from_file":
                 m += ["R{}: Sampling parameters from {}".format(
                     self.mpi_rank,filename)]
             else:
@@ -281,15 +284,10 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
 
                     # process evaluation strings
                     elif type(self.parameter_distribution_definition[p][1]) is not list:
-                        _str_eval = str(self.parameter_distribution_definition[p][1])
-
-                        # replace string values with numerical values
-                        for fp in self.free_parameter_names:
-                            if fp in _str_eval:
-                                _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
-
-                        # evaluate the string into a float
-                        _parameters[p] = eval(_str_eval)
+                        expression = str(
+                                self.parameter_distribution_definition[p][1])
+                        _parameters[p] = evaluate_numeric_expression(
+                                expression, _parameters)
                     else:
                         raise ValueError("oops")
 
@@ -306,11 +304,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             try:
                 # check constraints
                 for k,v in self.parameter_constraints.items():
-                    _eval_str = v
-                    for pn,pv in _parameters.items():
-                        _eval_str = _eval_str.replace(pn,str(pv))
-
-                    if eval(_eval_str) is False:
+                    if not evaluate_constraint_expression(v, _parameters):
                         m = "failed parameter constraint, {}".format(k)
                         raise PyposmatBadParameterError(m,parameters=_parameters)
             
@@ -456,15 +450,10 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
                     
                     # process evaluation strings
                     elif type(self.parameter_distribution_definition[p][1]) is not list:
-                        _str_eval = str(self.parameter_distribution_definition[p][1])
-
-                        # replace string values with numerical values
-                        for fp in self.free_parameter_names:
-                            if fp in _str_eval:
-                                _str_eval = _str_eval.replace(fp,str(_parameters[fp]))
-
-                        # evaluate the string into a float
-                        _parameters[p] = eval(_str_eval)
+                        expression = str(
+                                self.parameter_distribution_definition[p][1])
+                        _parameters[p] = evaluate_numeric_expression(
+                                expression, _parameters)
                     else:
                         raise ValueError("oops")
 
@@ -483,11 +472,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             try:
                 # now we check parameter inequality constraints
                 for k,v in self.parameter_constraints.items():
-                    _eval_str = v
-                    for pn,pv in _parameters.items():
-                        _eval_str = _eval_str.replace(pn,str(pv))
-
-                    if eval(_eval_str) is False:
+                    if not evaluate_constraint_expression(v, _parameters):
                         s = 'parameter constraint failed, {}'.format(k)
                         raise PyposmatBadParameterError(s,parameters=_parameters)
                 _results = self.evaluate_parameter_set(parameters=_parameters)
@@ -568,10 +553,7 @@ class PyposmatMonteCarloSampler(PyposmatEngine):
             try:
                 # check constraints
                 for k,v in self.parameter_constraints.items():
-                    _eval_str = v
-                    for pn,pv in _parameters.items():
-                        _eval_str = _eval_str.replace(pn,str(pv))
-                    if eval(_eval_str) is False:
+                    if not evaluate_constraint_expression(v, _parameters):
                         raise PyposmatBadParameterError()
 
                 _results = self.evaluate_parameter_set(parameters=_parameters)

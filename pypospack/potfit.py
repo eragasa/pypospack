@@ -389,7 +389,8 @@ if False:
                 self.filename = fname
 
             try:
-                self.structure_db = yaml.load(open(self.filename))
+                with open(self.filename) as input_stream:
+                    self.structure_db = yaml.safe_load(input_stream)
             except:
                 raise
 
@@ -535,7 +536,8 @@ if False:
                 self.filename = fname
 
             try:
-                self.qois = yaml.load(open(self.filename))
+                with open(self.filename) as input_stream:
+                    self.qois = yaml.safe_load(input_stream)
             except:
                 raise
 
@@ -650,7 +652,8 @@ if False:
                 self.filename = fname
 
             try:
-                pot_info = yaml.load(open(self.filename))
+                with open(self.filename) as input_stream:
+                    pot_info = yaml.safe_load(input_stream)
             except:
                 raise
 

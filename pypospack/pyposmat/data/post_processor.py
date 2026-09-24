@@ -113,7 +113,7 @@ class PyposmatPostProcessor(object):
         self.create_absolute_errors()
 
     def create_absolute_errors(self,qoi_names=None):
-        if qoi_names is None or qoi_names is 'all':
+        if qoi_names is None or qoi_names == 'all':
             _qoi_names = self.qoi_names
         elif qoi_names == 'fitting':
             _qoi_names = self.qoi_fitting_names
@@ -143,7 +143,7 @@ class PyposmatPostProcessor(object):
             
         """
 
-        if qoi_names is None or qoi_names is 'all':
+        if qoi_names is None or qoi_names == 'all':
             _qoi_names = self.qoi_names
         elif qoi_names == 'fitting':
             _qoi_names = self.qoi_fitting_names

@@ -24,9 +24,9 @@ from pypospack.pyposmat.data import PyposmatLogFile
 from pypospack.pyposmat.data import PyposmatDataAnalyzer
 
 # --- pyposmat data samplers
-from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
-from pypospack.pyposmat.engines import PyposmatFileSampler
-from pypospack.pyposmat.engines import PyposmatClusterSampler
+from pypospack.pyposmat.engines.cluster_engine import PyposmatClusterSampler
+from pypospack.pyposmat.engines.filesampler import PyposmatFileSampler
+from pypospack.pyposmat.engines.mc_sampler import PyposmatMonteCarloSampler
 
 # --- pyposmat error classes
 from pypospack.exceptions import PyposmatSamplingTypeError

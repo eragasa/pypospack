@@ -104,11 +104,11 @@ class PhontsSimulation(Task):
 
     @calculation_type.setter
     def calculation_type(self,calculation_type):
-         if calculation_type is 'phonons_only':
+         if calculation_type == 'phonons_only':
              self._calculation_type = calculation_type
-         elif calculation_type is 'iterations':
+         elif calculation_type == 'iterations':
              self._calculation_type = calculation_type
-         elif calculation_type is 'qha':
+         elif calculation_type == 'qha':
              self._calcualtion_type = calculation_type
          else:
              msg_err = "calculation_type not supported"

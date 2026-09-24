@@ -17,7 +17,7 @@ class RoseEquationOfStateEmbeddingFunction(EamEmbeddingEquationOfState):
         else:
             _p = parameters
 
-        if latt_type is 'fcc':
+        if latt_type == 'fcc':
             pass
 
     def evaluate(rho,parameters,o_pair,o_density):

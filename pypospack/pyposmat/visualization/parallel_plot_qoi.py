@@ -321,7 +321,7 @@ class PyposmatQoiParallelCoordinatesPlot(object):
         # set numbers to percentages
         
         y_ticks = ax.get_yticks()
-        y_tick_labels = ['{:.0f}\%'.format(100*v) for v in y_ticks]
+        y_tick_labels = ['{:.0f}%'.format(100*v) for v in y_ticks]
    
         ax.set_yticklabels(y_tick_labels)
     def add_x_axis_labels(self,ax,qoi_names):

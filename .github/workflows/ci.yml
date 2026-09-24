@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install verification tools
+        run: python -m pip install --upgrade build pip ruff
+
+      - name: Run bounded release tests
+        run: python -m unittest discover -s release_tests -p 'test_*.py' -v
+
+      - name: Compile maintained package and tools
+        run: python -m compileall -q pypospack tools release_tests
+
+      - name: Check maintained release infrastructure style
+        run: |
+          ruff check \
+            pypospack/expressions.py \
+            setup.py \
+            tools \
+            release_tests
+          ruff format --check \
+            pypospack/expressions.py \
+            setup.py \
+            tools \
+            release_tests
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Verify distribution boundaries
+        run: |
+          python tools/verify_wheel.py dist/*.whl --repository-root .
+          python tools/verify_sdist.py dist/*.tar.gz
+
+      - name: Install wheel with bounded optional dependencies
+        run: |
+          python -m pip install "$(find dist -name '*.whl' -print -quit)[data,structure]"
+          python -m pip check
+
+      - name: Import validated modules outside the checkout
+        run: |
+          cd "${RUNNER_TEMP}"
+          python - <<'PY'
+          import pypospack
+          from pypospack import expressions
+          from pypospack.io import filesystem
+          from pypospack.pyposmat import get_supported_qois
+          from pypospack.pyposmat.engines import (
+              PyposmatEngine,
+              PyposmatFileSampler,
+              PyposmatMonteCarloSampler,
+          )
+
+          assert pypospack.__version__ == "0.1.0"
+          assert expressions.evaluate_numeric_expression("-value", {"value": 2}) == -2
+          assert issubclass(filesystem.OrderedDictYAMLLoader, filesystem.yaml.SafeLoader)
+          assert "c11" in get_supported_qois()
+          assert PyposmatEngine.__name__ == "PyposmatEngine"
+          assert PyposmatFileSampler.__name__ == "PyposmatFileSampler"
+          assert PyposmatMonteCarloSampler.__name__ == "PyposmatMonteCarloSampler"
+          PY

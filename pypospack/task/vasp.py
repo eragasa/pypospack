@@ -1122,7 +1122,7 @@ class SlurmSimulationManifest(SimulationManifest):
             self.filename = filename
 
         with open(self.filename,'r') as f:
-            manifest = yaml.load(f)
+            manifest = yaml.safe_load(f)
 
         self.task_list = list(manifest['task_list'])
         self.tasks = dict(manifest['tasks'])

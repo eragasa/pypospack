@@ -11,8 +11,8 @@ from pypospack.pyposmat.data import PyposmatDataFile
 from pypospack.pyposmat.data import PyposmatConfigurationFile
 from pypospack.pyposmat.data import PyposmatClusterAnalysis
 from pypospack.pyposmat.data import PyposmatLogFile
-from pypospack.pyposmat.engines import PyposmatEngine
-from pypospack.pyposmat.engines import PyposmatMonteCarloSampler
+from pypospack.pyposmat.engines.engine import PyposmatEngine
+from pypospack.pyposmat.engines.mc_sampler import PyposmatMonteCarloSampler
 
 class PyposmatClusterSampler(PyposmatEngine):
 

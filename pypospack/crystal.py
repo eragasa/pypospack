@@ -114,7 +114,8 @@ class StructureDatabase(object):
             self.filename = fname
 
         try:
-            self.structure_db = yaml.load(open(self.filename))
+            with open(self.filename) as input_stream:
+                self.structure_db = yaml.safe_load(input_stream)
         except:
             raise
 

@@ -19,7 +19,7 @@ class Pyposmat2DDensityPlots(PyposmatDataFileVisualization):
             kde = stats.gaussian_kde(values)
         elif h in ['silverman','silverman1986']:
             kde = stats.gaussian_kde(values,'silverman')
-        elif h is 'chiu1999':
+        elif h == 'chiu1999':
             _h = Chiu1999_h(values)
             kde = stats.gaussian_kde(values,_h)
         else:

@@ -158,13 +158,13 @@ def make_bulk_structure(symbols,
 
     is_cubic = None
     is_orthorhombic = None
-    if lattice_shape is 'cubic':
+    if lattice_shape == 'cubic':
         is_cubic = True
         is_orthorhombic = False
-    elif lattice_shape is 'ortho':
+    elif lattice_shape == 'ortho':
         is_cubic = False
         is_orthorhombic = True
-    elif lattice_shape is 'prim':
+    elif lattice_shape == 'prim':
         is_cubic = False
         is_orthorhombic = False
     else:

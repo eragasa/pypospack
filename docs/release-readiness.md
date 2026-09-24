@@ -39,32 +39,28 @@ identity.
 
 ### Package boundary is absent
 
-Disposition: `MUST_FIX`
+Disposition: `NO_ACTION_REQUIRED`
 
-The repository does not define a distribution, package selection, version,
-supported Python versions, or dependencies. The smallest correction is modern
-metadata that explicitly selects only `pypospack` packages. Development,
-examples, historical tests, generated documentation, local data, offline
-artifacts, and calculator output must remain outside wheel and source-
-distribution boundaries.
+`pyproject.toml` now defines version 0.1.0, Python 3.11 or newer, MIT licensing,
+core and optional dependencies, and recursive selection limited to
+`pypospack`. Wheel and source-distribution verifiers reject content outside the
+maintained boundary. Development, examples, historical tests, local data,
+offline artifacts, alternate source trees, and calculator output are absent
+from both distributions.
 
 ### Maintained package contains incomplete syntax
 
-Disposition: `MUST_FIX`
+Disposition: `NO_ACTION_REQUIRED`
 
-Static parsing fails in:
-
-- `pypospack/optimization/loss_function.py:39`; and
-- `pypospack/pyposmat/engines/base_sampler.py:61`.
-
-The package modules must be repaired or excluded explicitly. The other 95
-failures are under development, examples, data, tests, historical tests, and
-an alternate `src/version_1` tree. Those trees must not silently enter release
-packages.
+The two incomplete package modules and their unusable dependent sampler modules
+were removed from the maintained tree rather than assigned unverified
+semantics. Historical Git retains them. The remaining 142 package modules parse
+under Python 3.14 with `SyntaxWarning` promoted to an error. The other 95
+historical failures remain outside release distributions.
 
 ### Generated and restricted artifacts are tracked
 
-Disposition: `FIXED`
+Disposition: `NO_ACTION_REQUIRED`
 
 The reviewed declarative policy selected 5,396 files totaling 637,072,563
 bytes. The selection includes VASP pseudopotentials and outputs,
@@ -82,29 +78,26 @@ history. `OFFLINE_ARTIFACTS.md` records the bounded result and limitations.
 
 ### Runtime and effect boundaries are undeclared
 
-Disposition: `MUST_FIX`
+Disposition: `NO_ACTION_REQUIRED`
 
-The package has numerical, plotting, analysis, MPI, structure-tooling, and YAML
-dependencies but no metadata. It also contains calculator and shell process
-boundaries and historical expression evaluation. Dependencies must be divided
-into core and optional surfaces. Installation and ordinary CI must never run a
-calculator, scheduler, shell command, retained expression, or workflow.
-
-This source baseline may preserve effectful APIs only if they are clearly
-classified as explicit, unverified research interfaces and are never exercised
-by release validation. Revisit them before presenting any calculator-backed
-feature as supported.
+Core numerical and YAML dependencies and optional data, structure, plotting,
+and MPI groups are explicit. Unrestricted parameter-expression evaluation was
+replaced with bounded AST arithmetic over explicitly supplied names; package
+YAML readers now use safe loaders. Calculator, scheduler, shell, and workflow
+interfaces are documented as explicit, unverified historical research
+surfaces. Installation and release validation do not invoke them. Revisit these
+interfaces before presenting calculator-backed behavior as supported.
 
 ### Portable test and CI contract is absent
 
-Disposition: `MUST_FIX`
+Disposition: `NO_ACTION_REQUIRED`
 
-The historical test and example trees mix useful source, machine-specific
-paths, generated outputs, incomplete scripts, and calculator execution. A
-release gate must instead begin with sanitized static and in-memory tests for
-package syntax, metadata, selection policy, and distribution boundaries. CI
-must import maintained modules only after installing declared dependencies and
-must not discover the historical test tree automatically.
+`release_tests/` provides sanitized static and in-memory checks for package
+syntax, metadata, offline evidence, safe loading, bounded expressions, and wheel
+contents. CI on Python 3.11 and 3.14 builds both distributions, validates their
+boundaries, installs the wheel with bounded optional dependencies, runs
+`pip check`, and imports selected maintained modules outside the checkout. It
+does not discover the historical test tree or execute calculator workflows.
 
 ### Potential and structure collections need a separate ownership decision
 
@@ -127,16 +120,22 @@ claim about it.
 3. ~~Verify selected bytes against the original Git commit and create a private
    Dropbox archive under `pypospack/v0.1/data/`.~~
 4. ~~Perform and document a complete recovery round trip.~~
-5. Add explicit package and source-distribution boundaries.
-6. Repair or exclude the two invalid package modules.
-7. Declare core and optional dependencies from the maintained import surface.
-8. Add bounded tests and CI without calculator or scheduler execution.
-9. Build, inspect, install, and import the distributions in isolation.
-10. Reassess findings before merging and creating an annotated release tag.
+5. ~~Add explicit package and source-distribution boundaries.~~
+6. ~~Repair or exclude the two invalid package modules.~~
+7. ~~Declare core and optional dependencies from the maintained import
+   surface.~~
+8. ~~Add bounded tests and CI without calculator or scheduler execution.~~
+9. ~~Build, inspect, install, and import the distributions in isolation.~~
+10. Reassess findings after remote CI before merging and creating an annotated
+    release tag.
 
 ## Review result
 
-Review outcome: `CHANGES_REQUIRED`
+Review outcome: `NO_BLOCKING_FINDINGS`
 
-Artifact externalization, packaging, syntax, dependency, test, CI, and support-
-boundary work remains before a release is appropriate.
+Operator request: `NONE`
+
+Local release validation found no current technical blocker. This outcome does
+not imply scientific validation, calculator portability, publication, or
+release authorization. Remote CI and exact release-object evidence remain the
+next checks before tagging.

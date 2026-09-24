@@ -2,8 +2,8 @@ import copy
 def get_eigenvalues_from_vasp(outcar):
     eigenvalues = []
     eigenvectors = []
-    str_regex_eigen_1 = '\d+ f  =\s+\d+.\d+\sTHz\s+\d+.\d+\s2PiTHz\s+\d+.\d+\scm-1\s+\d+.\d+\smeV'
-    str_regex_eigen_2 = '\d+ f/i=\s+\d+.\d+\sTHz\s+\d+.\d+\s2PiTHz\s+\d+.\d+\scm-1\s+\d+.\d+\smeV'
+    str_regex_eigen_1 = r'\d+ f  =\s+\d+.\d+\sTHz\s+\d+.\d+\s2PiTHz\s+\d+.\d+\scm-1\s+\d+.\d+\smeV'
+    str_regex_eigen_2 = r'\d+ f/i=\s+\d+.\d+\sTHz\s+\d+.\d+\s2PiTHz\s+\d+.\d+\scm-1\s+\d+.\d+\smeV'
     regex_eigen = [re.compile(p) for p in [str_regex_eigen_1, str_regex_eigen_2]]
     file = open(outcar,'r')
 
