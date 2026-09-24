@@ -64,19 +64,21 @@ packages.
 
 ### Generated and restricted artifacts are tracked
 
-Disposition: `MUST_FIX`
+Disposition: `FIXED`
 
-A reviewed declarative policy currently selects 5,396 files totaling
-637,072,563 bytes. The selection includes VASP pseudopotentials and outputs,
+The reviewed declarative policy selected 5,396 files totaling 637,072,563
+bytes. The selection includes VASP pseudopotentials and outputs,
 LAMMPS outputs and restarts, PHONTS result datasets and archives, optimization
 logs and result tables, scheduler output, generated documentation, editor
 state, platform metadata, and interpreter caches.
 
 The policy is tracked at `devtools/offline-artifacts.toml`. Selection is
 repository-owned; generic staging, verification, archive, and recovery are
-provided by `projectkoios-bootstrap`. The selected bytes must be copied,
-verified, archived privately, recovery-tested, and then removed from the
-maintained tip without rewriting existing history.
+provided by `projectkoios-bootstrap` commit
+`c0f406685a49838a690c1519a6174564bbaa057b`. The selected bytes were copied and
+verified against the original Git commit, archived privately, recovered and
+reverified in full, and removed from the maintained tip without rewriting
+history. `OFFLINE_ARTIFACTS.md` records the bounded result and limitations.
 
 ### Runtime and effect boundaries are undeclared
 
@@ -119,12 +121,12 @@ claim about it.
 
 ## Recommended sequence
 
-1. Commit the declarative selection policy and audit evidence.
-2. Apply the generic bootstrap staging command from a clean checkout with
-   explicit original removal.
-3. Verify selected bytes against the original Git commit and create a private
-   Dropbox archive under `pypospack/v0.1/data/`.
-4. Perform and document a complete recovery round trip.
+1. ~~Commit the declarative selection policy and audit evidence.~~
+2. ~~Apply the generic bootstrap staging command from a clean checkout with
+   explicit original removal.~~
+3. ~~Verify selected bytes against the original Git commit and create a private
+   Dropbox archive under `pypospack/v0.1/data/`.~~
+4. ~~Perform and document a complete recovery round trip.~~
 5. Add explicit package and source-distribution boundaries.
 6. Repair or exclude the two invalid package modules.
 7. Declare core and optional dependencies from the maintained import surface.
